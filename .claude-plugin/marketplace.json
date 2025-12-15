@@ -1,0 +1,16 @@
+{
+  "name": "zest-marketplace",
+  "description": "Official Zest plugin marketplace for Claude Code CLI",
+  "owner": {
+    "name": "Zest",
+    "url": "https://github.com/zest"
+  },
+  "plugins": [
+    {
+      "name": "zest",
+      "source": "./zest/",
+      "description": "Automatically track coding sessions and file changes with Zest for productivity insights and analysis",
+      "version": "0.0.3"
+    }
+  ]
+}
