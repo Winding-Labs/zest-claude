@@ -17,6 +17,15 @@ var __toESM = (mod, isNodeMode, target) => {
   return to;
 };
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, {
+      get: all[name],
+      enumerable: true,
+      configurable: true,
+      set: (newValue) => all[name] = () => newValue
+    });
+};
 var __esm = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
 var __require = /* @__PURE__ */ createRequire(import.meta.url);
 
@@ -131,7 +140,7 @@ var require_dist = __commonJS((exports) => {
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, LOG_FILE, SYNC_LOG_FILE, DAEMON_PID_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, DELETION_CACHE_TTL_MS, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MAX_CONTENT_PREVIEW_LENGTH = 1000, STALE_SESSION_AGE_MS, WEB_APP_URL = "http://192.168.1.21:3000", CLAUDE_PROJECTS_DIR, EXCLUDED_COMMAND_PATTERNS;
+var CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, LOG_FILE, SYNC_LOG_FILE, DAEMON_PID_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, DELETION_CACHE_TTL_MS, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, STALE_SESSION_AGE_MS, CLAUDE_PROJECTS_DIR, EXCLUDED_COMMAND_PATTERNS;
 var init_constants = __esm(() => {
   CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${"-dev"}`);
   QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
@@ -217,18 +226,48 @@ var init_logger = __esm(() => {
 });
 
 // src/utils/deletion-cache.ts
-import { mkdir as mkdir3, readFile as readFile2, readdir, rm, stat, writeFile as writeFile2 } from "node:fs/promises";
+var exports_deletion_cache = {};
+__export(exports_deletion_cache, {
+  getCachedFileContent: () => getCachedFileContent,
+  cleanupOldCache: () => cleanupOldCache,
+  cacheFileForDeletion: () => cacheFileForDeletion
+});
+import { mkdir as mkdir2, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { join as join2 } from "node:path";
+async function ensureCacheDir() {
+  try {
+    await mkdir2(DELETION_CACHE_DIR, { recursive: true });
+  } catch (error) {
+    logger.error("Failed to create cache directory:", error);
+  }
+}
 function getCacheKey(filePath, sessionId) {
   const hash = Buffer.from(filePath).toString("base64").replace(/[/+=]/g, "_");
   return `${sessionId}_${hash}.json`;
+}
+async function cacheFileForDeletion(filePath, content, sessionId) {
+  try {
+    await ensureCacheDir();
+    const cached = {
+      filePath,
+      content,
+      timestamp: Date.now(),
+      sessionId
+    };
+    const cacheKey = getCacheKey(filePath, sessionId);
+    const cachePath = join2(DELETION_CACHE_DIR, cacheKey);
+    await writeFile(cachePath, JSON.stringify(cached, null, 2), "utf-8");
+    logger.debug(`Cached file content: ${filePath} (${content.length} chars)`);
+  } catch (error) {
+    logger.error(`Failed to cache file for deletion: ${filePath}`, error);
+  }
 }
 async function getCachedFileContent(filePath, sessionId) {
   try {
     const cacheKey = getCacheKey(filePath, sessionId);
     const cachePath = join2(DELETION_CACHE_DIR, cacheKey);
     try {
-      const content = await readFile2(cachePath, "utf-8");
+      const content = await readFile(cachePath, "utf-8");
       const cached = JSON.parse(content);
       const age = Date.now() - cached.timestamp;
       if (age > DELETION_CACHE_TTL_MS) {
@@ -248,6 +287,28 @@ async function getCachedFileContent(filePath, sessionId) {
     return null;
   }
 }
+async function cleanupOldCache() {
+  try {
+    await ensureCacheDir();
+    const files = await readdir(DELETION_CACHE_DIR);
+    const now = Date.now();
+    for (const file of files) {
+      try {
+        const filePath = join2(DELETION_CACHE_DIR, file);
+        const stats = await stat(filePath);
+        const age = now - stats.mtimeMs;
+        if (age > DELETION_CACHE_TTL_MS) {
+          await rm(filePath);
+          logger.debug(`Cleaned up old cache entry: ${file} (${age}ms old)`);
+        }
+      } catch (error) {
+        logger.debug(`Failed to clean up cache file ${file}:`, error);
+      }
+    }
+  } catch (error) {
+    logger.error("Failed to cleanup old cache:", error);
+  }
+}
 var init_deletion_cache = __esm(() => {
   init_constants();
   init_logger();
@@ -255,145 +316,21 @@ var init_deletion_cache = __esm(() => {
 
 // src/utils/extraction-helpers.ts
 var import_utils = __toESM(require_dist(), 1);
-import { randomUUID } from "node:crypto";
-import { stat as stat3 } from "node:fs/promises";
+import { stat as stat2 } from "node:fs/promises";
 import { basename, join as join4 } from "node:path";
 
 // src/auth/session-manager.ts
 init_constants();
 init_logger();
-import { mkdir as mkdir2, readFile, unlink, writeFile } from "node:fs/promises";
-import { dirname as dirname2 } from "node:path";
-async function loadSession() {
-  try {
-    const content = await readFile(SESSION_FILE, "utf-8");
-    const session = JSON.parse(content);
-    if (!session.accessToken || !session.refreshToken || !session.expiresAt || !session.userId || !session.email) {
-      logger.warn("Invalid session structure, clearing session");
-      await clearSession();
-      return null;
-    }
-    const now = Date.now();
-    if (session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < now) {
-      logger.warn("Refresh token expired, user must re-authenticate");
-      await clearSession();
-      return null;
-    }
-    if (session.expiresAt < now) {
-      logger.debug("Access token expired, attempting refresh");
-      try {
-        return await refreshSession(session);
-      } catch (error) {
-        logger.warn("Failed to refresh session", error);
-        await clearSession();
-        return null;
-      }
-    }
-    return session;
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      return null;
-    }
-    logger.error("Failed to load session", error);
-    return null;
-  }
-}
-async function saveSession(session) {
-  try {
-    await mkdir2(dirname2(SESSION_FILE), { recursive: true, mode: 448 });
-    await writeFile(SESSION_FILE, JSON.stringify(session, null, 2), {
-      encoding: "utf-8",
-      mode: 384
-    });
-    logger.info("Session saved successfully");
-  } catch (error) {
-    logger.error("Failed to save session", error);
-    throw error;
-  }
-}
-async function clearSession() {
-  try {
-    await unlink(SESSION_FILE);
-    logger.info("Session cleared successfully");
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      return;
-    }
-    logger.error("Failed to clear session", error);
-    throw error;
-  }
-}
-async function refreshSession(session) {
-  try {
-    logger.debug("Refreshing session");
-    const response = await fetch(`${WEB_APP_URL}/api/auth/extension/refresh`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        refreshToken: session.refreshToken
-      })
-    });
-    if (!response.ok) {
-      throw new Error(`Token refresh failed: ${response.status} ${response.statusText}`);
-    }
-    const data = await response.json();
-    const now = Date.now();
-    const expiresAt = now + data.expiresIn * 1000;
-    const refreshTokenExpiresAt = data.refreshTokenExpiresIn ? now + data.refreshTokenExpiresIn * 1000 : session.refreshTokenExpiresAt;
-    const newSession = {
-      ...session,
-      accessToken: data.accessToken,
-      refreshToken: data.refreshToken,
-      expiresAt,
-      refreshTokenExpiresAt
-    };
-    logger.debug(`Access token will expire in ${data.expiresIn} seconds (${new Date(expiresAt).toISOString()})`);
-    if (refreshTokenExpiresAt) {
-      logger.debug(`Refresh token will expire at ${new Date(refreshTokenExpiresAt).toISOString()}`);
-    } else {
-      logger.debug("Refresh token does not expire");
-    }
-    await saveSession(newSession);
-    logger.info("Session refreshed successfully");
-    return newSession;
-  } catch (error) {
-    logger.error("Failed to refresh session", error);
-    throw error;
-  }
-}
-async function getValidSession() {
-  const session = await loadSession();
-  if (!session) {
-    return null;
-  }
-  const now = Date.now();
-  const timeUntilExpiration = session.expiresAt - now;
-  if (timeUntilExpiration < PROACTIVE_REFRESH_THRESHOLD_MS) {
-    try {
-      logger.debug(`Token ${timeUntilExpiration < 0 ? "expired" : `expiring in ${Math.round(timeUntilExpiration / 1000)}s`}, refreshing...`);
-      return await refreshSession(session);
-    } catch (error) {
-      logger.warn("Failed to refresh session", error);
-      return null;
-    }
-  }
-  return session;
-}
 
 // src/utils/extraction-helpers.ts
 init_constants();
-
-// src/extractors/message-parser.ts
-import { readFile as readFile3 } from "node:fs/promises";
 
 // src/utils/command-filters.ts
 init_constants();
 
 // src/extractors/extraction-utils.ts
 init_constants();
-import { createHash } from "node:crypto";
 init_deletion_cache();
 
 // ../../node_modules/diff/libesm/diff/base.js
@@ -960,9 +897,6 @@ var LineDiff = function(_super) {
   return LineDiff2;
 }(base_default);
 var lineDiff = new LineDiff;
-function diffLines(oldStr, newStr, options) {
-  return lineDiff.diff(oldStr, newStr, options);
-}
 function tokenize(value, options) {
   if (options.stripTrailingCr) {
     value = value.replace(/\r\n/g, `
@@ -1190,388 +1124,12 @@ var ArrayDiff = function(_super) {
 }(base_default);
 var arrayDiff = new ArrayDiff;
 
-// ../../node_modules/diff/libesm/patch/create.js
-var __assign = function() {
-  __assign = Object.assign || function(t) {
-    for (var s, i = 1, n = arguments.length;i < n; i++) {
-      s = arguments[i];
-      for (var p in s)
-        if (Object.prototype.hasOwnProperty.call(s, p))
-          t[p] = s[p];
-    }
-    return t;
-  };
-  return __assign.apply(this, arguments);
-};
-function structuredPatch(oldFileName, newFileName, oldStr, newStr, oldHeader, newHeader, options) {
-  var optionsObj;
-  if (!options) {
-    optionsObj = {};
-  } else if (typeof options === "function") {
-    optionsObj = { callback: options };
-  } else {
-    optionsObj = options;
-  }
-  if (typeof optionsObj.context === "undefined") {
-    optionsObj.context = 4;
-  }
-  var context = optionsObj.context;
-  if (optionsObj.newlineIsToken) {
-    throw new Error("newlineIsToken may not be used with patch-generation functions, only with diffing functions");
-  }
-  if (!optionsObj.callback) {
-    return diffLinesResultToPatch(diffLines(oldStr, newStr, optionsObj));
-  } else {
-    var callback_1 = optionsObj.callback;
-    diffLines(oldStr, newStr, __assign(__assign({}, optionsObj), { callback: function(diff) {
-      var patch = diffLinesResultToPatch(diff);
-      callback_1(patch);
-    } }));
-  }
-  function diffLinesResultToPatch(diff) {
-    if (!diff) {
-      return;
-    }
-    diff.push({ value: "", lines: [] });
-    function contextLines(lines2) {
-      return lines2.map(function(entry) {
-        return " " + entry;
-      });
-    }
-    var hunks = [];
-    var oldRangeStart = 0, newRangeStart = 0, curRange = [], oldLine = 1, newLine = 1;
-    for (var i = 0;i < diff.length; i++) {
-      var current = diff[i], lines = current.lines || splitLines(current.value);
-      current.lines = lines;
-      if (current.added || current.removed) {
-        if (!oldRangeStart) {
-          var prev = diff[i - 1];
-          oldRangeStart = oldLine;
-          newRangeStart = newLine;
-          if (prev) {
-            curRange = context > 0 ? contextLines(prev.lines.slice(-context)) : [];
-            oldRangeStart -= curRange.length;
-            newRangeStart -= curRange.length;
-          }
-        }
-        for (var _i = 0, lines_1 = lines;_i < lines_1.length; _i++) {
-          var line = lines_1[_i];
-          curRange.push((current.added ? "+" : "-") + line);
-        }
-        if (current.added) {
-          newLine += lines.length;
-        } else {
-          oldLine += lines.length;
-        }
-      } else {
-        if (oldRangeStart) {
-          if (lines.length <= context * 2 && i < diff.length - 2) {
-            for (var _a = 0, _b = contextLines(lines);_a < _b.length; _a++) {
-              var line = _b[_a];
-              curRange.push(line);
-            }
-          } else {
-            var contextSize = Math.min(lines.length, context);
-            for (var _c = 0, _d = contextLines(lines.slice(0, contextSize));_c < _d.length; _c++) {
-              var line = _d[_c];
-              curRange.push(line);
-            }
-            var hunk = {
-              oldStart: oldRangeStart,
-              oldLines: oldLine - oldRangeStart + contextSize,
-              newStart: newRangeStart,
-              newLines: newLine - newRangeStart + contextSize,
-              lines: curRange
-            };
-            hunks.push(hunk);
-            oldRangeStart = 0;
-            newRangeStart = 0;
-            curRange = [];
-          }
-        }
-        oldLine += lines.length;
-        newLine += lines.length;
-      }
-    }
-    for (var _e = 0, hunks_1 = hunks;_e < hunks_1.length; _e++) {
-      var hunk = hunks_1[_e];
-      for (var i = 0;i < hunk.lines.length; i++) {
-        if (hunk.lines[i].endsWith(`
-`)) {
-          hunk.lines[i] = hunk.lines[i].slice(0, -1);
-        } else {
-          hunk.lines.splice(i + 1, 0, "\\ No newline at end of file");
-          i++;
-        }
-      }
-    }
-    return {
-      oldFileName,
-      newFileName,
-      oldHeader,
-      newHeader,
-      hunks
-    };
-  }
-}
-function formatPatch(patch) {
-  if (Array.isArray(patch)) {
-    return patch.map(formatPatch).join(`
-`);
-  }
-  var ret = [];
-  if (patch.oldFileName == patch.newFileName) {
-    ret.push("Index: " + patch.oldFileName);
-  }
-  ret.push("===================================================================");
-  ret.push("--- " + patch.oldFileName + (typeof patch.oldHeader === "undefined" ? "" : "\t" + patch.oldHeader));
-  ret.push("+++ " + patch.newFileName + (typeof patch.newHeader === "undefined" ? "" : "\t" + patch.newHeader));
-  for (var i = 0;i < patch.hunks.length; i++) {
-    var hunk = patch.hunks[i];
-    if (hunk.oldLines === 0) {
-      hunk.oldStart -= 1;
-    }
-    if (hunk.newLines === 0) {
-      hunk.newStart -= 1;
-    }
-    ret.push("@@ -" + hunk.oldStart + "," + hunk.oldLines + " +" + hunk.newStart + "," + hunk.newLines + " @@");
-    for (var _i = 0, _a = hunk.lines;_i < _a.length; _i++) {
-      var line = _a[_i];
-      ret.push(line);
-    }
-  }
-  return ret.join(`
-`) + `
-`;
-}
-function createTwoFilesPatch(oldFileName, newFileName, oldStr, newStr, oldHeader, newHeader, options) {
-  if (typeof options === "function") {
-    options = { callback: options };
-  }
-  if (!(options === null || options === undefined ? undefined : options.callback)) {
-    var patchObj = structuredPatch(oldFileName, newFileName, oldStr, newStr, oldHeader, newHeader, options);
-    if (!patchObj) {
-      return;
-    }
-    return formatPatch(patchObj);
-  } else {
-    var callback_2 = options.callback;
-    structuredPatch(oldFileName, newFileName, oldStr, newStr, oldHeader, newHeader, __assign(__assign({}, options), { callback: function(patchObj2) {
-      if (!patchObj2) {
-        callback_2(undefined);
-      } else {
-        callback_2(formatPatch(patchObj2));
-      }
-    } }));
-  }
-}
-function createPatch(fileName, oldStr, newStr, oldHeader, newHeader, options) {
-  return createTwoFilesPatch(fileName, fileName, oldStr, newStr, oldHeader, newHeader, options);
-}
-function splitLines(text) {
-  var hasTrailingNl = text.endsWith(`
-`);
-  var result = text.split(`
-`).map(function(line) {
-    return line + `
-`;
-  });
-  if (hasTrailingNl) {
-    result.pop();
-  } else {
-    result.push(result.pop().slice(0, -1));
-  }
-  return result;
-}
-
 // src/utils/diff-utils.ts
 init_constants();
 init_logger();
-function createUnifiedDiff(filePath, oldString, newString) {
-  try {
-    return createPatch(filePath, oldString.trimEnd(), newString.trimEnd(), "", "", {
-      context: 3
-    });
-  } catch (error) {
-    logger.warn(`Failed to create unified diff for ${filePath}`, error);
-    return "";
-  }
-}
-function sanitizeDiff(diff, filePath) {
-  if (!diff || !filePath) {
-    return;
-  }
-  const oldString = diff.old_string ?? "";
-  const newString = diff.new_string ?? "";
-  if (oldString === "" && newString === "") {
-    return;
-  }
-  const unifiedDiff = createUnifiedDiff(filePath, oldString, newString);
-  if (!unifiedDiff) {
-    return;
-  }
-  const sizeBytes = Buffer.byteLength(unifiedDiff, "utf-8");
-  if (sizeBytes > MAX_DIFF_SIZE_BYTES) {
-    logger.warn(`Diff size ${sizeBytes} bytes exceeds limit of ${MAX_DIFF_SIZE_BYTES} bytes, skipping`);
-    return;
-  }
-  return unifiedDiff;
-}
 
 // src/extractors/extraction-utils.ts
 init_logger();
-function extractTextContent(content) {
-  if (typeof content === "string") {
-    return content;
-  }
-  if (Array.isArray(content)) {
-    const textBlocks = content.filter((block) => block.type === "text" && block.text).map((block) => block.text);
-    return textBlocks.join(`
-`);
-  }
-  return "";
-}
-function parseBashCommand(command) {
-  if (!command)
-    return [];
-  const cmd = command.trim();
-  const rmMatch = cmd.match(/^rm\s+(?:-[a-zA-Z]+\s+)*(.+)$/);
-  if (rmMatch) {
-    const pathsString = rmMatch[1].trim();
-    const paths = pathsString.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g)?.map((p) => p.replace(/['"]/g, "")) || [];
-    return paths.map((filePath) => ({ operation: "Delete", filePath }));
-  }
-  return [];
-}
-async function extractToolUse(contentBlock, sessionId, timestamp) {
-  try {
-    const toolName = contentBlock.name;
-    const input = contentBlock.input || {};
-    if (!toolName)
-      return [];
-    let filePath;
-    let content;
-    let operationType = toolName;
-    if (toolName === "Bash" || toolName === "bash" || toolName === "Shell") {
-      const command = input.command || input.cmd;
-      if (command) {
-        if (shouldExcludeCommand(command)) {
-          logger.debug(`Filtered out excluded bash command: ${command.substring(0, 50)}...`);
-          return [];
-        }
-        const parsedOperations = parseBashCommand(command);
-        if (parsedOperations.length > 0) {
-          const toolUses = [];
-          for (const parsed of parsedOperations) {
-            const toolUse2 = {
-              session_id: sessionId,
-              tool_name: parsed.operation,
-              file_path: parsed.filePath,
-              timestamp: timestamp || new Date().toISOString()
-            };
-            if (parsed.operation === "Delete") {
-              const cachedContent = await getCachedFileContent(parsed.filePath, sessionId);
-              if (cachedContent !== null) {
-                toolUse2.diff = sanitizeDiff({ old_string: cachedContent, new_string: "" }, parsed.filePath);
-                logger.info(`Generated deletion diff for ${parsed.filePath}`);
-              } else {
-                logger.warn(`No cached content found for ${parsed.filePath} - tracking without diff`);
-              }
-            }
-            toolUses.push(toolUse2);
-          }
-          return toolUses;
-        }
-      }
-    } else if (toolName === "Write" || toolName === "write") {
-      filePath = input.file_path || input.path;
-      content = input.content || input.contents;
-    } else if (toolName === "Edit" || toolName === "StrReplace" || toolName === "str_replace") {
-      filePath = input.file_path || input.path;
-    } else if (toolName === "Delete" || toolName === "delete" || toolName === "rm") {
-      filePath = input.file_path || input.path;
-    } else if (toolName === "EditNotebook" || toolName === "edit_notebook") {
-      filePath = input.target_notebook || input.notebook_path;
-    } else if (toolName === "Read" || toolName === "read") {
-      filePath = input.file_path || input.path;
-    }
-    if (!filePath) {
-      filePath = input.path || input.file_path || input.filepath;
-    }
-    if (!filePath) {
-      return [];
-    }
-    const toolUse = {
-      session_id: sessionId,
-      tool_name: operationType,
-      file_path: filePath,
-      content: content?.substring(0, MAX_CONTENT_PREVIEW_LENGTH),
-      timestamp: timestamp || new Date().toISOString()
-    };
-    if ((operationType === "Write" || operationType === "write") && content) {
-      toolUse.diff = sanitizeDiff({ old_string: "", new_string: content }, filePath);
-    }
-    return [toolUse];
-  } catch (error) {
-    logger.debug("Failed to extract tool use:", error);
-    return [];
-  }
-}
-function getToolNameFromResultType(type, oldString, newString) {
-  if (type === "create")
-    return "Write";
-  if (type === "delete")
-    return "Delete";
-  if (!oldString && newString)
-    return "Write";
-  if (oldString && !newString)
-    return "Delete";
-  return "Edit";
-}
-function extractToolUseResult(entry, sessionId) {
-  try {
-    const result = entry.toolUseResult;
-    if (!result || !result.filePath)
-      return null;
-    const toolName = getToolNameFromResultType(result.type, result.oldString, result.newString);
-    const toolUse = {
-      session_id: sessionId,
-      tool_name: toolName,
-      file_path: result.filePath,
-      timestamp: entry.timestamp || new Date().toISOString()
-    };
-    if (result.structuredPatch || result.oldString !== undefined || result.newString !== undefined) {
-      const rawDiff = {
-        old_string: result.oldString,
-        new_string: result.newString,
-        structured_patch: result.structuredPatch
-      };
-      toolUse.diff = sanitizeDiff(rawDiff, result.filePath);
-    }
-    return toolUse;
-  } catch (error) {
-    logger.debug("Failed to extract tool use result:", error);
-    return null;
-  }
-}
-function generateMessageId(sessionId, messageIndex) {
-  const hash = createHash("sha256").update(`${sessionId}-${messageIndex}`).digest("hex");
-  return `msg_${hash.substring(0, 16)}`;
-}
-function logDiff(filePath, diff) {
-  if (!diff)
-    return;
-  logger.info(`Code change detected in ${filePath}:`);
-  const lines = diff.split(`
-`).slice(0, 10);
-  for (const line of lines) {
-    logger.info(`  ${line}`);
-  }
-  if (diff.split(`
-`).length > 10) {
-    logger.info("  ...");
-  }
-}
 
 // src/utils/command-filters.ts
 init_logger();
@@ -1584,129 +1142,9 @@ function shouldExcludeCommand(command) {
   }
   return false;
 }
-function restoreFilteringState(lines, lastReadLine) {
-  if (lastReadLine === 0) {
-    return false;
-  }
-  const lookbackLines = lines.slice(Math.max(0, lastReadLine - 10), lastReadLine);
-  for (let i = lookbackLines.length - 1;i >= 0; i--) {
-    try {
-      const entry = JSON.parse(lookbackLines[i]);
-      if (entry.message?.role === "user" && entry.message.content) {
-        const textContent = extractTextContent(entry.message.content);
-        if (textContent && shouldExcludeCommand(textContent)) {
-          logger.debug(`Restored filtering state: last user message was filtered command: ${textContent.substring(0, 50)}...`);
-          return true;
-        }
-        break;
-      }
-    } catch {}
-  }
-  return false;
-}
-function applyMessageFilter(role, textContent, currentState) {
-  if (role === "user") {
-    if (shouldExcludeCommand(textContent)) {
-      return { shouldFilter: true, newState: true };
-    }
-    return { shouldFilter: false, newState: false };
-  }
-  if (role === "assistant") {
-    if (currentState) {
-      return { shouldFilter: true, newState: currentState };
-    }
-  }
-  return { shouldFilter: false, newState: currentState };
-}
 
 // src/extractors/message-parser.ts
 init_logger();
-async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0) {
-  const messages = [];
-  const toolUses = [];
-  try {
-    logger.debug(`Incremental extraction for ${sessionId}: reading from line ${lastReadLine}`);
-    const content = await readFile3(filePath, "utf-8");
-    const lines = content.split(`
-`).filter((line) => line.trim());
-    const totalLines = lines.length;
-    if (totalLines <= lastReadLine) {
-      logger.debug(`No new lines for ${sessionId}: total=${totalLines}, lastRead=${lastReadLine}`);
-      return { messages, toolUses, newLastReadLine: lastReadLine, totalLines };
-    }
-    const newLines = lines.slice(lastReadLine);
-    logger.info(`Processing ${newLines.length} new lines for session ${sessionId} (lines ${lastReadLine + 1}-${totalLines})`);
-    let tempMessageCounter = 0;
-    let filteringAssistantResponses = restoreFilteringState(lines, lastReadLine);
-    for (let i = 0;i < newLines.length; i++) {
-      const line = newLines[i];
-      const lineNumber = lastReadLine + i;
-      try {
-        const entry = JSON.parse(line);
-        if (!entry.message)
-          continue;
-        const role = entry.message.role;
-        const content2 = entry.message.content;
-        if ((role === "user" || role === "assistant") && content2) {
-          const textContent = extractTextContent(content2);
-          if (textContent) {
-            const filterResult = applyMessageFilter(role, textContent, filteringAssistantResponses);
-            filteringAssistantResponses = filterResult.newState;
-            if (filterResult.shouldFilter) {
-              continue;
-            }
-            const messageId = entry.uuid || generateMessageId(sessionId, tempMessageCounter);
-            messages.push({
-              id: messageId,
-              session_id: sessionId,
-              role,
-              content: textContent,
-              created_at: entry.timestamp || new Date().toISOString(),
-              message_index: tempMessageCounter
-            });
-            tempMessageCounter++;
-            logger.debug(`Extracted ${role} message at line ${lineNumber + 1}: ${textContent.substring(0, 50)}...`);
-          }
-        }
-        if (entry.toolUseResult) {
-          const toolUseWithDiff = extractToolUseResult(entry, sessionId);
-          if (toolUseWithDiff) {
-            toolUses.push(toolUseWithDiff);
-            logger.debug(`Extracted tool result at line ${lineNumber + 1}: ${toolUseWithDiff.file_path}`);
-            logDiff(toolUseWithDiff.file_path || "", toolUseWithDiff.diff);
-          }
-        } else if (Array.isArray(content2)) {
-          for (const contentBlock of content2) {
-            if (contentBlock.type === "tool_use") {
-              const extractedToolUses = await extractToolUse(contentBlock, sessionId, entry.timestamp);
-              for (const toolUse of extractedToolUses) {
-                toolUses.push(toolUse);
-                logger.debug(`Extracted tool use at line ${lineNumber + 1}: ${toolUse.tool_name} on ${toolUse.file_path}`);
-              }
-            }
-          }
-        }
-      } catch (parseError) {
-        logger.debug(`Failed to parse JSONL line ${lineNumber + 1}: ${line.substring(0, 100)}...`, parseError);
-      }
-    }
-    logger.info(`Incremental extraction complete: ${messages.length} messages, ${toolUses.length} tool uses`);
-    return {
-      messages,
-      toolUses,
-      newLastReadLine: totalLines,
-      totalLines
-    };
-  } catch (error) {
-    logger.error(`Failed to incrementally read conversation file ${filePath}:`, error);
-    return {
-      messages,
-      toolUses,
-      newLastReadLine: lastReadLine,
-      totalLines: lastReadLine
-    };
-  }
-}
 
 // src/utils/extraction-helpers.ts
 init_logger();
@@ -1714,179 +1152,80 @@ init_logger();
 // src/utils/queue-manager.ts
 init_constants();
 init_logger();
-import { appendFile as appendFile2, mkdir as mkdir4, readFile as readFile4, stat as stat2, unlink as unlink2, writeFile as writeFile3 } from "node:fs/promises";
-import { dirname as dirname3 } from "node:path";
 var locks = new Map;
-async function withLock(filePath, fn) {
-  while (locks.has(filePath)) {
-    await locks.get(filePath);
-  }
-  let releaseLock;
-  const lockPromise = new Promise((resolve) => {
-    releaseLock = resolve;
-  });
-  locks.set(filePath, lockPromise);
-  try {
-    return await fn();
-  } finally {
-    locks.delete(filePath);
-    releaseLock();
-  }
-}
-async function ensureDirectory(dirPath) {
-  try {
-    await stat2(dirPath);
-  } catch {
-    await mkdir4(dirPath, { recursive: true, mode: 448 });
-    logger.debug(`Created directory: ${dirPath}`);
-  }
-}
-async function readJsonl(filePath) {
-  try {
-    const content = await readFile4(filePath, "utf8");
-    const lines = content.trim().split(`
-`).filter(Boolean);
-    const results = [];
-    for (let i = 0;i < lines.length; i++) {
-      try {
-        results.push(JSON.parse(lines[i]));
-      } catch (error) {
-        logger.warn(`Failed to parse line ${i + 1} in ${filePath}:`, error);
-      }
-    }
-    return results;
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      return [];
-    }
-    throw error;
-  }
-}
-async function enqueueEvent(event) {
-  try {
-    await withLock(EVENTS_QUEUE_FILE, async () => {
-      const existingEvents = await readJsonl(EVENTS_QUEUE_FILE);
-      const isDuplicate = existingEvents.some((evt) => evt.id === event.id);
-      if (isDuplicate) {
-        logger.debug("Skipping duplicate event", {
-          eventId: event.id,
-          documentUri: event.document_uri
-        });
-        return;
-      }
-      await ensureDirectory(dirname3(EVENTS_QUEUE_FILE));
-      const line = JSON.stringify(event) + `
-`;
-      await appendFile2(EVENTS_QUEUE_FILE, line, "utf8");
-      logger.debug("Enqueued event", { eventId: event.id, documentUri: event.document_uri });
-    });
-  } catch (error) {
-    logger.error("Failed to enqueue event:", error);
-    throw error;
-  }
-}
-async function enqueueChatSession(session) {
-  try {
-    await withLock(SESSIONS_QUEUE_FILE, async () => {
-      const existingSessions = await readJsonl(SESSIONS_QUEUE_FILE);
-      const isDuplicate = existingSessions.some((sess) => sess.id === session.id);
-      if (isDuplicate) {
-        logger.debug("Skipping duplicate session", { sessionId: session.id });
-        return;
-      }
-      await ensureDirectory(dirname3(SESSIONS_QUEUE_FILE));
-      const line = JSON.stringify(session) + `
-`;
-      await appendFile2(SESSIONS_QUEUE_FILE, line, "utf8");
-      logger.debug("Enqueued session", { sessionId: session.id });
-    });
-  } catch (error) {
-    logger.error("Failed to enqueue session:", error);
-    throw error;
-  }
-}
-async function enqueueChatMessage(message) {
-  try {
-    await withLock(MESSAGES_QUEUE_FILE, async () => {
-      const existingMessages = await readJsonl(MESSAGES_QUEUE_FILE);
-      const isDuplicate = existingMessages.some((msg) => msg.id === message.id);
-      if (isDuplicate) {
-        logger.debug("Skipping duplicate message", {
-          messageId: message.id,
-          sessionId: message.session_id,
-          messageIndex: message.message_index
-        });
-        return;
-      }
-      await ensureDirectory(dirname3(MESSAGES_QUEUE_FILE));
-      const line = JSON.stringify(message) + `
-`;
-      await appendFile2(MESSAGES_QUEUE_FILE, line, "utf8");
-      logger.debug("Enqueued message", {
-        sessionId: message.session_id,
-        messageIndex: message.message_index
-      });
-    });
-  } catch (error) {
-    logger.error("Failed to enqueue message:", error);
-    throw error;
-  }
-}
 
 // src/utils/state-manager.ts
 init_constants();
 init_logger();
-import { mkdir as mkdir5, readFile as readFile5, writeFile as writeFile4 } from "node:fs/promises";
 import { join as join3 } from "node:path";
 var STATE_DIR2 = join3(CLAUDE_ZEST_DIR, "state");
-function getStateFilePath(sessionId) {
-  return join3(STATE_DIR2, `${sessionId}.json`);
-}
-async function ensureStateDir() {
+
+// src/utils/extraction-helpers.ts
+async function findRecentBashCommand(conversationFile) {
   try {
-    await mkdir5(STATE_DIR2, { recursive: true });
+    const { readFile: readFile2 } = await import("node:fs/promises");
+    const content = await readFile2(conversationFile, "utf-8");
+    const lines = content.trim().split(`
+`).filter((l) => l.trim());
+    for (let i = lines.length - 1;i >= Math.max(0, lines.length - 5); i--) {
+      try {
+        const entry = JSON.parse(lines[i]);
+        if (entry.message?.content && Array.isArray(entry.message.content)) {
+          for (const block of entry.message.content) {
+            if (block.type === "tool_use" && (block.name === "Bash" || block.name === "bash")) {
+              const command = block.input?.command || block.input?.cmd;
+              if (command) {
+                if (shouldExcludeCommand(command)) {
+                  logger.debug(`Filtered out excluded bash command: ${command.substring(0, 50)}...`);
+                  return null;
+                }
+                return command;
+              }
+            }
+          }
+        }
+      } catch {}
+    }
+    return null;
   } catch (error) {
-    logger.debug("State directory already exists or error creating:", error);
-  }
-}
-async function readSessionState(sessionId) {
-  try {
-    const stateFile = getStateFilePath(sessionId);
-    const content = await readFile5(stateFile, "utf-8");
-    return JSON.parse(content);
-  } catch (error) {
-    logger.debug(`No state found for session ${sessionId} (new session)`);
+    logger.debug("Failed to find recent Bash command:", error);
     return null;
   }
 }
-async function writeSessionState(state) {
-  try {
-    await ensureStateDir();
-    const stateFile = getStateFilePath(state.sessionId);
-    await writeFile4(stateFile, JSON.stringify(state, null, 2), "utf-8");
-    logger.debug(`Updated state for session ${state.sessionId}: lastReadLine=${state.lastReadLine}`);
-  } catch (error) {
-    logger.error(`Failed to write state for session ${state.sessionId}:`, error);
+function parseRmCommand(command) {
+  if (!command)
+    return [];
+  const cmd = command.trim();
+  const rmMatch = cmd.match(/^rm\s+(?:-[a-zA-Z]+\s+)*(.+)$/);
+  if (rmMatch) {
+    const pathsString = rmMatch[1].trim();
+    const paths = pathsString.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g)?.map((p) => p.replace(/['"]/g, "")) || [];
+    return paths;
+  }
+  return [];
+}
+async function cacheFilesForDeletion(filePaths, sessionId, projectDir) {
+  const { readFile: readFile2 } = await import("node:fs/promises");
+  const { resolve } = await import("node:path");
+  const { cacheFileForDeletion: cacheFileForDeletion2 } = await Promise.resolve().then(() => (init_deletion_cache(), exports_deletion_cache));
+  for (const filePath of filePaths) {
+    try {
+      const absolutePath = filePath.startsWith("/") ? filePath : resolve(projectDir, filePath);
+      const content = await readFile2(absolutePath, "utf-8");
+      await cacheFileForDeletion2(filePath, content, sessionId);
+      logger.info(`Cached file for deletion: ${filePath} (${content.length} chars)`);
+    } catch (error) {
+      logger.debug(`Could not cache ${filePath}:`, error);
+    }
   }
 }
-async function updateLastReadLine(sessionId, filePath, lineNumber, lastMessageIndex) {
-  const newState = {
-    sessionId,
-    lastReadLine: lineNumber,
-    lastMessageIndex,
-    filePath
-  };
-  await writeSessionState(newState);
-}
-
-// src/utils/extraction-helpers.ts
 async function findConversationFile(projectDir) {
   try {
     const claudeDirName = projectDir.replace(/\//g, "-");
     const projectPath = join4(CLAUDE_PROJECTS_DIR, claudeDirName);
     logger.debug(`Looking for project directory: ${projectPath}`);
     try {
-      await stat3(projectPath);
+      await stat2(projectPath);
     } catch {
       logger.warn(`Project directory not found: ${projectPath}`);
       return null;
@@ -1902,7 +1241,7 @@ async function findConversationFile(projectDir) {
     let mostRecentTime = 0;
     for (const file of jsonlFiles) {
       const filePath = join4(projectPath, file);
-      const stats = await stat3(filePath);
+      const stats = await stat2(filePath);
       if (stats.mtimeMs > mostRecentTime) {
         mostRecentTime = stats.mtimeMs;
         mostRecentFile = file;
@@ -1910,148 +1249,54 @@ async function findConversationFile(projectDir) {
     }
     const conversationFile = join4(projectPath, mostRecentFile);
     const sessionId = basename(mostRecentFile, ".jsonl");
-    const fileStats = await stat3(conversationFile);
+    const fileStats = await stat2(conversationFile);
     return { conversationFile, sessionId, fileStats };
   } catch (error) {
     logger.error("Failed to find conversation file:", error);
     return null;
   }
 }
-async function extractNewSessionData(conversationFile, sessionId) {
-  const state = await readSessionState(sessionId);
-  const lastReadLine = state?.lastReadLine || 0;
-  const lastMessageIndex = state?.lastMessageIndex ?? -1;
-  const isNewSession = !state;
-  logger.info(`Extraction state: lastReadLine=${lastReadLine}, lastMessageIndex=${lastMessageIndex} (${isNewSession ? "new session" : "existing session"})`);
-  const { messages, toolUses, newLastReadLine } = await extractNewMessagesFromFile(conversationFile, sessionId, lastReadLine);
-  let nextMessageIndex = lastMessageIndex + 1;
-  for (const message of messages) {
-    message.message_index = nextMessageIndex++;
-  }
-  logger.info(`Extraction results: ${messages.length} messages (indices ${lastMessageIndex + 1}-${nextMessageIndex - 1}), ${toolUses.length} tool uses, ${newLastReadLine - lastReadLine} new lines`);
-  const hasNewData = messages.length > 0 || toolUses.length > 0;
-  if (!hasNewData) {
-    logger.info("No new data to process");
-  }
-  return {
-    messages,
-    toolUses,
-    newLastReadLine,
-    lastMessageIndex: nextMessageIndex - 1,
-    isNewSession,
-    hasNewData
-  };
-}
-async function queueSessionData(sessionId, messages, toolUses, fileStats, projectDir, conversationFile, newLastReadLine, lastMessageIndex, isNewSession) {
-  if (isNewSession) {
-    const session = {
-      id: sessionId,
-      title: messages.length > 0 ? messages[0].content.substring(0, 100) : `Session ${sessionId}`,
-      created_at: fileStats.birthtime.toISOString()
-    };
-    await enqueueChatSession(session);
-    logger.info(`Queued new session: ${session.id}`);
-  }
-  for (const message of messages) {
-    const extractedMessage = {
-      id: message.id,
-      session_id: message.session_id,
-      message_index: message.message_index,
-      role: message.role,
-      content: message.content,
-      created_at: message.created_at
-    };
-    await enqueueChatMessage(extractedMessage);
-  }
-  if (messages.length > 0) {
-    logger.info(`Queued ${messages.length} messages`);
-  }
-  const eventsQueued = await queueToolUseEvents(toolUses, sessionId, projectDir);
-  await updateLastReadLine(sessionId, conversationFile, newLastReadLine, lastMessageIndex);
-  logger.info(`Updated extraction state: lastReadLine=${newLastReadLine}, lastMessageIndex=${lastMessageIndex}`);
-  return { messagesQueued: messages.length, eventsQueued };
-}
-async function queueToolUseEvents(toolUses, sessionId, projectDir) {
-  const session = await getValidSession();
-  const workspaceId = session?.workspaceId || null;
-  let queuedEventCount = 0;
-  for (const toolUse of toolUses) {
-    if (!toolUse.file_path)
-      continue;
-    if (toolUse.tool_name === "Read" || toolUse.tool_name === "read") {
-      continue;
-    }
-    if (!toolUse.diff) {
-      continue;
-    }
-    const event = {
-      id: randomUUID(),
-      timestamp: toolUse.timestamp,
-      document_uri: toolUse.file_path,
-      language_id: import_utils.getLanguageFromPath(toolUse.file_path),
-      workspace_folder_uri: projectDir || null,
-      session_id: sessionId,
-      workspace_id: workspaceId,
-      payload: {
-        tool_name: toolUse.tool_name,
-        session_id: sessionId,
-        diff: toolUse.diff
-      }
-    };
-    await enqueueEvent(event);
-    queuedEventCount++;
-  }
-  if (queuedEventCount > 0) {
-    logger.info(`Queued ${queuedEventCount} code change events`);
-  }
-  return queuedEventCount;
-}
 
-// src/hooks/incremental-extractor-cli.ts
+// src/hooks/pre-tool-handler-cli.ts
 init_logger();
+init_deletion_cache();
 async function main() {
   const startTime = Date.now();
-  logger.info("=== Incremental extraction triggered by PostToolUse ===");
-  const toolName = process.env.CLAUDE_TOOL_NAME;
-  const filePaths = process.env.CLAUDE_FILE_PATHS;
   const projectDir = process.env.CLAUDE_PROJECT_DIR;
-  logger.info(`Tool: ${toolName || "unknown"}`);
-  logger.info(`Files: ${filePaths || "unknown"}`);
-  logger.info(`Project: ${projectDir || "unknown"}`);
   try {
-    logger.debug("Waiting 1000ms for JSONL write to complete...");
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    logger.debug(`Delay complete, proceeding with extraction (${Date.now() - startTime}ms elapsed)`);
     if (!projectDir) {
-      logger.warn("CLAUDE_PROJECT_DIR not set, cannot extract");
+      logger.warn("[PreToolUse] No project directory, cannot find session");
       process.exit(0);
     }
     const sessionInfo = await findConversationFile(projectDir);
     if (!sessionInfo) {
-      logger.warn("Could not find conversation file");
+      logger.warn("[PreToolUse] Could not find session info");
       process.exit(0);
     }
-    const { conversationFile, sessionId, fileStats } = sessionInfo;
-    logger.info(`Session file: ${conversationFile}`);
-    logger.info(`Session ID: ${sessionId}`);
-    logger.info(`File modified: ${fileStats.mtime.toISOString()}`);
-    logger.info(`File size: ${fileStats.size} bytes`);
-    const extractionResult = await extractNewSessionData(conversationFile, sessionId);
-    if (!extractionResult.hasNewData) {
-      logger.info("No new data to process, exiting");
+    const { conversationFile, sessionId } = sessionInfo;
+    const command = await findRecentBashCommand(conversationFile);
+    if (!command) {
+      logger.debug("No Bash command found in recent JSONL entries");
       process.exit(0);
     }
-    await queueSessionData(sessionId, extractionResult.messages, extractionResult.toolUses, fileStats, projectDir, conversationFile, extractionResult.newLastReadLine, extractionResult.lastMessageIndex, extractionResult.isNewSession);
+    const filesToDelete = parseRmCommand(command);
+    if (filesToDelete.length === 0) {
+      logger.debug("Not an rm command, skipping");
+      process.exit(0);
+    }
+    logger.info(`Detected file deletion: ${filesToDelete.length} file(s) - ${filesToDelete.join(", ")}`);
+    await cacheFilesForDeletion(filesToDelete, sessionId, projectDir);
+    cleanupOldCache().catch((err) => logger.debug("Cache cleanup failed:", err));
     const totalTime = Date.now() - startTime;
-    logger.info(`=== Incremental extraction complete in ${totalTime}ms ===`);
+    logger.debug(`PreToolUse complete in ${totalTime}ms`);
   } catch (error) {
-    logger.error("Failed to perform incremental extraction:", error);
+    logger.error("Failed to process PreToolUse:", error);
     process.exit(0);
   }
 }
 main().catch((error) => {
-  console.error("Incremental extractor error:", error);
+  console.error("PreToolUse handler error:", error);
   process.exit(1);
 });
 
-//# debugId=5E233AE80877D09264756E2164756E21
+//# debugId=33802C52F14689D164756E2164756E21

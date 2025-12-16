@@ -1,5 +1,5 @@
-// src/utils/state-manager.ts
-import { mkdir as mkdir2, readFile, writeFile } from "node:fs/promises";
+// src/utils/deletion-cache.ts
+import { mkdir as mkdir2, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { join as join2 } from "node:path";
 
 // src/config/constants.ts
@@ -76,51 +76,86 @@ class Logger {
 }
 var logger = new Logger;
 
-// src/utils/state-manager.ts
-var STATE_DIR2 = join2(CLAUDE_ZEST_DIR, "state");
-function getStateFilePath(sessionId) {
-  return join2(STATE_DIR2, `${sessionId}.json`);
-}
-async function ensureStateDir() {
+// src/utils/deletion-cache.ts
+async function ensureCacheDir() {
   try {
-    await mkdir2(STATE_DIR2, { recursive: true });
+    await mkdir2(DELETION_CACHE_DIR, { recursive: true });
   } catch (error) {
-    logger.debug("State directory already exists or error creating:", error);
+    logger.error("Failed to create cache directory:", error);
   }
 }
-async function readSessionState(sessionId) {
+function getCacheKey(filePath, sessionId) {
+  const hash = Buffer.from(filePath).toString("base64").replace(/[/+=]/g, "_");
+  return `${sessionId}_${hash}.json`;
+}
+async function cacheFileForDeletion(filePath, content, sessionId) {
   try {
-    const stateFile = getStateFilePath(sessionId);
-    const content = await readFile(stateFile, "utf-8");
-    return JSON.parse(content);
+    await ensureCacheDir();
+    const cached = {
+      filePath,
+      content,
+      timestamp: Date.now(),
+      sessionId
+    };
+    const cacheKey = getCacheKey(filePath, sessionId);
+    const cachePath = join2(DELETION_CACHE_DIR, cacheKey);
+    await writeFile(cachePath, JSON.stringify(cached, null, 2), "utf-8");
+    logger.debug(`Cached file content: ${filePath} (${content.length} chars)`);
   } catch (error) {
-    logger.debug(`No state found for session ${sessionId} (new session)`);
+    logger.error(`Failed to cache file for deletion: ${filePath}`, error);
+  }
+}
+async function getCachedFileContent(filePath, sessionId) {
+  try {
+    const cacheKey = getCacheKey(filePath, sessionId);
+    const cachePath = join2(DELETION_CACHE_DIR, cacheKey);
+    try {
+      const content = await readFile(cachePath, "utf-8");
+      const cached = JSON.parse(content);
+      const age = Date.now() - cached.timestamp;
+      if (age > DELETION_CACHE_TTL_MS) {
+        logger.debug(`Cache expired for ${filePath} (${age}ms old)`);
+        await rm(cachePath).catch(() => {});
+        return null;
+      }
+      await rm(cachePath).catch(() => {});
+      logger.debug(`Retrieved cached content for ${filePath} (${cached.content.length} chars)`);
+      return cached.content;
+    } catch (readError) {
+      logger.debug(`Cache not found for ${filePath}`);
+      return null;
+    }
+  } catch (error) {
+    logger.error(`Failed to retrieve cached content: ${filePath}`, error);
     return null;
   }
 }
-async function writeSessionState(state) {
+async function cleanupOldCache() {
   try {
-    await ensureStateDir();
-    const stateFile = getStateFilePath(state.sessionId);
-    await writeFile(stateFile, JSON.stringify(state, null, 2), "utf-8");
-    logger.debug(`Updated state for session ${state.sessionId}: lastReadLine=${state.lastReadLine}`);
+    await ensureCacheDir();
+    const files = await readdir(DELETION_CACHE_DIR);
+    const now = Date.now();
+    for (const file of files) {
+      try {
+        const filePath = join2(DELETION_CACHE_DIR, file);
+        const stats = await stat(filePath);
+        const age = now - stats.mtimeMs;
+        if (age > DELETION_CACHE_TTL_MS) {
+          await rm(filePath);
+          logger.debug(`Cleaned up old cache entry: ${file} (${age}ms old)`);
+        }
+      } catch (error) {
+        logger.debug(`Failed to clean up cache file ${file}:`, error);
+      }
+    }
   } catch (error) {
-    logger.error(`Failed to write state for session ${state.sessionId}:`, error);
+    logger.error("Failed to cleanup old cache:", error);
   }
 }
-async function updateLastReadLine(sessionId, filePath, lineNumber, lastMessageIndex) {
-  const newState = {
-    sessionId,
-    lastReadLine: lineNumber,
-    lastMessageIndex,
-    filePath
-  };
-  await writeSessionState(newState);
-}
 export {
-  writeSessionState,
-  updateLastReadLine,
-  readSessionState
+  getCachedFileContent,
+  cleanupOldCache,
+  cacheFileForDeletion
 };
 
-//# debugId=B39F78FF5BB149B364756E2164756E21
+//# debugId=7C0C91B600153D1764756E2164756E21

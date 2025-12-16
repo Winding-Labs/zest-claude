@@ -4,24 +4,24 @@ This repository hosts the Zest plugin for Claude Code CLI, enabling automatic tr
 
 ## For Users
 
-### Installation
+### Installation & Quick Start
 
-```bash
-# Add the Zest plugin marketplace to Claude Code
-/plugin marketplace add https://github.com/Winding-Labs/zest-claude
+1. **Add the marketplace**:
+   ```bash
+   /plugin marketplace add https://github.com/Winding-Labs/zest-claude
+   ```
 
-# Install the Zest plugin
-/plugin install zest
-```
+2. **Install the plugin**:
+   ```bash
+   /plugin install zest
+   ```
 
-### Quick Start
-
-1. **Install the plugin** (see above)
-2. **Authenticate with Zest**:
+3. **Authenticate with Zest**:
    ```bash
    /zest:login
    ```
-3. **Start coding!** The plugin works automatically in the background
+
+4. **Start coding!** The plugin works automatically in the background
 
 ### Available Commands
 

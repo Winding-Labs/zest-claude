@@ -1,6 +1,11 @@
-// src/utils/state-manager.ts
-import { mkdir as mkdir2, readFile, writeFile } from "node:fs/promises";
-import { join as join2 } from "node:path";
+// src/utils/plugin-version.ts
+import { readFileSync } from "node:fs";
+import { dirname as dirname2, join as join2 } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// src/utils/logger.ts
+import { appendFile, mkdir } from "node:fs/promises";
+import { dirname } from "node:path";
 
 // src/config/constants.ts
 import { homedir } from "node:os";
@@ -25,8 +30,6 @@ var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
 
 // src/utils/logger.ts
-import { appendFile, mkdir } from "node:fs/promises";
-import { dirname } from "node:path";
 class Logger {
   minLevel = "info";
   levels = {
@@ -76,51 +79,20 @@ class Logger {
 }
 var logger = new Logger;
 
-// src/utils/state-manager.ts
-var STATE_DIR2 = join2(CLAUDE_ZEST_DIR, "state");
-function getStateFilePath(sessionId) {
-  return join2(STATE_DIR2, `${sessionId}.json`);
-}
-async function ensureStateDir() {
+// src/utils/plugin-version.ts
+function getPluginVersion() {
   try {
-    await mkdir2(STATE_DIR2, { recursive: true });
+    const __dirname2 = dirname2(fileURLToPath(import.meta.url));
+    const pluginJsonPath = join2(__dirname2, "../../.claude-plugin/plugin.json");
+    const pluginJson = JSON.parse(readFileSync(pluginJsonPath, "utf-8"));
+    return pluginJson.version || "unknown";
   } catch (error) {
-    logger.debug("State directory already exists or error creating:", error);
+    logger.warn("Failed to read plugin version from plugin.json", error);
+    return "unknown";
   }
-}
-async function readSessionState(sessionId) {
-  try {
-    const stateFile = getStateFilePath(sessionId);
-    const content = await readFile(stateFile, "utf-8");
-    return JSON.parse(content);
-  } catch (error) {
-    logger.debug(`No state found for session ${sessionId} (new session)`);
-    return null;
-  }
-}
-async function writeSessionState(state) {
-  try {
-    await ensureStateDir();
-    const stateFile = getStateFilePath(state.sessionId);
-    await writeFile(stateFile, JSON.stringify(state, null, 2), "utf-8");
-    logger.debug(`Updated state for session ${state.sessionId}: lastReadLine=${state.lastReadLine}`);
-  } catch (error) {
-    logger.error(`Failed to write state for session ${state.sessionId}:`, error);
-  }
-}
-async function updateLastReadLine(sessionId, filePath, lineNumber, lastMessageIndex) {
-  const newState = {
-    sessionId,
-    lastReadLine: lineNumber,
-    lastMessageIndex,
-    filePath
-  };
-  await writeSessionState(newState);
 }
 export {
-  writeSessionState,
-  updateLastReadLine,
-  readSessionState
+  getPluginVersion
 };
 
-//# debugId=B39F78FF5BB149B364756E2164756E21
+//# debugId=93E420BCE88D973364756E2164756E21

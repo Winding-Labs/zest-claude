@@ -10924,10 +10924,11 @@ var open_default = open;
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_ZEST_DIR = join(homedir(), ".claude-zest");
+var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${"-dev"}`);
 var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
+var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
 var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
 var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var LOG_FILE = join(LOGS_DIR, "plugin.log");
@@ -10937,17 +10938,14 @@ var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
 var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
 var CLIENT_ID = "claude-cli";
+var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
 var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-var WEB_APP_URL = "https://app.meetzest.com";
-var SUPABASE_URL = "https://fnnlebrtmlxxjwdvngck.supabase.co";
-var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubmxlYnJ0bWx4eGp3ZHZuZ2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MzA3MjYsImV4cCI6MjA3MjMwNjcyNn0.0IE3HCY_DiyyALdewbRn1vkedwzDW27NQMQ28V6j4Dk";
+var WEB_APP_URL = "http://192.168.1.21:3000";
+var SUPABASE_URL = "http://127.0.0.1:54321";
+var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
 var CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
-
-// src/auth/session-manager.ts
-import { mkdir as mkdir2, readFile, unlink, writeFile } from "node:fs/promises";
-import { dirname as dirname2 } from "node:path";
 
 // src/utils/logger.ts
 import { appendFile, mkdir } from "node:fs/promises";
@@ -11001,7 +10999,12 @@ class Logger {
 }
 var logger = new Logger;
 
+// src/supabase/client.ts
+var import_supabase_js = __toESM(require_main5(), 1);
+
 // src/auth/session-manager.ts
+import { mkdir as mkdir2, readFile, unlink, writeFile } from "node:fs/promises";
+import { dirname as dirname2 } from "node:path";
 async function loadSession() {
   try {
     const content = await readFile(SESSION_FILE, "utf-8");
@@ -11121,7 +11124,6 @@ async function getValidSession() {
 }
 
 // src/supabase/client.ts
-var import_supabase_js = __toESM(require_main5(), 1);
 async function getSupabaseClient() {
   try {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
@@ -11148,6 +11150,45 @@ async function getSupabaseClient() {
   } catch (error) {
     logger.error("Failed to create Supabase client", error);
     return null;
+  }
+}
+
+// src/supabase/profile-updater.ts
+async function updateClaudeCodeMetadata(userId, version) {
+  try {
+    logger.info("Updating Claude Code plugin metadata", { userId, version });
+    const supabase = await getSupabaseClient();
+    if (!supabase) {
+      throw new Error("Supabase client not available");
+    }
+    const { data: existingProfile, error: fetchError } = await supabase.from("profiles").select("metadata").eq("id", userId).single();
+    if (fetchError) {
+      logger.warn("Failed to fetch existing profile metadata:", fetchError);
+    }
+    const existingMetadata = existingProfile?.metadata || {};
+    const existingExtensions = existingMetadata?.extensions || {};
+    const updatedMetadata = {
+      ...existingMetadata,
+      extensions: {
+        ...existingExtensions,
+        claudeCode: {
+          installed: true,
+          version,
+          lastSeen: new Date().toISOString()
+        }
+      }
+    };
+    const { error: upsertError } = await supabase.from("profiles").upsert({
+      id: userId,
+      metadata: updatedMetadata
+    });
+    if (upsertError) {
+      throw new Error(`Failed to update profile metadata: ${upsertError.message}`);
+    }
+    logger.info("Claude Code plugin metadata updated successfully");
+  } catch (error) {
+    logger.error("Failed to update Claude Code metadata", error);
+    throw error;
   }
 }
 
@@ -11197,6 +11238,22 @@ async function fetchUserWorkspaces() {
   }
 }
 
+// src/utils/plugin-version.ts
+import { readFileSync } from "node:fs";
+import { dirname as dirname3, join as join2 } from "node:path";
+import { fileURLToPath as fileURLToPath2 } from "node:url";
+function getPluginVersion() {
+  try {
+    const __dirname3 = dirname3(fileURLToPath2(import.meta.url));
+    const pluginJsonPath = join2(__dirname3, "../../.claude-plugin/plugin.json");
+    const pluginJson = JSON.parse(readFileSync(pluginJsonPath, "utf-8"));
+    return pluginJson.version || "unknown";
+  } catch (error) {
+    logger.warn("Failed to read plugin version from plugin.json", error);
+    return "unknown";
+  }
+}
+
 // src/auth/authentication.ts
 async function startAuthFlow() {
   try {
@@ -11206,6 +11263,7 @@ async function startAuthFlow() {
     const session = await pollForAuthorization(deviceCodeData);
     await saveSession(session);
     logger.info("Device code authentication successful");
+    await updateProfileMetadata(session.userId);
     await selectDefaultWorkspace();
     return session;
   } catch (error) {
@@ -11322,6 +11380,15 @@ async function pollForAuthorization(deviceCodeData) {
   }
   throw new Error("Authorization timeout - no response received");
 }
+async function updateProfileMetadata(userId) {
+  try {
+    const version = getPluginVersion();
+    await updateClaudeCodeMetadata(userId, version);
+    logger.info("Profile metadata updated with Claude Code plugin info");
+  } catch (error) {
+    logger.warn("Failed to update profile metadata (non-blocking)", error);
+  }
+}
 async function selectDefaultWorkspace() {
   try {
     logger.info("Selecting default workspace");
@@ -11375,4 +11442,4 @@ export {
   logout
 };
 
-//# debugId=33F004A50E1EE6E264756E2164756E21
+//# debugId=725A9078C0B6505464756E2164756E21

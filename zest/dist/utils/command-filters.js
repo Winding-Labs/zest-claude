@@ -1,7 +1,3 @@
-// src/extractors/session-extractor.ts
-import { readdir as readdir2, readFile as readFile3, stat as stat2 } from "node:fs/promises";
-import { basename, join as join3 } from "node:path";
-
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -21,9 +17,6 @@ var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
 var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
 var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
-var MAX_CONTENT_PREVIEW_LENGTH = 1000;
-var MAX_SESSION_TITLE_LENGTH = 100;
-var MIN_SESSION_TITLE_LENGTH = 3;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
 var EXCLUDED_COMMAND_PATTERNS = [
@@ -84,53 +77,6 @@ class Logger {
   }
 }
 var logger = new Logger;
-
-// src/extractors/extraction-utils.ts
-import { createHash } from "node:crypto";
-
-// src/utils/command-filters.ts
-function shouldExcludeCommand(command) {
-  const trimmedCommand = command.trim();
-  for (const pattern of EXCLUDED_COMMAND_PATTERNS) {
-    if (pattern.test(trimmedCommand)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-// src/utils/deletion-cache.ts
-import { mkdir as mkdir2, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
-import { join as join2 } from "node:path";
-function getCacheKey(filePath, sessionId) {
-  const hash = Buffer.from(filePath).toString("base64").replace(/[/+=]/g, "_");
-  return `${sessionId}_${hash}.json`;
-}
-async function getCachedFileContent(filePath, sessionId) {
-  try {
-    const cacheKey = getCacheKey(filePath, sessionId);
-    const cachePath = join2(DELETION_CACHE_DIR, cacheKey);
-    try {
-      const content = await readFile(cachePath, "utf-8");
-      const cached = JSON.parse(content);
-      const age = Date.now() - cached.timestamp;
-      if (age > DELETION_CACHE_TTL_MS) {
-        logger.debug(`Cache expired for ${filePath} (${age}ms old)`);
-        await rm(cachePath).catch(() => {});
-        return null;
-      }
-      await rm(cachePath).catch(() => {});
-      logger.debug(`Retrieved cached content for ${filePath} (${cached.content.length} chars)`);
-      return cached.content;
-    } catch (readError) {
-      logger.debug(`Cache not found for ${filePath}`);
-      return null;
-    }
-  } catch (error) {
-    logger.error(`Failed to retrieve cached content: ${filePath}`, error);
-    return null;
-  }
-}
 
 // ../../node_modules/diff/libesm/diff/base.js
 var Diff = function() {
@@ -696,9 +642,6 @@ var LineDiff = function(_super) {
   return LineDiff2;
 }(base_default);
 var lineDiff = new LineDiff;
-function diffLines(oldStr, newStr, options) {
-  return lineDiff.diff(oldStr, newStr, options);
-}
 function tokenize(value, options) {
   if (options.stripTrailingCr) {
     value = value.replace(/\r\n/g, `
@@ -926,232 +869,6 @@ var ArrayDiff = function(_super) {
 }(base_default);
 var arrayDiff = new ArrayDiff;
 
-// ../../node_modules/diff/libesm/patch/create.js
-var __assign = function() {
-  __assign = Object.assign || function(t) {
-    for (var s, i = 1, n = arguments.length;i < n; i++) {
-      s = arguments[i];
-      for (var p in s)
-        if (Object.prototype.hasOwnProperty.call(s, p))
-          t[p] = s[p];
-    }
-    return t;
-  };
-  return __assign.apply(this, arguments);
-};
-function structuredPatch(oldFileName, newFileName, oldStr, newStr, oldHeader, newHeader, options) {
-  var optionsObj;
-  if (!options) {
-    optionsObj = {};
-  } else if (typeof options === "function") {
-    optionsObj = { callback: options };
-  } else {
-    optionsObj = options;
-  }
-  if (typeof optionsObj.context === "undefined") {
-    optionsObj.context = 4;
-  }
-  var context = optionsObj.context;
-  if (optionsObj.newlineIsToken) {
-    throw new Error("newlineIsToken may not be used with patch-generation functions, only with diffing functions");
-  }
-  if (!optionsObj.callback) {
-    return diffLinesResultToPatch(diffLines(oldStr, newStr, optionsObj));
-  } else {
-    var callback_1 = optionsObj.callback;
-    diffLines(oldStr, newStr, __assign(__assign({}, optionsObj), { callback: function(diff) {
-      var patch = diffLinesResultToPatch(diff);
-      callback_1(patch);
-    } }));
-  }
-  function diffLinesResultToPatch(diff) {
-    if (!diff) {
-      return;
-    }
-    diff.push({ value: "", lines: [] });
-    function contextLines(lines2) {
-      return lines2.map(function(entry) {
-        return " " + entry;
-      });
-    }
-    var hunks = [];
-    var oldRangeStart = 0, newRangeStart = 0, curRange = [], oldLine = 1, newLine = 1;
-    for (var i = 0;i < diff.length; i++) {
-      var current = diff[i], lines = current.lines || splitLines(current.value);
-      current.lines = lines;
-      if (current.added || current.removed) {
-        if (!oldRangeStart) {
-          var prev = diff[i - 1];
-          oldRangeStart = oldLine;
-          newRangeStart = newLine;
-          if (prev) {
-            curRange = context > 0 ? contextLines(prev.lines.slice(-context)) : [];
-            oldRangeStart -= curRange.length;
-            newRangeStart -= curRange.length;
-          }
-        }
-        for (var _i = 0, lines_1 = lines;_i < lines_1.length; _i++) {
-          var line = lines_1[_i];
-          curRange.push((current.added ? "+" : "-") + line);
-        }
-        if (current.added) {
-          newLine += lines.length;
-        } else {
-          oldLine += lines.length;
-        }
-      } else {
-        if (oldRangeStart) {
-          if (lines.length <= context * 2 && i < diff.length - 2) {
-            for (var _a = 0, _b = contextLines(lines);_a < _b.length; _a++) {
-              var line = _b[_a];
-              curRange.push(line);
-            }
-          } else {
-            var contextSize = Math.min(lines.length, context);
-            for (var _c = 0, _d = contextLines(lines.slice(0, contextSize));_c < _d.length; _c++) {
-              var line = _d[_c];
-              curRange.push(line);
-            }
-            var hunk = {
-              oldStart: oldRangeStart,
-              oldLines: oldLine - oldRangeStart + contextSize,
-              newStart: newRangeStart,
-              newLines: newLine - newRangeStart + contextSize,
-              lines: curRange
-            };
-            hunks.push(hunk);
-            oldRangeStart = 0;
-            newRangeStart = 0;
-            curRange = [];
-          }
-        }
-        oldLine += lines.length;
-        newLine += lines.length;
-      }
-    }
-    for (var _e = 0, hunks_1 = hunks;_e < hunks_1.length; _e++) {
-      var hunk = hunks_1[_e];
-      for (var i = 0;i < hunk.lines.length; i++) {
-        if (hunk.lines[i].endsWith(`
-`)) {
-          hunk.lines[i] = hunk.lines[i].slice(0, -1);
-        } else {
-          hunk.lines.splice(i + 1, 0, "\\ No newline at end of file");
-          i++;
-        }
-      }
-    }
-    return {
-      oldFileName,
-      newFileName,
-      oldHeader,
-      newHeader,
-      hunks
-    };
-  }
-}
-function formatPatch(patch) {
-  if (Array.isArray(patch)) {
-    return patch.map(formatPatch).join(`
-`);
-  }
-  var ret = [];
-  if (patch.oldFileName == patch.newFileName) {
-    ret.push("Index: " + patch.oldFileName);
-  }
-  ret.push("===================================================================");
-  ret.push("--- " + patch.oldFileName + (typeof patch.oldHeader === "undefined" ? "" : "\t" + patch.oldHeader));
-  ret.push("+++ " + patch.newFileName + (typeof patch.newHeader === "undefined" ? "" : "\t" + patch.newHeader));
-  for (var i = 0;i < patch.hunks.length; i++) {
-    var hunk = patch.hunks[i];
-    if (hunk.oldLines === 0) {
-      hunk.oldStart -= 1;
-    }
-    if (hunk.newLines === 0) {
-      hunk.newStart -= 1;
-    }
-    ret.push("@@ -" + hunk.oldStart + "," + hunk.oldLines + " +" + hunk.newStart + "," + hunk.newLines + " @@");
-    for (var _i = 0, _a = hunk.lines;_i < _a.length; _i++) {
-      var line = _a[_i];
-      ret.push(line);
-    }
-  }
-  return ret.join(`
-`) + `
-`;
-}
-function createTwoFilesPatch(oldFileName, newFileName, oldStr, newStr, oldHeader, newHeader, options) {
-  if (typeof options === "function") {
-    options = { callback: options };
-  }
-  if (!(options === null || options === undefined ? undefined : options.callback)) {
-    var patchObj = structuredPatch(oldFileName, newFileName, oldStr, newStr, oldHeader, newHeader, options);
-    if (!patchObj) {
-      return;
-    }
-    return formatPatch(patchObj);
-  } else {
-    var callback_2 = options.callback;
-    structuredPatch(oldFileName, newFileName, oldStr, newStr, oldHeader, newHeader, __assign(__assign({}, options), { callback: function(patchObj2) {
-      if (!patchObj2) {
-        callback_2(undefined);
-      } else {
-        callback_2(formatPatch(patchObj2));
-      }
-    } }));
-  }
-}
-function createPatch(fileName, oldStr, newStr, oldHeader, newHeader, options) {
-  return createTwoFilesPatch(fileName, fileName, oldStr, newStr, oldHeader, newHeader, options);
-}
-function splitLines(text) {
-  var hasTrailingNl = text.endsWith(`
-`);
-  var result = text.split(`
-`).map(function(line) {
-    return line + `
-`;
-  });
-  if (hasTrailingNl) {
-    result.pop();
-  } else {
-    result.push(result.pop().slice(0, -1));
-  }
-  return result;
-}
-
-// src/utils/diff-utils.ts
-function createUnifiedDiff(filePath, oldString, newString) {
-  try {
-    return createPatch(filePath, oldString.trimEnd(), newString.trimEnd(), "", "", {
-      context: 3
-    });
-  } catch (error) {
-    logger.warn(`Failed to create unified diff for ${filePath}`, error);
-    return "";
-  }
-}
-function sanitizeDiff(diff, filePath) {
-  if (!diff || !filePath) {
-    return;
-  }
-  const oldString = diff.old_string ?? "";
-  const newString = diff.new_string ?? "";
-  if (oldString === "" && newString === "") {
-    return;
-  }
-  const unifiedDiff = createUnifiedDiff(filePath, oldString, newString);
-  if (!unifiedDiff) {
-    return;
-  }
-  const sizeBytes = Buffer.byteLength(unifiedDiff, "utf-8");
-  if (sizeBytes > MAX_DIFF_SIZE_BYTES) {
-    logger.warn(`Diff size ${sizeBytes} bytes exceeds limit of ${MAX_DIFF_SIZE_BYTES} bytes, skipping`);
-    return;
-  }
-  return unifiedDiff;
-}
-
 // src/extractors/extraction-utils.ts
 function extractTextContent(content) {
   if (typeof content === "string") {
@@ -1164,330 +881,55 @@ function extractTextContent(content) {
   }
   return "";
 }
-function parseBashCommand(command) {
-  if (!command)
-    return [];
-  const cmd = command.trim();
-  const rmMatch = cmd.match(/^rm\s+(?:-[a-zA-Z]+\s+)*(.+)$/);
-  if (rmMatch) {
-    const pathsString = rmMatch[1].trim();
-    const paths = pathsString.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g)?.map((p) => p.replace(/['"]/g, "")) || [];
-    return paths.map((filePath) => ({ operation: "Delete", filePath }));
+
+// src/utils/command-filters.ts
+function shouldExcludeCommand(command) {
+  const trimmedCommand = command.trim();
+  for (const pattern of EXCLUDED_COMMAND_PATTERNS) {
+    if (pattern.test(trimmedCommand)) {
+      return true;
+    }
   }
-  return [];
+  return false;
 }
-async function extractToolUse(contentBlock, sessionId, timestamp) {
-  try {
-    const toolName = contentBlock.name;
-    const input = contentBlock.input || {};
-    if (!toolName)
-      return [];
-    let filePath;
-    let content;
-    let operationType = toolName;
-    if (toolName === "Bash" || toolName === "bash" || toolName === "Shell") {
-      const command = input.command || input.cmd;
-      if (command) {
-        if (shouldExcludeCommand(command)) {
-          logger.debug(`Filtered out excluded bash command: ${command.substring(0, 50)}...`);
-          return [];
-        }
-        const parsedOperations = parseBashCommand(command);
-        if (parsedOperations.length > 0) {
-          const toolUses = [];
-          for (const parsed of parsedOperations) {
-            const toolUse2 = {
-              session_id: sessionId,
-              tool_name: parsed.operation,
-              file_path: parsed.filePath,
-              timestamp: timestamp || new Date().toISOString()
-            };
-            if (parsed.operation === "Delete") {
-              const cachedContent = await getCachedFileContent(parsed.filePath, sessionId);
-              if (cachedContent !== null) {
-                toolUse2.diff = sanitizeDiff({ old_string: cachedContent, new_string: "" }, parsed.filePath);
-                logger.info(`Generated deletion diff for ${parsed.filePath}`);
-              } else {
-                logger.warn(`No cached content found for ${parsed.filePath} - tracking without diff`);
-              }
-            }
-            toolUses.push(toolUse2);
-          }
-          return toolUses;
-        }
-      }
-    } else if (toolName === "Write" || toolName === "write") {
-      filePath = input.file_path || input.path;
-      content = input.content || input.contents;
-    } else if (toolName === "Edit" || toolName === "StrReplace" || toolName === "str_replace") {
-      filePath = input.file_path || input.path;
-    } else if (toolName === "Delete" || toolName === "delete" || toolName === "rm") {
-      filePath = input.file_path || input.path;
-    } else if (toolName === "EditNotebook" || toolName === "edit_notebook") {
-      filePath = input.target_notebook || input.notebook_path;
-    } else if (toolName === "Read" || toolName === "read") {
-      filePath = input.file_path || input.path;
-    }
-    if (!filePath) {
-      filePath = input.path || input.file_path || input.filepath;
-    }
-    if (!filePath) {
-      return [];
-    }
-    const toolUse = {
-      session_id: sessionId,
-      tool_name: operationType,
-      file_path: filePath,
-      content: content?.substring(0, MAX_CONTENT_PREVIEW_LENGTH),
-      timestamp: timestamp || new Date().toISOString()
-    };
-    if ((operationType === "Write" || operationType === "write") && content) {
-      toolUse.diff = sanitizeDiff({ old_string: "", new_string: content }, filePath);
-    }
-    return [toolUse];
-  } catch (error) {
-    logger.debug("Failed to extract tool use:", error);
-    return [];
+function restoreFilteringState(lines, lastReadLine) {
+  if (lastReadLine === 0) {
+    return false;
   }
-}
-function getToolNameFromResultType(type, oldString, newString) {
-  if (type === "create")
-    return "Write";
-  if (type === "delete")
-    return "Delete";
-  if (!oldString && newString)
-    return "Write";
-  if (oldString && !newString)
-    return "Delete";
-  return "Edit";
-}
-function extractToolUseResult(entry, sessionId) {
-  try {
-    const result = entry.toolUseResult;
-    if (!result || !result.filePath)
-      return null;
-    const toolName = getToolNameFromResultType(result.type, result.oldString, result.newString);
-    const toolUse = {
-      session_id: sessionId,
-      tool_name: toolName,
-      file_path: result.filePath,
-      timestamp: entry.timestamp || new Date().toISOString()
-    };
-    if (result.structuredPatch || result.oldString !== undefined || result.newString !== undefined) {
-      const rawDiff = {
-        old_string: result.oldString,
-        new_string: result.newString,
-        structured_patch: result.structuredPatch
-      };
-      toolUse.diff = sanitizeDiff(rawDiff, result.filePath);
-    }
-    return toolUse;
-  } catch (error) {
-    logger.debug("Failed to extract tool use result:", error);
-    return null;
-  }
-}
-function extractSessionTitleFromContent(content) {
-  const lines = content.split(`
-`).filter((line) => line.trim());
-  for (const line of lines) {
+  const lookbackLines = lines.slice(Math.max(0, lastReadLine - 10), lastReadLine);
+  for (let i = lookbackLines.length - 1;i >= 0; i--) {
     try {
-      const entry = JSON.parse(line);
+      const entry = JSON.parse(lookbackLines[i]);
       if (entry.message?.role === "user" && entry.message.content) {
-        const text = extractTextContent(entry.message.content);
-        if (text && text.length >= MIN_SESSION_TITLE_LENGTH) {
-          return text.substring(0, MAX_SESSION_TITLE_LENGTH).trim();
+        const textContent = extractTextContent(entry.message.content);
+        if (textContent && shouldExcludeCommand(textContent)) {
+          logger.debug(`Restored filtering state: last user message was filtered command: ${textContent.substring(0, 50)}...`);
+          return true;
         }
+        break;
       }
     } catch {}
   }
-  return null;
+  return false;
 }
-function generateMessageId(sessionId, messageIndex) {
-  const hash = createHash("sha256").update(`${sessionId}-${messageIndex}`).digest("hex");
-  return `msg_${hash.substring(0, 16)}`;
-}
-function logDiff(filePath, diff) {
-  if (!diff)
-    return;
-  logger.info(`Code change detected in ${filePath}:`);
-  const lines = diff.split(`
-`).slice(0, 10);
-  for (const line of lines) {
-    logger.info(`  ${line}`);
+function applyMessageFilter(role, textContent, currentState) {
+  if (role === "user") {
+    if (shouldExcludeCommand(textContent)) {
+      return { shouldFilter: true, newState: true };
+    }
+    return { shouldFilter: false, newState: false };
   }
-  if (diff.split(`
-`).length > 10) {
-    logger.info("  ...");
+  if (role === "assistant") {
+    if (currentState) {
+      return { shouldFilter: true, newState: currentState };
+    }
   }
-}
-
-// src/extractors/message-parser.ts
-import { readFile as readFile2 } from "node:fs/promises";
-async function extractMessagesFromFile(filePath, sessionId) {
-  const messages = [];
-  const toolUses = [];
-  try {
-    const content = await readFile2(filePath, "utf-8");
-    const lines = content.split(`
-`).filter((line) => line.trim());
-    let tempMessageCounter = 0;
-    for (const line of lines) {
-      try {
-        const entry = JSON.parse(line);
-        if (!entry.message)
-          continue;
-        const role = entry.message.role;
-        const content2 = entry.message.content;
-        if ((role === "user" || role === "assistant") && content2) {
-          const textContent = extractTextContent(content2);
-          if (textContent) {
-            if (shouldExcludeCommand(textContent)) {
-              logger.debug(`Filtered out excluded command: ${textContent.substring(0, 50)}...`);
-              continue;
-            }
-            const messageId = entry.uuid || generateMessageId(sessionId, tempMessageCounter);
-            messages.push({
-              id: messageId,
-              session_id: sessionId,
-              role,
-              content: textContent,
-              created_at: entry.timestamp || new Date().toISOString(),
-              message_index: tempMessageCounter
-            });
-            tempMessageCounter++;
-          }
-        }
-        if (Array.isArray(content2)) {
-          for (const contentBlock of content2) {
-            if (contentBlock.type === "tool_use") {
-              const extractedToolUses = await extractToolUse(contentBlock, sessionId, entry.timestamp);
-              toolUses.push(...extractedToolUses);
-            }
-          }
-        }
-        if (entry.toolUseResult) {
-          const toolUseWithDiff = extractToolUseResult(entry, sessionId);
-          if (toolUseWithDiff) {
-            toolUses.push(toolUseWithDiff);
-            logDiff(toolUseWithDiff.file_path || "", toolUseWithDiff.diff);
-          }
-        }
-      } catch (parseError) {
-        logger.debug(`Failed to parse JSONL line: ${line.substring(0, 100)}...`, parseError);
-      }
-    }
-  } catch (error) {
-    logger.error(`Failed to read conversation file ${filePath}:`, error);
-  }
-  return { messages, toolUses };
-}
-
-// src/extractors/session-extractor.ts
-async function extractSessions() {
-  logger.info("Extracting Claude sessions from projects directory");
-  const sessions = [];
-  const messages = [];
-  const toolUses = [];
-  try {
-    try {
-      await stat2(CLAUDE_PROJECTS_DIR);
-    } catch {
-      logger.warn(`Claude projects directory not found: ${CLAUDE_PROJECTS_DIR}`);
-      return { sessions, messages, toolUses };
-    }
-    const entries = await readdir2(CLAUDE_PROJECTS_DIR, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory())
-        continue;
-      const projectId = entry.name;
-      const projectPath = join3(CLAUDE_PROJECTS_DIR, projectId);
-      const conversationFile = join3(projectPath, "conversation.jsonl");
-      try {
-        const stats = await stat2(conversationFile);
-        const session = {
-          id: projectId,
-          title: await extractSessionTitle(conversationFile),
-          created_at: stats.birthtime.toISOString()
-        };
-        sessions.push(session);
-        const { messages: sessionMessages, toolUses: sessionToolUses } = await extractMessagesFromFile(conversationFile, projectId);
-        messages.push(...sessionMessages);
-        toolUses.push(...sessionToolUses);
-        logger.info(`Extracted session ${projectId}: ${sessionMessages.length} messages, ${sessionToolUses.length} tool uses`);
-      } catch (error) {
-        logger.debug(`No conversation file found for project ${projectId}:`, error);
-      }
-    }
-    logger.info(`Total extracted: ${sessions.length} sessions, ${messages.length} messages, ${toolUses.length} tool uses`);
-    return { sessions, messages, toolUses };
-  } catch (error) {
-    logger.error("Failed to extract sessions:", error);
-    return { sessions, messages, toolUses };
-  }
-}
-async function extractSessionTitle(filePath) {
-  try {
-    const content = await readFile3(filePath, "utf-8");
-    const title = extractSessionTitleFromContent(content);
-    if (title) {
-      return title;
-    }
-  } catch {}
-  return `Session ${basename(filePath, ".jsonl")}`;
-}
-async function extractCurrentSession() {
-  const projectDir = process.env.CLAUDE_PROJECT_DIR;
-  if (!projectDir) {
-    logger.warn("CLAUDE_PROJECT_DIR not set, cannot extract current session");
-    return { session: null, messages: [], toolUses: [] };
-  }
-  try {
-    const claudeDirName = projectDir.replace(/\//g, "-");
-    const projectPath = join3(CLAUDE_PROJECTS_DIR, claudeDirName);
-    logger.debug(`Looking for project directory: ${projectPath}`);
-    try {
-      await stat2(projectPath);
-    } catch {
-      logger.warn(`Project directory not found: ${projectPath}`);
-      return { session: null, messages: [], toolUses: [] };
-    }
-    const entries = await readdir2(projectPath);
-    const jsonlFiles = entries.filter((f) => f.endsWith(".jsonl"));
-    if (jsonlFiles.length === 0) {
-      logger.warn(`No session files found in ${projectPath}`);
-      return { session: null, messages: [], toolUses: [] };
-    }
-    let mostRecentFile = jsonlFiles[0];
-    let mostRecentTime = 0;
-    for (const file of jsonlFiles) {
-      const filePath = join3(projectPath, file);
-      const stats2 = await stat2(filePath);
-      if (stats2.mtimeMs > mostRecentTime) {
-        mostRecentTime = stats2.mtimeMs;
-        mostRecentFile = file;
-      }
-    }
-    const conversationFile = join3(projectPath, mostRecentFile);
-    const sessionId = basename(mostRecentFile, ".jsonl");
-    logger.debug(`Found current session file: ${conversationFile}`);
-    const stats = await stat2(conversationFile);
-    const session = {
-      id: sessionId,
-      title: await extractSessionTitle(conversationFile),
-      created_at: stats.birthtime.toISOString()
-    };
-    const { messages, toolUses } = await extractMessagesFromFile(conversationFile, sessionId);
-    logger.info(`Extracted current session ${sessionId}: ${messages.length} messages, ${toolUses.length} tool uses`);
-    return { session, messages, toolUses };
-  } catch (error) {
-    logger.error("Failed to extract current session:", error);
-    return { session: null, messages: [], toolUses: [] };
-  }
+  return { shouldFilter: false, newState: currentState };
 }
 export {
-  extractSessions,
-  extractCurrentSession
+  shouldExcludeCommand,
+  restoreFilteringState,
+  applyMessageFilter
 };
 
-//# debugId=2C36C75FCC9401E264756E2164756E21
+//# debugId=68AE88569B5AAB4D64756E2164756E21

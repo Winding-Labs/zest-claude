@@ -17,7 +17,96 @@ var __toESM = (mod, isNodeMode, target) => {
   return to;
 };
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
+var __esm = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
 var __require = /* @__PURE__ */ createRequire(import.meta.url);
+
+// src/config/constants.ts
+import { homedir } from "node:os";
+import { join } from "node:path";
+var CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, LOG_FILE, SYNC_LOG_FILE, DAEMON_PID_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, DELETION_CACHE_TTL_MS, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MAX_CONTENT_PREVIEW_LENGTH = 1000, STALE_SESSION_AGE_MS, WEB_APP_URL = "http://192.168.1.21:3000", CLAUDE_PROJECTS_DIR, EXCLUDED_COMMAND_PATTERNS;
+var init_constants = __esm(() => {
+  CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${"-dev"}`);
+  QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
+  LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
+  STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
+  DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
+  SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
+  SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
+  LOG_FILE = join(LOGS_DIR, "plugin.log");
+  SYNC_LOG_FILE = join(LOGS_DIR, "sync.log");
+  DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
+  EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
+  SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
+  MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
+  DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
+  PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+  MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
+  STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+  CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
+  EXCLUDED_COMMAND_PATTERNS = [
+    /^\/(add-dir|agents|bashes|bug|clear|compact|config|context|cost|doctor|exit|export|help|hooks|ide|init|install-github-app|login|logout|mcp|memory|model|output-style|permissions|plugin|pr-comments|privacy-settings|release-notes|resume|review|rewind|sandbox|security-review|stats|status|statusline|terminal-setup|todos|usage|vim)\b/i,
+    /^\/zest[^:\s]*:/i,
+    /<command-name>\/zest[^<]*<\/command-name>/i,
+    /node\s+.*\/dist\/commands\/.*-cli\.js/i
+  ];
+});
+
+// src/utils/logger.ts
+import { appendFile, mkdir } from "node:fs/promises";
+import { dirname } from "node:path";
+
+class Logger {
+  minLevel = "info";
+  levels = {
+    debug: 0,
+    info: 1,
+    warn: 2,
+    error: 3
+  };
+  setLevel(level) {
+    this.minLevel = level;
+  }
+  async writeToFile(message) {
+    try {
+      await mkdir(dirname(LOG_FILE), { recursive: true });
+      const timestamp = new Date().toISOString();
+      await appendFile(LOG_FILE, `[${timestamp}] ${message}
+`, "utf-8");
+    } catch (error) {
+      console.error("Failed to write to log file:", error);
+    }
+  }
+  shouldLog(level) {
+    return this.levels[level] >= this.levels[this.minLevel];
+  }
+  debug(message, ...args) {
+    if (this.shouldLog("debug")) {
+      this.writeToFile(`DEBUG: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  info(message, ...args) {
+    if (this.shouldLog("info")) {
+      this.writeToFile(`INFO: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  warn(message, ...args) {
+    if (this.shouldLog("warn")) {
+      console.warn(`[Zest:Warn] ${message}`, ...args);
+      this.writeToFile(`WARN: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  error(message, error) {
+    if (this.shouldLog("error")) {
+      console.error(`[Zest:Error] ${message}`, error);
+      this.writeToFile(`ERROR: ${message} ${error instanceof Error ? error.stack : JSON.stringify(error)}`);
+    }
+  }
+}
+var logger;
+var init_logger = __esm(() => {
+  init_constants();
+  logger = new Logger;
+});
 
 // ../../packages/utils/dist/language-utils.js
 var require_language_utils = __commonJS((exports) => {
@@ -127,87 +216,50 @@ var require_dist = __commonJS((exports) => {
   } });
 });
 
+// src/utils/deletion-cache.ts
+import { mkdir as mkdir3, readFile as readFile3, readdir, rm, stat, writeFile as writeFile3 } from "node:fs/promises";
+import { join as join3 } from "node:path";
+function getCacheKey(filePath, sessionId) {
+  const hash = Buffer.from(filePath).toString("base64").replace(/[/+=]/g, "_");
+  return `${sessionId}_${hash}.json`;
+}
+async function getCachedFileContent(filePath, sessionId) {
+  try {
+    const cacheKey = getCacheKey(filePath, sessionId);
+    const cachePath = join3(DELETION_CACHE_DIR, cacheKey);
+    try {
+      const content = await readFile3(cachePath, "utf-8");
+      const cached = JSON.parse(content);
+      const age = Date.now() - cached.timestamp;
+      if (age > DELETION_CACHE_TTL_MS) {
+        logger.debug(`Cache expired for ${filePath} (${age}ms old)`);
+        await rm(cachePath).catch(() => {});
+        return null;
+      }
+      await rm(cachePath).catch(() => {});
+      logger.debug(`Retrieved cached content for ${filePath} (${cached.content.length} chars)`);
+      return cached.content;
+    } catch (readError) {
+      logger.debug(`Cache not found for ${filePath}`);
+      return null;
+    }
+  } catch (error) {
+    logger.error(`Failed to retrieve cached content: ${filePath}`, error);
+    return null;
+  }
+}
+var init_deletion_cache = __esm(() => {
+  init_constants();
+  init_logger();
+});
+
 // src/utils/daemon-manager.ts
+init_constants();
+init_logger();
 import { spawn } from "node:child_process";
 import { readFile, unlink, writeFile } from "node:fs/promises";
 import { dirname as dirname2, join as join2 } from "node:path";
 import { fileURLToPath } from "node:url";
-
-// src/config/constants.ts
-import { homedir } from "node:os";
-import { join } from "node:path";
-var CLAUDE_ZEST_DIR = join(homedir(), ".claude-zest");
-var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
-var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
-var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
-var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
-var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
-var LOG_FILE = join(LOGS_DIR, "plugin.log");
-var SYNC_LOG_FILE = join(LOGS_DIR, "sync.log");
-var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
-var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
-var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
-var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
-var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
-var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
-var MAX_CONTENT_PREVIEW_LENGTH = 1000;
-var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-var WEB_APP_URL = "https://app.meetzest.com";
-var CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
-
-// src/utils/logger.ts
-import { appendFile, mkdir } from "node:fs/promises";
-import { dirname } from "node:path";
-class Logger {
-  minLevel = "info";
-  levels = {
-    debug: 0,
-    info: 1,
-    warn: 2,
-    error: 3
-  };
-  setLevel(level) {
-    this.minLevel = level;
-  }
-  async writeToFile(message) {
-    try {
-      await mkdir(dirname(LOG_FILE), { recursive: true });
-      const timestamp = new Date().toISOString();
-      await appendFile(LOG_FILE, `[${timestamp}] ${message}
-`, "utf-8");
-    } catch (error) {
-      console.error("Failed to write to log file:", error);
-    }
-  }
-  shouldLog(level) {
-    return this.levels[level] >= this.levels[this.minLevel];
-  }
-  debug(message, ...args) {
-    if (this.shouldLog("debug")) {
-      this.writeToFile(`DEBUG: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  info(message, ...args) {
-    if (this.shouldLog("info")) {
-      this.writeToFile(`INFO: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  warn(message, ...args) {
-    if (this.shouldLog("warn")) {
-      console.warn(`[Zest:Warn] ${message}`, ...args);
-      this.writeToFile(`WARN: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  error(message, error) {
-    if (this.shouldLog("error")) {
-      console.error(`[Zest:Error] ${message}`, error);
-      this.writeToFile(`ERROR: ${message} ${error instanceof Error ? error.stack : JSON.stringify(error)}`);
-    }
-  }
-}
-var logger = new Logger;
-
-// src/utils/daemon-manager.ts
 var __filename2 = fileURLToPath(import.meta.url);
 var __dirname2 = dirname2(__filename2);
 async function startDaemon() {
@@ -278,10 +330,12 @@ async function getDaemonPid() {
 // src/utils/extraction-helpers.ts
 var import_utils = __toESM(require_dist(), 1);
 import { randomUUID } from "node:crypto";
-import { stat as stat2 } from "node:fs/promises";
-import { basename, join as join4 } from "node:path";
+import { stat as stat3 } from "node:fs/promises";
+import { basename, join as join5 } from "node:path";
 
 // src/auth/session-manager.ts
+init_constants();
+init_logger();
 import { mkdir as mkdir2, readFile as readFile2, unlink as unlink2, writeFile as writeFile2 } from "node:fs/promises";
 import { dirname as dirname3 } from "node:path";
 async function loadSession() {
@@ -402,11 +456,19 @@ async function getValidSession() {
   return session;
 }
 
+// src/utils/extraction-helpers.ts
+init_constants();
+
 // src/extractors/message-parser.ts
-import { readFile as readFile3 } from "node:fs/promises";
+import { readFile as readFile4 } from "node:fs/promises";
+
+// src/utils/command-filters.ts
+init_constants();
 
 // src/extractors/extraction-utils.ts
+init_constants();
 import { createHash } from "node:crypto";
+init_deletion_cache();
 
 // ../../node_modules/diff/libesm/diff/base.js
 var Diff = function() {
@@ -1397,6 +1459,8 @@ function splitLines(text) {
 }
 
 // src/utils/diff-utils.ts
+init_constants();
+init_logger();
 function createUnifiedDiff(filePath, oldString, newString) {
   try {
     return createPatch(filePath, oldString.trimEnd(), newString.trimEnd(), "", "", {
@@ -1429,6 +1493,7 @@ function sanitizeDiff(diff, filePath) {
 }
 
 // src/extractors/extraction-utils.ts
+init_logger();
 function extractTextContent(content) {
   if (typeof content === "string") {
     return content;
@@ -1440,15 +1505,59 @@ function extractTextContent(content) {
   }
   return "";
 }
-function extractToolUse(contentBlock, sessionId, timestamp) {
+function parseBashCommand(command) {
+  if (!command)
+    return [];
+  const cmd = command.trim();
+  const rmMatch = cmd.match(/^rm\s+(?:-[a-zA-Z]+\s+)*(.+)$/);
+  if (rmMatch) {
+    const pathsString = rmMatch[1].trim();
+    const paths = pathsString.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g)?.map((p) => p.replace(/['"]/g, "")) || [];
+    return paths.map((filePath) => ({ operation: "Delete", filePath }));
+  }
+  return [];
+}
+async function extractToolUse(contentBlock, sessionId, timestamp) {
   try {
     const toolName = contentBlock.name;
     const input = contentBlock.input || {};
     if (!toolName)
-      return null;
+      return [];
     let filePath;
     let content;
-    if (toolName === "Write" || toolName === "write") {
+    let operationType = toolName;
+    if (toolName === "Bash" || toolName === "bash" || toolName === "Shell") {
+      const command = input.command || input.cmd;
+      if (command) {
+        if (shouldExcludeCommand(command)) {
+          logger.debug(`Filtered out excluded bash command: ${command.substring(0, 50)}...`);
+          return [];
+        }
+        const parsedOperations = parseBashCommand(command);
+        if (parsedOperations.length > 0) {
+          const toolUses = [];
+          for (const parsed of parsedOperations) {
+            const toolUse2 = {
+              session_id: sessionId,
+              tool_name: parsed.operation,
+              file_path: parsed.filePath,
+              timestamp: timestamp || new Date().toISOString()
+            };
+            if (parsed.operation === "Delete") {
+              const cachedContent = await getCachedFileContent(parsed.filePath, sessionId);
+              if (cachedContent !== null) {
+                toolUse2.diff = sanitizeDiff({ old_string: cachedContent, new_string: "" }, parsed.filePath);
+                logger.info(`Generated deletion diff for ${parsed.filePath}`);
+              } else {
+                logger.warn(`No cached content found for ${parsed.filePath} - tracking without diff`);
+              }
+            }
+            toolUses.push(toolUse2);
+          }
+          return toolUses;
+        }
+      }
+    } else if (toolName === "Write" || toolName === "write") {
       filePath = input.file_path || input.path;
       content = input.content || input.contents;
     } else if (toolName === "Edit" || toolName === "StrReplace" || toolName === "str_replace") {
@@ -1464,22 +1573,22 @@ function extractToolUse(contentBlock, sessionId, timestamp) {
       filePath = input.path || input.file_path || input.filepath;
     }
     if (!filePath) {
-      return null;
+      return [];
     }
     const toolUse = {
       session_id: sessionId,
-      tool_name: toolName,
+      tool_name: operationType,
       file_path: filePath,
       content: content?.substring(0, MAX_CONTENT_PREVIEW_LENGTH),
       timestamp: timestamp || new Date().toISOString()
     };
-    if ((toolName === "Write" || toolName === "write") && content) {
+    if ((operationType === "Write" || operationType === "write") && content) {
       toolUse.diff = sanitizeDiff({ old_string: "", new_string: content }, filePath);
     }
-    return toolUse;
+    return [toolUse];
   } catch (error) {
     logger.debug("Failed to extract tool use:", error);
-    return null;
+    return [];
   }
 }
 function getToolNameFromResultType(type, oldString, newString) {
@@ -1538,13 +1647,60 @@ function logDiff(filePath, diff) {
   }
 }
 
+// src/utils/command-filters.ts
+init_logger();
+function shouldExcludeCommand(command) {
+  const trimmedCommand = command.trim();
+  for (const pattern of EXCLUDED_COMMAND_PATTERNS) {
+    if (pattern.test(trimmedCommand)) {
+      return true;
+    }
+  }
+  return false;
+}
+function restoreFilteringState(lines, lastReadLine) {
+  if (lastReadLine === 0) {
+    return false;
+  }
+  const lookbackLines = lines.slice(Math.max(0, lastReadLine - 10), lastReadLine);
+  for (let i = lookbackLines.length - 1;i >= 0; i--) {
+    try {
+      const entry = JSON.parse(lookbackLines[i]);
+      if (entry.message?.role === "user" && entry.message.content) {
+        const textContent = extractTextContent(entry.message.content);
+        if (textContent && shouldExcludeCommand(textContent)) {
+          logger.debug(`Restored filtering state: last user message was filtered command: ${textContent.substring(0, 50)}...`);
+          return true;
+        }
+        break;
+      }
+    } catch {}
+  }
+  return false;
+}
+function applyMessageFilter(role, textContent, currentState) {
+  if (role === "user") {
+    if (shouldExcludeCommand(textContent)) {
+      return { shouldFilter: true, newState: true };
+    }
+    return { shouldFilter: false, newState: false };
+  }
+  if (role === "assistant") {
+    if (currentState) {
+      return { shouldFilter: true, newState: currentState };
+    }
+  }
+  return { shouldFilter: false, newState: currentState };
+}
+
 // src/extractors/message-parser.ts
+init_logger();
 async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0) {
   const messages = [];
   const toolUses = [];
   try {
     logger.debug(`Incremental extraction for ${sessionId}: reading from line ${lastReadLine}`);
-    const content = await readFile3(filePath, "utf-8");
+    const content = await readFile4(filePath, "utf-8");
     const lines = content.split(`
 `).filter((line) => line.trim());
     const totalLines = lines.length;
@@ -1555,6 +1711,7 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0)
     const newLines = lines.slice(lastReadLine);
     logger.info(`Processing ${newLines.length} new lines for session ${sessionId} (lines ${lastReadLine + 1}-${totalLines})`);
     let tempMessageCounter = 0;
+    let filteringAssistantResponses = restoreFilteringState(lines, lastReadLine);
     for (let i = 0;i < newLines.length; i++) {
       const line = newLines[i];
       const lineNumber = lastReadLine + i;
@@ -1567,6 +1724,11 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0)
         if ((role === "user" || role === "assistant") && content2) {
           const textContent = extractTextContent(content2);
           if (textContent) {
+            const filterResult = applyMessageFilter(role, textContent, filteringAssistantResponses);
+            filteringAssistantResponses = filterResult.newState;
+            if (filterResult.shouldFilter) {
+              continue;
+            }
             const messageId = entry.uuid || generateMessageId(sessionId, tempMessageCounter);
             messages.push({
               id: messageId,
@@ -1580,23 +1742,22 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0)
             logger.debug(`Extracted ${role} message at line ${lineNumber + 1}: ${textContent.substring(0, 50)}...`);
           }
         }
-        if (Array.isArray(content2)) {
-          for (const contentBlock of content2) {
-            if (contentBlock.type === "tool_use") {
-              const toolUse = extractToolUse(contentBlock, sessionId, entry.timestamp);
-              if (toolUse) {
-                toolUses.push(toolUse);
-                logger.debug(`Extracted tool use at line ${lineNumber + 1}: ${toolUse.tool_name} on ${toolUse.file_path}`);
-              }
-            }
-          }
-        }
         if (entry.toolUseResult) {
           const toolUseWithDiff = extractToolUseResult(entry, sessionId);
           if (toolUseWithDiff) {
             toolUses.push(toolUseWithDiff);
             logger.debug(`Extracted tool result at line ${lineNumber + 1}: ${toolUseWithDiff.file_path}`);
             logDiff(toolUseWithDiff.file_path || "", toolUseWithDiff.diff);
+          }
+        } else if (Array.isArray(content2)) {
+          for (const contentBlock of content2) {
+            if (contentBlock.type === "tool_use") {
+              const extractedToolUses = await extractToolUse(contentBlock, sessionId, entry.timestamp);
+              for (const toolUse of extractedToolUses) {
+                toolUses.push(toolUse);
+                logger.debug(`Extracted tool use at line ${lineNumber + 1}: ${toolUse.tool_name} on ${toolUse.file_path}`);
+              }
+            }
           }
         }
       } catch (parseError) {
@@ -1621,8 +1782,13 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0)
   }
 }
 
+// src/utils/extraction-helpers.ts
+init_logger();
+
 // src/utils/queue-manager.ts
-import { appendFile as appendFile2, mkdir as mkdir3, readFile as readFile4, stat, unlink as unlink3, writeFile as writeFile3 } from "node:fs/promises";
+init_constants();
+init_logger();
+import { appendFile as appendFile2, mkdir as mkdir4, readFile as readFile5, stat as stat2, unlink as unlink3, writeFile as writeFile4 } from "node:fs/promises";
 import { dirname as dirname4 } from "node:path";
 var locks = new Map;
 async function withLock(filePath, fn) {
@@ -1643,24 +1809,51 @@ async function withLock(filePath, fn) {
 }
 async function ensureDirectory(dirPath) {
   try {
-    await stat(dirPath);
+    await stat2(dirPath);
   } catch {
-    await mkdir3(dirPath, { recursive: true, mode: 448 });
+    await mkdir4(dirPath, { recursive: true, mode: 448 });
     logger.debug(`Created directory: ${dirPath}`);
   }
 }
-async function appendToJsonl(filePath, data) {
-  await withLock(filePath, async () => {
-    await ensureDirectory(dirname4(filePath));
-    const line = JSON.stringify(data) + `
-`;
-    await appendFile2(filePath, line, "utf8");
-  });
+async function readJsonl(filePath) {
+  try {
+    const content = await readFile5(filePath, "utf8");
+    const lines = content.trim().split(`
+`).filter(Boolean);
+    const results = [];
+    for (let i = 0;i < lines.length; i++) {
+      try {
+        results.push(JSON.parse(lines[i]));
+      } catch (error) {
+        logger.warn(`Failed to parse line ${i + 1} in ${filePath}:`, error);
+      }
+    }
+    return results;
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return [];
+    }
+    throw error;
+  }
 }
 async function enqueueEvent(event) {
   try {
-    await appendToJsonl(EVENTS_QUEUE_FILE, event);
-    logger.debug("Enqueued event", { eventId: event.id, documentUri: event.document_uri });
+    await withLock(EVENTS_QUEUE_FILE, async () => {
+      const existingEvents = await readJsonl(EVENTS_QUEUE_FILE);
+      const isDuplicate = existingEvents.some((evt) => evt.id === event.id);
+      if (isDuplicate) {
+        logger.debug("Skipping duplicate event", {
+          eventId: event.id,
+          documentUri: event.document_uri
+        });
+        return;
+      }
+      await ensureDirectory(dirname4(EVENTS_QUEUE_FILE));
+      const line = JSON.stringify(event) + `
+`;
+      await appendFile2(EVENTS_QUEUE_FILE, line, "utf8");
+      logger.debug("Enqueued event", { eventId: event.id, documentUri: event.document_uri });
+    });
   } catch (error) {
     logger.error("Failed to enqueue event:", error);
     throw error;
@@ -1668,8 +1861,19 @@ async function enqueueEvent(event) {
 }
 async function enqueueChatSession(session) {
   try {
-    await appendToJsonl(SESSIONS_QUEUE_FILE, session);
-    logger.debug("Enqueued session", { sessionId: session.id });
+    await withLock(SESSIONS_QUEUE_FILE, async () => {
+      const existingSessions = await readJsonl(SESSIONS_QUEUE_FILE);
+      const isDuplicate = existingSessions.some((sess) => sess.id === session.id);
+      if (isDuplicate) {
+        logger.debug("Skipping duplicate session", { sessionId: session.id });
+        return;
+      }
+      await ensureDirectory(dirname4(SESSIONS_QUEUE_FILE));
+      const line = JSON.stringify(session) + `
+`;
+      await appendFile2(SESSIONS_QUEUE_FILE, line, "utf8");
+      logger.debug("Enqueued session", { sessionId: session.id });
+    });
   } catch (error) {
     logger.error("Failed to enqueue session:", error);
     throw error;
@@ -1677,10 +1881,25 @@ async function enqueueChatSession(session) {
 }
 async function enqueueChatMessage(message) {
   try {
-    await appendToJsonl(MESSAGES_QUEUE_FILE, message);
-    logger.debug("Enqueued message", {
-      sessionId: message.session_id,
-      messageIndex: message.message_index
+    await withLock(MESSAGES_QUEUE_FILE, async () => {
+      const existingMessages = await readJsonl(MESSAGES_QUEUE_FILE);
+      const isDuplicate = existingMessages.some((msg) => msg.id === message.id);
+      if (isDuplicate) {
+        logger.debug("Skipping duplicate message", {
+          messageId: message.id,
+          sessionId: message.session_id,
+          messageIndex: message.message_index
+        });
+        return;
+      }
+      await ensureDirectory(dirname4(MESSAGES_QUEUE_FILE));
+      const line = JSON.stringify(message) + `
+`;
+      await appendFile2(MESSAGES_QUEUE_FILE, line, "utf8");
+      logger.debug("Enqueued message", {
+        sessionId: message.session_id,
+        messageIndex: message.message_index
+      });
     });
   } catch (error) {
     logger.error("Failed to enqueue message:", error);
@@ -1689,15 +1908,17 @@ async function enqueueChatMessage(message) {
 }
 
 // src/utils/state-manager.ts
-import { mkdir as mkdir4, readFile as readFile5, writeFile as writeFile4 } from "node:fs/promises";
-import { join as join3 } from "node:path";
-var STATE_DIR2 = join3(CLAUDE_ZEST_DIR, "state");
+init_constants();
+init_logger();
+import { mkdir as mkdir5, readFile as readFile6, writeFile as writeFile5 } from "node:fs/promises";
+import { join as join4 } from "node:path";
+var STATE_DIR2 = join4(CLAUDE_ZEST_DIR, "state");
 function getStateFilePath(sessionId) {
-  return join3(STATE_DIR2, `${sessionId}.json`);
+  return join4(STATE_DIR2, `${sessionId}.json`);
 }
 async function ensureStateDir() {
   try {
-    await mkdir4(STATE_DIR2, { recursive: true });
+    await mkdir5(STATE_DIR2, { recursive: true });
   } catch (error) {
     logger.debug("State directory already exists or error creating:", error);
   }
@@ -1705,7 +1926,7 @@ async function ensureStateDir() {
 async function readSessionState(sessionId) {
   try {
     const stateFile = getStateFilePath(sessionId);
-    const content = await readFile5(stateFile, "utf-8");
+    const content = await readFile6(stateFile, "utf-8");
     return JSON.parse(content);
   } catch (error) {
     logger.debug(`No state found for session ${sessionId} (new session)`);
@@ -1716,7 +1937,7 @@ async function writeSessionState(state) {
   try {
     await ensureStateDir();
     const stateFile = getStateFilePath(state.sessionId);
-    await writeFile4(stateFile, JSON.stringify(state, null, 2), "utf-8");
+    await writeFile5(stateFile, JSON.stringify(state, null, 2), "utf-8");
     logger.debug(`Updated state for session ${state.sessionId}: lastReadLine=${state.lastReadLine}`);
   } catch (error) {
     logger.error(`Failed to write state for session ${state.sessionId}:`, error);
@@ -1736,16 +1957,16 @@ async function updateLastReadLine(sessionId, filePath, lineNumber, lastMessageIn
 async function findConversationFile(projectDir) {
   try {
     const claudeDirName = projectDir.replace(/\//g, "-");
-    const projectPath = join4(CLAUDE_PROJECTS_DIR, claudeDirName);
+    const projectPath = join5(CLAUDE_PROJECTS_DIR, claudeDirName);
     logger.debug(`Looking for project directory: ${projectPath}`);
     try {
-      await stat2(projectPath);
+      await stat3(projectPath);
     } catch {
       logger.warn(`Project directory not found: ${projectPath}`);
       return null;
     }
-    const { readdir } = await import("node:fs/promises");
-    const entries = await readdir(projectPath);
+    const { readdir: readdir2 } = await import("node:fs/promises");
+    const entries = await readdir2(projectPath);
     const jsonlFiles = entries.filter((f) => f.endsWith(".jsonl"));
     if (jsonlFiles.length === 0) {
       logger.warn(`No session files found in ${projectPath}`);
@@ -1754,16 +1975,16 @@ async function findConversationFile(projectDir) {
     let mostRecentFile = jsonlFiles[0];
     let mostRecentTime = 0;
     for (const file of jsonlFiles) {
-      const filePath = join4(projectPath, file);
-      const stats = await stat2(filePath);
+      const filePath = join5(projectPath, file);
+      const stats = await stat3(filePath);
       if (stats.mtimeMs > mostRecentTime) {
         mostRecentTime = stats.mtimeMs;
         mostRecentFile = file;
       }
     }
-    const conversationFile = join4(projectPath, mostRecentFile);
+    const conversationFile = join5(projectPath, mostRecentFile);
     const sessionId = basename(mostRecentFile, ".jsonl");
-    const fileStats = await stat2(conversationFile);
+    const fileStats = await stat3(conversationFile);
     return { conversationFile, sessionId, fileStats };
   } catch (error) {
     logger.error("Failed to find conversation file:", error);
@@ -1861,6 +2082,7 @@ async function queueToolUseEvents(toolUses, sessionId, projectDir) {
 }
 
 // src/hooks/session-handler-cli.ts
+init_logger();
 async function main() {
   const eventType = process.argv[2];
   logger.info(`Session event: ${eventType}`);
@@ -1922,4 +2144,4 @@ main().catch((error) => {
   process.exit(1);
 });
 
-//# debugId=556AD673C784D96364756E2164756E21
+//# debugId=473779676D1C3E6764756E2164756E21

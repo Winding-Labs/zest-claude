@@ -5,10 +5,11 @@ import { dirname as dirname2 } from "node:path";
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_ZEST_DIR = join(homedir(), ".claude-zest");
+var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${"-dev"}`);
 var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
+var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
 var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
 var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var LOG_FILE = join(LOGS_DIR, "plugin.log");
@@ -17,10 +18,11 @@ var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
 var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
+var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
 var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-var WEB_APP_URL = "https://app.meetzest.com";
+var WEB_APP_URL = "http://192.168.1.21:3000";
 var CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
 
 // src/utils/logger.ts
@@ -206,4 +208,4 @@ export {
   clearSession
 };
 
-//# debugId=7E77545280E2323564756E2164756E21
+//# debugId=480A79EB1CE1A0DB64756E2164756E21

@@ -1,13 +1,13 @@
 {
   "name": "zest",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Automatically track coding sessions and file changes with Zest for productivity insights and analysis",
   "author": {
     "name": "Zest",
-    "url": "https://github.com/zest"
+    "url": "https://meetzest.com"
   },
-  "homepage": "https://github.com/zest/claude-plugins",
-  "repository": "https://github.com/zest/claude-plugins",
+  "homepage": "https://meetzest.com",
+  "repository": "https://github.com/Winding-Labs/zest-claude",
   "license": "MIT",
   "keywords": [
     "productivity",

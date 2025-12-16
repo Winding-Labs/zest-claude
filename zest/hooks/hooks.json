@@ -22,12 +22,29 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matchers": [
+          {
+            "type": "tool",
+            "tool": "Bash"
+          }
+        ],
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd ${CLAUDE_PLUGIN_ROOT} && node dist/hooks/pre-tool-handler-cli.js",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "echo '[PostToolUse] Hook triggered!' >> /tmp/zest-hook-test.log && cd ${CLAUDE_PLUGIN_ROOT} && node dist/hooks/incremental-extractor-cli.js",
+            "command": "cd ${CLAUDE_PLUGIN_ROOT} && node dist/hooks/incremental-extractor-cli.js",
             "timeout": 15
           }
         ]

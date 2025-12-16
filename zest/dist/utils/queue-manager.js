@@ -5,10 +5,11 @@ import { dirname as dirname2 } from "node:path";
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_ZEST_DIR = join(homedir(), ".claude-zest");
+var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${"-dev"}`);
 var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
+var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
 var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
 var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var LOG_FILE = join(LOGS_DIR, "plugin.log");
@@ -17,6 +18,7 @@ var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
 var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
+var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
 var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -100,14 +102,6 @@ async function ensureDirectory(dirPath) {
     logger.debug(`Created directory: ${dirPath}`);
   }
 }
-async function appendToJsonl(filePath, data) {
-  await withLock(filePath, async () => {
-    await ensureDirectory(dirname2(filePath));
-    const line = JSON.stringify(data) + `
-`;
-    await appendFile2(filePath, line, "utf8");
-  });
-}
 async function readJsonl(filePath) {
   try {
     const content = await readFile(filePath, "utf8");
@@ -154,8 +148,22 @@ async function deleteFile(filePath) {
 }
 async function enqueueEvent(event) {
   try {
-    await appendToJsonl(EVENTS_QUEUE_FILE, event);
-    logger.debug("Enqueued event", { eventId: event.id, documentUri: event.document_uri });
+    await withLock(EVENTS_QUEUE_FILE, async () => {
+      const existingEvents = await readJsonl(EVENTS_QUEUE_FILE);
+      const isDuplicate = existingEvents.some((evt) => evt.id === event.id);
+      if (isDuplicate) {
+        logger.debug("Skipping duplicate event", {
+          eventId: event.id,
+          documentUri: event.document_uri
+        });
+        return;
+      }
+      await ensureDirectory(dirname2(EVENTS_QUEUE_FILE));
+      const line = JSON.stringify(event) + `
+`;
+      await appendFile2(EVENTS_QUEUE_FILE, line, "utf8");
+      logger.debug("Enqueued event", { eventId: event.id, documentUri: event.document_uri });
+    });
   } catch (error) {
     logger.error("Failed to enqueue event:", error);
     throw error;
@@ -163,8 +171,19 @@ async function enqueueEvent(event) {
 }
 async function enqueueChatSession(session) {
   try {
-    await appendToJsonl(SESSIONS_QUEUE_FILE, session);
-    logger.debug("Enqueued session", { sessionId: session.id });
+    await withLock(SESSIONS_QUEUE_FILE, async () => {
+      const existingSessions = await readJsonl(SESSIONS_QUEUE_FILE);
+      const isDuplicate = existingSessions.some((sess) => sess.id === session.id);
+      if (isDuplicate) {
+        logger.debug("Skipping duplicate session", { sessionId: session.id });
+        return;
+      }
+      await ensureDirectory(dirname2(SESSIONS_QUEUE_FILE));
+      const line = JSON.stringify(session) + `
+`;
+      await appendFile2(SESSIONS_QUEUE_FILE, line, "utf8");
+      logger.debug("Enqueued session", { sessionId: session.id });
+    });
   } catch (error) {
     logger.error("Failed to enqueue session:", error);
     throw error;
@@ -172,10 +191,25 @@ async function enqueueChatSession(session) {
 }
 async function enqueueChatMessage(message) {
   try {
-    await appendToJsonl(MESSAGES_QUEUE_FILE, message);
-    logger.debug("Enqueued message", {
-      sessionId: message.session_id,
-      messageIndex: message.message_index
+    await withLock(MESSAGES_QUEUE_FILE, async () => {
+      const existingMessages = await readJsonl(MESSAGES_QUEUE_FILE);
+      const isDuplicate = existingMessages.some((msg) => msg.id === message.id);
+      if (isDuplicate) {
+        logger.debug("Skipping duplicate message", {
+          messageId: message.id,
+          sessionId: message.session_id,
+          messageIndex: message.message_index
+        });
+        return;
+      }
+      await ensureDirectory(dirname2(MESSAGES_QUEUE_FILE));
+      const line = JSON.stringify(message) + `
+`;
+      await appendFile2(MESSAGES_QUEUE_FILE, line, "utf8");
+      logger.debug("Enqueued message", {
+        sessionId: message.session_id,
+        messageIndex: message.message_index
+      });
     });
   } catch (error) {
     logger.error("Failed to enqueue message:", error);
@@ -267,4 +301,4 @@ export {
   atomicUpdateQueue
 };
 
-//# debugId=8D010C346B50D34C64756E2164756E21
+//# debugId=FB2291D519346D6064756E2164756E21

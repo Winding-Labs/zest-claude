@@ -4,10 +4,11 @@ import { createHash } from "node:crypto";
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_ZEST_DIR = join(homedir(), ".claude-zest");
+var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${"-dev"}`);
 var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
+var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
 var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
 var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var LOG_FILE = join(LOGS_DIR, "plugin.log");
@@ -16,6 +17,7 @@ var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
 var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
+var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
 var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var MAX_CONTENT_PREVIEW_LENGTH = 1000;
@@ -23,6 +25,108 @@ var MAX_SESSION_TITLE_LENGTH = 100;
 var MIN_SESSION_TITLE_LENGTH = 3;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
+var EXCLUDED_COMMAND_PATTERNS = [
+  /^\/(add-dir|agents|bashes|bug|clear|compact|config|context|cost|doctor|exit|export|help|hooks|ide|init|install-github-app|login|logout|mcp|memory|model|output-style|permissions|plugin|pr-comments|privacy-settings|release-notes|resume|review|rewind|sandbox|security-review|stats|status|statusline|terminal-setup|todos|usage|vim)\b/i,
+  /^\/zest[^:\s]*:/i,
+  /<command-name>\/zest[^<]*<\/command-name>/i,
+  /node\s+.*\/dist\/commands\/.*-cli\.js/i
+];
+
+// src/utils/logger.ts
+import { appendFile, mkdir } from "node:fs/promises";
+import { dirname } from "node:path";
+class Logger {
+  minLevel = "info";
+  levels = {
+    debug: 0,
+    info: 1,
+    warn: 2,
+    error: 3
+  };
+  setLevel(level) {
+    this.minLevel = level;
+  }
+  async writeToFile(message) {
+    try {
+      await mkdir(dirname(LOG_FILE), { recursive: true });
+      const timestamp = new Date().toISOString();
+      await appendFile(LOG_FILE, `[${timestamp}] ${message}
+`, "utf-8");
+    } catch (error) {
+      console.error("Failed to write to log file:", error);
+    }
+  }
+  shouldLog(level) {
+    return this.levels[level] >= this.levels[this.minLevel];
+  }
+  debug(message, ...args) {
+    if (this.shouldLog("debug")) {
+      this.writeToFile(`DEBUG: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  info(message, ...args) {
+    if (this.shouldLog("info")) {
+      this.writeToFile(`INFO: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  warn(message, ...args) {
+    if (this.shouldLog("warn")) {
+      console.warn(`[Zest:Warn] ${message}`, ...args);
+      this.writeToFile(`WARN: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  error(message, error) {
+    if (this.shouldLog("error")) {
+      console.error(`[Zest:Error] ${message}`, error);
+      this.writeToFile(`ERROR: ${message} ${error instanceof Error ? error.stack : JSON.stringify(error)}`);
+    }
+  }
+}
+var logger = new Logger;
+
+// src/utils/command-filters.ts
+function shouldExcludeCommand(command) {
+  const trimmedCommand = command.trim();
+  for (const pattern of EXCLUDED_COMMAND_PATTERNS) {
+    if (pattern.test(trimmedCommand)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// src/utils/deletion-cache.ts
+import { mkdir as mkdir2, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { join as join2 } from "node:path";
+function getCacheKey(filePath, sessionId) {
+  const hash = Buffer.from(filePath).toString("base64").replace(/[/+=]/g, "_");
+  return `${sessionId}_${hash}.json`;
+}
+async function getCachedFileContent(filePath, sessionId) {
+  try {
+    const cacheKey = getCacheKey(filePath, sessionId);
+    const cachePath = join2(DELETION_CACHE_DIR, cacheKey);
+    try {
+      const content = await readFile(cachePath, "utf-8");
+      const cached = JSON.parse(content);
+      const age = Date.now() - cached.timestamp;
+      if (age > DELETION_CACHE_TTL_MS) {
+        logger.debug(`Cache expired for ${filePath} (${age}ms old)`);
+        await rm(cachePath).catch(() => {});
+        return null;
+      }
+      await rm(cachePath).catch(() => {});
+      logger.debug(`Retrieved cached content for ${filePath} (${cached.content.length} chars)`);
+      return cached.content;
+    } catch (readError) {
+      logger.debug(`Cache not found for ${filePath}`);
+      return null;
+    }
+  } catch (error) {
+    logger.error(`Failed to retrieve cached content: ${filePath}`, error);
+    return null;
+  }
+}
 
 // ../../node_modules/diff/libesm/diff/base.js
 var Diff = function() {
@@ -1012,58 +1116,6 @@ function splitLines(text) {
   return result;
 }
 
-// src/utils/logger.ts
-import { appendFile, mkdir } from "node:fs/promises";
-import { dirname } from "node:path";
-class Logger {
-  minLevel = "info";
-  levels = {
-    debug: 0,
-    info: 1,
-    warn: 2,
-    error: 3
-  };
-  setLevel(level) {
-    this.minLevel = level;
-  }
-  async writeToFile(message) {
-    try {
-      await mkdir(dirname(LOG_FILE), { recursive: true });
-      const timestamp = new Date().toISOString();
-      await appendFile(LOG_FILE, `[${timestamp}] ${message}
-`, "utf-8");
-    } catch (error) {
-      console.error("Failed to write to log file:", error);
-    }
-  }
-  shouldLog(level) {
-    return this.levels[level] >= this.levels[this.minLevel];
-  }
-  debug(message, ...args) {
-    if (this.shouldLog("debug")) {
-      this.writeToFile(`DEBUG: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  info(message, ...args) {
-    if (this.shouldLog("info")) {
-      this.writeToFile(`INFO: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  warn(message, ...args) {
-    if (this.shouldLog("warn")) {
-      console.warn(`[Zest:Warn] ${message}`, ...args);
-      this.writeToFile(`WARN: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  error(message, error) {
-    if (this.shouldLog("error")) {
-      console.error(`[Zest:Error] ${message}`, error);
-      this.writeToFile(`ERROR: ${message} ${error instanceof Error ? error.stack : JSON.stringify(error)}`);
-    }
-  }
-}
-var logger = new Logger;
-
 // src/utils/diff-utils.ts
 function createUnifiedDiff(filePath, oldString, newString) {
   try {
@@ -1108,15 +1160,59 @@ function extractTextContent(content) {
   }
   return "";
 }
-function extractToolUse(contentBlock, sessionId, timestamp) {
+function parseBashCommand(command) {
+  if (!command)
+    return [];
+  const cmd = command.trim();
+  const rmMatch = cmd.match(/^rm\s+(?:-[a-zA-Z]+\s+)*(.+)$/);
+  if (rmMatch) {
+    const pathsString = rmMatch[1].trim();
+    const paths = pathsString.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g)?.map((p) => p.replace(/['"]/g, "")) || [];
+    return paths.map((filePath) => ({ operation: "Delete", filePath }));
+  }
+  return [];
+}
+async function extractToolUse(contentBlock, sessionId, timestamp) {
   try {
     const toolName = contentBlock.name;
     const input = contentBlock.input || {};
     if (!toolName)
-      return null;
+      return [];
     let filePath;
     let content;
-    if (toolName === "Write" || toolName === "write") {
+    let operationType = toolName;
+    if (toolName === "Bash" || toolName === "bash" || toolName === "Shell") {
+      const command = input.command || input.cmd;
+      if (command) {
+        if (shouldExcludeCommand(command)) {
+          logger.debug(`Filtered out excluded bash command: ${command.substring(0, 50)}...`);
+          return [];
+        }
+        const parsedOperations = parseBashCommand(command);
+        if (parsedOperations.length > 0) {
+          const toolUses = [];
+          for (const parsed of parsedOperations) {
+            const toolUse2 = {
+              session_id: sessionId,
+              tool_name: parsed.operation,
+              file_path: parsed.filePath,
+              timestamp: timestamp || new Date().toISOString()
+            };
+            if (parsed.operation === "Delete") {
+              const cachedContent = await getCachedFileContent(parsed.filePath, sessionId);
+              if (cachedContent !== null) {
+                toolUse2.diff = sanitizeDiff({ old_string: cachedContent, new_string: "" }, parsed.filePath);
+                logger.info(`Generated deletion diff for ${parsed.filePath}`);
+              } else {
+                logger.warn(`No cached content found for ${parsed.filePath} - tracking without diff`);
+              }
+            }
+            toolUses.push(toolUse2);
+          }
+          return toolUses;
+        }
+      }
+    } else if (toolName === "Write" || toolName === "write") {
       filePath = input.file_path || input.path;
       content = input.content || input.contents;
     } else if (toolName === "Edit" || toolName === "StrReplace" || toolName === "str_replace") {
@@ -1132,22 +1228,22 @@ function extractToolUse(contentBlock, sessionId, timestamp) {
       filePath = input.path || input.file_path || input.filepath;
     }
     if (!filePath) {
-      return null;
+      return [];
     }
     const toolUse = {
       session_id: sessionId,
-      tool_name: toolName,
+      tool_name: operationType,
       file_path: filePath,
       content: content?.substring(0, MAX_CONTENT_PREVIEW_LENGTH),
       timestamp: timestamp || new Date().toISOString()
     };
-    if ((toolName === "Write" || toolName === "write") && content) {
+    if ((operationType === "Write" || operationType === "write") && content) {
       toolUse.diff = sanitizeDiff({ old_string: "", new_string: content }, filePath);
     }
-    return toolUse;
+    return [toolUse];
   } catch (error) {
     logger.debug("Failed to extract tool use:", error);
-    return null;
+    return [];
   }
 }
 function getToolNameFromResultType(type, oldString, newString) {
@@ -1230,4 +1326,4 @@ export {
   extractSessionTitleFromContent
 };
 
-//# debugId=6AFD7405532692B064756E2164756E21
+//# debugId=9979A1B3CDF9B99664756E2164756E21
