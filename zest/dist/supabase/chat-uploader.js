@@ -25,7 +25,7 @@ var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var MIN_MESSAGES_PER_SESSION = 3;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-var WEB_APP_URL = "http://192.168.1.21:3000";
+var WEB_APP_URL = "https://app.meetzest.com";
 var CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
 
 // src/utils/logger.ts
@@ -545,4 +545,4 @@ export {
   uploadChatData
 };
 
-//# debugId=F1FF59C32D5F66AF64756E2164756E21
+//# debugId=BC30D52D0D0904DA64756E2164756E21

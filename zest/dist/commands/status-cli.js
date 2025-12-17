@@ -34,7 +34,7 @@ var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
 var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-var WEB_APP_URL = "http://192.168.1.21:3000";
+var WEB_APP_URL = "https://app.meetzest.com";
 var CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
 
 // src/utils/logger.ts
@@ -4266,4 +4266,4 @@ async function main() {
 }
 main();
 
-//# debugId=59428FDE20C8C5F064756E2164756E21
+//# debugId=3AB4ABFAE725620E64756E2164756E21
