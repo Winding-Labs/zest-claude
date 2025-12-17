@@ -29,6 +29,183 @@ var __export = (target, all) => {
 var __esm = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
 var __require = /* @__PURE__ */ createRequire(import.meta.url);
 
+// src/config/constants.ts
+import { homedir } from "node:os";
+import { join } from "node:path";
+var CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, LOG_FILE, SYNC_LOG_FILE, DAEMON_PID_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, DELETION_CACHE_TTL_MS, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, STALE_SESSION_AGE_MS, CLAUDE_PROJECTS_DIR, EXCLUDED_COMMAND_PATTERNS;
+var init_constants = __esm(() => {
+  CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${""}`);
+  QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
+  LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
+  STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
+  DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
+  SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
+  SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
+  LOG_FILE = join(LOGS_DIR, "plugin.log");
+  SYNC_LOG_FILE = join(LOGS_DIR, "sync.log");
+  DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
+  EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
+  SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
+  MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
+  DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
+  PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+  MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
+  STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+  CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
+  EXCLUDED_COMMAND_PATTERNS = [
+    /^\/(add-dir|agents|bashes|bug|clear|compact|config|context|cost|doctor|exit|export|help|hooks|ide|init|install-github-app|login|logout|mcp|memory|model|output-style|permissions|plugin|pr-comments|privacy-settings|release-notes|resume|review|rewind|sandbox|security-review|stats|status|statusline|terminal-setup|todos|usage|vim)\b/i,
+    /^\/zest[^:\s]*:/i,
+    /<command-name>\/zest[^<]*<\/command-name>/i,
+    /node\s+.*\/dist\/commands\/.*-cli\.js/i
+  ];
+});
+
+// src/utils/logger.ts
+import { appendFile, mkdir } from "node:fs/promises";
+import { dirname } from "node:path";
+
+class Logger {
+  minLevel = "info";
+  levels = {
+    debug: 0,
+    info: 1,
+    warn: 2,
+    error: 3
+  };
+  setLevel(level) {
+    this.minLevel = level;
+  }
+  async writeToFile(message) {
+    try {
+      await mkdir(dirname(LOG_FILE), { recursive: true });
+      const timestamp = new Date().toISOString();
+      await appendFile(LOG_FILE, `[${timestamp}] ${message}
+`, "utf-8");
+    } catch (error) {
+      console.error("Failed to write to log file:", error);
+    }
+  }
+  shouldLog(level) {
+    return this.levels[level] >= this.levels[this.minLevel];
+  }
+  debug(message, ...args) {
+    if (this.shouldLog("debug")) {
+      this.writeToFile(`DEBUG: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  info(message, ...args) {
+    if (this.shouldLog("info")) {
+      this.writeToFile(`INFO: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  warn(message, ...args) {
+    if (this.shouldLog("warn")) {
+      console.warn(`[Zest:Warn] ${message}`, ...args);
+      this.writeToFile(`WARN: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  error(message, error) {
+    if (this.shouldLog("error")) {
+      console.error(`[Zest:Error] ${message}`, error);
+      this.writeToFile(`ERROR: ${message} ${error instanceof Error ? error.stack : JSON.stringify(error)}`);
+    }
+  }
+}
+var logger;
+var init_logger = __esm(() => {
+  init_constants();
+  logger = new Logger;
+});
+
+// src/utils/deletion-cache.ts
+var exports_deletion_cache = {};
+__export(exports_deletion_cache, {
+  getCachedFileContent: () => getCachedFileContent,
+  cleanupOldCache: () => cleanupOldCache,
+  cacheFileForDeletion: () => cacheFileForDeletion
+});
+import { mkdir as mkdir2, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { join as join2 } from "node:path";
+async function ensureCacheDir() {
+  try {
+    await mkdir2(DELETION_CACHE_DIR, { recursive: true });
+  } catch (error) {
+    logger.error("Failed to create cache directory:", error);
+  }
+}
+function getCacheKey(filePath, sessionId) {
+  const hash = Buffer.from(filePath).toString("base64").replace(/[/+=]/g, "_");
+  return `${sessionId}_${hash}.json`;
+}
+async function cacheFileForDeletion(filePath, content, sessionId) {
+  try {
+    await ensureCacheDir();
+    const cached = {
+      filePath,
+      content,
+      timestamp: Date.now(),
+      sessionId
+    };
+    const cacheKey = getCacheKey(filePath, sessionId);
+    const cachePath = join2(DELETION_CACHE_DIR, cacheKey);
+    await writeFile(cachePath, JSON.stringify(cached, null, 2), "utf-8");
+    logger.debug(`Cached file content: ${filePath} (${content.length} chars)`);
+  } catch (error) {
+    logger.error(`Failed to cache file for deletion: ${filePath}`, error);
+  }
+}
+async function getCachedFileContent(filePath, sessionId) {
+  try {
+    const cacheKey = getCacheKey(filePath, sessionId);
+    const cachePath = join2(DELETION_CACHE_DIR, cacheKey);
+    try {
+      const content = await readFile(cachePath, "utf-8");
+      const cached = JSON.parse(content);
+      const age = Date.now() - cached.timestamp;
+      if (age > DELETION_CACHE_TTL_MS) {
+        logger.debug(`Cache expired for ${filePath} (${age}ms old)`);
+        await rm(cachePath).catch(() => {});
+        return null;
+      }
+      await rm(cachePath).catch(() => {});
+      logger.debug(`Retrieved cached content for ${filePath} (${cached.content.length} chars)`);
+      return cached.content;
+    } catch (readError) {
+      logger.debug(`Cache not found for ${filePath}`);
+      return null;
+    }
+  } catch (error) {
+    logger.error(`Failed to retrieve cached content: ${filePath}`, error);
+    return null;
+  }
+}
+async function cleanupOldCache() {
+  try {
+    await ensureCacheDir();
+    const files = await readdir(DELETION_CACHE_DIR);
+    const now = Date.now();
+    for (const file of files) {
+      try {
+        const filePath = join2(DELETION_CACHE_DIR, file);
+        const stats = await stat(filePath);
+        const age = now - stats.mtimeMs;
+        if (age > DELETION_CACHE_TTL_MS) {
+          await rm(filePath);
+          logger.debug(`Cleaned up old cache entry: ${file} (${age}ms old)`);
+        }
+      } catch (error) {
+        logger.debug(`Failed to clean up cache file ${file}:`, error);
+      }
+    }
+  } catch (error) {
+    logger.error("Failed to cleanup old cache:", error);
+  }
+}
+var init_deletion_cache = __esm(() => {
+  init_constants();
+  init_logger();
+});
+
 // ../../packages/utils/dist/language-utils.js
 var require_language_utils = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
@@ -137,182 +314,8 @@ var require_dist = __commonJS((exports) => {
   } });
 });
 
-// src/config/constants.ts
-import { homedir } from "node:os";
-import { join } from "node:path";
-var CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, LOG_FILE, SYNC_LOG_FILE, DAEMON_PID_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, DELETION_CACHE_TTL_MS, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, STALE_SESSION_AGE_MS, CLAUDE_PROJECTS_DIR, EXCLUDED_COMMAND_PATTERNS;
-var init_constants = __esm(() => {
-  CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${"-dev"}`);
-  QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
-  LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
-  STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
-  DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-  SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
-  SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
-  LOG_FILE = join(LOGS_DIR, "plugin.log");
-  SYNC_LOG_FILE = join(LOGS_DIR, "sync.log");
-  DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
-  EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
-  SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
-  MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
-  DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
-  PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
-  MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
-  STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-  CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
-  EXCLUDED_COMMAND_PATTERNS = [
-    /^\/(add-dir|agents|bashes|bug|clear|compact|config|context|cost|doctor|exit|export|help|hooks|ide|init|install-github-app|login|logout|mcp|memory|model|output-style|permissions|plugin|pr-comments|privacy-settings|release-notes|resume|review|rewind|sandbox|security-review|stats|status|statusline|terminal-setup|todos|usage|vim)\b/i,
-    /^\/zest[^:\s]*:/i,
-    /<command-name>\/zest[^<]*<\/command-name>/i,
-    /node\s+.*\/dist\/commands\/.*-cli\.js/i
-  ];
-});
-
-// src/utils/logger.ts
-import { appendFile, mkdir } from "node:fs/promises";
-import { dirname } from "node:path";
-
-class Logger {
-  minLevel = "info";
-  levels = {
-    debug: 0,
-    info: 1,
-    warn: 2,
-    error: 3
-  };
-  setLevel(level) {
-    this.minLevel = level;
-  }
-  async writeToFile(message) {
-    try {
-      await mkdir(dirname(LOG_FILE), { recursive: true });
-      const timestamp = new Date().toISOString();
-      await appendFile(LOG_FILE, `[${timestamp}] ${message}
-`, "utf-8");
-    } catch (error) {
-      console.error("Failed to write to log file:", error);
-    }
-  }
-  shouldLog(level) {
-    return this.levels[level] >= this.levels[this.minLevel];
-  }
-  debug(message, ...args) {
-    if (this.shouldLog("debug")) {
-      this.writeToFile(`DEBUG: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  info(message, ...args) {
-    if (this.shouldLog("info")) {
-      this.writeToFile(`INFO: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  warn(message, ...args) {
-    if (this.shouldLog("warn")) {
-      console.warn(`[Zest:Warn] ${message}`, ...args);
-      this.writeToFile(`WARN: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  error(message, error) {
-    if (this.shouldLog("error")) {
-      console.error(`[Zest:Error] ${message}`, error);
-      this.writeToFile(`ERROR: ${message} ${error instanceof Error ? error.stack : JSON.stringify(error)}`);
-    }
-  }
-}
-var logger;
-var init_logger = __esm(() => {
-  init_constants();
-  logger = new Logger;
-});
-
-// src/utils/deletion-cache.ts
-var exports_deletion_cache = {};
-__export(exports_deletion_cache, {
-  getCachedFileContent: () => getCachedFileContent,
-  cleanupOldCache: () => cleanupOldCache,
-  cacheFileForDeletion: () => cacheFileForDeletion
-});
-import { mkdir as mkdir2, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
-import { join as join2 } from "node:path";
-async function ensureCacheDir() {
-  try {
-    await mkdir2(DELETION_CACHE_DIR, { recursive: true });
-  } catch (error) {
-    logger.error("Failed to create cache directory:", error);
-  }
-}
-function getCacheKey(filePath, sessionId) {
-  const hash = Buffer.from(filePath).toString("base64").replace(/[/+=]/g, "_");
-  return `${sessionId}_${hash}.json`;
-}
-async function cacheFileForDeletion(filePath, content, sessionId) {
-  try {
-    await ensureCacheDir();
-    const cached = {
-      filePath,
-      content,
-      timestamp: Date.now(),
-      sessionId
-    };
-    const cacheKey = getCacheKey(filePath, sessionId);
-    const cachePath = join2(DELETION_CACHE_DIR, cacheKey);
-    await writeFile(cachePath, JSON.stringify(cached, null, 2), "utf-8");
-    logger.debug(`Cached file content: ${filePath} (${content.length} chars)`);
-  } catch (error) {
-    logger.error(`Failed to cache file for deletion: ${filePath}`, error);
-  }
-}
-async function getCachedFileContent(filePath, sessionId) {
-  try {
-    const cacheKey = getCacheKey(filePath, sessionId);
-    const cachePath = join2(DELETION_CACHE_DIR, cacheKey);
-    try {
-      const content = await readFile(cachePath, "utf-8");
-      const cached = JSON.parse(content);
-      const age = Date.now() - cached.timestamp;
-      if (age > DELETION_CACHE_TTL_MS) {
-        logger.debug(`Cache expired for ${filePath} (${age}ms old)`);
-        await rm(cachePath).catch(() => {});
-        return null;
-      }
-      await rm(cachePath).catch(() => {});
-      logger.debug(`Retrieved cached content for ${filePath} (${cached.content.length} chars)`);
-      return cached.content;
-    } catch (readError) {
-      logger.debug(`Cache not found for ${filePath}`);
-      return null;
-    }
-  } catch (error) {
-    logger.error(`Failed to retrieve cached content: ${filePath}`, error);
-    return null;
-  }
-}
-async function cleanupOldCache() {
-  try {
-    await ensureCacheDir();
-    const files = await readdir(DELETION_CACHE_DIR);
-    const now = Date.now();
-    for (const file of files) {
-      try {
-        const filePath = join2(DELETION_CACHE_DIR, file);
-        const stats = await stat(filePath);
-        const age = now - stats.mtimeMs;
-        if (age > DELETION_CACHE_TTL_MS) {
-          await rm(filePath);
-          logger.debug(`Cleaned up old cache entry: ${file} (${age}ms old)`);
-        }
-      } catch (error) {
-        logger.debug(`Failed to clean up cache file ${file}:`, error);
-      }
-    }
-  } catch (error) {
-    logger.error("Failed to cleanup old cache:", error);
-  }
-}
-var init_deletion_cache = __esm(() => {
-  init_constants();
-  init_logger();
-});
+// src/hooks/pre-tool-handler-cli.ts
+init_deletion_cache();
 
 // src/utils/extraction-helpers.ts
 var import_utils = __toESM(require_dist(), 1);
@@ -1259,7 +1262,6 @@ async function findConversationFile(projectDir) {
 
 // src/hooks/pre-tool-handler-cli.ts
 init_logger();
-init_deletion_cache();
 async function main() {
   const startTime = Date.now();
   const projectDir = process.env.CLAUDE_PROJECT_DIR;
@@ -1299,4 +1301,4 @@ main().catch((error) => {
   process.exit(1);
 });
 
-//# debugId=33802C52F14689D164756E2164756E21
+//# debugId=B191FBE6FBCE580E64756E2164756E21

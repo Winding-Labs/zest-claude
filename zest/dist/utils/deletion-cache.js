@@ -1,11 +1,11 @@
 // src/utils/deletion-cache.ts
-import { mkdir as mkdir2, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir as mkdir2, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join as join2 } from "node:path";
 
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${"-dev"}`);
+var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${""}`);
 var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
@@ -158,4 +158,4 @@ export {
   cacheFileForDeletion
 };
 
-//# debugId=7C0C91B600153D1764756E2164756E21
+//# debugId=708C8452583D934C64756E2164756E21

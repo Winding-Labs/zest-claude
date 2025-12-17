@@ -6,6 +6,8 @@ This repository hosts the Zest plugin for Claude Code CLI, enabling automatic tr
 
 ### Installation & Quick Start
 
+**Requirements**: Node.js version 20 or higher
+
 1. **Add the marketplace**:
    ```bash
    /plugin marketplace add https://github.com/Winding-Labs/zest-claude
@@ -22,6 +24,23 @@ This repository hosts the Zest plugin for Claude Code CLI, enabling automatic tr
    ```
 
 4. **Start coding!** The plugin works automatically in the background
+
+### Updating the Plugin
+
+To update Zest to the latest version:
+
+1. **Update the marketplace**:
+   ```bash
+   /plugin marketplace update zest-marketplace
+   ```
+
+2. **Uninstall and update**:
+   ```bash
+   /plugin uninstall zest
+   ```
+   Then choose **"Update now"** from the options
+
+3. **Restart Claude Code** to complete the update
 
 ### Available Commands
 

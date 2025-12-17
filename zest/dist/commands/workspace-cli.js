@@ -10444,7 +10444,7 @@ import { dirname as dirname2 } from "node:path";
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${"-dev"}`);
+var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${""}`);
 var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
@@ -10781,4 +10781,4 @@ function findWorkspace(workspaces, input) {
 }
 main();
 
-//# debugId=A83902EE0F3C8DAB64756E2164756E21
+//# debugId=C007248776EEC98E64756E2164756E21

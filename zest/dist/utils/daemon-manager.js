@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${"-dev"}`);
+var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${""}`);
 var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
@@ -160,4 +160,4 @@ export {
   getDaemonPid
 };
 
-//# debugId=E4702BF2E162790064756E2164756E21
+//# debugId=F633C8AFB57AB51D64756E2164756E21

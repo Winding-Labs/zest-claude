@@ -141,7 +141,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 var CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, LOG_FILE, SYNC_LOG_FILE, DAEMON_PID_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, DELETION_CACHE_TTL_MS, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MAX_CONTENT_PREVIEW_LENGTH = 1000, STALE_SESSION_AGE_MS, WEB_APP_URL = "https://app.meetzest.com", CLAUDE_PROJECTS_DIR, EXCLUDED_COMMAND_PATTERNS;
 var init_constants = __esm(() => {
-  CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${"-dev"}`);
+  CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${""}`);
   QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
   LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
   STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
@@ -231,7 +231,7 @@ __export(exports_deletion_cache, {
   cleanupOldCache: () => cleanupOldCache,
   cacheFileForDeletion: () => cacheFileForDeletion
 });
-import { mkdir as mkdir3, readFile as readFile2, readdir, rm, stat, writeFile as writeFile2 } from "node:fs/promises";
+import { mkdir as mkdir3, readdir, readFile as readFile2, rm, stat, writeFile as writeFile2 } from "node:fs/promises";
 import { join as join2 } from "node:path";
 async function ensureCacheDir() {
   try {
@@ -2133,4 +2133,4 @@ export {
   cacheFilesForDeletion
 };
 
-//# debugId=77172992A83FCE5464756E2164756E21
+//# debugId=68CEE53F3973AD6F64756E2164756E21

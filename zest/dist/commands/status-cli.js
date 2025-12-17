@@ -17,7 +17,7 @@ import { dirname as dirname2 } from "node:path";
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${"-dev"}`);
+var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${""}`);
 var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
@@ -4266,4 +4266,4 @@ async function main() {
 }
 main();
 
-//# debugId=3AB4ABFAE725620E64756E2164756E21
+//# debugId=A2AE0B3D3750B09164756E2164756E21

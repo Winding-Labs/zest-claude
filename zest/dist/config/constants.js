@@ -1,7 +1,7 @@
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${"-dev"}`);
+var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${""}`);
 var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
@@ -38,7 +38,9 @@ var EXCLUDED_COMMAND_PATTERNS = [
   /<command-name>\/zest[^<]*<\/command-name>/i,
   /node\s+.*\/dist\/commands\/.*-cli\.js/i
 ];
+var ZEST_SESSION_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341";
 export {
+  ZEST_SESSION_NAMESPACE,
   WEB_APP_URL,
   SYNC_LOG_FILE,
   SYNC_INTERVAL_MS,
@@ -73,4 +75,4 @@ export {
   CLAUDE_PROJECTS_DIR
 };
 
-//# debugId=7C0434A1EFA029A564756E2164756E21
+//# debugId=D23D0A0057A8D45364756E2164756E21

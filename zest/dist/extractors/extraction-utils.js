@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${"-dev"}`);
+var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${""}`);
 var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
@@ -96,7 +96,7 @@ function shouldExcludeCommand(command) {
 }
 
 // src/utils/deletion-cache.ts
-import { mkdir as mkdir2, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir as mkdir2, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join as join2 } from "node:path";
 function getCacheKey(filePath, sessionId) {
   const hash = Buffer.from(filePath).toString("base64").replace(/[/+=]/g, "_");
@@ -1326,4 +1326,4 @@ export {
   extractSessionTitleFromContent
 };
 
-//# debugId=9979A1B3CDF9B99664756E2164756E21
+//# debugId=2C5649999A296E7B64756E2164756E21

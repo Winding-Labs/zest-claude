@@ -1580,8 +1580,8 @@ var require_URL = __commonJS((exports, module) => {
   var utils = require_utils();
   var Impl = require_URL_impl();
   var impl = utils.implSymbol;
-  function URL2(url) {
-    if (!this || this[impl] || !(this instanceof URL2)) {
+  function URL3(url) {
+    if (!this || this[impl] || !(this instanceof URL3)) {
       throw new TypeError("Failed to construct 'URL': Please use the 'new' operator, this DOM object constructor cannot be called as a function.");
     }
     if (arguments.length < 1) {
@@ -1597,7 +1597,7 @@ var require_URL = __commonJS((exports, module) => {
     }
     module.exports.setup(this, args);
   }
-  URL2.prototype.toJSON = function toJSON() {
+  URL3.prototype.toJSON = function toJSON() {
     if (!this || !module.exports.is(this)) {
       throw new TypeError("Illegal invocation");
     }
@@ -1607,7 +1607,7 @@ var require_URL = __commonJS((exports, module) => {
     }
     return this[impl].toJSON.apply(this[impl], args);
   };
-  Object.defineProperty(URL2.prototype, "href", {
+  Object.defineProperty(URL3.prototype, "href", {
     get() {
       return this[impl].href;
     },
@@ -1618,20 +1618,20 @@ var require_URL = __commonJS((exports, module) => {
     enumerable: true,
     configurable: true
   });
-  URL2.prototype.toString = function() {
+  URL3.prototype.toString = function() {
     if (!this || !module.exports.is(this)) {
       throw new TypeError("Illegal invocation");
     }
     return this.href;
   };
-  Object.defineProperty(URL2.prototype, "origin", {
+  Object.defineProperty(URL3.prototype, "origin", {
     get() {
       return this[impl].origin;
     },
     enumerable: true,
     configurable: true
   });
-  Object.defineProperty(URL2.prototype, "protocol", {
+  Object.defineProperty(URL3.prototype, "protocol", {
     get() {
       return this[impl].protocol;
     },
@@ -1642,7 +1642,7 @@ var require_URL = __commonJS((exports, module) => {
     enumerable: true,
     configurable: true
   });
-  Object.defineProperty(URL2.prototype, "username", {
+  Object.defineProperty(URL3.prototype, "username", {
     get() {
       return this[impl].username;
     },
@@ -1653,7 +1653,7 @@ var require_URL = __commonJS((exports, module) => {
     enumerable: true,
     configurable: true
   });
-  Object.defineProperty(URL2.prototype, "password", {
+  Object.defineProperty(URL3.prototype, "password", {
     get() {
       return this[impl].password;
     },
@@ -1664,7 +1664,7 @@ var require_URL = __commonJS((exports, module) => {
     enumerable: true,
     configurable: true
   });
-  Object.defineProperty(URL2.prototype, "host", {
+  Object.defineProperty(URL3.prototype, "host", {
     get() {
       return this[impl].host;
     },
@@ -1675,7 +1675,7 @@ var require_URL = __commonJS((exports, module) => {
     enumerable: true,
     configurable: true
   });
-  Object.defineProperty(URL2.prototype, "hostname", {
+  Object.defineProperty(URL3.prototype, "hostname", {
     get() {
       return this[impl].hostname;
     },
@@ -1686,7 +1686,7 @@ var require_URL = __commonJS((exports, module) => {
     enumerable: true,
     configurable: true
   });
-  Object.defineProperty(URL2.prototype, "port", {
+  Object.defineProperty(URL3.prototype, "port", {
     get() {
       return this[impl].port;
     },
@@ -1697,7 +1697,7 @@ var require_URL = __commonJS((exports, module) => {
     enumerable: true,
     configurable: true
   });
-  Object.defineProperty(URL2.prototype, "pathname", {
+  Object.defineProperty(URL3.prototype, "pathname", {
     get() {
       return this[impl].pathname;
     },
@@ -1708,7 +1708,7 @@ var require_URL = __commonJS((exports, module) => {
     enumerable: true,
     configurable: true
   });
-  Object.defineProperty(URL2.prototype, "search", {
+  Object.defineProperty(URL3.prototype, "search", {
     get() {
       return this[impl].search;
     },
@@ -1719,7 +1719,7 @@ var require_URL = __commonJS((exports, module) => {
     enumerable: true,
     configurable: true
   });
-  Object.defineProperty(URL2.prototype, "hash", {
+  Object.defineProperty(URL3.prototype, "hash", {
     get() {
       return this[impl].hash;
     },
@@ -1735,7 +1735,7 @@ var require_URL = __commonJS((exports, module) => {
       return !!obj && obj[impl] instanceof Impl.implementation;
     },
     create(constructorArgs, privateData) {
-      let obj = Object.create(URL2.prototype);
+      let obj = Object.create(URL3.prototype);
       this.setup(obj, constructorArgs, privateData);
       return obj;
     },
@@ -1746,10 +1746,10 @@ var require_URL = __commonJS((exports, module) => {
       obj[impl] = new Impl.implementation(constructorArgs, privateData);
       obj[impl][utils.wrapperSymbol] = obj;
     },
-    interface: URL2,
+    interface: URL3,
     expose: {
-      Window: { URL: URL2 },
-      Worker: { URL: URL2 }
+      Window: { URL: URL3 },
+      Worker: { URL: URL3 }
     }
   };
 });
@@ -2481,12 +2481,12 @@ var require_lib2 = __commonJS((exports, module) => {
     configurable: true
   });
   var INTERNALS$2 = Symbol("Request internals");
-  var URL2 = Url.URL || whatwgUrl.URL;
+  var URL3 = Url.URL || whatwgUrl.URL;
   var parse_url = Url.parse;
   var format_url = Url.format;
   function parseURL(urlStr) {
     if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.exec(urlStr)) {
-      urlStr = new URL2(urlStr).toString();
+      urlStr = new URL3(urlStr).toString();
     }
     return parse_url(urlStr);
   }
@@ -10443,7 +10443,7 @@ import { dirname } from "node:path";
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${"-dev"}`);
+var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${""}`);
 var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
@@ -10467,6 +10467,7 @@ var WEB_APP_URL = "https://app.meetzest.com";
 var SUPABASE_URL = "https://fnnlebrtmlxxjwdvngck.supabase.co";
 var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubmxlYnJ0bWx4eGp3ZHZuZ2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MzA3MjYsImV4cCI6MjA3MjMwNjcyNn0.0IE3HCY_DiyyALdewbRn1vkedwzDW27NQMQ28V6j4Dk";
 var CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
+var ZEST_SESSION_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341";
 
 // src/utils/logger.ts
 class Logger {
@@ -10761,6 +10762,97 @@ async function getValidSession() {
   return session;
 }
 
+// ../../node_modules/uuid/dist-node/regex.js
+var regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
+
+// ../../node_modules/uuid/dist-node/validate.js
+function validate(uuid) {
+  return typeof uuid === "string" && regex_default.test(uuid);
+}
+var validate_default = validate;
+
+// ../../node_modules/uuid/dist-node/parse.js
+function parse(uuid) {
+  if (!validate_default(uuid)) {
+    throw TypeError("Invalid UUID");
+  }
+  let v;
+  return Uint8Array.of((v = parseInt(uuid.slice(0, 8), 16)) >>> 24, v >>> 16 & 255, v >>> 8 & 255, v & 255, (v = parseInt(uuid.slice(9, 13), 16)) >>> 8, v & 255, (v = parseInt(uuid.slice(14, 18), 16)) >>> 8, v & 255, (v = parseInt(uuid.slice(19, 23), 16)) >>> 8, v & 255, (v = parseInt(uuid.slice(24, 36), 16)) / 1099511627776 & 255, v / 4294967296 & 255, v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
+}
+var parse_default = parse;
+
+// ../../node_modules/uuid/dist-node/stringify.js
+var byteToHex = [];
+for (let i = 0;i < 256; ++i) {
+  byteToHex.push((i + 256).toString(16).slice(1));
+}
+function unsafeStringify(arr, offset = 0) {
+  return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
+}
+
+// ../../node_modules/uuid/dist-node/v35.js
+function stringToBytes(str) {
+  str = unescape(encodeURIComponent(str));
+  const bytes = new Uint8Array(str.length);
+  for (let i = 0;i < str.length; ++i) {
+    bytes[i] = str.charCodeAt(i);
+  }
+  return bytes;
+}
+var DNS = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+var URL2 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
+function v35(version, hash, value, namespace, buf, offset) {
+  const valueBytes = typeof value === "string" ? stringToBytes(value) : value;
+  const namespaceBytes = typeof namespace === "string" ? parse_default(namespace) : namespace;
+  if (typeof namespace === "string") {
+    namespace = parse_default(namespace);
+  }
+  if (namespace?.length !== 16) {
+    throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
+  }
+  let bytes = new Uint8Array(16 + valueBytes.length);
+  bytes.set(namespaceBytes);
+  bytes.set(valueBytes, namespaceBytes.length);
+  bytes = hash(bytes);
+  bytes[6] = bytes[6] & 15 | version;
+  bytes[8] = bytes[8] & 63 | 128;
+  if (buf) {
+    offset = offset || 0;
+    for (let i = 0;i < 16; ++i) {
+      buf[offset + i] = bytes[i];
+    }
+    return buf;
+  }
+  return unsafeStringify(bytes);
+}
+
+// ../../node_modules/uuid/dist-node/sha1.js
+import { createHash } from "node:crypto";
+function sha1(bytes) {
+  if (Array.isArray(bytes)) {
+    bytes = Buffer.from(bytes);
+  } else if (typeof bytes === "string") {
+    bytes = Buffer.from(bytes, "utf8");
+  }
+  return createHash("sha1").update(bytes).digest();
+}
+var sha1_default = sha1;
+
+// ../../node_modules/uuid/dist-node/v5.js
+function v5(value, namespace, buf, offset) {
+  return v35(80, sha1_default, value, namespace, buf, offset);
+}
+v5.DNS = DNS;
+v5.URL = URL2;
+var v5_default = v5;
+// src/utils/session-id-normalizer.ts
+function normalizeSessionId(sessionId) {
+  if (validate_default(sessionId)) {
+    return sessionId;
+  }
+  return v5_default(sessionId, ZEST_SESSION_NAMESPACE);
+}
+
 // src/supabase/chat-uploader.ts
 function countMessagesPerSession(messages) {
   const counts = new Map;
@@ -10879,19 +10971,31 @@ function deduplicateMessages(messages) {
   return Array.from(messageMap.values());
 }
 function enrichSessionsForUpload(sessions, userId, workspaceId) {
-  return sessions.map((s) => ({
-    ...s,
-    user_id: userId,
-    platform: PLATFORM,
-    source: SOURCE,
-    analysis_status: "pending",
-    workspace_id: workspaceId,
-    metadata: null
-  }));
+  const filteredSessions = sessions.filter((s) => s.id);
+  if (filteredSessions.length < sessions.length) {
+    logger.warn(`Filtered out ${sessions.length - filteredSessions.length} sessions without IDs`);
+  }
+  return filteredSessions.map((s) => {
+    return {
+      ...s,
+      id: normalizeSessionId(s.id),
+      user_id: userId,
+      platform: PLATFORM,
+      source: SOURCE,
+      analysis_status: "pending",
+      workspace_id: workspaceId,
+      metadata: null
+    };
+  });
 }
 function enrichMessagesForUpload(messages, userId) {
-  return messages.map((m) => ({
+  const filteredMessages = messages.filter((m) => m.session_id);
+  if (filteredMessages.length < messages.length) {
+    logger.warn(`Filtered out ${messages.length - filteredMessages.length} messages without session IDs`);
+  }
+  return filteredMessages.map((m) => ({
     ...m,
+    session_id: normalizeSessionId(m.session_id),
     user_id: userId,
     code_diffs: null,
     metadata: null
@@ -10952,28 +11056,56 @@ async function uploadChatData(supabase) {
     const messagePartition = partitionMessagesBySessionCategory(queuedMessages, categories);
     logSessionCategorization(categories, messagePartition);
     if (messagePartition.orphaned.length > 0) {
-      logger.info(`Found ${messagePartition.orphaned.length} new messages for already-synced sessions`);
+      const orphanedSessionIds2 = [
+        ...new Set(messagePartition.orphaned.map((m) => m.session_id).filter((id) => !!id).map((id) => normalizeSessionId(id)))
+      ];
+      const { data: existingSessions, error: queryError } = await supabase.from("chat_sessions").select("id").in("id", orphanedSessionIds2);
+      if (queryError) {
+        const orphanedMessageIds = new Set(messagePartition.orphaned.map((m) => m.id).filter((id) => !!id));
+        await removeMessagesFromQueue(orphanedMessageIds);
+        messagePartition.orphaned = [];
+      } else {
+        const existingSessionIds = new Set(existingSessions?.map((s) => s.id) || []);
+        const validOrphaned = [];
+        const invalidOrphaned = [];
+        for (const message of messagePartition.orphaned) {
+          if (!message.session_id) {
+            invalidOrphaned.push(message);
+            continue;
+          }
+          const normalizedSessionId = normalizeSessionId(message.session_id);
+          if (existingSessionIds.has(normalizedSessionId)) {
+            validOrphaned.push(message);
+          } else {
+            invalidOrphaned.push(message);
+          }
+        }
+        if (invalidOrphaned.length > 0) {
+          const invalidMessageIds = new Set(invalidOrphaned.map((m) => m.id).filter((id) => !!id));
+          await removeMessagesFromQueue(invalidMessageIds);
+        }
+        messagePartition.orphaned = validOrphaned;
+      }
     }
     if (categories.stale.length > 0) {
       await removeStaleSessionsFromQueue(categories.staleIds);
-      logger.info(`Cleaned up ${categories.stale.length} stale sessions`);
     }
     if (categories.valid.length === 0 && messagePartition.orphaned.length === 0) {
-      logger.info("No sessions with sufficient messages to upload");
       return { success: true, uploaded: { sessions: 0, messages: 0 } };
     }
     const uniqueSessions = deduplicateSessions(categories.valid);
     const allMessagesToUpload = [...messagePartition.valid, ...messagePartition.orphaned];
     const uniqueMessages = deduplicateMessages(allMessagesToUpload);
-    if (uniqueSessions.length < categories.valid.length) {
-      logger.info(`Deduplicated sessions: ${categories.valid.length} → ${uniqueSessions.length} (removed ${categories.valid.length - uniqueSessions.length} duplicates)`);
-    }
-    if (uniqueMessages.length < allMessagesToUpload.length) {
-      logger.info(`Deduplicated messages: ${allMessagesToUpload.length} → ${uniqueMessages.length} (removed ${allMessagesToUpload.length - uniqueMessages.length} duplicates)`);
-    }
-    logger.info(`Uploading chat data: ${uniqueSessions.length} sessions, ${uniqueMessages.length} messages`);
     const sessionsToUpload = enrichSessionsForUpload(uniqueSessions, session.userId, session.workspaceId || null);
-    const messagesToUpload = enrichMessagesForUpload(uniqueMessages, session.userId);
+    const uploadedSessionIds = new Set(sessionsToUpload.map((s) => s.id));
+    const orphanedSessionIds = new Set(messagePartition.orphaned.map((m) => normalizeSessionId(m.session_id)).filter((id) => !!id));
+    const allValidSessionIds = new Set([...uploadedSessionIds, ...orphanedSessionIds]);
+    const messagesToUpload = enrichMessagesForUpload(uniqueMessages, session.userId).filter((m) => allValidSessionIds.has(m.session_id));
+    const messageSessionIds = new Set(messagesToUpload.map((m) => m.session_id));
+    const missingSessionIds = [...messageSessionIds].filter((id) => !allValidSessionIds.has(id));
+    if (missingSessionIds.length > 0) {
+      return { success: false, uploaded: { sessions: 0, messages: 0 } };
+    }
     const sessionsUploaded = await uploadSessionsToSupabase(supabase, sessionsToUpload);
     if (!sessionsUploaded) {
       return { success: false, uploaded: { sessions: 0, messages: 0 } };
@@ -10990,9 +11122,7 @@ async function uploadChatData(supabase) {
     if (messagePartition.orphaned.length > 0) {
       const orphanedMessageIds = new Set(messagePartition.orphaned.map((m) => m.id).filter((id) => !!id));
       await removeMessagesFromQueue(orphanedMessageIds);
-      logger.info(`✓ Removed ${orphanedMessageIds.size} orphaned messages from queue`);
     }
-    logger.info("✓ Chat data upload completed successfully");
     return {
       success: true,
       uploaded: {
@@ -11097,10 +11227,15 @@ async function uploadEvents(supabase) {
     logger.info(`Uploading ${uniqueEvents.length} code digest events`);
     const eventsToUpload = uniqueEvents.map((e) => ({
       ...e,
+      session_id: normalizeSessionId(e.session_id),
       event_type: "file.changed",
       user_id: session.userId,
       platform: PLATFORM,
-      source: SOURCE
+      source: SOURCE,
+      payload: e.payload ? {
+        ...e.payload,
+        session_id: normalizeSessionId(e.payload.session_id)
+      } : undefined
     }));
     const batchSize = 100;
     let uploadedCount = 0;
@@ -11229,4 +11364,4 @@ export {
   syncAllData
 };
 
-//# debugId=FCB6E075285A1E5064756E2164756E21
+//# debugId=EDCE9E99E8F4B7DE64756E2164756E21

@@ -10924,7 +10924,7 @@ var open_default = open;
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${"-dev"}`);
+var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${""}`);
 var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
@@ -11442,4 +11442,4 @@ export {
   logout
 };
 
-//# debugId=AC6217778FD1E71664756E2164756E21
+//# debugId=708B2C45101F1B3864756E2164756E21

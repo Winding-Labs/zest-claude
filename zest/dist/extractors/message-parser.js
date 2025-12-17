@@ -4,7 +4,7 @@ import { readFile as readFile2 } from "node:fs/promises";
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${"-dev"}`);
+var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${""}`);
 var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
@@ -34,7 +34,7 @@ var EXCLUDED_COMMAND_PATTERNS = [
 import { createHash } from "node:crypto";
 
 // src/utils/deletion-cache.ts
-import { mkdir as mkdir2, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir as mkdir2, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join as join2 } from "node:path";
 
 // src/utils/logger.ts
@@ -1430,4 +1430,4 @@ export {
   extractNewMessagesFromFile
 };
 
-//# debugId=718F59E2389B415364756E2164756E21
+//# debugId=1CC9C81B72C075A764756E2164756E21
