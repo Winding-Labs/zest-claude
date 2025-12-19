@@ -10855,7 +10855,6 @@ var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
 var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-var WEB_APP_URL = "https://app.meetzest.com";
 var SUPABASE_URL = "https://fnnlebrtmlxxjwdvngck.supabase.co";
 var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubmxlYnJ0bWx4eGp3ZHZuZ2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MzA3MjYsImV4cCI6MjA3MjMwNjcyNn0.0IE3HCY_DiyyALdewbRn1vkedwzDW27NQMQ28V6j4Dk";
 var CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
@@ -11070,165 +11069,135 @@ async function refreshSession(session) {
     throw error;
   }
 }
-async function getValidSession() {
-  const session = await loadSession();
-  if (!session) {
-    logger.debug("getValidSession: No session found");
-    return null;
-  }
-  if (session.expiresAt < Date.now() + PROACTIVE_REFRESH_THRESHOLD_MS) {
-    try {
-      const refreshedSession = await refreshSession(session);
-      return refreshedSession;
-    } catch (error) {
-      logger.warn("getValidSession: Failed to refresh session", error);
-      return null;
-    }
-  }
-  return session;
-}
 
-// src/supabase/client.ts
-async function getSupabaseClient() {
-  try {
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      logger.warn("Supabase configuration missing (URL or anon key)");
-      return null;
-    }
-    const session = await getValidSession();
-    if (!session) {
-      logger.debug("No valid session available, skipping Supabase client creation");
-      return null;
-    }
-    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        persistSession: false
-      },
-      global: {
-        headers: {
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      }
-    });
-    logger.debug("Supabase client created successfully");
-    return client;
-  } catch (error) {
-    logger.error("Failed to create Supabase client", error);
-    return null;
-  }
+// src/commands/refresh-token-cli.ts
+function formatDuration(ms) {
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  if (days > 0)
+    return `${days}d ${hours % 24}h`;
+  if (hours > 0)
+    return `${hours}h ${minutes % 60}m`;
+  if (minutes > 0)
+    return `${minutes}m ${seconds % 60}s`;
+  return `${seconds}s`;
 }
-
-// src/supabase/workspace-fetcher.ts
-async function fetchUserWorkspaces() {
-  try {
-    const session = await getValidSession();
-    if (!session) {
-      throw new Error("Not authenticated");
-    }
-    const supabase = await getSupabaseClient();
-    if (!supabase) {
-      throw new Error("Failed to create Supabase client");
-    }
-    logger.debug("Fetching workspaces for user", { userId: session.userId });
-    const { data, error } = await supabase.from("workspace_memberships").select(`
-        workspace:workspaces (
-          id,
-          name,
-          created_at
-        )
-      `).eq("user_id", session.userId);
-    if (error) {
-      logger.error("Failed to fetch workspaces", error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to fetch workspaces: ${errorMessage}`);
-    }
-    if (!data || data.length === 0) {
-      logger.info("No workspaces found for user");
-      return [];
-    }
-    const workspaces = [];
-    for (const item of data) {
-      if (item.workspace && !Array.isArray(item.workspace)) {
-        workspaces.push({
-          id: item.workspace.id,
-          name: item.workspace.name,
-          created_at: item.workspace.created_at
-        });
-      }
-    }
-    logger.info("Fetched workspaces", { count: workspaces.length });
-    return workspaces;
-  } catch (error) {
-    logger.error("Error fetching workspaces", error);
-    throw error;
-  }
-}
-
-// src/commands/workspace-cli.ts
 async function main() {
   try {
-    const args = process.argv.slice(2);
-    const workspaces = await fetchUserWorkspaces();
-    if (workspaces.length === 0) {
-      console.log("❌ No workspaces found");
-      console.log(`   Create one at: ${WEB_APP_URL}/onboarding`);
-      return;
-    }
-    workspaces.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-    if (args.length === 0) {
-      await showWorkspaces(workspaces);
-      return;
-    }
-    const input = args[0];
-    const selectedWorkspace = findWorkspace(workspaces, input);
-    if (!selectedWorkspace) {
-      console.log("❌ Workspace not found");
-      console.log("   Run /zest:workspace to see available workspaces");
-      process.exit(1);
-    }
+    logger.info("\uD83D\uDD0D Debug: Token Refresh");
+    logger.info(`========================
+`);
     const session = await loadSession();
     if (!session) {
-      console.log("❌ Not authenticated. Run /zest:login first");
+      logger.info("❌ Not authenticated - use /zest-dev:login first");
+      return;
+    }
+    const now = Date.now();
+    logger.info("\uD83D\uDCCA Current Session Info:");
+    logger.info(`   User: ${session.email}`);
+    logger.info(`   User ID: ${session.userId}`);
+    if (session.workspaceId) {
+      logger.info(`   Workspace: ${session.workspaceName || session.workspaceId}`);
+    }
+    const expiresAt = new Date(session.expiresAt);
+    const timeUntilExpiration = session.expiresAt - now;
+    const isExpired = timeUntilExpiration <= 0;
+    logger.info(`
+\uD83D\uDD11 Access Token Status:`);
+    logger.info(`   Expires at: ${expiresAt.toISOString()}`);
+    logger.info(`   Status: ${isExpired ? "❌ EXPIRED" : "✅ Valid"}`);
+    if (isExpired) {
+      logger.info(`   Expired: ${formatDuration(Math.abs(timeUntilExpiration))} ago`);
+    } else {
+      logger.info(`   Time remaining: ${formatDuration(timeUntilExpiration)}`);
+    }
+    if (session.refreshTokenExpiresAt) {
+      const refreshExpiresAt = new Date(session.refreshTokenExpiresAt);
+      const timeUntilRefreshExpiration = session.refreshTokenExpiresAt - now;
+      const isRefreshExpired = timeUntilRefreshExpiration <= 0;
+      logger.info(`
+\uD83D\uDD04 Refresh Token Status:`);
+      logger.info(`   Expires at: ${refreshExpiresAt.toISOString()}`);
+      logger.info(`   Status: ${isRefreshExpired ? "❌ EXPIRED" : "✅ Valid"}`);
+      if (isRefreshExpired) {
+        logger.info(`   Expired: ${formatDuration(Math.abs(timeUntilRefreshExpiration))} ago`);
+        logger.info(`
+❌ Cannot refresh: Refresh token has expired`);
+        logger.info("   Please re-authenticate using /zest-dev:login");
+        return;
+      }
+      logger.info(`   Time remaining: ${formatDuration(timeUntilRefreshExpiration)}`);
+    } else {
+      logger.info(`
+\uD83D\uDD04 Refresh Token Status:`);
+      logger.info("   ♾️  Never expires");
+    }
+    logger.info(`
+\uD83D\uDD04 Attempting token refresh...`);
+    logger.info("   Using Supabase JS client library");
+    try {
+      const newSession = await refreshSession(session);
+      const newExpiresAt = new Date(newSession.expiresAt);
+      const newTimeUntilExpiration = newSession.expiresAt - Date.now();
+      logger.info(`
+✅ Token refresh successful!`);
+      logger.info(`
+\uD83D\uDCCA New Token Info:`);
+      logger.info(`   New access token expires at: ${newExpiresAt.toISOString()}`);
+      logger.info(`   Time until expiration: ${formatDuration(newTimeUntilExpiration)}`);
+      if (newSession.refreshTokenExpiresAt) {
+        const newRefreshExpiresAt = new Date(newSession.refreshTokenExpiresAt);
+        logger.info(`   New refresh token expires at: ${newRefreshExpiresAt.toISOString()}`);
+      } else {
+        logger.info("   Refresh token: Never expires");
+      }
+      const accessTokenChanged = session.accessToken !== newSession.accessToken;
+      const refreshTokenChanged = session.refreshToken !== newSession.refreshToken;
+      logger.info(`
+\uD83D\uDD0D Token Changes:`);
+      logger.info(`   Access token changed: ${accessTokenChanged ? "✅ Yes" : "⚠️  No"}`);
+      logger.info(`   Refresh token changed: ${refreshTokenChanged ? "✅ Yes" : "⚠️  No"}`);
+      if (!accessTokenChanged) {
+        logger.warn(`
+⚠️  Warning: Access token did not change after refresh`);
+        logger.warn("   This might indicate an issue with the refresh endpoint");
+      }
+      logger.info(`
+✅ Session saved successfully`);
+    } catch (error) {
+      logger.error(`
+❌ Token refresh failed!`);
+      if (error instanceof Error) {
+        logger.error(`   Error: ${error.message}`);
+        if (error.message.includes("fetch")) {
+          logger.error(`
+\uD83D\uDD0D Possible causes:`);
+          logger.error("   - Web app server is not running");
+          logger.error("   - Network connectivity issues");
+          logger.error("   - Incorrect WEB_APP_URL configuration");
+        } else if (error.message.includes("401") || error.message.includes("403")) {
+          logger.error(`
+\uD83D\uDD0D Possible causes:`);
+          logger.error("   - Refresh token is invalid or revoked");
+          logger.error("   - User needs to re-authenticate");
+        } else if (error.message.includes("500")) {
+          logger.error(`
+\uD83D\uDD0D Possible causes:`);
+          logger.error("   - Server error on the refresh endpoint");
+          logger.error("   - Database connection issues");
+        }
+      }
+      logger.error("Token refresh failed", error);
       process.exit(1);
     }
-    session.workspaceId = selectedWorkspace.id;
-    session.workspaceName = selectedWorkspace.name;
-    await saveSession(session);
-    console.log(`✅ Switched to: ${selectedWorkspace.name}`);
   } catch (error) {
-    logger.error("Workspace command failed", error);
-    console.error("❌ Failed to manage workspace");
-    if (error instanceof Error) {
-      console.error(`   ${error.message}`);
-    }
+    logger.error("Failed to execute refresh-token command", error);
+    logger.error("❌ Command failed: " + (error instanceof Error ? error.message : "Unknown error"));
     process.exit(1);
   }
 }
-async function showWorkspaces(workspaces) {
-  const session = await loadSession();
-  if (session?.workspaceId && session.workspaceName) {
-    console.log(`Current: ${session.workspaceName}`);
-    console.log("");
-  }
-  console.log("Available workspaces:");
-  workspaces.forEach((ws, i) => {
-    const marker = session?.workspaceId === ws.id ? "✓" : " ";
-    console.log(`${marker} ${i + 1}. ${ws.name}`);
-  });
-  console.log("");
-  console.log("Switch: /zest:workspace {number}");
-}
-function findWorkspace(workspaces, input) {
-  const index = Number.parseInt(input, 10);
-  if (!isNaN(index) && index >= 1 && index <= workspaces.length) {
-    return workspaces[index - 1];
-  }
-  if (input.match(/^[0-9a-f-]{36}$/i)) {
-    return workspaces.find((ws) => ws.id === input);
-  }
-  const lowerInput = input.toLowerCase();
-  return workspaces.find((ws) => ws.name.toLowerCase().includes(lowerInput));
-}
 main();
 
-//# debugId=7971E7B5DE08F3EE64756E2164756E21
+//# debugId=80C280C62C41089764756E2164756E21

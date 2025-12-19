@@ -18,6 +18,7 @@ var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
 var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
+var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
 var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
 var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
@@ -27,20 +28,24 @@ var CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
 // src/utils/logger.ts
 class Logger {
   minLevel = "info";
+  logFilePath;
   levels = {
     debug: 0,
     info: 1,
     warn: 2,
     error: 3
   };
+  constructor(logFilePath = LOG_FILE) {
+    this.logFilePath = logFilePath;
+  }
   setLevel(level) {
     this.minLevel = level;
   }
   async writeToFile(message) {
     try {
-      await mkdir(dirname(LOG_FILE), { recursive: true });
+      await mkdir(dirname(this.logFilePath), { recursive: true });
       const timestamp = new Date().toISOString();
-      await appendFile(LOG_FILE, `[${timestamp}] ${message}
+      await appendFile(this.logFilePath, `[${timestamp}] ${message}
 `, "utf-8");
     } catch (error) {
       console.error("Failed to write to log file:", error);
@@ -77,4 +82,4 @@ export {
   logger
 };
 
-//# debugId=D477A859F23963C864756E2164756E21
+//# debugId=B6F8C78A42BD20E464756E2164756E21

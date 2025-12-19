@@ -16,7 +16,6 @@ var __toESM = (mod, isNodeMode, target) => {
       });
   return to;
 };
-var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, {
@@ -32,7 +31,7 @@ var __require = /* @__PURE__ */ createRequire(import.meta.url);
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, LOG_FILE, SYNC_LOG_FILE, DAEMON_PID_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, DELETION_CACHE_TTL_MS, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, STALE_SESSION_AGE_MS, CLAUDE_PROJECTS_DIR, EXCLUDED_COMMAND_PATTERNS;
+var CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, LOG_FILE, SYNC_LOG_FILE, DAEMON_PID_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DEBOUNCE_WINDOW_MS = 500, DELETION_CACHE_TTL_MS, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, STALE_SESSION_AGE_MS, CLAUDE_PROJECTS_DIR, EXCLUDED_COMMAND_PATTERNS;
 var init_constants = __esm(() => {
   CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${""}`);
   QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
@@ -47,6 +46,7 @@ var init_constants = __esm(() => {
   EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
   SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
   MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
+  DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
   DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
   PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
   MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
@@ -66,20 +66,24 @@ import { dirname } from "node:path";
 
 class Logger {
   minLevel = "info";
+  logFilePath;
   levels = {
     debug: 0,
     info: 1,
     warn: 2,
     error: 3
   };
+  constructor(logFilePath = LOG_FILE) {
+    this.logFilePath = logFilePath;
+  }
   setLevel(level) {
     this.minLevel = level;
   }
   async writeToFile(message) {
     try {
-      await mkdir(dirname(LOG_FILE), { recursive: true });
+      await mkdir(dirname(this.logFilePath), { recursive: true });
       const timestamp = new Date().toISOString();
-      await appendFile(LOG_FILE, `[${timestamp}] ${message}
+      await appendFile(this.logFilePath, `[${timestamp}] ${message}
 `, "utf-8");
     } catch (error) {
       console.error("Failed to write to log file:", error);
@@ -124,11 +128,11 @@ __export(exports_deletion_cache, {
   cleanupOldCache: () => cleanupOldCache,
   cacheFileForDeletion: () => cacheFileForDeletion
 });
-import { mkdir as mkdir2, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
-import { join as join2 } from "node:path";
+import { mkdir as mkdir3, readdir as readdir3, readFile as readFile3, rm, stat as stat2, writeFile as writeFile3 } from "node:fs/promises";
+import { join as join4 } from "node:path";
 async function ensureCacheDir() {
   try {
-    await mkdir2(DELETION_CACHE_DIR, { recursive: true });
+    await mkdir3(DELETION_CACHE_DIR, { recursive: true });
   } catch (error) {
     logger.error("Failed to create cache directory:", error);
   }
@@ -147,8 +151,8 @@ async function cacheFileForDeletion(filePath, content, sessionId) {
       sessionId
     };
     const cacheKey = getCacheKey(filePath, sessionId);
-    const cachePath = join2(DELETION_CACHE_DIR, cacheKey);
-    await writeFile(cachePath, JSON.stringify(cached, null, 2), "utf-8");
+    const cachePath = join4(DELETION_CACHE_DIR, cacheKey);
+    await writeFile3(cachePath, JSON.stringify(cached, null, 2), "utf-8");
     logger.debug(`Cached file content: ${filePath} (${content.length} chars)`);
   } catch (error) {
     logger.error(`Failed to cache file for deletion: ${filePath}`, error);
@@ -157,9 +161,9 @@ async function cacheFileForDeletion(filePath, content, sessionId) {
 async function getCachedFileContent(filePath, sessionId) {
   try {
     const cacheKey = getCacheKey(filePath, sessionId);
-    const cachePath = join2(DELETION_CACHE_DIR, cacheKey);
+    const cachePath = join4(DELETION_CACHE_DIR, cacheKey);
     try {
-      const content = await readFile(cachePath, "utf-8");
+      const content = await readFile3(cachePath, "utf-8");
       const cached = JSON.parse(content);
       const age = Date.now() - cached.timestamp;
       if (age > DELETION_CACHE_TTL_MS) {
@@ -182,12 +186,12 @@ async function getCachedFileContent(filePath, sessionId) {
 async function cleanupOldCache() {
   try {
     await ensureCacheDir();
-    const files = await readdir(DELETION_CACHE_DIR);
+    const files = await readdir3(DELETION_CACHE_DIR);
     const now = Date.now();
     for (const file of files) {
       try {
-        const filePath = join2(DELETION_CACHE_DIR, file);
-        const stats = await stat(filePath);
+        const filePath = join4(DELETION_CACHE_DIR, file);
+        const stats = await stat2(filePath);
         const age = now - stats.mtimeMs;
         if (age > DELETION_CACHE_TTL_MS) {
           await rm(filePath);
@@ -206,122 +210,123 @@ var init_deletion_cache = __esm(() => {
   init_logger();
 });
 
-// ../../packages/utils/dist/language-utils.js
-var require_language_utils = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.getLanguageFromPath = getLanguageFromPath;
-  exports.detectLanguageId = detectLanguageId;
-  var languageMap = {
-    ts: "typescript",
-    tsx: "typescriptreact",
-    js: "javascript",
-    jsx: "javascriptreact",
-    mjs: "javascript",
-    cjs: "javascript",
-    py: "python",
-    pyi: "python",
-    pyw: "python",
-    rs: "rust",
-    go: "go",
-    java: "java",
-    kt: "kotlin",
-    kts: "kotlin",
-    scala: "scala",
-    groovy: "groovy",
-    gradle: "groovy",
-    c: "c",
-    h: "c",
-    cpp: "cpp",
-    cc: "cpp",
-    cxx: "cpp",
-    hpp: "cpp",
-    hxx: "hpp",
-    cs: "csharp",
-    rb: "ruby",
-    php: "php",
-    swift: "swift",
-    m: "objective-c",
-    mm: "objective-cpp",
-    vue: "vue",
-    svelte: "svelte",
-    astro: "astro",
-    dart: "dart",
-    ex: "elixir",
-    exs: "elixir",
-    clj: "clojure",
-    cljs: "clojure",
-    edn: "clojure",
-    hs: "haskell",
-    lhs: "haskell",
-    lua: "lua",
-    erl: "erlang",
-    hrl: "erlang",
-    pl: "perl",
-    pm: "perl",
-    coffee: "coffeescript",
-    sh: "shellscript",
-    bash: "shellscript",
-    zsh: "shellscript",
-    fish: "shellscript",
-    ps1: "powershell",
-    psm1: "powershell",
-    bat: "bat",
-    cmd: "bat",
-    md: "markdown",
-    mdx: "mdx",
-    json: "json",
-    jsonc: "jsonc",
-    yaml: "yaml",
-    yml: "yaml",
-    toml: "toml",
-    xml: "xml",
-    html: "html",
-    htm: "html",
-    ini: "ini",
-    properties: "properties",
-    css: "css",
-    scss: "scss",
-    sass: "sass",
-    less: "less",
-    sql: "sql",
-    graphql: "graphql",
-    gql: "graphql",
-    proto: "protobuf",
-    dockerfile: "dockerfile",
-    tf: "terraform",
-    r: "r"
-  };
-  function getLanguageFromPath(filePath) {
-    var _a;
-    var ext = (_a = filePath.split(".").pop()) === null || _a === undefined ? undefined : _a.toLowerCase();
-    return languageMap[ext || ""] || "plaintext";
-  }
-  function detectLanguageId(filePath) {
-    return getLanguageFromPath(filePath);
-  }
-});
+// src/utils/debounce-manager.ts
+init_constants();
+import { mkdir as mkdir2, readdir as readdir2, readFile as readFile2, stat, unlink as unlink2, writeFile as writeFile2 } from "node:fs/promises";
+import { join as join3 } from "node:path";
 
-// ../../packages/utils/dist/index.js
-var require_dist = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.getLanguageFromPath = exports.detectLanguageId = undefined;
-  var language_utils_js_1 = require_language_utils();
-  Object.defineProperty(exports, "detectLanguageId", { enumerable: true, get: function() {
-    return language_utils_js_1.detectLanguageId;
-  } });
-  Object.defineProperty(exports, "getLanguageFromPath", { enumerable: true, get: function() {
-    return language_utils_js_1.getLanguageFromPath;
-  } });
-});
+// src/utils/file-lock.ts
+init_constants();
+import { readdir, readFile, unlink, writeFile } from "node:fs/promises";
+
+// src/utils/daemon-manager.ts
+import { dirname as dirname2, join as join2 } from "node:path";
+import { fileURLToPath } from "node:url";
+init_constants();
+init_logger();
+var DAEMON_RESTART_LOCK = join2(CLAUDE_ZEST_DIR, "daemon-restart.lock");
+var __filename2 = fileURLToPath(import.meta.url);
+var __dirname2 = dirname2(__filename2);
+function isProcessRunning(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// src/utils/file-lock.ts
+init_logger();
+var activeLockFiles = new Set;
+function isLockStale(lockInfo) {
+  return !isProcessRunning(lockInfo.pid);
+}
+async function acquireFileLock(filePath) {
+  const lockFile = `${filePath}.lock`;
+  const lockInfo = {
+    pid: process.pid,
+    timestamp: Date.now()
+  };
+  try {
+    await writeFile(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
+    activeLockFiles.add(lockFile);
+    return true;
+  } catch (error) {
+    if (error.code !== "EEXIST") {
+      throw error;
+    }
+    try {
+      const content = await readFile(lockFile, "utf8");
+      const existingLock = JSON.parse(content);
+      if (isLockStale(existingLock)) {
+        logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
+        await unlink(lockFile).catch(() => {});
+        return acquireFileLock(filePath);
+      }
+    } catch {
+      logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
+      await unlink(lockFile).catch(() => {});
+      return acquireFileLock(filePath);
+    }
+    return false;
+  }
+}
+async function releaseFileLock(filePath) {
+  const lockFile = `${filePath}.lock`;
+  activeLockFiles.delete(lockFile);
+  await unlink(lockFile).catch(() => {});
+}
+async function withFileLock(filePath, fn) {
+  let retries = 0;
+  while (!await acquireFileLock(filePath)) {
+    if (++retries >= LOCK_MAX_RETRIES) {
+      throw new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, LOCK_RETRY_MS));
+  }
+  try {
+    return await fn();
+  } finally {
+    await releaseFileLock(filePath);
+  }
+}
+
+// src/utils/debounce-manager.ts
+init_logger();
+async function shouldSkipDuplicate(hookType, sessionId) {
+  const debounceFile = join3(DEBOUNCE_DIR, `${hookType}-${sessionId}.json`);
+  try {
+    await mkdir2(DEBOUNCE_DIR, { recursive: true });
+    return await withFileLock(debounceFile, async () => {
+      const now = Date.now();
+      try {
+        const content = await readFile2(debounceFile, "utf-8");
+        const info = JSON.parse(content);
+        if (now - info.timestamp < DEBOUNCE_WINDOW_MS) {
+          logger.info(`Skipping duplicate ${hookType} (within ${DEBOUNCE_WINDOW_MS}ms window, PID ${info.pid} was first)`);
+          return true;
+        }
+      } catch {}
+      const newInfo = {
+        timestamp: now,
+        pid: process.pid
+      };
+      await writeFile2(debounceFile, JSON.stringify(newInfo), "utf-8");
+      return false;
+    });
+  } catch (error) {
+    logger.debug(`Debounce check failed for ${hookType}:`, error);
+    return false;
+  }
+}
 
 // src/hooks/pre-tool-handler-cli.ts
 init_deletion_cache();
 
 // src/utils/extraction-helpers.ts
-var import_utils = __toESM(require_dist(), 1);
-import { stat as stat2 } from "node:fs/promises";
-import { basename, join as join4 } from "node:path";
-
+import { stat as stat3 } from "node:fs/promises";
+import { basename, join as join5 } from "node:path";
 // src/auth/session-manager.ts
 init_constants();
 init_logger();
@@ -1155,19 +1160,16 @@ init_logger();
 // src/utils/queue-manager.ts
 init_constants();
 init_logger();
-var locks = new Map;
 
 // src/utils/state-manager.ts
 init_constants();
 init_logger();
-import { join as join3 } from "node:path";
-var STATE_DIR2 = join3(CLAUDE_ZEST_DIR, "state");
 
 // src/utils/extraction-helpers.ts
 async function findRecentBashCommand(conversationFile) {
   try {
-    const { readFile: readFile2 } = await import("node:fs/promises");
-    const content = await readFile2(conversationFile, "utf-8");
+    const { readFile: readFile4 } = await import("node:fs/promises");
+    const content = await readFile4(conversationFile, "utf-8");
     const lines = content.trim().split(`
 `).filter((l) => l.trim());
     for (let i = lines.length - 1;i >= Math.max(0, lines.length - 5); i--) {
@@ -1208,15 +1210,14 @@ function parseRmCommand(command) {
   return [];
 }
 async function cacheFilesForDeletion(filePaths, sessionId, projectDir) {
-  const { readFile: readFile2 } = await import("node:fs/promises");
+  const { readFile: readFile4 } = await import("node:fs/promises");
   const { resolve } = await import("node:path");
   const { cacheFileForDeletion: cacheFileForDeletion2 } = await Promise.resolve().then(() => (init_deletion_cache(), exports_deletion_cache));
   for (const filePath of filePaths) {
     try {
       const absolutePath = filePath.startsWith("/") ? filePath : resolve(projectDir, filePath);
-      const content = await readFile2(absolutePath, "utf-8");
-      await cacheFileForDeletion2(filePath, content, sessionId);
-      logger.info(`Cached file for deletion: ${filePath} (${content.length} chars)`);
+      const content = await readFile4(absolutePath, "utf-8");
+      await cacheFileForDeletion2(absolutePath, content, sessionId);
     } catch (error) {
       logger.debug(`Could not cache ${filePath}:`, error);
     }
@@ -1225,16 +1226,16 @@ async function cacheFilesForDeletion(filePaths, sessionId, projectDir) {
 async function findConversationFile(projectDir) {
   try {
     const claudeDirName = projectDir.replace(/\//g, "-");
-    const projectPath = join4(CLAUDE_PROJECTS_DIR, claudeDirName);
+    const projectPath = join5(CLAUDE_PROJECTS_DIR, claudeDirName);
     logger.debug(`Looking for project directory: ${projectPath}`);
     try {
-      await stat2(projectPath);
+      await stat3(projectPath);
     } catch {
       logger.warn(`Project directory not found: ${projectPath}`);
       return null;
     }
-    const { readdir: readdir2 } = await import("node:fs/promises");
-    const entries = await readdir2(projectPath);
+    const { readdir: readdir4 } = await import("node:fs/promises");
+    const entries = await readdir4(projectPath);
     const jsonlFiles = entries.filter((f) => f.endsWith(".jsonl"));
     if (jsonlFiles.length === 0) {
       logger.warn(`No session files found in ${projectPath}`);
@@ -1243,16 +1244,16 @@ async function findConversationFile(projectDir) {
     let mostRecentFile = jsonlFiles[0];
     let mostRecentTime = 0;
     for (const file of jsonlFiles) {
-      const filePath = join4(projectPath, file);
-      const stats = await stat2(filePath);
+      const filePath = join5(projectPath, file);
+      const stats = await stat3(filePath);
       if (stats.mtimeMs > mostRecentTime) {
         mostRecentTime = stats.mtimeMs;
         mostRecentFile = file;
       }
     }
-    const conversationFile = join4(projectPath, mostRecentFile);
+    const conversationFile = join5(projectPath, mostRecentFile);
     const sessionId = basename(mostRecentFile, ".jsonl");
-    const fileStats = await stat2(conversationFile);
+    const fileStats = await stat3(conversationFile);
     return { conversationFile, sessionId, fileStats };
   } catch (error) {
     logger.error("Failed to find conversation file:", error);
@@ -1263,7 +1264,6 @@ async function findConversationFile(projectDir) {
 // src/hooks/pre-tool-handler-cli.ts
 init_logger();
 async function main() {
-  const startTime = Date.now();
   const projectDir = process.env.CLAUDE_PROJECT_DIR;
   try {
     if (!projectDir) {
@@ -1286,11 +1286,14 @@ async function main() {
       logger.debug("Not an rm command, skipping");
       process.exit(0);
     }
+    const debounceKey = `${sessionId}-${filesToDelete.sort().join(",")}`;
+    if (await shouldSkipDuplicate("PreToolUse", debounceKey)) {
+      logger.debug("Skipping duplicate PreToolUse");
+      process.exit(0);
+    }
     logger.info(`Detected file deletion: ${filesToDelete.length} file(s) - ${filesToDelete.join(", ")}`);
     await cacheFilesForDeletion(filesToDelete, sessionId, projectDir);
     cleanupOldCache().catch((err) => logger.debug("Cache cleanup failed:", err));
-    const totalTime = Date.now() - startTime;
-    logger.debug(`PreToolUse complete in ${totalTime}ms`);
   } catch (error) {
     logger.error("Failed to process PreToolUse:", error);
     process.exit(0);
@@ -1301,4 +1304,4 @@ main().catch((error) => {
   process.exit(1);
 });
 
-//# debugId=B191FBE6FBCE580E64756E2164756E21
+//# debugId=CFF52AA952B43A9064756E2164756E21

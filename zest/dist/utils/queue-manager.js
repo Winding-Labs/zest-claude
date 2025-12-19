@@ -1,6 +1,6 @@
 // src/utils/queue-manager.ts
-import { appendFile as appendFile2, mkdir as mkdir2, readFile, stat, unlink, writeFile } from "node:fs/promises";
-import { dirname as dirname2 } from "node:path";
+import { appendFile as appendFile2, mkdir as mkdir2, readFile as readFile2, stat, unlink as unlink2, writeFile as writeFile2 } from "node:fs/promises";
+import { dirname as dirname3 } from "node:path";
 
 // src/config/constants.ts
 import { homedir } from "node:os";
@@ -18,31 +18,45 @@ var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
 var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
+var LOCK_RETRY_MS = 50;
+var LOCK_MAX_RETRIES = 300;
+var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
 var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
 var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
 
+// src/utils/file-lock.ts
+import { readdir, readFile, unlink, writeFile } from "node:fs/promises";
+
+// src/utils/daemon-manager.ts
+import { dirname as dirname2, join as join2 } from "node:path";
+import { fileURLToPath } from "node:url";
+
 // src/utils/logger.ts
 import { appendFile, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 class Logger {
   minLevel = "info";
+  logFilePath;
   levels = {
     debug: 0,
     info: 1,
     warn: 2,
     error: 3
   };
+  constructor(logFilePath = LOG_FILE) {
+    this.logFilePath = logFilePath;
+  }
   setLevel(level) {
     this.minLevel = level;
   }
   async writeToFile(message) {
     try {
-      await mkdir(dirname(LOG_FILE), { recursive: true });
+      await mkdir(dirname(this.logFilePath), { recursive: true });
       const timestamp = new Date().toISOString();
-      await appendFile(LOG_FILE, `[${timestamp}] ${message}
+      await appendFile(this.logFilePath, `[${timestamp}] ${message}
 `, "utf-8");
     } catch (error) {
       console.error("Failed to write to log file:", error);
@@ -76,24 +90,75 @@ class Logger {
 }
 var logger = new Logger;
 
-// src/utils/queue-manager.ts
-var locks = new Map;
-async function withLock(filePath, fn) {
-  while (locks.has(filePath)) {
-    await locks.get(filePath);
+// src/utils/daemon-manager.ts
+var DAEMON_RESTART_LOCK = join2(CLAUDE_ZEST_DIR, "daemon-restart.lock");
+var __filename2 = fileURLToPath(import.meta.url);
+var __dirname2 = dirname2(__filename2);
+function isProcessRunning(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
   }
-  let releaseLock;
-  const lockPromise = new Promise((resolve) => {
-    releaseLock = resolve;
-  });
-  locks.set(filePath, lockPromise);
+}
+
+// src/utils/file-lock.ts
+var activeLockFiles = new Set;
+function isLockStale(lockInfo) {
+  return !isProcessRunning(lockInfo.pid);
+}
+async function acquireFileLock(filePath) {
+  const lockFile = `${filePath}.lock`;
+  const lockInfo = {
+    pid: process.pid,
+    timestamp: Date.now()
+  };
+  try {
+    await writeFile(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
+    activeLockFiles.add(lockFile);
+    return true;
+  } catch (error) {
+    if (error.code !== "EEXIST") {
+      throw error;
+    }
+    try {
+      const content = await readFile(lockFile, "utf8");
+      const existingLock = JSON.parse(content);
+      if (isLockStale(existingLock)) {
+        logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
+        await unlink(lockFile).catch(() => {});
+        return acquireFileLock(filePath);
+      }
+    } catch {
+      logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
+      await unlink(lockFile).catch(() => {});
+      return acquireFileLock(filePath);
+    }
+    return false;
+  }
+}
+async function releaseFileLock(filePath) {
+  const lockFile = `${filePath}.lock`;
+  activeLockFiles.delete(lockFile);
+  await unlink(lockFile).catch(() => {});
+}
+async function withFileLock(filePath, fn) {
+  let retries = 0;
+  while (!await acquireFileLock(filePath)) {
+    if (++retries >= LOCK_MAX_RETRIES) {
+      throw new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, LOCK_RETRY_MS));
+  }
   try {
     return await fn();
   } finally {
-    locks.delete(filePath);
-    releaseLock();
+    await releaseFileLock(filePath);
   }
 }
+
+// src/utils/queue-manager.ts
 async function ensureDirectory(dirPath) {
   try {
     await stat(dirPath);
@@ -104,7 +169,7 @@ async function ensureDirectory(dirPath) {
 }
 async function readJsonl(filePath) {
   try {
-    const content = await readFile(filePath, "utf8");
+    const content = await readFile2(filePath, "utf8");
     const lines = content.trim().split(`
 `).filter(Boolean);
     const results = [];
@@ -125,7 +190,7 @@ async function readJsonl(filePath) {
 }
 async function countLines(filePath) {
   try {
-    const content = await readFile(filePath, "utf8");
+    const content = await readFile2(filePath, "utf8");
     const lines = content.trim().split(`
 `).filter(Boolean);
     return lines.length;
@@ -138,7 +203,7 @@ async function countLines(filePath) {
 }
 async function deleteFile(filePath) {
   try {
-    await unlink(filePath);
+    await unlink2(filePath);
   } catch (error) {
     if (error.code === "ENOENT") {
       return;
@@ -148,7 +213,7 @@ async function deleteFile(filePath) {
 }
 async function enqueueEvent(event) {
   try {
-    await withLock(EVENTS_QUEUE_FILE, async () => {
+    await withFileLock(EVENTS_QUEUE_FILE, async () => {
       const existingEvents = await readJsonl(EVENTS_QUEUE_FILE);
       const isDuplicate = existingEvents.some((evt) => evt.id === event.id);
       if (isDuplicate) {
@@ -158,7 +223,7 @@ async function enqueueEvent(event) {
         });
         return;
       }
-      await ensureDirectory(dirname2(EVENTS_QUEUE_FILE));
+      await ensureDirectory(dirname3(EVENTS_QUEUE_FILE));
       const line = JSON.stringify(event) + `
 `;
       await appendFile2(EVENTS_QUEUE_FILE, line, "utf8");
@@ -171,14 +236,14 @@ async function enqueueEvent(event) {
 }
 async function enqueueChatSession(session) {
   try {
-    await withLock(SESSIONS_QUEUE_FILE, async () => {
+    await withFileLock(SESSIONS_QUEUE_FILE, async () => {
       const existingSessions = await readJsonl(SESSIONS_QUEUE_FILE);
       const isDuplicate = existingSessions.some((sess) => sess.id === session.id);
       if (isDuplicate) {
         logger.debug("Skipping duplicate session", { sessionId: session.id });
         return;
       }
-      await ensureDirectory(dirname2(SESSIONS_QUEUE_FILE));
+      await ensureDirectory(dirname3(SESSIONS_QUEUE_FILE));
       const line = JSON.stringify(session) + `
 `;
       await appendFile2(SESSIONS_QUEUE_FILE, line, "utf8");
@@ -191,7 +256,7 @@ async function enqueueChatSession(session) {
 }
 async function enqueueChatMessage(message) {
   try {
-    await withLock(MESSAGES_QUEUE_FILE, async () => {
+    await withFileLock(MESSAGES_QUEUE_FILE, async () => {
       const existingMessages = await readJsonl(MESSAGES_QUEUE_FILE);
       const isDuplicate = existingMessages.some((msg) => msg.id === message.id);
       if (isDuplicate) {
@@ -202,7 +267,7 @@ async function enqueueChatMessage(message) {
         });
         return;
       }
-      await ensureDirectory(dirname2(MESSAGES_QUEUE_FILE));
+      await ensureDirectory(dirname3(MESSAGES_QUEUE_FILE));
       const line = JSON.stringify(message) + `
 `;
       await appendFile2(MESSAGES_QUEUE_FILE, line, "utf8");
@@ -226,12 +291,12 @@ async function readQueue(queueFile) {
 }
 async function writeQueue(queueFile, items) {
   try {
-    await withLock(queueFile, async () => {
-      await ensureDirectory(dirname2(queueFile));
+    await withFileLock(queueFile, async () => {
+      await ensureDirectory(dirname3(queueFile));
       const content = items.map((item) => JSON.stringify(item)).join(`
 `) + (items.length > 0 ? `
 ` : "");
-      await writeFile(queueFile, content, "utf8");
+      await writeFile2(queueFile, content, "utf8");
       logger.debug(`Wrote ${items.length} items to queue file: ${queueFile}`);
     });
   } catch (error) {
@@ -241,14 +306,14 @@ async function writeQueue(queueFile, items) {
 }
 async function atomicUpdateQueue(queueFile, transform) {
   try {
-    await withLock(queueFile, async () => {
+    await withFileLock(queueFile, async () => {
       const currentItems = await readJsonl(queueFile);
       const newItems = transform(currentItems);
-      await ensureDirectory(dirname2(queueFile));
+      await ensureDirectory(dirname3(queueFile));
       const content = newItems.map((item) => JSON.stringify(item)).join(`
 `) + (newItems.length > 0 ? `
 ` : "");
-      await writeFile(queueFile, content, "utf8");
+      await writeFile2(queueFile, content, "utf8");
       logger.debug(`Atomically updated queue file: ${queueFile} (${currentItems.length} → ${newItems.length} items)`);
     });
   } catch (error) {
@@ -258,7 +323,7 @@ async function atomicUpdateQueue(queueFile, transform) {
 }
 async function clearQueue(queueFile) {
   try {
-    await withLock(queueFile, async () => {
+    await withFileLock(queueFile, async () => {
       await deleteFile(queueFile);
       logger.debug(`Cleared queue file: ${queueFile}`);
     });
@@ -301,4 +366,4 @@ export {
   atomicUpdateQueue
 };
 
-//# debugId=51090CA41D4CD83F64756E2164756E21
+//# debugId=6673FE43F5224BA064756E2164756E21

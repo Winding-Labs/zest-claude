@@ -4007,6 +4007,7 @@ var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
 var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
+var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
 var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
 var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
@@ -4016,20 +4017,24 @@ var CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
 // src/utils/logger.ts
 class Logger {
   minLevel = "info";
+  logFilePath;
   levels = {
     debug: 0,
     info: 1,
     warn: 2,
     error: 3
   };
+  constructor(logFilePath = LOG_FILE) {
+    this.logFilePath = logFilePath;
+  }
   setLevel(level) {
     this.minLevel = level;
   }
   async writeToFile(message) {
     try {
-      await mkdir(dirname(LOG_FILE), { recursive: true });
+      await mkdir(dirname(this.logFilePath), { recursive: true });
       const timestamp = new Date().toISOString();
-      await appendFile(LOG_FILE, `[${timestamp}] ${message}
+      await appendFile(this.logFilePath, `[${timestamp}] ${message}
 `, "utf-8");
     } catch (error) {
       console.error("Failed to write to log file:", error);
@@ -4092,9 +4097,12 @@ async function loadSettings() {
   }
 }
 async function saveSettings(settings) {
-  const validated = UserSettingsSchema.parse(settings);
+  const result = UserSettingsSchema.safeParse(settings);
+  if (!result.success) {
+    throw new Error(`Invalid settings data (this should not happen): ${JSON.stringify(result.error.issues)}`);
+  }
   await mkdir2(dirname2(SETTINGS_FILE), { recursive: true });
-  await writeFile(SETTINGS_FILE, JSON.stringify(validated, null, 2), "utf-8");
+  await writeFile(SETTINGS_FILE, JSON.stringify(result.data, null, 2), "utf-8");
 }
 
 // src/commands/disable-cli.ts
@@ -4118,4 +4126,4 @@ async function main() {
 }
 main();
 
-//# debugId=5F44FEA908E5709564756E2164756E21
+//# debugId=41B79067DF31D79C64756E2164756E21

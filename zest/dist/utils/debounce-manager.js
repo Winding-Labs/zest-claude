@@ -1,5 +1,5 @@
-// src/utils/state-manager.ts
-import { mkdir as mkdir2, readFile as readFile2, writeFile as writeFile2 } from "node:fs/promises";
+// src/utils/debounce-manager.ts
+import { mkdir as mkdir2, readdir as readdir2, readFile as readFile2, stat, unlink as unlink2, writeFile as writeFile2 } from "node:fs/promises";
 import { join as join3 } from "node:path";
 
 // src/config/constants.ts
@@ -21,6 +21,8 @@ var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
 var LOCK_RETRY_MS = 50;
 var LOCK_MAX_RETRIES = 300;
 var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
+var DEBOUNCE_WINDOW_MS = 500;
+var DEBOUNCE_TRAILING_MS = 300;
 var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
 var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
@@ -158,59 +160,103 @@ async function withFileLock(filePath, fn) {
   }
 }
 
-// src/utils/state-manager.ts
-function getStateFilePath(sessionId) {
-  return join3(STATE_DIR, `${sessionId}.json`);
-}
-async function ensureStateDir() {
+// src/utils/debounce-manager.ts
+async function shouldSkipDuplicate(hookType, sessionId) {
+  const debounceFile = join3(DEBOUNCE_DIR, `${hookType}-${sessionId}.json`);
   try {
-    await mkdir2(STATE_DIR, { recursive: true });
-  } catch (error) {
-    logger.debug("State directory already exists or error creating:", error);
-  }
-}
-async function readSessionState(sessionId) {
-  try {
-    const stateFile = getStateFilePath(sessionId);
-    return await withFileLock(stateFile, async () => {
+    await mkdir2(DEBOUNCE_DIR, { recursive: true });
+    return await withFileLock(debounceFile, async () => {
+      const now = Date.now();
       try {
-        const content = await readFile2(stateFile, "utf-8");
-        return JSON.parse(content);
-      } catch (error) {
-        logger.debug(`No state found for session ${sessionId} (new session)`);
-        return null;
-      }
+        const content = await readFile2(debounceFile, "utf-8");
+        const info = JSON.parse(content);
+        if (now - info.timestamp < DEBOUNCE_WINDOW_MS) {
+          logger.info(`Skipping duplicate ${hookType} (within ${DEBOUNCE_WINDOW_MS}ms window, PID ${info.pid} was first)`);
+          return true;
+        }
+      } catch {}
+      const newInfo = {
+        timestamp: now,
+        pid: process.pid
+      };
+      await writeFile2(debounceFile, JSON.stringify(newInfo), "utf-8");
+      return false;
     });
   } catch (error) {
-    logger.debug(`Failed to read state for session ${sessionId}:`, error);
-    return null;
+    logger.debug(`Debounce check failed for ${hookType}:`, error);
+    return false;
   }
 }
-async function writeSessionState(state) {
+async function registerHookFired(hookType, sessionId) {
+  const debounceFile = join3(DEBOUNCE_DIR, `trailing-${hookType}-${sessionId}.json`);
   try {
-    await ensureStateDir();
-    const stateFile = getStateFilePath(state.sessionId);
-    await withFileLock(stateFile, async () => {
-      await writeFile2(stateFile, JSON.stringify(state, null, 2), "utf-8");
-      logger.debug(`Updated state for session ${state.sessionId}: lastReadLine=${state.lastReadLine}`);
+    await mkdir2(DEBOUNCE_DIR, { recursive: true });
+    return await withFileLock(debounceFile, async () => {
+      const now = Date.now();
+      let count = 1;
+      try {
+        const content = await readFile2(debounceFile, "utf-8");
+        const info = JSON.parse(content);
+        if (now - info.timestamp < 5000) {
+          count = (info.count || 1) + 1;
+        }
+      } catch {}
+      const newInfo = {
+        timestamp: now,
+        pid: process.pid,
+        count
+      };
+      await writeFile2(debounceFile, JSON.stringify(newInfo), "utf-8");
+      logger.debug(`Registered ${hookType} #${count} for session ${sessionId}`);
+      return count;
     });
   } catch (error) {
-    logger.error(`Failed to write state for session ${state.sessionId}:`, error);
+    logger.debug("Failed to register hook:", error);
+    return 1;
   }
 }
-async function updateLastReadLine(sessionId, filePath, lineNumber, lastMessageIndex) {
-  const newState = {
-    sessionId,
-    lastReadLine: lineNumber,
-    lastMessageIndex,
-    filePath
-  };
-  await writeSessionState(newState);
+async function shouldProcessNow(hookType, sessionId) {
+  const debounceFile = join3(DEBOUNCE_DIR, `trailing-${hookType}-${sessionId}.json`);
+  const now = Date.now();
+  try {
+    const content = await readFile2(debounceFile, "utf-8");
+    const info = JSON.parse(content);
+    const msSinceLastHook = now - info.timestamp;
+    const shouldProcess = msSinceLastHook >= DEBOUNCE_TRAILING_MS;
+    if (!shouldProcess) {
+      logger.debug(`Not ready to process ${hookType} - only ${msSinceLastHook}ms since last hook (need ${DEBOUNCE_TRAILING_MS}ms)`);
+    }
+    return { shouldProcess, msSinceLastHook };
+  } catch {
+    return { shouldProcess: true, msSinceLastHook: Number.POSITIVE_INFINITY };
+  }
+}
+async function cleanupDebounceFiles() {
+  try {
+    const files = await readdir2(DEBOUNCE_DIR).catch(() => []);
+    const now = Date.now();
+    const maxAgeMs = 5 * 60 * 1000;
+    let cleaned = 0;
+    for (const file of files) {
+      const filePath = join3(DEBOUNCE_DIR, file);
+      try {
+        const stats = await stat(filePath);
+        if (now - stats.mtimeMs > maxAgeMs) {
+          await unlink2(filePath);
+          cleaned++;
+        }
+      } catch {}
+    }
+    if (cleaned > 0) {
+      logger.debug(`Cleaned up ${cleaned} old debounce files`);
+    }
+  } catch {}
 }
 export {
-  writeSessionState,
-  updateLastReadLine,
-  readSessionState
+  shouldSkipDuplicate,
+  shouldProcessNow,
+  registerHookFired,
+  cleanupDebounceFiles
 };
 
-//# debugId=B670AD7006517FE464756E2164756E21
+//# debugId=30ABE7940FE0BDF664756E2164756E21

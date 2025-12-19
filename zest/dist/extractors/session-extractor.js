@@ -100,7 +100,7 @@ function shouldExcludeCommand(command) {
 }
 
 // src/utils/deletion-cache.ts
-import { mkdir as mkdir2, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir as mkdir2, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join as join2 } from "node:path";
 function getCacheKey(filePath, sessionId) {
   const hash = Buffer.from(filePath).toString("base64").replace(/[/+=]/g, "_");
@@ -1338,9 +1338,9 @@ async function extractMessagesFromFile(filePath, sessionId) {
         if (!entry.message)
           continue;
         const role = entry.message.role;
-        const content2 = entry.message.content;
-        if ((role === "user" || role === "assistant") && content2) {
-          const textContent = extractTextContent(content2);
+        const msgContent = entry.message.content;
+        if ((role === "user" || role === "assistant") && msgContent) {
+          const textContent = extractTextContent(msgContent);
           if (textContent) {
             if (shouldExcludeCommand(textContent)) {
               logger.debug(`Filtered out excluded command: ${textContent.substring(0, 50)}...`);
@@ -1358,8 +1358,8 @@ async function extractMessagesFromFile(filePath, sessionId) {
             tempMessageCounter++;
           }
         }
-        if (Array.isArray(content2)) {
-          for (const contentBlock of content2) {
+        if (Array.isArray(msgContent)) {
+          for (const contentBlock of msgContent) {
             if (contentBlock.type === "tool_use") {
               const extractedToolUses = await extractToolUse(contentBlock, sessionId, entry.timestamp);
               toolUses.push(...extractedToolUses);
@@ -1490,4 +1490,4 @@ export {
   extractCurrentSession
 };
 
-//# debugId=2C36C75FCC9401E264756E2164756E21
+//# debugId=DAA2061F2F0340D464756E2164756E21

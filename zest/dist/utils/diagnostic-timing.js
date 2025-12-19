@@ -1,9 +1,5 @@
-import { createRequire } from "node:module";
-var __require = /* @__PURE__ */ createRequire(import.meta.url);
-
-// src/config/workspace-config.ts
-import { mkdir as mkdir2, readFile, unlink, writeFile, chmod } from "node:fs/promises";
-import { dirname as dirname2 } from "node:path";
+// src/utils/diagnostic-timing.ts
+import { stat } from "node:fs/promises";
 
 // src/utils/logger.ts
 import { appendFile, mkdir } from "node:fs/promises";
@@ -81,65 +77,55 @@ class Logger {
 }
 var logger = new Logger;
 
-// src/config/workspace-config.ts
-var CONFIG_FILE = (() => {
-  const { homedir: homedir2 } = __require("node:os");
-  const { join: join2 } = __require("node:path");
-  const CLAUDE_ZEST_DIR2 = join2(homedir2(), `.claude-zest${"-dev"}`);
-  return join2(CLAUDE_ZEST_DIR2, "config.json");
-})();
-async function saveWorkspaceConfig(config) {
-  try {
-    await mkdir2(dirname2(CONFIG_FILE), { recursive: true });
-    await writeFile(CONFIG_FILE, JSON.stringify(config, null, 2), "utf-8");
-    await chmod(CONFIG_FILE, 384);
-    logger.info("Workspace config saved", {
-      workspace_id: config.workspace_id,
-      workspace_name: config.workspace_name
-    });
-  } catch (error) {
-    logger.error("Failed to save workspace config", error);
-    throw new Error("Failed to save workspace configuration");
+// src/utils/diagnostic-timing.ts
+async function captureFileSnapshot(filePath) {
+  const stats = await stat(filePath);
+  return {
+    path: filePath,
+    mtime: stats.mtime,
+    size: stats.size,
+    timestamp: Date.now()
+  };
+}
+function logFileChanges(before, after, context) {
+  const elapsed = after.timestamp - before.timestamp;
+  const sizeChange = after.size - before.size;
+  const mtimeChanged = after.mtime.getTime() !== before.mtime.getTime();
+  logger.info(`[TIMING] ${context} - Elapsed: ${elapsed}ms`);
+  logger.info(`[TIMING] ${context} - File size: ${before.size} → ${after.size} (${sizeChange >= 0 ? "+" : ""}${sizeChange} bytes)`);
+  logger.info(`[TIMING] ${context} - mtime changed: ${mtimeChanged ? "YES" : "NO"}`);
+  if (mtimeChanged) {
+    logger.info(`[TIMING] ${context} - mtime: ${before.mtime.toISOString()} → ${after.mtime.toISOString()}`);
+  }
+  if (sizeChange > 0) {
+    logger.warn(`[TIMING] ${context} - ⚠️ File grew by ${sizeChange} bytes during wait!`);
   }
 }
-async function loadWorkspaceConfig() {
-  try {
-    try {
-      const content = await readFile(CONFIG_FILE, "utf-8");
-      const config = JSON.parse(content);
-      logger.debug("Workspace config loaded", {
-        workspace_id: config.workspace_id,
-        workspace_name: config.workspace_name
-      });
-      return config;
-    } catch (error) {
-      if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-        logger.debug("No workspace config found");
-        return null;
-      }
-      throw error;
-    }
-  } catch (error) {
-    logger.error("Failed to load workspace config", error);
-    return null;
+function logMissedContent(messages, toolUses, context) {
+  if (messages.length === 0 && toolUses.length === 0) {
+    return;
+  }
+  logger.warn(`[TIMING] ${context} - Found ${messages.length} missed messages, ${toolUses.length} missed tools`);
+  for (const msg of messages) {
+    const preview = msg.content.substring(0, 100).replace(/\n/g, " ");
+    logger.warn(`[TIMING] ${context} - Missed message[${msg.message_index}]: role=${msg.role}, content="${preview}..."`);
+  }
+  for (const tool of toolUses) {
+    logger.warn(`[TIMING] ${context} - Missed tool: ${tool.tool_name} on ${tool.file_path || "unknown"}`);
   }
 }
-async function clearWorkspaceConfig() {
-  try {
-    await unlink(CONFIG_FILE);
-    logger.info("Workspace config cleared");
-  } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      return;
-    }
-    logger.error("Failed to clear workspace config", error);
-    throw new Error("Failed to clear workspace configuration");
-  }
+async function waitWithLogging(ms, context) {
+  logger.debug(`[TIMING] ${context} - Waiting ${ms}ms for JSONL write to complete...`);
+  const start = Date.now();
+  await new Promise((resolve) => setTimeout(resolve, ms));
+  const elapsed = Date.now() - start;
+  logger.debug(`[TIMING] ${context} - Wait complete (actual: ${elapsed}ms)`);
 }
 export {
-  saveWorkspaceConfig,
-  loadWorkspaceConfig,
-  clearWorkspaceConfig
+  waitWithLogging,
+  logMissedContent,
+  logFileChanges,
+  captureFileSnapshot
 };
 
-//# debugId=16B95D114F49918164756E2164756E21
+//# debugId=C5B92D760E97754F64756E2164756E21

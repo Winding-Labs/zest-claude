@@ -1,6 +1,6 @@
-// src/utils/state-manager.ts
-import { mkdir as mkdir2, readFile as readFile2, writeFile as writeFile2 } from "node:fs/promises";
-import { join as join3 } from "node:path";
+// src/utils/file-lock.ts
+import { unlinkSync } from "node:fs";
+import { readdir, readFile, unlink, writeFile } from "node:fs/promises";
 
 // src/config/constants.ts
 import { homedir } from "node:os";
@@ -26,9 +26,6 @@ var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
-
-// src/utils/file-lock.ts
-import { readdir, readFile, unlink, writeFile } from "node:fs/promises";
 
 // src/utils/daemon-manager.ts
 import { dirname as dirname2, join as join2 } from "node:path";
@@ -143,6 +140,52 @@ async function releaseFileLock(filePath) {
   activeLockFiles.delete(lockFile);
   await unlink(lockFile).catch(() => {});
 }
+function cleanupLockFiles() {
+  for (const lockFile of activeLockFiles) {
+    try {
+      unlinkSync(lockFile);
+    } catch {}
+  }
+  activeLockFiles.clear();
+}
+async function cleanupStaleLocks() {
+  try {
+    const files = await readdir(QUEUE_DIR).catch(() => []);
+    const lockFiles = files.filter((f) => f.endsWith(".lock"));
+    for (const lockFileName of lockFiles) {
+      const lockFile = `${QUEUE_DIR}/${lockFileName}`;
+      try {
+        const content = await readFile(lockFile, "utf8");
+        const lockInfo = JSON.parse(content);
+        if (!isProcessRunning(lockInfo.pid)) {
+          await unlink(lockFile);
+          logger.info(`Cleaned up stale lock file: ${lockFileName} (PID ${lockInfo.pid} is dead)`);
+        }
+      } catch {
+        await unlink(lockFile).catch(() => {});
+        logger.info(`Removed corrupted lock file: ${lockFileName}`);
+      }
+    }
+  } catch (error) {
+    logger.debug("Failed to clean up stale locks:", error);
+  }
+}
+var cleanupRegistered = false;
+function setupLockCleanup() {
+  if (cleanupRegistered)
+    return;
+  cleanupRegistered = true;
+  process.on("exit", cleanupLockFiles);
+  process.on("SIGINT", () => {
+    cleanupLockFiles();
+    process.exit(0);
+  });
+  process.on("SIGTERM", () => {
+    cleanupLockFiles();
+    process.exit(0);
+  });
+  logger.debug("Lock cleanup handlers registered");
+}
 async function withFileLock(filePath, fn) {
   let retries = 0;
   while (!await acquireFileLock(filePath)) {
@@ -157,60 +200,10 @@ async function withFileLock(filePath, fn) {
     await releaseFileLock(filePath);
   }
 }
-
-// src/utils/state-manager.ts
-function getStateFilePath(sessionId) {
-  return join3(STATE_DIR, `${sessionId}.json`);
-}
-async function ensureStateDir() {
-  try {
-    await mkdir2(STATE_DIR, { recursive: true });
-  } catch (error) {
-    logger.debug("State directory already exists or error creating:", error);
-  }
-}
-async function readSessionState(sessionId) {
-  try {
-    const stateFile = getStateFilePath(sessionId);
-    return await withFileLock(stateFile, async () => {
-      try {
-        const content = await readFile2(stateFile, "utf-8");
-        return JSON.parse(content);
-      } catch (error) {
-        logger.debug(`No state found for session ${sessionId} (new session)`);
-        return null;
-      }
-    });
-  } catch (error) {
-    logger.debug(`Failed to read state for session ${sessionId}:`, error);
-    return null;
-  }
-}
-async function writeSessionState(state) {
-  try {
-    await ensureStateDir();
-    const stateFile = getStateFilePath(state.sessionId);
-    await withFileLock(stateFile, async () => {
-      await writeFile2(stateFile, JSON.stringify(state, null, 2), "utf-8");
-      logger.debug(`Updated state for session ${state.sessionId}: lastReadLine=${state.lastReadLine}`);
-    });
-  } catch (error) {
-    logger.error(`Failed to write state for session ${state.sessionId}:`, error);
-  }
-}
-async function updateLastReadLine(sessionId, filePath, lineNumber, lastMessageIndex) {
-  const newState = {
-    sessionId,
-    lastReadLine: lineNumber,
-    lastMessageIndex,
-    filePath
-  };
-  await writeSessionState(newState);
-}
 export {
-  writeSessionState,
-  updateLastReadLine,
-  readSessionState
+  withFileLock,
+  setupLockCleanup,
+  cleanupStaleLocks
 };
 
-//# debugId=B670AD7006517FE464756E2164756E21
+//# debugId=48A5A86A74A9A8D764756E2164756E21

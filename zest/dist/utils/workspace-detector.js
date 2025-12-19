@@ -1,25 +1,7 @@
-import { createRequire } from "node:module";
-var __create = Object.create;
-var __getProtoOf = Object.getPrototypeOf;
-var __defProp = Object.defineProperty;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __toESM = (mod, isNodeMode, target) => {
-  target = mod != null ? __create(__getProtoOf(mod)) : {};
-  const to = isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target;
-  for (let key of __getOwnPropNames(mod))
-    if (!__hasOwnProp.call(to, key))
-      __defProp(to, key, {
-        get: () => mod[key],
-        enumerable: true
-      });
-  return to;
-};
-var __require = /* @__PURE__ */ createRequire(import.meta.url);
-
 // src/utils/workspace-detector.ts
 import { createHash } from "node:crypto";
-import { basename, dirname as dirname2, resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { basename, dirname as dirname2, join as join2, resolve } from "node:path";
 
 // src/utils/logger.ts
 import { appendFile, mkdir } from "node:fs/promises";
@@ -28,17 +10,23 @@ import { dirname } from "node:path";
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_ZEST_DIR = join(homedir(), ".claude-zest");
+var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${"-dev"}`);
 var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
+var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
 var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
-var CONFIG_FILE = join(CLAUDE_ZEST_DIR, "config.json");
+var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var LOG_FILE = join(LOGS_DIR, "plugin.log");
+var SYNC_LOG_FILE = join(LOGS_DIR, "sync.log");
+var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
 var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
+var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
+var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
+var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
 
 // src/utils/logger.ts
@@ -110,8 +98,6 @@ async function detectWorkspace(filePath) {
   }
 }
 async function findWorkspaceRoot(startPath) {
-  const { existsSync } = await import("node:fs");
-  const { join: join2 } = await import("node:path");
   let currentPath = startPath;
   const root = resolve("/");
   const markers = [".git", "package.json", "pnpm-workspace.yaml", "Cargo.toml", "go.mod"];
@@ -144,4 +130,4 @@ export {
   detectWorkspace
 };
 
-//# debugId=A376EB6CCBB5159D64756E2164756E21
+//# debugId=C5E66E1756054D4364756E2164756E21
