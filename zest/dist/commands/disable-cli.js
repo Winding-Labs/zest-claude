@@ -11,7 +11,7 @@ var __export = (target, all) => {
 };
 
 // src/config/settings.ts
-import { mkdir as mkdir2, readFile, writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { dirname as dirname2 } from "node:path";
 
 // ../../node_modules/zod/v4/classic/external.js
@@ -12457,55 +12457,121 @@ function date4(params) {
 
 // ../../node_modules/zod/v4/classic/external.js
 config(en_default());
+// src/utils/fs-utils.ts
+import { mkdir, stat } from "node:fs/promises";
+async function ensureDirectory(dirPath) {
+  try {
+    await stat(dirPath);
+  } catch {
+    await mkdir(dirPath, { recursive: true, mode: 448 });
+  }
+}
+
 // src/utils/logger.ts
-import { appendFile, mkdir } from "node:fs/promises";
+import { appendFile } from "node:fs/promises";
 import { dirname } from "node:path";
+
+// src/utils/log-rotation.ts
+import { readdir, unlink } from "node:fs/promises";
+import { join as join2 } from "node:path";
 
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${""}`);
+var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
+var CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
+var CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
+var CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
 var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
 var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
 var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
 var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
-var LOG_FILE = join(LOGS_DIR, "plugin.log");
-var SYNC_LOG_FILE = join(LOGS_DIR, "sync.log");
 var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
+var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
+var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
 var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
 var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
 var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
+var LOG_RETENTION_DAYS = 7;
 var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-var CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
+var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
+
+// src/utils/log-rotation.ts
+var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
+var lastCleanupTime = {};
+function getDateString() {
+  return new Date().toISOString().split("T")[0];
+}
+function getDatedLogPath(logPrefix) {
+  const dateStr = getDateString();
+  return join2(LOGS_DIR, `${logPrefix}-${dateStr}.log`);
+}
+function parseDateFromFilename(filename, logPrefix) {
+  const pattern = new RegExp(`^${logPrefix}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
+  const match = filename.match(pattern);
+  if (!match) {
+    return null;
+  }
+  const date5 = new Date(match[1] + "T00:00:00Z");
+  return Number.isNaN(date5.getTime()) ? null : date5;
+}
+async function cleanupStaleLogs(logPrefix) {
+  const now = Date.now();
+  const lastCleanup = lastCleanupTime[logPrefix] || 0;
+  if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
+    return;
+  }
+  lastCleanupTime[logPrefix] = now;
+  try {
+    await ensureDirectory(LOGS_DIR);
+    const files = await readdir(LOGS_DIR);
+    const cutoffDate = new Date(now - LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    for (const file2 of files) {
+      const fileDate = parseDateFromFilename(file2, logPrefix);
+      if (fileDate && fileDate < cutoffDate) {
+        const filePath = join2(LOGS_DIR, file2);
+        try {
+          await unlink(filePath);
+        } catch (error46) {
+          logger.error(`Failed to delete old log file ${file2}`, error46);
+        }
+      }
+    }
+  } catch (error46) {
+    logger.error("Failed to cleanup old logs", error46);
+  }
+}
 
 // src/utils/logger.ts
 class Logger {
   minLevel = "info";
-  logFilePath;
+  logPrefix;
   levels = {
     debug: 0,
     info: 1,
     warn: 2,
     error: 3
   };
-  constructor(logFilePath = LOG_FILE) {
-    this.logFilePath = logFilePath;
+  constructor(logPrefix = "plugin") {
+    this.logPrefix = logPrefix;
   }
   setLevel(level) {
     this.minLevel = level;
   }
   async writeToFile(message) {
     try {
-      await mkdir(dirname(this.logFilePath), { recursive: true });
+      const logFilePath = getDatedLogPath(this.logPrefix);
+      await ensureDirectory(dirname(logFilePath));
       const timestamp = new Date().toISOString();
-      await appendFile(this.logFilePath, `[${timestamp}] ${message}
+      await appendFile(logFilePath, `[${timestamp}] ${message}
 `, "utf-8");
+      cleanupStaleLogs(this.logPrefix);
     } catch (error46) {
       console.error("Failed to write to log file:", error46);
     }
@@ -12571,7 +12637,7 @@ async function saveSettings(settings) {
   if (!result.success) {
     throw new Error(`Invalid settings data (this should not happen): ${JSON.stringify(result.error.issues)}`);
   }
-  await mkdir2(dirname2(SETTINGS_FILE), { recursive: true });
+  await ensureDirectory(dirname2(SETTINGS_FILE));
   await writeFile(SETTINGS_FILE, JSON.stringify(result.data, null, 2), "utf-8");
 }
 
@@ -12595,5 +12661,3 @@ async function main() {
   }
 }
 main();
-
-//# debugId=C3F9825B0E4A5F0B64756E2164756E21

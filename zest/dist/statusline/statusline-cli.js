@@ -1,6 +1,4 @@
-// src/utils/state-manager.ts
-import { readFile as readFile2, writeFile as writeFile2 } from "node:fs/promises";
-import { join as join4 } from "node:path";
+#!/usr/bin/env node
 
 // src/config/constants.ts
 import { homedir } from "node:os";
@@ -21,8 +19,6 @@ var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
 var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
-var LOCK_RETRY_MS = 50;
-var LOCK_MAX_RETRIES = 300;
 var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
 var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
 var LOG_RETENTION_DAYS = 7;
@@ -31,11 +27,8 @@ var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
 
-// src/utils/file-lock.ts
-import { readdir as readdir2, readFile, unlink as unlink2, writeFile } from "node:fs/promises";
-import { dirname as dirname3 } from "node:path";
-
 // src/utils/daemon-manager.ts
+import { readFileSync } from "node:fs";
 import { dirname as dirname2, join as join3 } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -157,6 +150,9 @@ class Logger {
 }
 var logger = new Logger;
 
+// src/utils/file-lock.ts
+var activeLockFiles = new Set;
+
 // src/utils/daemon-manager.ts
 var DAEMON_RESTART_LOCK = join3(CLAUDE_ZEST_DIR, "daemon-restart.lock");
 var __filename2 = fileURLToPath(import.meta.url);
@@ -169,111 +165,104 @@ function isProcessRunning(pid) {
     return false;
   }
 }
-
-// src/utils/file-lock.ts
-var activeLockFiles = new Set;
-function isLockStale(lockInfo) {
-  return !isProcessRunning(lockInfo.pid);
-}
-async function acquireFileLock(filePath) {
-  const lockFile = `${filePath}.lock`;
-  const lockInfo = {
-    pid: process.pid,
-    timestamp: Date.now()
-  };
+function isDaemonRunning() {
   try {
-    await ensureDirectory(dirname3(lockFile));
-    await writeFile(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
-    activeLockFiles.add(lockFile);
-    return true;
-  } catch (error) {
-    if (error.code !== "EEXIST") {
-      const errCode = error.code;
-      if (errCode === "ENOENT" || errCode === "EACCES") {
-        logger.error(`Failed to create lock file ${lockFile}:`, error);
-      }
-      throw error;
+    const pidData = readFileSync(DAEMON_PID_FILE, "utf-8");
+    const pidStr = pidData.trim();
+    if (!pidStr) {
+      return false;
     }
-    try {
-      const content = await readFile(lockFile, "utf8");
-      const existingLock = JSON.parse(content);
-      if (isLockStale(existingLock)) {
-        logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
-        await unlink2(lockFile).catch(() => {});
-        return acquireFileLock(filePath);
-      }
-    } catch {
-      logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
-      await unlink2(lockFile).catch(() => {});
-      return acquireFileLock(filePath);
+    const pid = Number.parseInt(pidStr, 10);
+    if (Number.isNaN(pid) || pid <= 0) {
+      return false;
     }
+    return isProcessRunning(pid);
+  } catch {
     return false;
   }
 }
-async function releaseFileLock(filePath) {
-  const lockFile = `${filePath}.lock`;
-  activeLockFiles.delete(lockFile);
-  await unlink2(lockFile).catch(() => {});
-}
-async function withFileLock(filePath, fn) {
-  let retries = 0;
-  while (!await acquireFileLock(filePath)) {
-    if (++retries >= LOCK_MAX_RETRIES) {
-      throw new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
-    }
-    await new Promise((resolve) => setTimeout(resolve, LOCK_RETRY_MS));
-  }
+
+// src/utils/status-cache-manager.ts
+import { readFileSync as readFileSync2, writeFileSync } from "node:fs";
+var DEFAULT_VERSION_CHECK = {
+  updateAvailable: false,
+  currentVersion: "unknown",
+  latestVersion: "unknown",
+  checkedAt: 0
+};
+var DEFAULT_SYNC_STATUS = {
+  hasError: false,
+  errorType: null,
+  errorMessage: null,
+  lastErrorAt: null,
+  lastSuccessAt: null
+};
+var DEFAULT_STATUS_CACHE = {
+  versionCheck: DEFAULT_VERSION_CHECK,
+  syncStatus: DEFAULT_SYNC_STATUS
+};
+function readStatusCache() {
   try {
-    return await fn();
-  } finally {
-    await releaseFileLock(filePath);
+    const data = readFileSync2(STATUS_CACHE_FILE, "utf-8");
+    const parsed = JSON.parse(data);
+    if (parsed.updateAvailable !== undefined && !parsed.versionCheck) {
+      logger.info("Migrating old update-check.json format to new status-cache.json format");
+      const migrated = {
+        versionCheck: {
+          updateAvailable: parsed.updateAvailable ?? false,
+          currentVersion: parsed.currentVersion ?? "unknown",
+          latestVersion: parsed.latestVersion ?? "unknown",
+          checkedAt: parsed.checkedAt ?? 0
+        },
+        syncStatus: DEFAULT_SYNC_STATUS
+      };
+      return migrated;
+    }
+    return {
+      versionCheck: {
+        ...DEFAULT_VERSION_CHECK,
+        ...parsed.versionCheck
+      },
+      syncStatus: {
+        ...DEFAULT_SYNC_STATUS,
+        ...parsed.syncStatus
+      }
+    };
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      logger.debug("Status cache file does not exist, using defaults");
+    } else {
+      logger.warn("Failed to read status cache file, using defaults", error);
+    }
+    return DEFAULT_STATUS_CACHE;
   }
 }
 
-// src/utils/state-manager.ts
-function getStateFilePath(sessionId) {
-  return join4(STATE_DIR, `${sessionId}.json`);
-}
-async function readSessionState(sessionId) {
+// src/statusline/statusline-cli.ts
+function main() {
   try {
-    const stateFile = getStateFilePath(sessionId);
-    return await withFileLock(stateFile, async () => {
-      try {
-        const content = await readFile2(stateFile, "utf-8");
-        return JSON.parse(content);
-      } catch (error) {
-        logger.debug(`No state found for session ${sessionId} (new session)`);
-        return null;
-      }
-    });
+    const cache = readStatusCache();
+    const hasSyncError = cache.syncStatus.hasError;
+    const daemonRunning = isDaemonRunning();
+    const showDaemonError = !hasSyncError && !daemonRunning;
+    const isUpdateCheckRecent = Date.now() - cache.versionCheck.checkedAt < UPDATE_CHECK_CACHE_TTL_MS;
+    const hasUpdateAvailable = cache.versionCheck.updateAvailable && isUpdateCheckRecent;
+    const messages = [];
+    if (hasSyncError && cache.syncStatus.errorMessage) {
+      messages.push(`\x1B[1;31m\uD83D\uDD34 Chat history not saving: ${cache.syncStatus.errorMessage}\x1B[0m`);
+    } else if (showDaemonError) {
+      messages.push(`\x1B[1;31m\uD83D\uDD34 Chat history not saving: Background process not running.\x1B[0m`);
+    }
+    if (hasUpdateAvailable) {
+      messages.push(`\x1B[1;33m\uD83C\uDF4B v${cache.versionCheck.currentVersion} → v${cache.versionCheck.latestVersion} update available\x1B[0m`);
+    }
+    if (messages.length > 0) {
+      console.log(messages.join(" | "));
+    } else {
+      process.exit(0);
+    }
   } catch (error) {
-    logger.debug(`Failed to read state for session ${sessionId}:`, error);
-    return null;
+    process.exit(0);
   }
 }
-async function writeSessionState(state) {
-  try {
-    await ensureDirectory(STATE_DIR);
-    const stateFile = getStateFilePath(state.sessionId);
-    await withFileLock(stateFile, async () => {
-      await writeFile2(stateFile, JSON.stringify(state, null, 2), "utf-8");
-      logger.debug(`Updated state for session ${state.sessionId}: lastReadLine=${state.lastReadLine}`);
-    });
-  } catch (error) {
-    logger.error(`Failed to write state for session ${state.sessionId}:`, error);
-  }
-}
-async function updateLastReadLine(sessionId, filePath, lineNumber, lastMessageIndex) {
-  const newState = {
-    sessionId,
-    lastReadLine: lineNumber,
-    lastMessageIndex,
-    filePath
-  };
-  await writeSessionState(newState);
-}
-export {
-  writeSessionState,
-  updateLastReadLine,
-  readSessionState
-};
+main();

@@ -22,18 +22,21 @@ var __require = /* @__PURE__ */ createRequire(import.meta.url);
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, LOG_FILE, SYNC_LOG_FILE, DAEMON_PID_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DELETION_CACHE_TTL_MS, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, STALE_SESSION_AGE_MS, CLAUDE_PROJECTS_DIR;
+var CLAUDE_INSTALL_DIR, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, STATUSLINE_SCRIPT_PATH, STATUS_CACHE_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, STALE_SESSION_AGE_MS, UPDATE_CHECK_CACHE_TTL_MS;
 var init_constants = __esm(() => {
-  CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${""}`);
+  CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
+  CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
+  CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
+  CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
   QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
   LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
   STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
   DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
   SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
   SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
-  LOG_FILE = join(LOGS_DIR, "plugin.log");
-  SYNC_LOG_FILE = join(LOGS_DIR, "sync.log");
   DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
+  STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
+  STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
   EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
   SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
   MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
@@ -42,34 +45,101 @@ var init_constants = __esm(() => {
   PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
   MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
   STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-  CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
+  UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
+});
+
+// src/utils/fs-utils.ts
+import { mkdir, stat } from "node:fs/promises";
+async function ensureDirectory(dirPath) {
+  try {
+    await stat(dirPath);
+  } catch {
+    await mkdir(dirPath, { recursive: true, mode: 448 });
+  }
+}
+var init_fs_utils = () => {};
+
+// src/utils/log-rotation.ts
+import { readdir, unlink } from "node:fs/promises";
+import { join as join2 } from "node:path";
+function getDateString() {
+  return new Date().toISOString().split("T")[0];
+}
+function getDatedLogPath(logPrefix) {
+  const dateStr = getDateString();
+  return join2(LOGS_DIR, `${logPrefix}-${dateStr}.log`);
+}
+function parseDateFromFilename(filename, logPrefix) {
+  const pattern = new RegExp(`^${logPrefix}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
+  const match = filename.match(pattern);
+  if (!match) {
+    return null;
+  }
+  const date = new Date(match[1] + "T00:00:00Z");
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+async function cleanupStaleLogs(logPrefix) {
+  const now = Date.now();
+  const lastCleanup = lastCleanupTime[logPrefix] || 0;
+  if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
+    return;
+  }
+  lastCleanupTime[logPrefix] = now;
+  try {
+    await ensureDirectory(LOGS_DIR);
+    const files = await readdir(LOGS_DIR);
+    const cutoffDate = new Date(now - LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    for (const file of files) {
+      const fileDate = parseDateFromFilename(file, logPrefix);
+      if (fileDate && fileDate < cutoffDate) {
+        const filePath = join2(LOGS_DIR, file);
+        try {
+          await unlink(filePath);
+        } catch (error) {
+          logger.error(`Failed to delete old log file ${file}`, error);
+        }
+      }
+    }
+  } catch (error) {
+    logger.error("Failed to cleanup old logs", error);
+  }
+}
+var CLEANUP_THROTTLE_MS, lastCleanupTime;
+var init_log_rotation = __esm(() => {
+  init_constants();
+  init_fs_utils();
+  init_logger();
+  CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
+  lastCleanupTime = {};
 });
 
 // src/utils/logger.ts
-import { appendFile, mkdir } from "node:fs/promises";
+import { appendFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
 class Logger {
   minLevel = "info";
-  logFilePath;
+  logPrefix;
   levels = {
     debug: 0,
     info: 1,
     warn: 2,
     error: 3
   };
-  constructor(logFilePath = LOG_FILE) {
-    this.logFilePath = logFilePath;
+  constructor(logPrefix = "plugin") {
+    this.logPrefix = logPrefix;
   }
   setLevel(level) {
     this.minLevel = level;
   }
   async writeToFile(message) {
     try {
-      await mkdir(dirname(this.logFilePath), { recursive: true });
+      const logFilePath = getDatedLogPath(this.logPrefix);
+      await ensureDirectory(dirname(logFilePath));
       const timestamp = new Date().toISOString();
-      await appendFile(this.logFilePath, `[${timestamp}] ${message}
+      await appendFile(logFilePath, `[${timestamp}] ${message}
 `, "utf-8");
+      cleanupStaleLogs(this.logPrefix);
     } catch (error) {
       console.error("Failed to write to log file:", error);
     }
@@ -102,36 +172,40 @@ class Logger {
 }
 var logger;
 var init_logger = __esm(() => {
-  init_constants();
+  init_fs_utils();
+  init_log_rotation();
   logger = new Logger;
 });
 
 // src/utils/deletion-cache.ts
 var init_deletion_cache = __esm(() => {
   init_constants();
+  init_fs_utils();
   init_logger();
 });
 
 // src/hooks/incremental-extractor-cli.ts
 import { spawn } from "node:child_process";
-import { dirname as dirname3, join as join5 } from "node:path";
+import { dirname as dirname4, join as join6 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 
 // src/utils/debounce-manager.ts
 init_constants();
-import { mkdir as mkdir2, readdir as readdir2, readFile as readFile2, stat, unlink as unlink2, writeFile as writeFile2 } from "node:fs/promises";
-import { join as join3 } from "node:path";
+import { readdir as readdir3, readFile as readFile2, stat as stat2, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
+import { join as join4 } from "node:path";
 
 // src/utils/file-lock.ts
 init_constants();
-import { readdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { readdir as readdir2, readFile, unlink as unlink2, writeFile } from "node:fs/promises";
+import { dirname as dirname3 } from "node:path";
 
 // src/utils/daemon-manager.ts
-import { dirname as dirname2, join as join2 } from "node:path";
+import { dirname as dirname2, join as join3 } from "node:path";
 import { fileURLToPath } from "node:url";
 init_constants();
+init_fs_utils();
 init_logger();
-var DAEMON_RESTART_LOCK = join2(CLAUDE_ZEST_DIR, "daemon-restart.lock");
+var DAEMON_RESTART_LOCK = join3(CLAUDE_ZEST_DIR, "daemon-restart.lock");
 var __filename2 = fileURLToPath(import.meta.url);
 var __dirname2 = dirname2(__filename2);
 function isProcessRunning(pid) {
@@ -144,6 +218,7 @@ function isProcessRunning(pid) {
 }
 
 // src/utils/file-lock.ts
+init_fs_utils();
 init_logger();
 var activeLockFiles = new Set;
 function isLockStale(lockInfo) {
@@ -156,11 +231,16 @@ async function acquireFileLock(filePath) {
     timestamp: Date.now()
   };
   try {
+    await ensureDirectory(dirname3(lockFile));
     await writeFile(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
     activeLockFiles.add(lockFile);
     return true;
   } catch (error) {
     if (error.code !== "EEXIST") {
+      const errCode = error.code;
+      if (errCode === "ENOENT" || errCode === "EACCES") {
+        logger.error(`Failed to create lock file ${lockFile}:`, error);
+      }
       throw error;
     }
     try {
@@ -168,12 +248,12 @@ async function acquireFileLock(filePath) {
       const existingLock = JSON.parse(content);
       if (isLockStale(existingLock)) {
         logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
-        await unlink(lockFile).catch(() => {});
+        await unlink2(lockFile).catch(() => {});
         return acquireFileLock(filePath);
       }
     } catch {
       logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
-      await unlink(lockFile).catch(() => {});
+      await unlink2(lockFile).catch(() => {});
       return acquireFileLock(filePath);
     }
     return false;
@@ -182,7 +262,7 @@ async function acquireFileLock(filePath) {
 async function releaseFileLock(filePath) {
   const lockFile = `${filePath}.lock`;
   activeLockFiles.delete(lockFile);
-  await unlink(lockFile).catch(() => {});
+  await unlink2(lockFile).catch(() => {});
 }
 async function withFileLock(filePath, fn) {
   let retries = 0;
@@ -200,11 +280,12 @@ async function withFileLock(filePath, fn) {
 }
 
 // src/utils/debounce-manager.ts
+init_fs_utils();
 init_logger();
 async function registerHookFired(hookType, sessionId) {
-  const debounceFile = join3(DEBOUNCE_DIR, `trailing-${hookType}-${sessionId}.json`);
+  const debounceFile = join4(DEBOUNCE_DIR, `trailing-${hookType}-${sessionId}.json`);
   try {
-    await mkdir2(DEBOUNCE_DIR, { recursive: true });
+    await ensureDirectory(DEBOUNCE_DIR);
     return await withFileLock(debounceFile, async () => {
       const now = Date.now();
       let count = 1;
@@ -231,10 +312,11 @@ async function registerHookFired(hookType, sessionId) {
 }
 
 // src/utils/extraction-helpers.ts
-import { stat as stat2 } from "node:fs/promises";
-import { basename, join as join4 } from "node:path";
+import { stat as stat3 } from "node:fs/promises";
+import { basename, join as join5 } from "node:path";
 // src/auth/session-manager.ts
 init_constants();
+init_fs_utils();
 init_logger();
 
 // src/utils/extraction-helpers.ts
@@ -1056,26 +1138,28 @@ init_logger();
 
 // src/utils/queue-manager.ts
 init_constants();
+init_fs_utils();
 init_logger();
 
 // src/utils/state-manager.ts
 init_constants();
+init_fs_utils();
 init_logger();
 
 // src/utils/extraction-helpers.ts
 async function findConversationFile(projectDir) {
   try {
     const claudeDirName = projectDir.replace(/\//g, "-");
-    const projectPath = join4(CLAUDE_PROJECTS_DIR, claudeDirName);
+    const projectPath = join5(CLAUDE_PROJECTS_DIR, claudeDirName);
     logger.debug(`Looking for project directory: ${projectPath}`);
     try {
-      await stat2(projectPath);
+      await stat3(projectPath);
     } catch {
       logger.warn(`Project directory not found: ${projectPath}`);
       return null;
     }
-    const { readdir: readdir3 } = await import("node:fs/promises");
-    const entries = await readdir3(projectPath);
+    const { readdir: readdir4 } = await import("node:fs/promises");
+    const entries = await readdir4(projectPath);
     const jsonlFiles = entries.filter((f) => f.endsWith(".jsonl"));
     if (jsonlFiles.length === 0) {
       logger.warn(`No session files found in ${projectPath}`);
@@ -1084,16 +1168,16 @@ async function findConversationFile(projectDir) {
     let mostRecentFile = jsonlFiles[0];
     let mostRecentTime = 0;
     for (const file of jsonlFiles) {
-      const filePath = join4(projectPath, file);
-      const stats = await stat2(filePath);
+      const filePath = join5(projectPath, file);
+      const stats = await stat3(filePath);
       if (stats.mtimeMs > mostRecentTime) {
         mostRecentTime = stats.mtimeMs;
         mostRecentFile = file;
       }
     }
-    const conversationFile = join4(projectPath, mostRecentFile);
+    const conversationFile = join5(projectPath, mostRecentFile);
     const sessionId = basename(mostRecentFile, ".jsonl");
-    const fileStats = await stat2(conversationFile);
+    const fileStats = await stat3(conversationFile);
     return { conversationFile, sessionId, fileStats };
   } catch (error) {
     logger.error("Failed to find conversation file:", error);
@@ -1104,7 +1188,7 @@ async function findConversationFile(projectDir) {
 // src/hooks/incremental-extractor-cli.ts
 init_logger();
 var __filename3 = fileURLToPath2(import.meta.url);
-var __dirname3 = dirname3(__filename3);
+var __dirname3 = dirname4(__filename3);
 async function main() {
   const projectDir = process.env.CLAUDE_PROJECT_DIR;
   try {
@@ -1127,7 +1211,7 @@ async function main() {
 }
 function spawnDelayedExtractor(sessionId, conversationFile) {
   try {
-    const delayedExtractorPath = join5(__dirname3, "delayed-extractor-cli.js");
+    const delayedExtractorPath = join6(__dirname3, "delayed-extractor-cli.js");
     const child = spawn("node", [delayedExtractorPath, sessionId, conversationFile], {
       detached: true,
       stdio: "ignore",
@@ -1142,5 +1226,3 @@ main().catch((error) => {
   console.error("Incremental extractor error:", error);
   process.exit(1);
 });
-
-//# debugId=5B2BB9E5C7BE3CED64756E2164756E21

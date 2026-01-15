@@ -51,6 +51,7 @@ To update Zest to the latest version:
 - `/zest:enable` - Enable remote persistence (syncing)
 - `/zest:disable` - Disable remote persistence (local only)
 - `/zest:workspace` - Configure workspace settings
+- `/zest:enable_statusline` - Enable status line notifications for sync events
 
 ### Features
 
@@ -60,6 +61,7 @@ To update Zest to the latest version:
 - 🌐 **Offline Support**: Works offline, syncs when reconnected
 - 🔒 **Privacy Focused**: Respects .gitignore and exclusion rules
 - 🚀 **Zero Manual Intervention**: Set it and forget it
+- 📊 **Status Line Notifications**: Get real-time sync updates in your status line (enable with `/zest:enable_statusline`)
 
 ### How It Works
 

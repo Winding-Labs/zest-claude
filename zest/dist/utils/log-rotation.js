@@ -1,17 +1,3 @@
-// src/utils/logger.ts
-import { appendFile } from "node:fs/promises";
-import { dirname } from "node:path";
-
-// src/utils/fs-utils.ts
-import { mkdir, stat } from "node:fs/promises";
-async function ensureDirectory(dirPath) {
-  try {
-    await stat(dirPath);
-  } catch {
-    await mkdir(dirPath, { recursive: true, mode: 448 });
-  }
-}
-
 // src/utils/log-rotation.ts
 import { readdir, unlink } from "node:fs/promises";
 import { join as join2 } from "node:path";
@@ -43,53 +29,19 @@ var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
 
-// src/utils/log-rotation.ts
-var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
-var lastCleanupTime = {};
-function getDateString() {
-  return new Date().toISOString().split("T")[0];
-}
-function getDatedLogPath(logPrefix) {
-  const dateStr = getDateString();
-  return join2(LOGS_DIR, `${logPrefix}-${dateStr}.log`);
-}
-function parseDateFromFilename(filename, logPrefix) {
-  const pattern = new RegExp(`^${logPrefix}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
-  const match = filename.match(pattern);
-  if (!match) {
-    return null;
-  }
-  const date = new Date(match[1] + "T00:00:00Z");
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-async function cleanupStaleLogs(logPrefix) {
-  const now = Date.now();
-  const lastCleanup = lastCleanupTime[logPrefix] || 0;
-  if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
-    return;
-  }
-  lastCleanupTime[logPrefix] = now;
+// src/utils/fs-utils.ts
+import { mkdir, stat } from "node:fs/promises";
+async function ensureDirectory(dirPath) {
   try {
-    await ensureDirectory(LOGS_DIR);
-    const files = await readdir(LOGS_DIR);
-    const cutoffDate = new Date(now - LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000);
-    for (const file of files) {
-      const fileDate = parseDateFromFilename(file, logPrefix);
-      if (fileDate && fileDate < cutoffDate) {
-        const filePath = join2(LOGS_DIR, file);
-        try {
-          await unlink(filePath);
-        } catch (error) {
-          logger.error(`Failed to delete old log file ${file}`, error);
-        }
-      }
-    }
-  } catch (error) {
-    logger.error("Failed to cleanup old logs", error);
+    await stat(dirPath);
+  } catch {
+    await mkdir(dirPath, { recursive: true, mode: 448 });
   }
 }
 
 // src/utils/logger.ts
+import { appendFile } from "node:fs/promises";
+import { dirname } from "node:path";
 class Logger {
   minLevel = "info";
   logPrefix;
@@ -144,6 +96,59 @@ class Logger {
   }
 }
 var logger = new Logger;
+
+// src/utils/log-rotation.ts
+var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
+var lastCleanupTime = {};
+function getDateString() {
+  return new Date().toISOString().split("T")[0];
+}
+function getDatedLogPath(logPrefix) {
+  const dateStr = getDateString();
+  return join2(LOGS_DIR, `${logPrefix}-${dateStr}.log`);
+}
+function parseDateFromFilename(filename, logPrefix) {
+  const pattern = new RegExp(`^${logPrefix}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
+  const match = filename.match(pattern);
+  if (!match) {
+    return null;
+  }
+  const date = new Date(match[1] + "T00:00:00Z");
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+async function cleanupStaleLogs(logPrefix) {
+  const now = Date.now();
+  const lastCleanup = lastCleanupTime[logPrefix] || 0;
+  if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
+    return;
+  }
+  lastCleanupTime[logPrefix] = now;
+  try {
+    await ensureDirectory(LOGS_DIR);
+    const files = await readdir(LOGS_DIR);
+    const cutoffDate = new Date(now - LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    for (const file of files) {
+      const fileDate = parseDateFromFilename(file, logPrefix);
+      if (fileDate && fileDate < cutoffDate) {
+        const filePath = join2(LOGS_DIR, file);
+        try {
+          await unlink(filePath);
+        } catch (error) {
+          logger.error(`Failed to delete old log file ${file}`, error);
+        }
+      }
+    }
+  } catch (error) {
+    logger.error("Failed to cleanup old logs", error);
+  }
+}
+async function forceCleanupStaleLogs(logPrefix) {
+  lastCleanupTime[logPrefix] = 0;
+  await cleanupStaleLogs(logPrefix);
+}
 export {
-  logger
+  getDatedLogPath,
+  getDateString,
+  forceCleanupStaleLogs,
+  cleanupStaleLogs
 };

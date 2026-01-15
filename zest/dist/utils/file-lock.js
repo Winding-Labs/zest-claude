@@ -1,20 +1,24 @@
 // src/utils/file-lock.ts
 import { unlinkSync } from "node:fs";
-import { readdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { readdir as readdir2, readFile, unlink as unlink2, writeFile } from "node:fs/promises";
+import { dirname as dirname3 } from "node:path";
 
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${""}`);
+var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
+var CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
+var CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
+var CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
 var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
 var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
 var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
 var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
-var LOG_FILE = join(LOGS_DIR, "plugin.log");
-var SYNC_LOG_FILE = join(LOGS_DIR, "sync.log");
 var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
+var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
+var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
 var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
@@ -22,39 +26,102 @@ var LOCK_RETRY_MS = 50;
 var LOCK_MAX_RETRIES = 300;
 var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
 var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
+var LOG_RETENTION_DAYS = 7;
 var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-var CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
+var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
 
 // src/utils/daemon-manager.ts
-import { dirname as dirname2, join as join2 } from "node:path";
+import { dirname as dirname2, join as join3 } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// src/utils/fs-utils.ts
+import { mkdir, stat } from "node:fs/promises";
+async function ensureDirectory(dirPath) {
+  try {
+    await stat(dirPath);
+  } catch {
+    await mkdir(dirPath, { recursive: true, mode: 448 });
+  }
+}
+
 // src/utils/logger.ts
-import { appendFile, mkdir } from "node:fs/promises";
+import { appendFile } from "node:fs/promises";
 import { dirname } from "node:path";
+
+// src/utils/log-rotation.ts
+import { readdir, unlink } from "node:fs/promises";
+import { join as join2 } from "node:path";
+var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
+var lastCleanupTime = {};
+function getDateString() {
+  return new Date().toISOString().split("T")[0];
+}
+function getDatedLogPath(logPrefix) {
+  const dateStr = getDateString();
+  return join2(LOGS_DIR, `${logPrefix}-${dateStr}.log`);
+}
+function parseDateFromFilename(filename, logPrefix) {
+  const pattern = new RegExp(`^${logPrefix}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
+  const match = filename.match(pattern);
+  if (!match) {
+    return null;
+  }
+  const date = new Date(match[1] + "T00:00:00Z");
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+async function cleanupStaleLogs(logPrefix) {
+  const now = Date.now();
+  const lastCleanup = lastCleanupTime[logPrefix] || 0;
+  if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
+    return;
+  }
+  lastCleanupTime[logPrefix] = now;
+  try {
+    await ensureDirectory(LOGS_DIR);
+    const files = await readdir(LOGS_DIR);
+    const cutoffDate = new Date(now - LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    for (const file of files) {
+      const fileDate = parseDateFromFilename(file, logPrefix);
+      if (fileDate && fileDate < cutoffDate) {
+        const filePath = join2(LOGS_DIR, file);
+        try {
+          await unlink(filePath);
+        } catch (error) {
+          logger.error(`Failed to delete old log file ${file}`, error);
+        }
+      }
+    }
+  } catch (error) {
+    logger.error("Failed to cleanup old logs", error);
+  }
+}
+
+// src/utils/logger.ts
 class Logger {
   minLevel = "info";
-  logFilePath;
+  logPrefix;
   levels = {
     debug: 0,
     info: 1,
     warn: 2,
     error: 3
   };
-  constructor(logFilePath = LOG_FILE) {
-    this.logFilePath = logFilePath;
+  constructor(logPrefix = "plugin") {
+    this.logPrefix = logPrefix;
   }
   setLevel(level) {
     this.minLevel = level;
   }
   async writeToFile(message) {
     try {
-      await mkdir(dirname(this.logFilePath), { recursive: true });
+      const logFilePath = getDatedLogPath(this.logPrefix);
+      await ensureDirectory(dirname(logFilePath));
       const timestamp = new Date().toISOString();
-      await appendFile(this.logFilePath, `[${timestamp}] ${message}
+      await appendFile(logFilePath, `[${timestamp}] ${message}
 `, "utf-8");
+      cleanupStaleLogs(this.logPrefix);
     } catch (error) {
       console.error("Failed to write to log file:", error);
     }
@@ -88,7 +155,7 @@ class Logger {
 var logger = new Logger;
 
 // src/utils/daemon-manager.ts
-var DAEMON_RESTART_LOCK = join2(CLAUDE_ZEST_DIR, "daemon-restart.lock");
+var DAEMON_RESTART_LOCK = join3(CLAUDE_ZEST_DIR, "daemon-restart.lock");
 var __filename2 = fileURLToPath(import.meta.url);
 var __dirname2 = dirname2(__filename2);
 function isProcessRunning(pid) {
@@ -112,11 +179,16 @@ async function acquireFileLock(filePath) {
     timestamp: Date.now()
   };
   try {
+    await ensureDirectory(dirname3(lockFile));
     await writeFile(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
     activeLockFiles.add(lockFile);
     return true;
   } catch (error) {
     if (error.code !== "EEXIST") {
+      const errCode = error.code;
+      if (errCode === "ENOENT" || errCode === "EACCES") {
+        logger.error(`Failed to create lock file ${lockFile}:`, error);
+      }
       throw error;
     }
     try {
@@ -124,12 +196,12 @@ async function acquireFileLock(filePath) {
       const existingLock = JSON.parse(content);
       if (isLockStale(existingLock)) {
         logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
-        await unlink(lockFile).catch(() => {});
+        await unlink2(lockFile).catch(() => {});
         return acquireFileLock(filePath);
       }
     } catch {
       logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
-      await unlink(lockFile).catch(() => {});
+      await unlink2(lockFile).catch(() => {});
       return acquireFileLock(filePath);
     }
     return false;
@@ -138,7 +210,7 @@ async function acquireFileLock(filePath) {
 async function releaseFileLock(filePath) {
   const lockFile = `${filePath}.lock`;
   activeLockFiles.delete(lockFile);
-  await unlink(lockFile).catch(() => {});
+  await unlink2(lockFile).catch(() => {});
 }
 function cleanupLockFiles() {
   for (const lockFile of activeLockFiles) {
@@ -150,7 +222,7 @@ function cleanupLockFiles() {
 }
 async function cleanupStaleLocks() {
   try {
-    const files = await readdir(QUEUE_DIR).catch(() => []);
+    const files = await readdir2(QUEUE_DIR).catch(() => []);
     const lockFiles = files.filter((f) => f.endsWith(".lock"));
     for (const lockFileName of lockFiles) {
       const lockFile = `${QUEUE_DIR}/${lockFileName}`;
@@ -158,11 +230,11 @@ async function cleanupStaleLocks() {
         const content = await readFile(lockFile, "utf8");
         const lockInfo = JSON.parse(content);
         if (!isProcessRunning(lockInfo.pid)) {
-          await unlink(lockFile);
+          await unlink2(lockFile);
           logger.info(`Cleaned up stale lock file: ${lockFileName} (PID ${lockInfo.pid} is dead)`);
         }
       } catch {
-        await unlink(lockFile).catch(() => {});
+        await unlink2(lockFile).catch(() => {});
         logger.info(`Removed corrupted lock file: ${lockFileName}`);
       }
     }
@@ -205,5 +277,3 @@ export {
   setupLockCleanup,
   cleanupStaleLocks
 };
-
-//# debugId=48A5A86A74A9A8D764756E2164756E21

@@ -1,10 +1,5 @@
-// src/utils/daemon-manager.ts
-import { exec, spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { readFile as readFile2, stat as stat2, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
-import { dirname as dirname3, join as join3 } from "node:path";
-import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
+// src/utils/status-cache-manager.ts
+import { readFileSync, writeFileSync } from "node:fs";
 
 // src/config/constants.ts
 import { homedir } from "node:os";
@@ -34,11 +29,10 @@ var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
-var DAEMON_FRESH_PID_THRESHOLD_MS = 2000;
 
-// src/utils/file-lock.ts
-import { readdir as readdir2, readFile, unlink as unlink2, writeFile } from "node:fs/promises";
-import { dirname as dirname2 } from "node:path";
+// src/utils/logger.ts
+import { appendFile } from "node:fs/promises";
+import { dirname } from "node:path";
 
 // src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
@@ -49,10 +43,6 @@ async function ensureDirectory(dirPath) {
     await mkdir(dirPath, { recursive: true, mode: 448 });
   }
 }
-
-// src/utils/logger.ts
-import { appendFile } from "node:fs/promises";
-import { dirname } from "node:path";
 
 // src/utils/log-rotation.ts
 import { readdir, unlink } from "node:fs/promises";
@@ -159,6 +149,25 @@ class Logger {
 var logger = new Logger;
 
 // src/utils/file-lock.ts
+import { readdir as readdir2, readFile, unlink as unlink2, writeFile } from "node:fs/promises";
+import { dirname as dirname3 } from "node:path";
+
+// src/utils/daemon-manager.ts
+import { dirname as dirname2, join as join3 } from "node:path";
+import { fileURLToPath } from "node:url";
+var DAEMON_RESTART_LOCK = join3(CLAUDE_ZEST_DIR, "daemon-restart.lock");
+var __filename2 = fileURLToPath(import.meta.url);
+var __dirname2 = dirname2(__filename2);
+function isProcessRunning(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// src/utils/file-lock.ts
 var activeLockFiles = new Set;
 function isLockStale(lockInfo) {
   return !isProcessRunning(lockInfo.pid);
@@ -170,7 +179,7 @@ async function acquireFileLock(filePath) {
     timestamp: Date.now()
   };
   try {
-    await ensureDirectory(dirname2(lockFile));
+    await ensureDirectory(dirname3(lockFile));
     await writeFile(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
     activeLockFiles.add(lockFile);
     return true;
@@ -203,28 +212,6 @@ async function releaseFileLock(filePath) {
   activeLockFiles.delete(lockFile);
   await unlink2(lockFile).catch(() => {});
 }
-async function cleanupStaleLocks() {
-  try {
-    const files = await readdir2(QUEUE_DIR).catch(() => []);
-    const lockFiles = files.filter((f) => f.endsWith(".lock"));
-    for (const lockFileName of lockFiles) {
-      const lockFile = `${QUEUE_DIR}/${lockFileName}`;
-      try {
-        const content = await readFile(lockFile, "utf8");
-        const lockInfo = JSON.parse(content);
-        if (!isProcessRunning(lockInfo.pid)) {
-          await unlink2(lockFile);
-          logger.info(`Cleaned up stale lock file: ${lockFileName} (PID ${lockInfo.pid} is dead)`);
-        }
-      } catch {
-        await unlink2(lockFile).catch(() => {});
-        logger.info(`Removed corrupted lock file: ${lockFileName}`);
-      }
-    }
-  } catch (error) {
-    logger.debug("Failed to clean up stale locks:", error);
-  }
-}
 async function withFileLock(filePath, fn) {
   let retries = 0;
   while (!await acquireFileLock(filePath)) {
@@ -240,121 +227,122 @@ async function withFileLock(filePath, fn) {
   }
 }
 
-// src/utils/daemon-manager.ts
-var DAEMON_RESTART_LOCK = join3(CLAUDE_ZEST_DIR, "daemon-restart.lock");
-var __filename2 = fileURLToPath(import.meta.url);
-var __dirname2 = dirname3(__filename2);
-function isProcessRunning(pid) {
+// src/utils/status-cache-manager.ts
+var DEFAULT_VERSION_CHECK = {
+  updateAvailable: false,
+  currentVersion: "unknown",
+  latestVersion: "unknown",
+  checkedAt: 0
+};
+var DEFAULT_SYNC_STATUS = {
+  hasError: false,
+  errorType: null,
+  errorMessage: null,
+  lastErrorAt: null,
+  lastSuccessAt: null
+};
+var DEFAULT_STATUS_CACHE = {
+  versionCheck: DEFAULT_VERSION_CHECK,
+  syncStatus: DEFAULT_SYNC_STATUS
+};
+function readStatusCache() {
   try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-async function startDaemon() {
-  try {
-    const daemonScript = join3(__dirname2, "..", "sync-daemon.js");
-    const daemon = spawn(process.execPath, [daemonScript], {
-      detached: true,
-      stdio: "ignore",
-      windowsHide: true
-    });
-    daemon.unref();
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    return true;
-  } catch (error) {
-    logger.error("Failed to start daemon:", error);
-    return false;
-  }
-}
-async function killAllDaemons() {
-  try {
-    const pid = await getDaemonPid();
-    if (pid) {
-      try {
-        process.kill(pid, "SIGTERM");
-      } catch {}
+    const data = readFileSync(STATUS_CACHE_FILE, "utf-8");
+    const parsed = JSON.parse(data);
+    if (parsed.updateAvailable !== undefined && !parsed.versionCheck) {
+      logger.info("Migrating old update-check.json format to new status-cache.json format");
+      const migrated = {
+        versionCheck: {
+          updateAvailable: parsed.updateAvailable ?? false,
+          currentVersion: parsed.currentVersion ?? "unknown",
+          latestVersion: parsed.latestVersion ?? "unknown",
+          checkedAt: parsed.checkedAt ?? 0
+        },
+        syncStatus: DEFAULT_SYNC_STATUS
+      };
+      return migrated;
     }
-    const execAsync = promisify(exec);
-    try {
-      await execAsync(`pkill -f 'sync-daemon.js' 2>/dev/null || true`);
-    } catch {}
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    await cleanupPidFile();
-  } catch (error) {
-    logger.warn("Error during daemon cleanup:", error);
-  }
-}
-async function restartDaemon() {
-  try {
-    return await withFileLock(DAEMON_RESTART_LOCK, async () => {
-      const existingPid = await getDaemonPid();
-      if (existingPid) {
-        try {
-          const pidFileStat = await stat2(DAEMON_PID_FILE);
-          const ageMs = Date.now() - pidFileStat.mtimeMs;
-          if (ageMs < DAEMON_FRESH_PID_THRESHOLD_MS) {
-            return true;
-          }
-        } catch {}
+    return {
+      versionCheck: {
+        ...DEFAULT_VERSION_CHECK,
+        ...parsed.versionCheck
+      },
+      syncStatus: {
+        ...DEFAULT_SYNC_STATUS,
+        ...parsed.syncStatus
       }
-      await killAllDaemons();
-      await cleanupStaleLocks();
-      return await startDaemon();
+    };
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      logger.debug("Status cache file does not exist, using defaults");
+    } else {
+      logger.warn("Failed to read status cache file, using defaults", error);
+    }
+    return DEFAULT_STATUS_CACHE;
+  }
+}
+async function writeVersionCheck(check) {
+  try {
+    await withFileLock(STATUS_CACHE_FILE, async () => {
+      const currentCache = readStatusCache();
+      const updatedCache = {
+        ...currentCache,
+        versionCheck: check
+      };
+      writeFileSync(STATUS_CACHE_FILE, JSON.stringify(updatedCache, null, 2), "utf-8");
+      logger.debug("Wrote version check to status cache", {
+        updateAvailable: check.updateAvailable,
+        currentVersion: check.currentVersion,
+        latestVersion: check.latestVersion
+      });
     });
   } catch (error) {
-    logger.error("Failed to restart daemon:", error);
-    return false;
+    logger.error("Failed to write version check to status cache", error);
   }
 }
-async function cleanupPidFile() {
+async function writeSyncStatus(status) {
   try {
-    await unlink3(DAEMON_PID_FILE);
-  } catch {}
-}
-async function writePidFile(pid) {
-  try {
-    await ensureDirectory(dirname3(DAEMON_PID_FILE));
-    await writeFile2(DAEMON_PID_FILE, pid.toString(), "utf-8");
-    logger.debug(`Wrote PID ${pid} to daemon.pid`);
+    await withFileLock(STATUS_CACHE_FILE, async () => {
+      const currentCache = readStatusCache();
+      const updatedCache = {
+        ...currentCache,
+        syncStatus: status
+      };
+      writeFileSync(STATUS_CACHE_FILE, JSON.stringify(updatedCache, null, 2), "utf-8");
+      logger.debug("Wrote sync status to status cache", {
+        hasError: status.hasError,
+        errorType: status.errorType
+      });
+    });
   } catch (error) {
-    logger.error("Failed to write PID file:", error);
+    logger.error("Failed to write sync status to status cache", error);
   }
 }
-async function getDaemonPid() {
+async function clearSyncError() {
   try {
-    const pidData = await readFile2(DAEMON_PID_FILE, "utf-8");
-    const pid = Number.parseInt(pidData.trim(), 10);
-    if (Number.isNaN(pid)) {
-      return null;
-    }
-    return isProcessRunning(pid) ? pid : null;
-  } catch {
-    return null;
-  }
-}
-function isDaemonRunning() {
-  try {
-    const pidData = readFileSync(DAEMON_PID_FILE, "utf-8");
-    const pidStr = pidData.trim();
-    if (!pidStr) {
-      return false;
-    }
-    const pid = Number.parseInt(pidStr, 10);
-    if (Number.isNaN(pid) || pid <= 0) {
-      return false;
-    }
-    return isProcessRunning(pid);
-  } catch {
-    return false;
+    await withFileLock(STATUS_CACHE_FILE, async () => {
+      const currentCache = readStatusCache();
+      const clearedStatus = {
+        hasError: false,
+        errorType: null,
+        errorMessage: null,
+        lastErrorAt: currentCache.syncStatus.lastErrorAt,
+        lastSuccessAt: Date.now()
+      };
+      const updatedCache = {
+        ...currentCache,
+        syncStatus: clearedStatus
+      };
+      writeFileSync(STATUS_CACHE_FILE, JSON.stringify(updatedCache, null, 2), "utf-8");
+      logger.debug("Cleared sync error in status cache");
+    });
+  } catch (error) {
+    logger.error("Failed to clear sync error in status cache", error);
   }
 }
 export {
-  writePidFile,
-  startDaemon,
-  restartDaemon,
-  isProcessRunning,
-  isDaemonRunning,
-  getDaemonPid
+  writeVersionCheck,
+  writeSyncStatus,
+  readStatusCache,
+  clearSyncError
 };

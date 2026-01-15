@@ -8175,7 +8175,7 @@ var require_main3 = __commonJS((exports) => {
 });
 
 // src/auth/session-manager.ts
-import { mkdir as mkdir2, readFile, unlink, writeFile } from "node:fs/promises";
+import { readFile, unlink as unlink2, writeFile } from "node:fs/promises";
 import { dirname as dirname2 } from "node:path";
 
 // ../../node_modules/@supabase/supabase-js/dist/index.mjs
@@ -10837,16 +10837,19 @@ if (shouldShowDeprecationWarning())
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${""}`);
+var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
+var CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
+var CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
+var CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
 var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
 var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
 var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
 var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
-var LOG_FILE = join(LOGS_DIR, "plugin.log");
-var SYNC_LOG_FILE = join(LOGS_DIR, "sync.log");
 var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
+var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
+var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
 var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
@@ -10856,39 +10859,102 @@ var LOCK_RETRY_MS = 50;
 var LOCK_MAX_RETRIES = 300;
 var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
 var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
+var LOG_RETENTION_DAYS = 7;
 var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var MIN_MESSAGES_PER_SESSION = 3;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var SUPABASE_URL = "https://fnnlebrtmlxxjwdvngck.supabase.co";
 var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubmxlYnJ0bWx4eGp3ZHZuZ2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MzA3MjYsImV4cCI6MjA3MjMwNjcyNn0.0IE3HCY_DiyyALdewbRn1vkedwzDW27NQMQ28V6j4Dk";
-var CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
 var ZEST_SESSION_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341";
+var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
+
+// src/utils/fs-utils.ts
+import { mkdir, stat } from "node:fs/promises";
+async function ensureDirectory(dirPath) {
+  try {
+    await stat(dirPath);
+  } catch {
+    await mkdir(dirPath, { recursive: true, mode: 448 });
+  }
+}
 
 // src/utils/logger.ts
-import { appendFile, mkdir } from "node:fs/promises";
+import { appendFile } from "node:fs/promises";
 import { dirname } from "node:path";
+
+// src/utils/log-rotation.ts
+import { readdir, unlink } from "node:fs/promises";
+import { join as join2 } from "node:path";
+var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
+var lastCleanupTime = {};
+function getDateString() {
+  return new Date().toISOString().split("T")[0];
+}
+function getDatedLogPath(logPrefix) {
+  const dateStr = getDateString();
+  return join2(LOGS_DIR, `${logPrefix}-${dateStr}.log`);
+}
+function parseDateFromFilename(filename, logPrefix) {
+  const pattern = new RegExp(`^${logPrefix}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
+  const match = filename.match(pattern);
+  if (!match) {
+    return null;
+  }
+  const date = new Date(match[1] + "T00:00:00Z");
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+async function cleanupStaleLogs(logPrefix) {
+  const now = Date.now();
+  const lastCleanup = lastCleanupTime[logPrefix] || 0;
+  if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
+    return;
+  }
+  lastCleanupTime[logPrefix] = now;
+  try {
+    await ensureDirectory(LOGS_DIR);
+    const files = await readdir(LOGS_DIR);
+    const cutoffDate = new Date(now - LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    for (const file of files) {
+      const fileDate = parseDateFromFilename(file, logPrefix);
+      if (fileDate && fileDate < cutoffDate) {
+        const filePath = join2(LOGS_DIR, file);
+        try {
+          await unlink(filePath);
+        } catch (error) {
+          logger.error(`Failed to delete old log file ${file}`, error);
+        }
+      }
+    }
+  } catch (error) {
+    logger.error("Failed to cleanup old logs", error);
+  }
+}
+
+// src/utils/logger.ts
 class Logger {
   minLevel = "info";
-  logFilePath;
+  logPrefix;
   levels = {
     debug: 0,
     info: 1,
     warn: 2,
     error: 3
   };
-  constructor(logFilePath = LOG_FILE) {
-    this.logFilePath = logFilePath;
+  constructor(logPrefix = "plugin") {
+    this.logPrefix = logPrefix;
   }
   setLevel(level) {
     this.minLevel = level;
   }
   async writeToFile(message) {
     try {
-      await mkdir(dirname(this.logFilePath), { recursive: true });
+      const logFilePath = getDatedLogPath(this.logPrefix);
+      await ensureDirectory(dirname(logFilePath));
       const timestamp = new Date().toISOString();
-      await appendFile(this.logFilePath, `[${timestamp}] ${message}
+      await appendFile(logFilePath, `[${timestamp}] ${message}
 `, "utf-8");
+      cleanupStaleLogs(this.logPrefix);
     } catch (error) {
       console.error("Failed to write to log file:", error);
     }
@@ -10958,7 +11024,7 @@ async function loadSession() {
 }
 async function saveSession(session) {
   try {
-    await mkdir2(dirname2(SESSION_FILE), { recursive: true, mode: 448 });
+    await ensureDirectory(dirname2(SESSION_FILE));
     await writeFile(SESSION_FILE, JSON.stringify(session, null, 2), {
       encoding: "utf-8",
       mode: 384
@@ -10971,7 +11037,7 @@ async function saveSession(session) {
 }
 async function clearSession() {
   try {
-    await unlink(SESSION_FILE);
+    await unlink2(SESSION_FILE);
     logger.info("Session cleared successfully");
   } catch (error) {
     if (error.code === "ENOENT") {
@@ -11094,16 +11160,17 @@ async function getValidSession() {
 }
 
 // src/utils/queue-manager.ts
-import { appendFile as appendFile2, mkdir as mkdir3, readFile as readFile3, stat, unlink as unlink3, writeFile as writeFile3 } from "node:fs/promises";
-import { dirname as dirname4 } from "node:path";
+import { appendFile as appendFile2, readFile as readFile3, unlink as unlink4, writeFile as writeFile3 } from "node:fs/promises";
+import { dirname as dirname5 } from "node:path";
 
 // src/utils/file-lock.ts
-import { readdir, readFile as readFile2, unlink as unlink2, writeFile as writeFile2 } from "node:fs/promises";
+import { readdir as readdir2, readFile as readFile2, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
+import { dirname as dirname4 } from "node:path";
 
 // src/utils/daemon-manager.ts
-import { dirname as dirname3, join as join2 } from "node:path";
+import { dirname as dirname3, join as join3 } from "node:path";
 import { fileURLToPath } from "node:url";
-var DAEMON_RESTART_LOCK = join2(CLAUDE_ZEST_DIR, "daemon-restart.lock");
+var DAEMON_RESTART_LOCK = join3(CLAUDE_ZEST_DIR, "daemon-restart.lock");
 var __filename2 = fileURLToPath(import.meta.url);
 var __dirname2 = dirname3(__filename2);
 function isProcessRunning(pid) {
@@ -11127,11 +11194,16 @@ async function acquireFileLock(filePath) {
     timestamp: Date.now()
   };
   try {
+    await ensureDirectory(dirname4(lockFile));
     await writeFile2(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
     activeLockFiles.add(lockFile);
     return true;
   } catch (error) {
     if (error.code !== "EEXIST") {
+      const errCode = error.code;
+      if (errCode === "ENOENT" || errCode === "EACCES") {
+        logger.error(`Failed to create lock file ${lockFile}:`, error);
+      }
       throw error;
     }
     try {
@@ -11139,12 +11211,12 @@ async function acquireFileLock(filePath) {
       const existingLock = JSON.parse(content);
       if (isLockStale(existingLock)) {
         logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
-        await unlink2(lockFile).catch(() => {});
+        await unlink3(lockFile).catch(() => {});
         return acquireFileLock(filePath);
       }
     } catch {
       logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
-      await unlink2(lockFile).catch(() => {});
+      await unlink3(lockFile).catch(() => {});
       return acquireFileLock(filePath);
     }
     return false;
@@ -11153,7 +11225,7 @@ async function acquireFileLock(filePath) {
 async function releaseFileLock(filePath) {
   const lockFile = `${filePath}.lock`;
   activeLockFiles.delete(lockFile);
-  await unlink2(lockFile).catch(() => {});
+  await unlink3(lockFile).catch(() => {});
 }
 async function withFileLock(filePath, fn) {
   let retries = 0;
@@ -11171,14 +11243,6 @@ async function withFileLock(filePath, fn) {
 }
 
 // src/utils/queue-manager.ts
-async function ensureDirectory(dirPath) {
-  try {
-    await stat(dirPath);
-  } catch {
-    await mkdir3(dirPath, { recursive: true, mode: 448 });
-    logger.debug(`Created directory: ${dirPath}`);
-  }
-}
 async function readJsonl(filePath) {
   try {
     const content = await readFile3(filePath, "utf8");
@@ -11226,7 +11290,7 @@ async function atomicUpdateQueue(queueFile, transform) {
     await withFileLock(queueFile, async () => {
       const currentItems = await readJsonl(queueFile);
       const newItems = transform(currentItems);
-      await ensureDirectory(dirname4(queueFile));
+      await ensureDirectory(dirname5(queueFile));
       const content = newItems.map((item) => JSON.stringify(item)).join(`
 `) + (newItems.length > 0 ? `
 ` : "");
@@ -11240,6 +11304,7 @@ async function atomicUpdateQueue(queueFile, transform) {
 }
 async function getQueueStats() {
   try {
+    await ensureDirectory(QUEUE_DIR);
     const [events, sessions, messages] = await Promise.all([
       countLines(EVENTS_QUEUE_FILE),
       countLines(SESSIONS_QUEUE_FILE),
@@ -11249,6 +11314,102 @@ async function getQueueStats() {
   } catch (error) {
     logger.error("Failed to get queue stats:", error);
     return { events: 0, sessions: 0, messages: 0 };
+  }
+}
+
+// src/utils/status-cache-manager.ts
+import { readFileSync, writeFileSync } from "node:fs";
+var DEFAULT_VERSION_CHECK = {
+  updateAvailable: false,
+  currentVersion: "unknown",
+  latestVersion: "unknown",
+  checkedAt: 0
+};
+var DEFAULT_SYNC_STATUS = {
+  hasError: false,
+  errorType: null,
+  errorMessage: null,
+  lastErrorAt: null,
+  lastSuccessAt: null
+};
+var DEFAULT_STATUS_CACHE = {
+  versionCheck: DEFAULT_VERSION_CHECK,
+  syncStatus: DEFAULT_SYNC_STATUS
+};
+function readStatusCache() {
+  try {
+    const data = readFileSync(STATUS_CACHE_FILE, "utf-8");
+    const parsed = JSON.parse(data);
+    if (parsed.updateAvailable !== undefined && !parsed.versionCheck) {
+      logger.info("Migrating old update-check.json format to new status-cache.json format");
+      const migrated = {
+        versionCheck: {
+          updateAvailable: parsed.updateAvailable ?? false,
+          currentVersion: parsed.currentVersion ?? "unknown",
+          latestVersion: parsed.latestVersion ?? "unknown",
+          checkedAt: parsed.checkedAt ?? 0
+        },
+        syncStatus: DEFAULT_SYNC_STATUS
+      };
+      return migrated;
+    }
+    return {
+      versionCheck: {
+        ...DEFAULT_VERSION_CHECK,
+        ...parsed.versionCheck
+      },
+      syncStatus: {
+        ...DEFAULT_SYNC_STATUS,
+        ...parsed.syncStatus
+      }
+    };
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      logger.debug("Status cache file does not exist, using defaults");
+    } else {
+      logger.warn("Failed to read status cache file, using defaults", error);
+    }
+    return DEFAULT_STATUS_CACHE;
+  }
+}
+async function writeSyncStatus(status) {
+  try {
+    await withFileLock(STATUS_CACHE_FILE, async () => {
+      const currentCache = readStatusCache();
+      const updatedCache = {
+        ...currentCache,
+        syncStatus: status
+      };
+      writeFileSync(STATUS_CACHE_FILE, JSON.stringify(updatedCache, null, 2), "utf-8");
+      logger.debug("Wrote sync status to status cache", {
+        hasError: status.hasError,
+        errorType: status.errorType
+      });
+    });
+  } catch (error) {
+    logger.error("Failed to write sync status to status cache", error);
+  }
+}
+async function clearSyncError() {
+  try {
+    await withFileLock(STATUS_CACHE_FILE, async () => {
+      const currentCache = readStatusCache();
+      const clearedStatus = {
+        hasError: false,
+        errorType: null,
+        errorMessage: null,
+        lastErrorAt: currentCache.syncStatus.lastErrorAt,
+        lastSuccessAt: Date.now()
+      };
+      const updatedCache = {
+        ...currentCache,
+        syncStatus: clearedStatus
+      };
+      writeFileSync(STATUS_CACHE_FILE, JSON.stringify(updatedCache, null, 2), "utf-8");
+      logger.debug("Cleared sync error in status cache");
+    });
+  } catch (error) {
+    logger.error("Failed to clear sync error in status cache", error);
   }
 }
 
@@ -11804,7 +11965,8 @@ async function syncAllData() {
       return {
         success: false,
         uploaded: { events: 0, sessions: 0, messages: 0 },
-        error: "Not authenticated"
+        error: "Not authenticated",
+        errorType: "not_authenticated"
       };
     }
     const eventsResult = await uploadEventsWithRetry(supabase);
@@ -11812,7 +11974,8 @@ async function syncAllData() {
       return {
         success: false,
         uploaded: { events: eventsResult.uploaded, sessions: 0, messages: 0 },
-        error: "Failed to upload events"
+        error: "Failed to upload events",
+        errorType: "upload_failed"
       };
     }
     const chatResult = await uploadChatDataWithRetry(supabase);
@@ -11824,7 +11987,8 @@ async function syncAllData() {
           sessions: chatResult.uploaded.sessions,
           messages: chatResult.uploaded.messages
         },
-        error: "Failed to upload chat data"
+        error: "Failed to upload chat data",
+        errorType: "upload_failed"
       };
     }
     logger.info("✓ Sync completed successfully");
@@ -11838,31 +12002,63 @@ async function syncAllData() {
     };
   } catch (error) {
     logger.error("Sync failed with exception", error);
+    let errorType = "upload_failed";
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorMessageLower = errorMessage.toLowerCase();
+    const isNetworkError = errorMessageLower.includes("network") || errorMessageLower.includes("timeout") || errorMessageLower.includes("fetch") || ["ENOTFOUND", "ECONNREFUSED", "ECONNRESET", "ETIMEDOUT", "ENETUNREACH"].includes(error?.code || "") || error instanceof TypeError && errorMessageLower.includes("fetch");
+    if (isNetworkError) {
+      errorType = "network_error";
+    }
     return {
       success: false,
       uploaded: { events: 0, sessions: 0, messages: 0 },
-      error: error instanceof Error ? error.message : "Unknown error"
+      error: errorMessage,
+      errorType
     };
   }
 }
 async function syncWithMessage() {
   const result = await syncAllData();
-  if (!result.success) {
-    return `Sync failed: ${result.error || "Unknown error"}`;
+  if (result.success) {
+    await clearSyncError().catch((error) => {
+      logger.error("Failed to clear sync error in status cache", error);
+    });
+    const { events, sessions, messages } = result.uploaded;
+    const total = events + sessions + messages;
+    if (total === 0) {
+      return { success: true, message: "No data to sync" };
+    }
+    const parts = [];
+    if (events > 0)
+      parts.push(`${events} events`);
+    if (sessions > 0)
+      parts.push(`${sessions} sessions`);
+    if (messages > 0)
+      parts.push(`${messages} messages`);
+    return { success: true, message: `Synced ${parts.join(", ")}` };
   }
-  const { events, sessions, messages } = result.uploaded;
-  const total = events + sessions + messages;
-  if (total === 0) {
-    return "No data to sync";
+  const errorType = result.errorType || "upload_failed";
+  let errorMessage;
+  if (errorType === "not_authenticated") {
+    errorMessage = "Auth required - run /zest:login.";
+  } else if (errorType === "network_error") {
+    errorMessage = "Network error.";
+  } else {
+    errorMessage = "Upload failed.";
   }
-  const parts = [];
-  if (events > 0)
-    parts.push(`${events} events`);
-  if (sessions > 0)
-    parts.push(`${sessions} sessions`);
-  if (messages > 0)
-    parts.push(`${messages} messages`);
-  return `Synced ${parts.join(", ")}`;
+  await writeSyncStatus({
+    hasError: true,
+    errorType,
+    errorMessage,
+    lastErrorAt: Date.now(),
+    lastSuccessAt: null
+  }).catch((error) => {
+    logger.error("Failed to write sync error to status cache", error);
+  });
+  return {
+    success: false,
+    message: `Sync failed: ${result.error || "Unknown error"}`
+  };
 }
 
 // src/commands/sync-cli.ts
@@ -11880,14 +12076,26 @@ async function main() {
       return;
     }
     console.log("\uD83D\uDD04 Syncing data...");
-    const syncMessage = await syncWithMessage();
-    console.log(`✅ ${syncMessage}`);
+    const result = await syncWithMessage();
+    if (result.success) {
+      console.log(`✅ ${result.message}`);
+    } else {
+      console.error(`❌ ${result.message}`);
+      process.exit(1);
+    }
   } catch (error) {
-    logger.error("Sync failed", error);
+    logger.error("Sync failed with exception", error);
+    await writeSyncStatus({
+      hasError: true,
+      errorType: "upload_failed",
+      errorMessage: "Upload failed.",
+      lastErrorAt: Date.now(),
+      lastSuccessAt: null
+    }).catch((cacheError) => {
+      logger.error("Failed to write sync error to status cache", cacheError);
+    });
     console.error("❌ Sync failed: " + (error instanceof Error ? error.message : "Unknown error"));
     process.exit(1);
   }
 }
 main();
-
-//# debugId=DB765DCE5283F6CB64756E2164756E21

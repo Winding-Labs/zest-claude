@@ -4,64 +4,130 @@ import { readFile as readFile2 } from "node:fs/promises";
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_ZEST_DIR = join(homedir(), `.claude-zest${""}`);
+var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
+var CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
+var CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
+var CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
 var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
 var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
 var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
 var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
-var LOG_FILE = join(LOGS_DIR, "plugin.log");
-var SYNC_LOG_FILE = join(LOGS_DIR, "sync.log");
 var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
+var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
+var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
 var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
 var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
 var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
+var LOG_RETENTION_DAYS = 7;
 var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var MAX_CONTENT_PREVIEW_LENGTH = 1000;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-var CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
 var EXCLUDED_COMMAND_PATTERNS = [
   /^\/(add-dir|agents|bashes|bug|clear|compact|config|context|cost|doctor|exit|export|help|hooks|ide|init|install-github-app|login|logout|mcp|memory|model|output-style|permissions|plugin|pr-comments|privacy-settings|release-notes|resume|review|rewind|sandbox|security-review|stats|status|statusline|terminal-setup|todos|usage|vim)\b/i,
   /^\/zest[^:\s]*:/i,
   /<command-name>\/zest[^<]*<\/command-name>/i,
   /node\s+.*\/dist\/commands\/.*-cli\.js/i
 ];
+var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
 
 // src/extractors/extraction-utils.ts
 import { createHash } from "node:crypto";
 
 // src/utils/deletion-cache.ts
-import { mkdir as mkdir2, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
-import { join as join2 } from "node:path";
+import { readdir as readdir2, readFile, rm, stat as stat2, writeFile } from "node:fs/promises";
+import { join as join3 } from "node:path";
+
+// src/utils/fs-utils.ts
+import { mkdir, stat } from "node:fs/promises";
+async function ensureDirectory(dirPath) {
+  try {
+    await stat(dirPath);
+  } catch {
+    await mkdir(dirPath, { recursive: true, mode: 448 });
+  }
+}
 
 // src/utils/logger.ts
-import { appendFile, mkdir } from "node:fs/promises";
+import { appendFile } from "node:fs/promises";
 import { dirname } from "node:path";
+
+// src/utils/log-rotation.ts
+import { readdir, unlink } from "node:fs/promises";
+import { join as join2 } from "node:path";
+var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
+var lastCleanupTime = {};
+function getDateString() {
+  return new Date().toISOString().split("T")[0];
+}
+function getDatedLogPath(logPrefix) {
+  const dateStr = getDateString();
+  return join2(LOGS_DIR, `${logPrefix}-${dateStr}.log`);
+}
+function parseDateFromFilename(filename, logPrefix) {
+  const pattern = new RegExp(`^${logPrefix}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
+  const match = filename.match(pattern);
+  if (!match) {
+    return null;
+  }
+  const date = new Date(match[1] + "T00:00:00Z");
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+async function cleanupStaleLogs(logPrefix) {
+  const now = Date.now();
+  const lastCleanup = lastCleanupTime[logPrefix] || 0;
+  if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
+    return;
+  }
+  lastCleanupTime[logPrefix] = now;
+  try {
+    await ensureDirectory(LOGS_DIR);
+    const files = await readdir(LOGS_DIR);
+    const cutoffDate = new Date(now - LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    for (const file of files) {
+      const fileDate = parseDateFromFilename(file, logPrefix);
+      if (fileDate && fileDate < cutoffDate) {
+        const filePath = join2(LOGS_DIR, file);
+        try {
+          await unlink(filePath);
+        } catch (error) {
+          logger.error(`Failed to delete old log file ${file}`, error);
+        }
+      }
+    }
+  } catch (error) {
+    logger.error("Failed to cleanup old logs", error);
+  }
+}
+
+// src/utils/logger.ts
 class Logger {
   minLevel = "info";
-  logFilePath;
+  logPrefix;
   levels = {
     debug: 0,
     info: 1,
     warn: 2,
     error: 3
   };
-  constructor(logFilePath = LOG_FILE) {
-    this.logFilePath = logFilePath;
+  constructor(logPrefix = "plugin") {
+    this.logPrefix = logPrefix;
   }
   setLevel(level) {
     this.minLevel = level;
   }
   async writeToFile(message) {
     try {
-      await mkdir(dirname(this.logFilePath), { recursive: true });
+      const logFilePath = getDatedLogPath(this.logPrefix);
+      await ensureDirectory(dirname(logFilePath));
       const timestamp = new Date().toISOString();
-      await appendFile(this.logFilePath, `[${timestamp}] ${message}
+      await appendFile(logFilePath, `[${timestamp}] ${message}
 `, "utf-8");
+      cleanupStaleLogs(this.logPrefix);
     } catch (error) {
       console.error("Failed to write to log file:", error);
     }
@@ -102,7 +168,7 @@ function getCacheKey(filePath, sessionId) {
 async function getCachedFileContent(filePath, sessionId) {
   try {
     const cacheKey = getCacheKey(filePath, sessionId);
-    const cachePath = join2(DELETION_CACHE_DIR, cacheKey);
+    const cachePath = join3(DELETION_CACHE_DIR, cacheKey);
     try {
       const content = await readFile(cachePath, "utf-8");
       const cached = JSON.parse(content);
@@ -1309,9 +1375,17 @@ function shouldExcludeCommand(command) {
   }
   return false;
 }
+function isExplicitZestCommand(command) {
+  const trimmedCommand = command.trim();
+  return /^\/zest[^:\s]*:/i.test(trimmedCommand);
+}
+function isDigitContinuation(message) {
+  const trimmed = message.trim();
+  return /^\d{1,2}$/.test(trimmed);
+}
 function restoreFilteringState(lines, lastReadLine) {
   if (lastReadLine === 0) {
-    return false;
+    return { filteringAssistantResponses: false, lastWasZestCommand: false };
   }
   const lookbackLines = lines.slice(Math.max(0, lastReadLine - 10), lastReadLine);
   for (let i = lookbackLines.length - 1;i >= 0; i--) {
@@ -1319,25 +1393,48 @@ function restoreFilteringState(lines, lastReadLine) {
       const entry = JSON.parse(lookbackLines[i]);
       if (entry.message?.role === "user" && entry.message.content) {
         const textContent = extractTextContent(entry.message.content);
-        if (textContent && shouldExcludeCommand(textContent)) {
-          logger.debug(`Restored filtering state: last user message was filtered command: ${textContent.substring(0, 50)}...`);
-          return true;
+        if (textContent) {
+          const isFiltered = shouldExcludeCommand(textContent);
+          const isZestCmd = isExplicitZestCommand(textContent);
+          if (isFiltered) {
+            logger.debug(`Restored filtering state: last user message was filtered command: ${textContent.substring(0, 50)}...`);
+            return { filteringAssistantResponses: true, lastWasZestCommand: isZestCmd };
+          }
         }
         break;
       }
     } catch {}
   }
-  return false;
+  return { filteringAssistantResponses: false, lastWasZestCommand: false };
 }
 function applyMessageFilter(role, textContent, currentState) {
   if (role === "user") {
-    if (shouldExcludeCommand(textContent)) {
-      return { shouldFilter: true, newState: true };
+    if (currentState.lastWasZestCommand && isDigitContinuation(textContent)) {
+      return {
+        shouldFilter: true,
+        newState: { filteringAssistantResponses: true, lastWasZestCommand: false }
+      };
     }
-    return { shouldFilter: false, newState: false };
+    const isZestCmd = isExplicitZestCommand(textContent);
+    if (isZestCmd) {
+      return {
+        shouldFilter: true,
+        newState: { filteringAssistantResponses: true, lastWasZestCommand: true }
+      };
+    }
+    if (shouldExcludeCommand(textContent)) {
+      return {
+        shouldFilter: true,
+        newState: { filteringAssistantResponses: true, lastWasZestCommand: false }
+      };
+    }
+    return {
+      shouldFilter: false,
+      newState: { filteringAssistantResponses: false, lastWasZestCommand: false }
+    };
   }
   if (role === "assistant") {
-    if (currentState) {
+    if (currentState.filteringAssistantResponses) {
       return { shouldFilter: true, newState: currentState };
     }
   }
@@ -1361,7 +1458,7 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0)
     const newLines = lines.slice(lastReadLine);
     logger.info(`Processing ${newLines.length} new lines for session ${sessionId} (lines ${lastReadLine + 1}-${totalLines})`);
     let tempMessageCounter = 0;
-    let filteringAssistantResponses = restoreFilteringState(lines, lastReadLine);
+    let filteringState = restoreFilteringState(lines, lastReadLine);
     for (let i = 0;i < newLines.length; i++) {
       const line = newLines[i];
       const lineNumber = lastReadLine + i;
@@ -1374,8 +1471,8 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0)
         if ((role === "user" || role === "assistant") && content2) {
           const textContent = extractTextContent(content2);
           if (textContent) {
-            const filterResult = applyMessageFilter(role, textContent, filteringAssistantResponses);
-            filteringAssistantResponses = filterResult.newState;
+            const filterResult = applyMessageFilter(role, textContent, filteringState);
+            filteringState = filterResult.newState;
             if (filterResult.shouldFilter) {
               continue;
             }
@@ -1434,5 +1531,3 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0)
 export {
   extractNewMessagesFromFile
 };
-
-//# debugId=80A8ADB57EE2A5AD64756E2164756E21
