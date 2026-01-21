@@ -30,9 +30,13 @@ var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
 
-// src/utils/logger.ts
-import { appendFile } from "node:fs/promises";
-import { dirname } from "node:path";
+// src/utils/file-lock.ts
+import { readdir as readdir2, readFile, unlink as unlink2, writeFile } from "node:fs/promises";
+import { dirname as dirname3 } from "node:path";
+
+// src/utils/daemon-manager.ts
+import { dirname as dirname2, join as join3 } from "node:path";
+import { fileURLToPath } from "node:url";
 
 // src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
@@ -43,6 +47,10 @@ async function ensureDirectory(dirPath) {
     await mkdir(dirPath, { recursive: true, mode: 448 });
   }
 }
+
+// src/utils/logger.ts
+import { appendFile } from "node:fs/promises";
+import { dirname } from "node:path";
 
 // src/utils/log-rotation.ts
 import { readdir, unlink } from "node:fs/promises";
@@ -148,13 +156,7 @@ class Logger {
 }
 var logger = new Logger;
 
-// src/utils/file-lock.ts
-import { readdir as readdir2, readFile, unlink as unlink2, writeFile } from "node:fs/promises";
-import { dirname as dirname3 } from "node:path";
-
 // src/utils/daemon-manager.ts
-import { dirname as dirname2, join as join3 } from "node:path";
-import { fileURLToPath } from "node:url";
 var DAEMON_RESTART_LOCK = join3(CLAUDE_ZEST_DIR, "daemon-restart.lock");
 var __filename2 = fileURLToPath(import.meta.url);
 var __dirname2 = dirname2(__filename2);

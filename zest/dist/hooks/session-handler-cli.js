@@ -13370,8 +13370,8 @@ async function checkForUpdates() {
 
 // src/utils/status-cache-manager.ts
 init_constants();
-init_logger();
 import { readFileSync as readFileSync2, writeFileSync } from "node:fs";
+init_logger();
 var DEFAULT_VERSION_CHECK = {
   updateAvailable: false,
   currentVersion: "unknown",

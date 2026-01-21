@@ -11668,7 +11668,7 @@ async function uploadMessagesToSupabase(supabase, messages) {
   if (messages.length === 0) {
     return true;
   }
-  const { error } = await supabase.from("chat_messages").upsert(messages, { onConflict: "session_id,message_index" });
+  const { error } = await supabase.from("chat_messages").upsert(messages, { onConflict: "id", ignoreDuplicates: true });
   if (error) {
     logger.error("Failed to upload chat messages", error);
     return false;

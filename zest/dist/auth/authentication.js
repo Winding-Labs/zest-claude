@@ -11717,32 +11717,26 @@ async function fetchUserWorkspaces() {
       throw new Error("Failed to create Supabase client");
     }
     logger.debug("Fetching workspaces for user", { userId: session.userId });
-    const { data, error } = await supabase.from("workspace_memberships").select(`
-        workspace:workspaces (
-          id,
-          name,
-          created_at
+    const { data, error } = await supabase.from("workspaces").select(`
+        id,
+        name,
+        created_at,
+        teams!inner (
+          team_memberships!inner (
+            user_id
+          )
         )
-      `).eq("user_id", session.userId);
+      `).eq("teams.team_memberships.user_id", session.userId);
     if (error) {
       logger.error("Failed to fetch workspaces", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       throw new Error(`Failed to fetch workspaces: ${errorMessage}`);
     }
     if (!data || data.length === 0) {
-      logger.info("No workspaces found for user");
+      logger.info("No workspaces with team assignment found for user");
       return [];
     }
-    const workspaces = [];
-    for (const item of data) {
-      if (item.workspace && !Array.isArray(item.workspace)) {
-        workspaces.push({
-          id: item.workspace.id,
-          name: item.workspace.name,
-          created_at: item.workspace.created_at
-        });
-      }
-    }
+    const workspaces = data.map(({ teams, ...workspace }) => workspace);
     logger.info("Fetched workspaces", { count: workspaces.length });
     return workspaces;
   } catch (error) {

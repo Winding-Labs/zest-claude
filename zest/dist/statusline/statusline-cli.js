@@ -251,7 +251,7 @@ function main() {
     if (hasSyncError && cache.syncStatus.errorMessage) {
       messages.push(`\x1B[1;31m\uD83D\uDD34 Chat history not saving: ${cache.syncStatus.errorMessage}\x1B[0m`);
     } else if (showDaemonError) {
-      messages.push(`\x1B[1;31m\uD83D\uDD34 Chat history not saving: Background process not running.\x1B[0m`);
+      messages.push("\x1B[1;31m\uD83D\uDD34 Chat history not saving: Background process not running.\x1B[0m");
     }
     if (hasUpdateAvailable) {
       messages.push(`\x1B[1;33m\uD83C\uDF4B v${cache.versionCheck.currentVersion} → v${cache.versionCheck.latestVersion} update available\x1B[0m`);
