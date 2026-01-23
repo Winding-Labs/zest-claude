@@ -12643,21 +12643,49 @@ async function saveSettings(settings) {
   await writeFile(SETTINGS_FILE, JSON.stringify(result.data, null, 2), "utf-8");
 }
 
-// src/commands/enable-cli.ts
+// src/utils/folder-exclusion.ts
+import { normalize, resolve, sep } from "node:path";
+function isCaseInsensitiveFilesystem() {
+  return process.platform === "win32" || process.platform === "darwin";
+}
+function normalizeForComparison(path) {
+  const normalized = normalize(resolve(path));
+  return isCaseInsensitiveFilesystem() ? normalized.toLowerCase() : normalized;
+}
+function removeExcludedFolder(folderPath, settings) {
+  const comparePath = normalizeForComparison(folderPath);
+  const matchIndex = settings.excludedFolders.findIndex((f) => normalizeForComparison(f) === comparePath);
+  if (matchIndex === -1) {
+    return { settings, wasExcluded: false };
+  }
+  return {
+    settings: {
+      ...settings,
+      excludedFolders: settings.excludedFolders.filter((_, i) => i !== matchIndex)
+    },
+    wasExcluded: true
+  };
+}
+
+// src/commands/unignore-cli.ts
 async function main() {
   try {
+    const currentFolder = process.cwd();
     const settings = await loadSettings();
-    if (settings.enableRemotePersistence) {
-      console.log("✓ Remote persistence is already enabled");
+    const { settings: updatedSettings, wasExcluded } = removeExcludedFolder(currentFolder, settings);
+    if (!wasExcluded) {
+      console.log("✓ This folder is not in the ignore list");
+      console.log(`   ${currentFolder}`);
       return;
     }
-    settings.enableRemotePersistence = true;
-    await saveSettings(settings);
-    console.log("✅ Remote persistence enabled");
-    console.log("\uD83D\uDCE4 Data will sync to Zest every 60 seconds");
+    await saveSettings(updatedSettings);
+    console.log("✅ Folder removed from ignore list");
+    console.log(`   ${currentFolder}`);
+    console.log("");
+    console.log("\uD83D\uDCCA Zest will now track activity in this folder");
   } catch (error46) {
-    logger.error("Failed to enable remote persistence", error46);
-    console.error("❌ Failed to enable: " + (error46 instanceof Error ? error46.message : "Unknown error"));
+    logger.error("Failed to unignore folder", error46);
+    console.error("❌ Failed to unignore folder: " + (error46 instanceof Error ? error46.message : "Unknown error"));
     process.exit(1);
   }
 }

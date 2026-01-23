@@ -29158,8 +29158,8 @@ function createServerAnalytics(posthogApiKey) {
         properties
       });
     }, () => posthog2.shutdown()),
-    captureException: (error46, distinctId, additionalProperties) => {
-      posthog2.captureException(error46, distinctId, additionalProperties);
+    captureException: (error46, distinctId, context) => {
+      posthog2.captureException(error46, distinctId, context);
     }
   };
 }
@@ -31827,6 +31827,19 @@ if (shouldShowDeprecationWarning())
 var AUTH_TOKEN_REFRESH_FAILED = "auth_token_refresh_failed";
 var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
 var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
+function getErrorCategory(errorType) {
+  if (errorType.startsWith("auth_"))
+    return "auth";
+  if (errorType.startsWith("sync_"))
+    return "sync";
+  if (errorType.startsWith("queue_") || errorType.startsWith("file_"))
+    return "filesystem";
+  if (errorType.startsWith("daemon_"))
+    return "daemon";
+  if (errorType.startsWith("api_"))
+    return "api";
+  return "api";
+}
 
 // src/analytics/properties.ts
 import { basename } from "node:path";
@@ -32027,7 +32040,7 @@ async function loadSession() {
     }
     logger.error("Failed to load session", error46);
     if (error46 instanceof Error) {
-      captureException(error46, AUTH_SESSION_LOAD_FAILED, {
+      captureException(error46, AUTH_SESSION_LOAD_FAILED, "session-manager", {
         ...buildFileSystemProperties({
           filePath: SESSION_FILE,
           operation: "read",
@@ -32049,7 +32062,7 @@ async function saveSession(session) {
   } catch (error46) {
     logger.error("Failed to save session", error46);
     if (error46 instanceof Error) {
-      captureException(error46, AUTH_SESSION_SAVE_FAILED, {
+      captureException(error46, AUTH_SESSION_SAVE_FAILED, "session-manager", {
         ...buildFileSystemProperties({
           filePath: SESSION_FILE,
           operation: "write",
@@ -32163,12 +32176,10 @@ async function refreshSession(session) {
         logger.debug(`Error stack: ${error46.stack}`);
       }
       const timeUntilExpiry = session.expiresAt - Date.now();
-      captureException(error46, AUTH_TOKEN_REFRESH_FAILED, {
-        ...buildAuthProperties({
-          authMethod: "token_refresh",
-          timeUntilExpiry: Math.round(timeUntilExpiry / 1000)
-        })
-      });
+      captureException(error46, AUTH_TOKEN_REFRESH_FAILED, "session-manager", buildAuthProperties({
+        authMethod: "token_refresh",
+        timeUntilExpiry: Math.round(timeUntilExpiry / 1000)
+      }));
     }
     throw error46;
   }
@@ -32234,19 +32245,21 @@ function buildUserProperties() {
     workspace_name: cachedSession.workspaceName
   };
 }
-async function captureException(error46, errorType, additionalProperties) {
+async function captureException(error46, errorType, errorSource, additionalProperties) {
   try {
     const client = await getAnalyticsClient();
     if (!client) {
       return;
     }
-    const properties = {
+    const context = {
       error_type: errorType,
+      error_category: getErrorCategory(errorType),
+      error_source: `claude-cli-plugin/${errorSource}`,
       ...buildStandardProperties(),
       ...buildUserProperties(),
       ...additionalProperties
     };
-    client.captureException(error46, cachedSession?.userId, properties);
+    client.captureException(error46, cachedSession?.userId, context);
     logger.debug("Exception captured in PostHog", {
       error_type: errorType,
       error_message: error46.message

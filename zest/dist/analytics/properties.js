@@ -11,8 +11,12 @@ function buildSyncProperties(options) {
   return {
     ...options.syncErrorType && { sync_error_type: options.syncErrorType },
     ...options.eventsAttempted !== undefined && { events_attempted: options.eventsAttempted },
-    ...options.sessionsAttempted !== undefined && { sessions_attempted: options.sessionsAttempted },
-    ...options.messagesAttempted !== undefined && { messages_attempted: options.messagesAttempted },
+    ...options.sessionsAttempted !== undefined && {
+      sessions_attempted: options.sessionsAttempted
+    },
+    ...options.messagesAttempted !== undefined && {
+      messages_attempted: options.messagesAttempted
+    },
     ...options.retryAttempt !== undefined && { retry_attempt: options.retryAttempt }
   };
 }

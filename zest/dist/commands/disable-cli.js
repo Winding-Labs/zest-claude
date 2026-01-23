@@ -12609,13 +12609,15 @@ var UserSettingsSchema = exports_external.object({
   enableRemotePersistence: exports_external.boolean(),
   excludePatterns: exports_external.array(exports_external.string()),
   respectGitignore: exports_external.boolean(),
-  logLevel: exports_external.enum(["debug", "info", "warn", "error"])
+  logLevel: exports_external.enum(["debug", "info", "warn", "error"]),
+  excludedFolders: exports_external.array(exports_external.string()).default([])
 });
 var DEFAULT_SETTINGS = {
   enableRemotePersistence: true,
   excludePatterns: [],
   respectGitignore: true,
-  logLevel: "info"
+  logLevel: "info",
+  excludedFolders: []
 };
 async function loadSettings() {
   try {

@@ -43,6 +43,7 @@ var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var WEB_APP_URL = "https://app.meetzest.com";
 var SUPABASE_URL = "https://fnnlebrtmlxxjwdvngck.supabase.co";
 var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubmxlYnJ0bWx4eGp3ZHZuZ2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MzA3MjYsImV4cCI6MjA3MjMwNjcyNn0.0IE3HCY_DiyyALdewbRn1vkedwzDW27NQMQ28V6j4Dk";
+var POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ";
 var EXCLUDED_COMMAND_PATTERNS = [
   /^\/(add-dir|agents|bashes|bug|clear|compact|config|context|cost|doctor|exit|export|help|hooks|ide|init|install-github-app|login|logout|mcp|memory|model|output-style|permissions|plugin|pr-comments|privacy-settings|release-notes|resume|review|rewind|sandbox|security-review|stats|status|statusline|terminal-setup|todos|usage|vim)\b/i,
   /^\/zest[^:\s]*:/i,
@@ -73,6 +74,7 @@ export {
   RETRY_BACKOFF_MS,
   QUEUE_DIR,
   PROACTIVE_REFRESH_THRESHOLD_MS,
+  POSTHOG_API_KEY,
   PLATFORM,
   MIN_SESSION_TITLE_LENGTH,
   MIN_MESSAGES_PER_SESSION,

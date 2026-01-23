@@ -17,7 +17,21 @@ var DAEMON_RESTART_FAILED = "daemon_restart_failed";
 var DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed";
 var API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed";
 var API_PROFILE_UPDATE_FAILED = "api_profile_update_failed";
+function getErrorCategory(errorType) {
+  if (errorType.startsWith("auth_"))
+    return "auth";
+  if (errorType.startsWith("sync_"))
+    return "sync";
+  if (errorType.startsWith("queue_") || errorType.startsWith("file_"))
+    return "filesystem";
+  if (errorType.startsWith("daemon_"))
+    return "daemon";
+  if (errorType.startsWith("api_"))
+    return "api";
+  return "api";
+}
 export {
+  getErrorCategory,
   SYNC_NOT_AUTHENTICATED,
   SYNC_NETWORK_ERROR,
   SYNC_EVENTS_UPLOAD_FAILED,

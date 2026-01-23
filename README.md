@@ -9,16 +9,19 @@ This repository hosts the Zest plugin for Claude Code CLI, enabling automatic tr
 **Requirements**: Node.js version 20 or higher
 
 1. **Add the marketplace**:
+
    ```bash
    /plugin marketplace add https://github.com/Winding-Labs/zest-claude
    ```
 
 2. **Install the plugin**:
+
    ```bash
    /plugin install zest
    ```
 
 3. **Authenticate with Zest**:
+
    ```bash
    /zest:login
    ```
@@ -30,14 +33,17 @@ This repository hosts the Zest plugin for Claude Code CLI, enabling automatic tr
 To update Zest to the latest version:
 
 1. **Update the marketplace**:
+
    ```bash
    /plugin marketplace update zest-marketplace
    ```
 
 2. **Uninstall and update**:
+
    ```bash
    /plugin uninstall zest
    ```
+
    Then choose **"Update now"** from the options
 
 3. **Restart Claude Code** to complete the update
@@ -51,7 +57,9 @@ To update Zest to the latest version:
 - `/zest:enable` - Enable remote persistence (syncing)
 - `/zest:disable` - Disable remote persistence (local only)
 - `/zest:workspace` - Configure workspace settings
-- `/zest:enable_statusline` - Enable status line notifications for sync events
+- `/zest:ignore` - Disable tracking for the current folder
+- `/zest:unignore` - Re-enable tracking for the current folder
+- `/zest:enable-statusline` - Configure status line for update notifications
 
 ### Features
 
@@ -74,6 +82,7 @@ To update Zest to the latest version:
 ### Troubleshooting
 
 **Plugin not working?**
+
 ```bash
 /plugin list                    # Check if installed
 /plugin uninstall zest          # Uninstall
@@ -81,6 +90,7 @@ To update Zest to the latest version:
 ```
 
 **Authentication issues?**
+
 ```bash
 /zest:status                    # Check current status
 /zest:logout                    # Sign out
@@ -88,11 +98,13 @@ To update Zest to the latest version:
 ```
 
 **Data not syncing?**
+
 ```bash
 /zest:status                    # Check daemon status
 /zest:sync                      # Try manual sync
 ```
 
 Check logs if issues persist:
+
 - Plugin logs: `~/.claude-zest/logs/plugin.log`
 - Sync logs: `~/.claude-zest/logs/sync.log`

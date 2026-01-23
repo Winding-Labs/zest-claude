@@ -12643,21 +12643,51 @@ async function saveSettings(settings) {
   await writeFile(SETTINGS_FILE, JSON.stringify(result.data, null, 2), "utf-8");
 }
 
-// src/commands/enable-cli.ts
+// src/utils/folder-exclusion.ts
+import { normalize, resolve, sep } from "node:path";
+function isCaseInsensitiveFilesystem() {
+  return process.platform === "win32" || process.platform === "darwin";
+}
+function normalizeForComparison(path) {
+  const normalized = normalize(resolve(path));
+  return isCaseInsensitiveFilesystem() ? normalized.toLowerCase() : normalized;
+}
+function addExcludedFolder(folderPath, settings) {
+  const normalizedPath = normalize(resolve(folderPath));
+  const comparePath = normalizeForComparison(folderPath);
+  const alreadyExists = settings.excludedFolders.some((f) => normalizeForComparison(f) === comparePath);
+  if (alreadyExists) {
+    return { settings, alreadyExcluded: true };
+  }
+  return {
+    settings: {
+      ...settings,
+      excludedFolders: [...settings.excludedFolders, normalizedPath]
+    },
+    alreadyExcluded: false
+  };
+}
+
+// src/commands/ignore-cli.ts
 async function main() {
   try {
+    const currentFolder = process.cwd();
     const settings = await loadSettings();
-    if (settings.enableRemotePersistence) {
-      console.log("✓ Remote persistence is already enabled");
+    const { settings: updatedSettings, alreadyExcluded } = addExcludedFolder(currentFolder, settings);
+    if (alreadyExcluded) {
+      console.log("✓ This folder is already ignored");
+      console.log(`   ${currentFolder}`);
       return;
     }
-    settings.enableRemotePersistence = true;
-    await saveSettings(settings);
-    console.log("✅ Remote persistence enabled");
-    console.log("\uD83D\uDCE4 Data will sync to Zest every 60 seconds");
+    await saveSettings(updatedSettings);
+    console.log("✅ Folder added to ignore list");
+    console.log(`   ${currentFolder}`);
+    console.log("");
+    console.log("\uD83D\uDEAB Zest will no longer track activity in this folder");
+    console.log("\uD83D\uDCA1 Use /zest:unignore to re-enable tracking");
   } catch (error46) {
-    logger.error("Failed to enable remote persistence", error46);
-    console.error("❌ Failed to enable: " + (error46 instanceof Error ? error46.message : "Unknown error"));
+    logger.error("Failed to ignore folder", error46);
+    console.error("❌ Failed to ignore folder: " + (error46 instanceof Error ? error46.message : "Unknown error"));
     process.exit(1);
   }
 }
