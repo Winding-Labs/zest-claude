@@ -1,5 +1,6 @@
 // src/extractors/message-parser.ts
-import { readFile as readFile2 } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { createInterface } from "node:readline";
 
 // src/config/constants.ts
 import { homedir } from "node:os";
@@ -15,6 +16,7 @@ var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
 var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
 var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
+var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
 var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
 var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
@@ -34,6 +36,7 @@ var EXCLUDED_COMMAND_PATTERNS = [
   /node\s+.*\/dist\/commands\/.*-cli\.js/i
 ];
 var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
+var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
 
 // src/extractors/extraction-utils.ts
 import { createHash } from "node:crypto";
@@ -191,7 +194,7 @@ async function getCachedFileContent(filePath, sessionId) {
   }
 }
 
-// ../../node_modules/diff/libesm/diff/base.js
+// ../../node_modules/.bun/diff@8.0.0-beta/node_modules/diff/libesm/diff/base.js
 var Diff = function() {
   function Diff2() {}
   Diff2.prototype.diff = function(oldString, newString, options) {
@@ -402,7 +405,7 @@ var Diff = function() {
 }();
 var base_default = Diff;
 
-// ../../node_modules/diff/libesm/diff/character.js
+// ../../node_modules/.bun/diff@8.0.0-beta/node_modules/diff/libesm/diff/character.js
 var __extends = function() {
   var extendStatics = function(d, b) {
     extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
@@ -433,7 +436,7 @@ var CharacterDiff = function(_super) {
 }(base_default);
 var characterDiff = new CharacterDiff;
 
-// ../../node_modules/diff/libesm/util/string.js
+// ../../node_modules/.bun/diff@8.0.0-beta/node_modules/diff/libesm/util/string.js
 function longestCommonPrefix(str1, str2) {
   var i;
   for (i = 0;i < str1.length && i < str2.length; i++) {
@@ -529,7 +532,7 @@ function leadingWs(string) {
   return match ? match[0] : "";
 }
 
-// ../../node_modules/diff/libesm/diff/word.js
+// ../../node_modules/.bun/diff@8.0.0-beta/node_modules/diff/libesm/diff/word.js
 var __extends2 = function() {
   var extendStatics = function(d, b) {
     extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
@@ -701,7 +704,7 @@ var WordsWithSpaceDiff = function(_super) {
 }(base_default);
 var wordsWithSpaceDiff = new WordsWithSpaceDiff;
 
-// ../../node_modules/diff/libesm/diff/line.js
+// ../../node_modules/.bun/diff@8.0.0-beta/node_modules/diff/libesm/diff/line.js
 var __extends3 = function() {
   var extendStatics = function(d, b) {
     extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
@@ -778,7 +781,7 @@ function tokenize(value, options) {
   return retLines;
 }
 
-// ../../node_modules/diff/libesm/diff/sentence.js
+// ../../node_modules/.bun/diff@8.0.0-beta/node_modules/diff/libesm/diff/sentence.js
 var __extends4 = function() {
   var extendStatics = function(d, b) {
     extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
@@ -812,7 +815,7 @@ var SentenceDiff = function(_super) {
 }(base_default);
 var sentenceDiff = new SentenceDiff;
 
-// ../../node_modules/diff/libesm/diff/css.js
+// ../../node_modules/.bun/diff@8.0.0-beta/node_modules/diff/libesm/diff/css.js
 var __extends5 = function() {
   var extendStatics = function(d, b) {
     extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
@@ -846,7 +849,7 @@ var CssDiff = function(_super) {
 }(base_default);
 var cssDiff = new CssDiff;
 
-// ../../node_modules/diff/libesm/diff/json.js
+// ../../node_modules/.bun/diff@8.0.0-beta/node_modules/diff/libesm/diff/json.js
 var __extends6 = function() {
   var extendStatics = function(d, b) {
     extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
@@ -945,7 +948,7 @@ function canonicalize(obj, stack, replacementStack, replacer, key) {
   return canonicalizedObj;
 }
 
-// ../../node_modules/diff/libesm/diff/array.js
+// ../../node_modules/.bun/diff@8.0.0-beta/node_modules/diff/libesm/diff/array.js
 var __extends7 = function() {
   var extendStatics = function(d, b) {
     extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
@@ -985,7 +988,7 @@ var ArrayDiff = function(_super) {
 }(base_default);
 var arrayDiff = new ArrayDiff;
 
-// ../../node_modules/diff/libesm/patch/create.js
+// ../../node_modules/.bun/diff@8.0.0-beta/node_modules/diff/libesm/patch/create.js
 var __assign = function() {
   __assign = Object.assign || function(t) {
     for (var s, i = 1, n = arguments.length;i < n; i++) {
@@ -1445,48 +1448,61 @@ function applyMessageFilter(role, textContent, currentState) {
 async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0) {
   const messages = [];
   const toolUses = [];
+  const LOOKBACK_WINDOW = 10;
+  const recentLines = [];
   try {
     logger.debug(`Incremental extraction for ${sessionId}: reading from line ${lastReadLine}`);
-    const content = await readFile2(filePath, "utf-8");
-    const lines = content.split(`
-`).filter((line) => line.trim());
-    const totalLines = lines.length;
-    if (totalLines <= lastReadLine) {
-      logger.debug(`No new lines for ${sessionId}: total=${totalLines}, lastRead=${lastReadLine}`);
-      return { messages, toolUses, newLastReadLine: lastReadLine, totalLines };
-    }
-    const newLines = lines.slice(lastReadLine);
-    logger.info(`Processing ${newLines.length} new lines for session ${sessionId} (lines ${lastReadLine + 1}-${totalLines})`);
+    const stream = createReadStream(filePath, { encoding: "utf-8" });
+    const rl = createInterface({ input: stream, crlfDelay: Number.POSITIVE_INFINITY });
+    let lineNumber = 0;
+    let lastSuccessfulLine = lastReadLine - 1;
     let tempMessageCounter = 0;
-    let filteringState = restoreFilteringState(lines, lastReadLine);
-    for (let i = 0;i < newLines.length; i++) {
-      const line = newLines[i];
-      const lineNumber = lastReadLine + i;
+    let filteringState = { filteringAssistantResponses: false, lastWasZestCommand: false };
+    let filteringStateInitialized = false;
+    for await (const line of rl) {
+      const trimmedLine = line.trim();
+      if (!trimmedLine) {
+        lineNumber++;
+        continue;
+      }
+      if (lineNumber < lastReadLine) {
+        recentLines.push(trimmedLine);
+        if (recentLines.length > LOOKBACK_WINDOW) {
+          recentLines.shift();
+        }
+        lineNumber++;
+        continue;
+      }
+      if (!filteringStateInitialized) {
+        filteringState = restoreFilteringState(recentLines, recentLines.length);
+        recentLines.length = 0;
+        filteringStateInitialized = true;
+        logger.info(`Processing new lines for session ${sessionId} starting from line ${lastReadLine + 1}`);
+      }
       try {
-        const entry = JSON.parse(line);
-        if (!entry.message)
-          continue;
-        const role = entry.message.role;
-        const content2 = entry.message.content;
-        if ((role === "user" || role === "assistant") && content2) {
-          const textContent = extractTextContent(content2);
-          if (textContent) {
-            const filterResult = applyMessageFilter(role, textContent, filteringState);
-            filteringState = filterResult.newState;
-            if (filterResult.shouldFilter) {
-              continue;
+        const entry = JSON.parse(trimmedLine);
+        if (entry.message) {
+          const role = entry.message.role;
+          const content = entry.message.content;
+          if ((role === "user" || role === "assistant") && content) {
+            const textContent = extractTextContent(content);
+            if (textContent) {
+              const filterResult = applyMessageFilter(role, textContent, filteringState);
+              filteringState = filterResult.newState;
+              if (!filterResult.shouldFilter) {
+                const messageId = entry.uuid || generateMessageId(sessionId, tempMessageCounter);
+                messages.push({
+                  id: messageId,
+                  session_id: sessionId,
+                  role,
+                  content: textContent,
+                  created_at: entry.timestamp || new Date().toISOString(),
+                  message_index: tempMessageCounter
+                });
+                tempMessageCounter++;
+                logger.debug(`Extracted ${role} message at line ${lineNumber + 1}: ${textContent.substring(0, 50)}...`);
+              }
             }
-            const messageId = entry.uuid || generateMessageId(sessionId, tempMessageCounter);
-            messages.push({
-              id: messageId,
-              session_id: sessionId,
-              role,
-              content: textContent,
-              created_at: entry.timestamp || new Date().toISOString(),
-              message_index: tempMessageCounter
-            });
-            tempMessageCounter++;
-            logger.debug(`Extracted ${role} message at line ${lineNumber + 1}: ${textContent.substring(0, 50)}...`);
           }
         }
         if (entry.toolUseResult) {
@@ -1496,8 +1512,8 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0)
             logger.debug(`Extracted tool result at line ${lineNumber + 1}: ${toolUseWithDiff.file_path}`);
             logDiff(toolUseWithDiff.file_path || "", toolUseWithDiff.diff);
           }
-        } else if (Array.isArray(content2)) {
-          for (const contentBlock of content2) {
+        } else if (entry.message && Array.isArray(entry.message.content)) {
+          for (const contentBlock of entry.message.content) {
             if (contentBlock.type === "tool_use") {
               const extractedToolUses = await extractToolUse(contentBlock, sessionId, entry.timestamp);
               for (const toolUse of extractedToolUses) {
@@ -1507,19 +1523,25 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0)
             }
           }
         }
+        lastSuccessfulLine = lineNumber;
       } catch (parseError) {
-        logger.debug(`Failed to parse JSONL line ${lineNumber + 1}: ${line.substring(0, 100)}...`, parseError);
+        logger.debug(`Failed to parse JSONL line ${lineNumber + 1}, will retry next extraction: ${trimmedLine.substring(0, 100)}...`, parseError);
       }
+      lineNumber++;
+    }
+    if (!filteringStateInitialized && lineNumber <= lastReadLine) {
+      logger.debug(`No new lines for ${sessionId}: total=${lineNumber}, lastRead=${lastReadLine}`);
+      return { messages, toolUses, newLastReadLine: lastReadLine, totalLines: lineNumber };
     }
     logger.info(`Incremental extraction complete: ${messages.length} messages, ${toolUses.length} tool uses`);
     return {
       messages,
       toolUses,
-      newLastReadLine: totalLines,
-      totalLines
+      newLastReadLine: lastSuccessfulLine + 1,
+      totalLines: lineNumber
     };
   } catch (error) {
-    logger.error(`Failed to incrementally read conversation file ${filePath}:`, error);
+    logger.error(`Failed to stream conversation file ${filePath}:`, error);
     return {
       messages,
       toolUses,

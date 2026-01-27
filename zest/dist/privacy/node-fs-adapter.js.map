@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "sources": ["../src/privacy/node-fs-adapter.ts"],
+  "sourcesContent": [
+    "/**\r\n * Node.js file system adapter for the privacy-redaction package.\r\n *\r\n * Implements the FileSystemAdapter interface using Node.js fs APIs.\r\n * This enables the privacy package to read files, check existence, and\r\n * list directories in the Claude Code CLI plugin context.\r\n */\r\n\r\nimport { readFile, readdir, stat } from \"node:fs/promises\";\r\nimport type { FileSystemAdapter } from \"@zest/privacy-redaction\";\r\n\r\n/**\r\n * Create a Node.js file system adapter for the privacy package.\r\n *\r\n * @param workspaceRoot - The root directory of the current workspace/project\r\n * @returns FileSystemAdapter implementation using Node.js fs APIs\r\n */\r\nexport function createNodeFsAdapter(workspaceRoot?: string): FileSystemAdapter {\r\n  return {\r\n    /**\r\n     * Read file contents as UTF-8 string\r\n     */\r\n    async readFile(path: string): Promise<string> {\r\n      return readFile(path, \"utf-8\");\r\n    },\r\n\r\n    /**\r\n     * Check if a file exists at the given path\r\n     */\r\n    async fileExists(path: string): Promise<boolean> {\r\n      try {\r\n        await stat(path);\r\n        return true;\r\n      } catch {\r\n        return false;\r\n      }\r\n    },\r\n\r\n    /**\r\n     * List files and directories in a directory\r\n     */\r\n    async readDir(path: string): Promise<string[]> {\r\n      return readdir(path);\r\n    },\r\n\r\n    /**\r\n     * Get the workspace root directory\r\n     */\r\n    getWorkspaceRoot(): string | undefined {\r\n      return workspaceRoot;\r\n    },\r\n  };\r\n}\r\n"
+  ],
+  "mappings": ";AAQA;AASO,SAAS,mBAAmB,CAAC,eAA2C;AAAA,EAC7E,OAAO;AAAA,SAIC,SAAQ,CAAC,MAA+B;AAAA,MAC5C,OAAO,SAAS,MAAM,OAAO;AAAA;AAAA,SAMzB,WAAU,CAAC,MAAgC;AAAA,MAC/C,IAAI;AAAA,QACF,MAAM,KAAK,IAAI;AAAA,QACf,OAAO;AAAA,QACP,MAAM;AAAA,QACN,OAAO;AAAA;AAAA;AAAA,SAOL,QAAO,CAAC,MAAiC;AAAA,MAC7C,OAAO,QAAQ,IAAI;AAAA;AAAA,IAMrB,gBAAgB,GAAuB;AAAA,MACrC,OAAO;AAAA;AAAA,EAEX;AAAA;",
+  "debugId": "49E05D8DEAD6BC9564756E2164756E21",
+  "names": []
+}

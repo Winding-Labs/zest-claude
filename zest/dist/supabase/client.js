@@ -42,7 +42,7 @@ var __export = (target, all) => {
     });
 };
 
-// ../../node_modules/@supabase/functions-js/node_modules/tslib/tslib.js
+// ../../node_modules/.bun/tslib@2.8.1/node_modules/tslib/tslib.js
 var require_tslib = __commonJS((exports, module) => {
   var __extends;
   var __assign;
@@ -647,7 +647,7 @@ var require_tslib = __commonJS((exports, module) => {
   });
 });
 
-// ../../node_modules/@supabase/functions-js/dist/main/helper.js
+// ../../node_modules/.bun/@supabase+functions-js@2.89.0/node_modules/@supabase/functions-js/dist/main/helper.js
 var require_helper = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.resolveFetch = undefined;
@@ -660,7 +660,7 @@ var require_helper = __commonJS((exports) => {
   exports.resolveFetch = resolveFetch;
 });
 
-// ../../node_modules/@supabase/functions-js/dist/main/types.js
+// ../../node_modules/.bun/@supabase+functions-js@2.89.0/node_modules/@supabase/functions-js/dist/main/types.js
 var require_types = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.FunctionRegion = exports.FunctionsHttpError = exports.FunctionsRelayError = exports.FunctionsFetchError = exports.FunctionsError = undefined;
@@ -714,7 +714,7 @@ var require_types = __commonJS((exports) => {
   })(FunctionRegion || (exports.FunctionRegion = FunctionRegion = {}));
 });
 
-// ../../node_modules/@supabase/functions-js/dist/main/FunctionsClient.js
+// ../../node_modules/.bun/@supabase+functions-js@2.89.0/node_modules/@supabase/functions-js/dist/main/FunctionsClient.js
 var require_FunctionsClient = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.FunctionsClient = undefined;
@@ -823,7 +823,7 @@ var require_FunctionsClient = __commonJS((exports) => {
   exports.FunctionsClient = FunctionsClient;
 });
 
-// ../../node_modules/@supabase/functions-js/dist/main/index.js
+// ../../node_modules/.bun/@supabase+functions-js@2.89.0/node_modules/@supabase/functions-js/dist/main/index.js
 var require_main = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.FunctionRegion = exports.FunctionsRelayError = exports.FunctionsHttpError = exports.FunctionsFetchError = exports.FunctionsError = exports.FunctionsClient = undefined;
@@ -849,612 +849,7 @@ var require_main = __commonJS((exports) => {
   } });
 });
 
-// ../../node_modules/@supabase/realtime-js/node_modules/tslib/tslib.js
-var require_tslib2 = __commonJS((exports, module) => {
-  var __extends;
-  var __assign;
-  var __rest;
-  var __decorate;
-  var __param;
-  var __esDecorate;
-  var __runInitializers;
-  var __propKey;
-  var __setFunctionName;
-  var __metadata;
-  var __awaiter;
-  var __generator;
-  var __exportStar;
-  var __values;
-  var __read;
-  var __spread;
-  var __spreadArrays;
-  var __spreadArray;
-  var __await;
-  var __asyncGenerator;
-  var __asyncDelegator;
-  var __asyncValues;
-  var __makeTemplateObject;
-  var __importStar;
-  var __importDefault;
-  var __classPrivateFieldGet;
-  var __classPrivateFieldSet;
-  var __classPrivateFieldIn;
-  var __createBinding;
-  var __addDisposableResource;
-  var __disposeResources;
-  var __rewriteRelativeImportExtension;
-  (function(factory) {
-    var root = typeof global === "object" ? global : typeof self === "object" ? self : typeof this === "object" ? this : {};
-    if (typeof define === "function" && define.amd) {
-      define("tslib", ["exports"], function(exports2) {
-        factory(createExporter(root, createExporter(exports2)));
-      });
-    } else if (typeof module === "object" && typeof exports === "object") {
-      factory(createExporter(root, createExporter(exports)));
-    } else {
-      factory(createExporter(root));
-    }
-    function createExporter(exports2, previous) {
-      if (exports2 !== root) {
-        if (typeof Object.create === "function") {
-          Object.defineProperty(exports2, "__esModule", { value: true });
-        } else {
-          exports2.__esModule = true;
-        }
-      }
-      return function(id, v) {
-        return exports2[id] = previous ? previous(id, v) : v;
-      };
-    }
-  })(function(exporter) {
-    var extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d, b) {
-      d.__proto__ = b;
-    } || function(d, b) {
-      for (var p in b)
-        if (Object.prototype.hasOwnProperty.call(b, p))
-          d[p] = b[p];
-    };
-    __extends = function(d, b) {
-      if (typeof b !== "function" && b !== null)
-        throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-      extendStatics(d, b);
-      function __() {
-        this.constructor = d;
-      }
-      d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __);
-    };
-    __assign = Object.assign || function(t) {
-      for (var s, i = 1, n = arguments.length;i < n; i++) {
-        s = arguments[i];
-        for (var p in s)
-          if (Object.prototype.hasOwnProperty.call(s, p))
-            t[p] = s[p];
-      }
-      return t;
-    };
-    __rest = function(s, e) {
-      var t = {};
-      for (var p in s)
-        if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
-          t[p] = s[p];
-      if (s != null && typeof Object.getOwnPropertySymbols === "function")
-        for (var i = 0, p = Object.getOwnPropertySymbols(s);i < p.length; i++) {
-          if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
-            t[p[i]] = s[p[i]];
-        }
-      return t;
-    };
-    __decorate = function(decorators, target, key, desc) {
-      var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-      if (typeof Reflect === "object" && typeof Reflect.decorate === "function")
-        r = Reflect.decorate(decorators, target, key, desc);
-      else
-        for (var i = decorators.length - 1;i >= 0; i--)
-          if (d = decorators[i])
-            r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-      return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    __param = function(paramIndex, decorator) {
-      return function(target, key) {
-        decorator(target, key, paramIndex);
-      };
-    };
-    __esDecorate = function(ctor, descriptorIn, decorators, contextIn, initializers, extraInitializers) {
-      function accept(f) {
-        if (f !== undefined && typeof f !== "function")
-          throw new TypeError("Function expected");
-        return f;
-      }
-      var kind = contextIn.kind, key = kind === "getter" ? "get" : kind === "setter" ? "set" : "value";
-      var target = !descriptorIn && ctor ? contextIn["static"] ? ctor : ctor.prototype : null;
-      var descriptor = descriptorIn || (target ? Object.getOwnPropertyDescriptor(target, contextIn.name) : {});
-      var _, done = false;
-      for (var i = decorators.length - 1;i >= 0; i--) {
-        var context = {};
-        for (var p in contextIn)
-          context[p] = p === "access" ? {} : contextIn[p];
-        for (var p in contextIn.access)
-          context.access[p] = contextIn.access[p];
-        context.addInitializer = function(f) {
-          if (done)
-            throw new TypeError("Cannot add initializers after decoration has completed");
-          extraInitializers.push(accept(f || null));
-        };
-        var result = (0, decorators[i])(kind === "accessor" ? { get: descriptor.get, set: descriptor.set } : descriptor[key], context);
-        if (kind === "accessor") {
-          if (result === undefined)
-            continue;
-          if (result === null || typeof result !== "object")
-            throw new TypeError("Object expected");
-          if (_ = accept(result.get))
-            descriptor.get = _;
-          if (_ = accept(result.set))
-            descriptor.set = _;
-          if (_ = accept(result.init))
-            initializers.unshift(_);
-        } else if (_ = accept(result)) {
-          if (kind === "field")
-            initializers.unshift(_);
-          else
-            descriptor[key] = _;
-        }
-      }
-      if (target)
-        Object.defineProperty(target, contextIn.name, descriptor);
-      done = true;
-    };
-    __runInitializers = function(thisArg, initializers, value) {
-      var useValue = arguments.length > 2;
-      for (var i = 0;i < initializers.length; i++) {
-        value = useValue ? initializers[i].call(thisArg, value) : initializers[i].call(thisArg);
-      }
-      return useValue ? value : undefined;
-    };
-    __propKey = function(x) {
-      return typeof x === "symbol" ? x : "".concat(x);
-    };
-    __setFunctionName = function(f, name, prefix) {
-      if (typeof name === "symbol")
-        name = name.description ? "[".concat(name.description, "]") : "";
-      return Object.defineProperty(f, "name", { configurable: true, value: prefix ? "".concat(prefix, " ", name) : name });
-    };
-    __metadata = function(metadataKey, metadataValue) {
-      if (typeof Reflect === "object" && typeof Reflect.metadata === "function")
-        return Reflect.metadata(metadataKey, metadataValue);
-    };
-    __awaiter = function(thisArg, _arguments, P, generator) {
-      function adopt(value) {
-        return value instanceof P ? value : new P(function(resolve) {
-          resolve(value);
-        });
-      }
-      return new (P || (P = Promise))(function(resolve, reject) {
-        function fulfilled(value) {
-          try {
-            step(generator.next(value));
-          } catch (e) {
-            reject(e);
-          }
-        }
-        function rejected(value) {
-          try {
-            step(generator["throw"](value));
-          } catch (e) {
-            reject(e);
-          }
-        }
-        function step(result) {
-          result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
-        }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-      });
-    };
-    __generator = function(thisArg, body) {
-      var _ = { label: 0, sent: function() {
-        if (t[0] & 1)
-          throw t[1];
-        return t[1];
-      }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
-      return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() {
-        return this;
-      }), g;
-      function verb(n) {
-        return function(v) {
-          return step([n, v]);
-        };
-      }
-      function step(op) {
-        if (f)
-          throw new TypeError("Generator is already executing.");
-        while (g && (g = 0, op[0] && (_ = 0)), _)
-          try {
-            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done)
-              return t;
-            if (y = 0, t)
-              op = [op[0] & 2, t.value];
-            switch (op[0]) {
-              case 0:
-              case 1:
-                t = op;
-                break;
-              case 4:
-                _.label++;
-                return { value: op[1], done: false };
-              case 5:
-                _.label++;
-                y = op[1];
-                op = [0];
-                continue;
-              case 7:
-                op = _.ops.pop();
-                _.trys.pop();
-                continue;
-              default:
-                if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) {
-                  _ = 0;
-                  continue;
-                }
-                if (op[0] === 3 && (!t || op[1] > t[0] && op[1] < t[3])) {
-                  _.label = op[1];
-                  break;
-                }
-                if (op[0] === 6 && _.label < t[1]) {
-                  _.label = t[1];
-                  t = op;
-                  break;
-                }
-                if (t && _.label < t[2]) {
-                  _.label = t[2];
-                  _.ops.push(op);
-                  break;
-                }
-                if (t[2])
-                  _.ops.pop();
-                _.trys.pop();
-                continue;
-            }
-            op = body.call(thisArg, _);
-          } catch (e) {
-            op = [6, e];
-            y = 0;
-          } finally {
-            f = t = 0;
-          }
-        if (op[0] & 5)
-          throw op[1];
-        return { value: op[0] ? op[1] : undefined, done: true };
-      }
-    };
-    __exportStar = function(m, o) {
-      for (var p in m)
-        if (p !== "default" && !Object.prototype.hasOwnProperty.call(o, p))
-          __createBinding(o, m, p);
-    };
-    __createBinding = Object.create ? function(o, m, k, k2) {
-      if (k2 === undefined)
-        k2 = k;
-      var desc = Object.getOwnPropertyDescriptor(m, k);
-      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-        desc = { enumerable: true, get: function() {
-          return m[k];
-        } };
-      }
-      Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
-      if (k2 === undefined)
-        k2 = k;
-      o[k2] = m[k];
-    };
-    __values = function(o) {
-      var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
-      if (m)
-        return m.call(o);
-      if (o && typeof o.length === "number")
-        return {
-          next: function() {
-            if (o && i >= o.length)
-              o = undefined;
-            return { value: o && o[i++], done: !o };
-          }
-        };
-      throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
-    };
-    __read = function(o, n) {
-      var m = typeof Symbol === "function" && o[Symbol.iterator];
-      if (!m)
-        return o;
-      var i = m.call(o), r, ar = [], e;
-      try {
-        while ((n === undefined || n-- > 0) && !(r = i.next()).done)
-          ar.push(r.value);
-      } catch (error) {
-        e = { error };
-      } finally {
-        try {
-          if (r && !r.done && (m = i["return"]))
-            m.call(i);
-        } finally {
-          if (e)
-            throw e.error;
-        }
-      }
-      return ar;
-    };
-    __spread = function() {
-      for (var ar = [], i = 0;i < arguments.length; i++)
-        ar = ar.concat(__read(arguments[i]));
-      return ar;
-    };
-    __spreadArrays = function() {
-      for (var s = 0, i = 0, il = arguments.length;i < il; i++)
-        s += arguments[i].length;
-      for (var r = Array(s), k = 0, i = 0;i < il; i++)
-        for (var a = arguments[i], j = 0, jl = a.length;j < jl; j++, k++)
-          r[k] = a[j];
-      return r;
-    };
-    __spreadArray = function(to, from, pack) {
-      if (pack || arguments.length === 2)
-        for (var i = 0, l = from.length, ar;i < l; i++) {
-          if (ar || !(i in from)) {
-            if (!ar)
-              ar = Array.prototype.slice.call(from, 0, i);
-            ar[i] = from[i];
-          }
-        }
-      return to.concat(ar || Array.prototype.slice.call(from));
-    };
-    __await = function(v) {
-      return this instanceof __await ? (this.v = v, this) : new __await(v);
-    };
-    __asyncGenerator = function(thisArg, _arguments, generator) {
-      if (!Symbol.asyncIterator)
-        throw new TypeError("Symbol.asyncIterator is not defined.");
-      var g = generator.apply(thisArg, _arguments || []), i, q = [];
-      return i = Object.create((typeof AsyncIterator === "function" ? AsyncIterator : Object).prototype), verb("next"), verb("throw"), verb("return", awaitReturn), i[Symbol.asyncIterator] = function() {
-        return this;
-      }, i;
-      function awaitReturn(f) {
-        return function(v) {
-          return Promise.resolve(v).then(f, reject);
-        };
-      }
-      function verb(n, f) {
-        if (g[n]) {
-          i[n] = function(v) {
-            return new Promise(function(a, b) {
-              q.push([n, v, a, b]) > 1 || resume(n, v);
-            });
-          };
-          if (f)
-            i[n] = f(i[n]);
-        }
-      }
-      function resume(n, v) {
-        try {
-          step(g[n](v));
-        } catch (e) {
-          settle(q[0][3], e);
-        }
-      }
-      function step(r) {
-        r.value instanceof __await ? Promise.resolve(r.value.v).then(fulfill, reject) : settle(q[0][2], r);
-      }
-      function fulfill(value) {
-        resume("next", value);
-      }
-      function reject(value) {
-        resume("throw", value);
-      }
-      function settle(f, v) {
-        if (f(v), q.shift(), q.length)
-          resume(q[0][0], q[0][1]);
-      }
-    };
-    __asyncDelegator = function(o) {
-      var i, p;
-      return i = {}, verb("next"), verb("throw", function(e) {
-        throw e;
-      }), verb("return"), i[Symbol.iterator] = function() {
-        return this;
-      }, i;
-      function verb(n, f) {
-        i[n] = o[n] ? function(v) {
-          return (p = !p) ? { value: __await(o[n](v)), done: false } : f ? f(v) : v;
-        } : f;
-      }
-    };
-    __asyncValues = function(o) {
-      if (!Symbol.asyncIterator)
-        throw new TypeError("Symbol.asyncIterator is not defined.");
-      var m = o[Symbol.asyncIterator], i;
-      return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function() {
-        return this;
-      }, i);
-      function verb(n) {
-        i[n] = o[n] && function(v) {
-          return new Promise(function(resolve, reject) {
-            v = o[n](v), settle(resolve, reject, v.done, v.value);
-          });
-        };
-      }
-      function settle(resolve, reject, d, v) {
-        Promise.resolve(v).then(function(v2) {
-          resolve({ value: v2, done: d });
-        }, reject);
-      }
-    };
-    __makeTemplateObject = function(cooked, raw) {
-      if (Object.defineProperty) {
-        Object.defineProperty(cooked, "raw", { value: raw });
-      } else {
-        cooked.raw = raw;
-      }
-      return cooked;
-    };
-    var __setModuleDefault = Object.create ? function(o, v) {
-      Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
-      o["default"] = v;
-    };
-    var ownKeys = function(o) {
-      ownKeys = Object.getOwnPropertyNames || function(o2) {
-        var ar = [];
-        for (var k in o2)
-          if (Object.prototype.hasOwnProperty.call(o2, k))
-            ar[ar.length] = k;
-        return ar;
-      };
-      return ownKeys(o);
-    };
-    __importStar = function(mod) {
-      if (mod && mod.__esModule)
-        return mod;
-      var result = {};
-      if (mod != null) {
-        for (var k = ownKeys(mod), i = 0;i < k.length; i++)
-          if (k[i] !== "default")
-            __createBinding(result, mod, k[i]);
-      }
-      __setModuleDefault(result, mod);
-      return result;
-    };
-    __importDefault = function(mod) {
-      return mod && mod.__esModule ? mod : { default: mod };
-    };
-    __classPrivateFieldGet = function(receiver, state, kind, f) {
-      if (kind === "a" && !f)
-        throw new TypeError("Private accessor was defined without a getter");
-      if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver))
-        throw new TypeError("Cannot read private member from an object whose class did not declare it");
-      return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
-    };
-    __classPrivateFieldSet = function(receiver, state, value, kind, f) {
-      if (kind === "m")
-        throw new TypeError("Private method is not writable");
-      if (kind === "a" && !f)
-        throw new TypeError("Private accessor was defined without a setter");
-      if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver))
-        throw new TypeError("Cannot write private member to an object whose class did not declare it");
-      return kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value), value;
-    };
-    __classPrivateFieldIn = function(state, receiver) {
-      if (receiver === null || typeof receiver !== "object" && typeof receiver !== "function")
-        throw new TypeError("Cannot use 'in' operator on non-object");
-      return typeof state === "function" ? receiver === state : state.has(receiver);
-    };
-    __addDisposableResource = function(env, value, async) {
-      if (value !== null && value !== undefined) {
-        if (typeof value !== "object" && typeof value !== "function")
-          throw new TypeError("Object expected.");
-        var dispose, inner;
-        if (async) {
-          if (!Symbol.asyncDispose)
-            throw new TypeError("Symbol.asyncDispose is not defined.");
-          dispose = value[Symbol.asyncDispose];
-        }
-        if (dispose === undefined) {
-          if (!Symbol.dispose)
-            throw new TypeError("Symbol.dispose is not defined.");
-          dispose = value[Symbol.dispose];
-          if (async)
-            inner = dispose;
-        }
-        if (typeof dispose !== "function")
-          throw new TypeError("Object not disposable.");
-        if (inner)
-          dispose = function() {
-            try {
-              inner.call(this);
-            } catch (e) {
-              return Promise.reject(e);
-            }
-          };
-        env.stack.push({ value, dispose, async });
-      } else if (async) {
-        env.stack.push({ async: true });
-      }
-      return value;
-    };
-    var _SuppressedError = typeof SuppressedError === "function" ? SuppressedError : function(error, suppressed, message) {
-      var e = new Error(message);
-      return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
-    };
-    __disposeResources = function(env) {
-      function fail(e) {
-        env.error = env.hasError ? new _SuppressedError(e, env.error, "An error was suppressed during disposal.") : e;
-        env.hasError = true;
-      }
-      var r, s = 0;
-      function next() {
-        while (r = env.stack.pop()) {
-          try {
-            if (!r.async && s === 1)
-              return s = 0, env.stack.push(r), Promise.resolve().then(next);
-            if (r.dispose) {
-              var result = r.dispose.call(r.value);
-              if (r.async)
-                return s |= 2, Promise.resolve(result).then(next, function(e) {
-                  fail(e);
-                  return next();
-                });
-            } else
-              s |= 1;
-          } catch (e) {
-            fail(e);
-          }
-        }
-        if (s === 1)
-          return env.hasError ? Promise.reject(env.error) : Promise.resolve();
-        if (env.hasError)
-          throw env.error;
-      }
-      return next();
-    };
-    __rewriteRelativeImportExtension = function(path, preserveJsx) {
-      if (typeof path === "string" && /^\.\.?\//.test(path)) {
-        return path.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
-          return tsx ? preserveJsx ? ".jsx" : ".js" : d && (!ext || !cm) ? m : d + ext + "." + cm.toLowerCase() + "js";
-        });
-      }
-      return path;
-    };
-    exporter("__extends", __extends);
-    exporter("__assign", __assign);
-    exporter("__rest", __rest);
-    exporter("__decorate", __decorate);
-    exporter("__param", __param);
-    exporter("__esDecorate", __esDecorate);
-    exporter("__runInitializers", __runInitializers);
-    exporter("__propKey", __propKey);
-    exporter("__setFunctionName", __setFunctionName);
-    exporter("__metadata", __metadata);
-    exporter("__awaiter", __awaiter);
-    exporter("__generator", __generator);
-    exporter("__exportStar", __exportStar);
-    exporter("__createBinding", __createBinding);
-    exporter("__values", __values);
-    exporter("__read", __read);
-    exporter("__spread", __spread);
-    exporter("__spreadArrays", __spreadArrays);
-    exporter("__spreadArray", __spreadArray);
-    exporter("__await", __await);
-    exporter("__asyncGenerator", __asyncGenerator);
-    exporter("__asyncDelegator", __asyncDelegator);
-    exporter("__asyncValues", __asyncValues);
-    exporter("__makeTemplateObject", __makeTemplateObject);
-    exporter("__importStar", __importStar);
-    exporter("__importDefault", __importDefault);
-    exporter("__classPrivateFieldGet", __classPrivateFieldGet);
-    exporter("__classPrivateFieldSet", __classPrivateFieldSet);
-    exporter("__classPrivateFieldIn", __classPrivateFieldIn);
-    exporter("__addDisposableResource", __addDisposableResource);
-    exporter("__disposeResources", __disposeResources);
-    exporter("__rewriteRelativeImportExtension", __rewriteRelativeImportExtension);
-  });
-});
-
-// ../../node_modules/@supabase/realtime-js/dist/main/lib/websocket-factory.js
+// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/lib/websocket-factory.js
 var require_websocket_factory = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.WebSocketFactory = undefined;
@@ -1546,14 +941,14 @@ Suggested solution: ${env.workaround}`;
   exports.default = WebSocketFactory;
 });
 
-// ../../node_modules/@supabase/realtime-js/dist/main/lib/version.js
+// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/lib/version.js
 var require_version = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.version = undefined;
   exports.version = "2.89.0";
 });
 
-// ../../node_modules/@supabase/realtime-js/dist/main/lib/constants.js
+// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/lib/constants.js
 var require_constants = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.CONNECTION_STATE = exports.TRANSPORTS = exports.CHANNEL_EVENTS = exports.CHANNEL_STATES = exports.SOCKET_STATES = exports.MAX_PUSH_BUFFER_SIZE = exports.WS_CLOSE_NORMAL = exports.DEFAULT_TIMEOUT = exports.VERSION = exports.DEFAULT_VSN = exports.VSN_2_0_0 = exports.VSN_1_0_0 = exports.DEFAULT_VERSION = undefined;
@@ -1603,7 +998,7 @@ var require_constants = __commonJS((exports) => {
   })(CONNECTION_STATE || (exports.CONNECTION_STATE = CONNECTION_STATE = {}));
 });
 
-// ../../node_modules/@supabase/realtime-js/dist/main/lib/serializer.js
+// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/lib/serializer.js
 var require_serializer = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
 
@@ -1748,7 +1143,7 @@ var require_serializer = __commonJS((exports) => {
   exports.default = Serializer;
 });
 
-// ../../node_modules/@supabase/realtime-js/dist/main/lib/timer.js
+// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/lib/timer.js
 var require_timer = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
 
@@ -1777,7 +1172,7 @@ var require_timer = __commonJS((exports) => {
   exports.default = Timer;
 });
 
-// ../../node_modules/@supabase/realtime-js/dist/main/lib/transformers.js
+// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/lib/transformers.js
 var require_transformers = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.httpEndpointURL = exports.toTimestampString = exports.toArray = exports.toJson = exports.toNumber = exports.toBoolean = exports.convertCell = exports.convertColumn = exports.convertChangeData = exports.PostgresTypes = undefined;
@@ -1946,7 +1341,7 @@ var require_transformers = __commonJS((exports) => {
   exports.httpEndpointURL = httpEndpointURL;
 });
 
-// ../../node_modules/@supabase/realtime-js/dist/main/lib/push.js
+// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/lib/push.js
 var require_push = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var constants_1 = require_constants();
@@ -2043,7 +1438,7 @@ var require_push = __commonJS((exports) => {
   exports.default = Push;
 });
 
-// ../../node_modules/@supabase/realtime-js/dist/main/RealtimePresence.js
+// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/RealtimePresence.js
 var require_RealtimePresence = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.REALTIME_PRESENCE_LISTEN_EVENTS = undefined;
@@ -2212,11 +1607,11 @@ var require_RealtimePresence = __commonJS((exports) => {
   exports.default = RealtimePresence;
 });
 
-// ../../node_modules/@supabase/realtime-js/dist/main/RealtimeChannel.js
+// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/RealtimeChannel.js
 var require_RealtimeChannel = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.REALTIME_CHANNEL_STATES = exports.REALTIME_SUBSCRIBE_STATES = exports.REALTIME_LISTEN_TYPES = exports.REALTIME_POSTGRES_CHANGES_LISTEN_EVENT = undefined;
-  var tslib_1 = require_tslib2();
+  var tslib_1 = require_tslib();
   var constants_1 = require_constants();
   var push_1 = tslib_1.__importDefault(require_push());
   var timer_1 = tslib_1.__importDefault(require_timer());
@@ -2708,10 +2103,10 @@ var require_RealtimeChannel = __commonJS((exports) => {
   exports.default = RealtimeChannel;
 });
 
-// ../../node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
 var require_RealtimeClient = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  var tslib_1 = require_tslib2();
+  var tslib_1 = require_tslib();
   var websocket_factory_1 = tslib_1.__importDefault(require_websocket_factory());
   var constants_1 = require_constants();
   var serializer_1 = tslib_1.__importDefault(require_serializer());
@@ -3279,11 +2674,11 @@ var require_RealtimeClient = __commonJS((exports) => {
   exports.default = RealtimeClient;
 });
 
-// ../../node_modules/@supabase/realtime-js/dist/main/index.js
+// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/index.js
 var require_main2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.WebSocketFactory = exports.REALTIME_CHANNEL_STATES = exports.REALTIME_SUBSCRIBE_STATES = exports.REALTIME_PRESENCE_LISTEN_EVENTS = exports.REALTIME_POSTGRES_CHANGES_LISTEN_EVENT = exports.REALTIME_LISTEN_TYPES = exports.RealtimeClient = exports.RealtimeChannel = exports.RealtimePresence = undefined;
-  var tslib_1 = require_tslib2();
+  var tslib_1 = require_tslib();
   var RealtimeClient_1 = tslib_1.__importDefault(require_RealtimeClient());
   exports.RealtimeClient = RealtimeClient_1.default;
   var RealtimeChannel_1 = tslib_1.__importStar(require_RealtimeChannel());
@@ -3309,619 +2704,14 @@ var require_main2 = __commonJS((exports) => {
   exports.WebSocketFactory = websocket_factory_1.default;
 });
 
-// ../../node_modules/@supabase/auth-js/node_modules/tslib/tslib.js
-var require_tslib3 = __commonJS((exports, module) => {
-  var __extends;
-  var __assign;
-  var __rest;
-  var __decorate;
-  var __param;
-  var __esDecorate;
-  var __runInitializers;
-  var __propKey;
-  var __setFunctionName;
-  var __metadata;
-  var __awaiter;
-  var __generator;
-  var __exportStar;
-  var __values;
-  var __read;
-  var __spread;
-  var __spreadArrays;
-  var __spreadArray;
-  var __await;
-  var __asyncGenerator;
-  var __asyncDelegator;
-  var __asyncValues;
-  var __makeTemplateObject;
-  var __importStar;
-  var __importDefault;
-  var __classPrivateFieldGet;
-  var __classPrivateFieldSet;
-  var __classPrivateFieldIn;
-  var __createBinding;
-  var __addDisposableResource;
-  var __disposeResources;
-  var __rewriteRelativeImportExtension;
-  (function(factory) {
-    var root = typeof global === "object" ? global : typeof self === "object" ? self : typeof this === "object" ? this : {};
-    if (typeof define === "function" && define.amd) {
-      define("tslib", ["exports"], function(exports2) {
-        factory(createExporter(root, createExporter(exports2)));
-      });
-    } else if (typeof module === "object" && typeof exports === "object") {
-      factory(createExporter(root, createExporter(exports)));
-    } else {
-      factory(createExporter(root));
-    }
-    function createExporter(exports2, previous) {
-      if (exports2 !== root) {
-        if (typeof Object.create === "function") {
-          Object.defineProperty(exports2, "__esModule", { value: true });
-        } else {
-          exports2.__esModule = true;
-        }
-      }
-      return function(id, v) {
-        return exports2[id] = previous ? previous(id, v) : v;
-      };
-    }
-  })(function(exporter) {
-    var extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d, b) {
-      d.__proto__ = b;
-    } || function(d, b) {
-      for (var p in b)
-        if (Object.prototype.hasOwnProperty.call(b, p))
-          d[p] = b[p];
-    };
-    __extends = function(d, b) {
-      if (typeof b !== "function" && b !== null)
-        throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-      extendStatics(d, b);
-      function __() {
-        this.constructor = d;
-      }
-      d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __);
-    };
-    __assign = Object.assign || function(t) {
-      for (var s, i = 1, n = arguments.length;i < n; i++) {
-        s = arguments[i];
-        for (var p in s)
-          if (Object.prototype.hasOwnProperty.call(s, p))
-            t[p] = s[p];
-      }
-      return t;
-    };
-    __rest = function(s, e) {
-      var t = {};
-      for (var p in s)
-        if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
-          t[p] = s[p];
-      if (s != null && typeof Object.getOwnPropertySymbols === "function")
-        for (var i = 0, p = Object.getOwnPropertySymbols(s);i < p.length; i++) {
-          if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
-            t[p[i]] = s[p[i]];
-        }
-      return t;
-    };
-    __decorate = function(decorators, target, key, desc) {
-      var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-      if (typeof Reflect === "object" && typeof Reflect.decorate === "function")
-        r = Reflect.decorate(decorators, target, key, desc);
-      else
-        for (var i = decorators.length - 1;i >= 0; i--)
-          if (d = decorators[i])
-            r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-      return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    __param = function(paramIndex, decorator) {
-      return function(target, key) {
-        decorator(target, key, paramIndex);
-      };
-    };
-    __esDecorate = function(ctor, descriptorIn, decorators, contextIn, initializers, extraInitializers) {
-      function accept(f) {
-        if (f !== undefined && typeof f !== "function")
-          throw new TypeError("Function expected");
-        return f;
-      }
-      var kind = contextIn.kind, key = kind === "getter" ? "get" : kind === "setter" ? "set" : "value";
-      var target = !descriptorIn && ctor ? contextIn["static"] ? ctor : ctor.prototype : null;
-      var descriptor = descriptorIn || (target ? Object.getOwnPropertyDescriptor(target, contextIn.name) : {});
-      var _, done = false;
-      for (var i = decorators.length - 1;i >= 0; i--) {
-        var context = {};
-        for (var p in contextIn)
-          context[p] = p === "access" ? {} : contextIn[p];
-        for (var p in contextIn.access)
-          context.access[p] = contextIn.access[p];
-        context.addInitializer = function(f) {
-          if (done)
-            throw new TypeError("Cannot add initializers after decoration has completed");
-          extraInitializers.push(accept(f || null));
-        };
-        var result = (0, decorators[i])(kind === "accessor" ? { get: descriptor.get, set: descriptor.set } : descriptor[key], context);
-        if (kind === "accessor") {
-          if (result === undefined)
-            continue;
-          if (result === null || typeof result !== "object")
-            throw new TypeError("Object expected");
-          if (_ = accept(result.get))
-            descriptor.get = _;
-          if (_ = accept(result.set))
-            descriptor.set = _;
-          if (_ = accept(result.init))
-            initializers.unshift(_);
-        } else if (_ = accept(result)) {
-          if (kind === "field")
-            initializers.unshift(_);
-          else
-            descriptor[key] = _;
-        }
-      }
-      if (target)
-        Object.defineProperty(target, contextIn.name, descriptor);
-      done = true;
-    };
-    __runInitializers = function(thisArg, initializers, value) {
-      var useValue = arguments.length > 2;
-      for (var i = 0;i < initializers.length; i++) {
-        value = useValue ? initializers[i].call(thisArg, value) : initializers[i].call(thisArg);
-      }
-      return useValue ? value : undefined;
-    };
-    __propKey = function(x) {
-      return typeof x === "symbol" ? x : "".concat(x);
-    };
-    __setFunctionName = function(f, name, prefix) {
-      if (typeof name === "symbol")
-        name = name.description ? "[".concat(name.description, "]") : "";
-      return Object.defineProperty(f, "name", { configurable: true, value: prefix ? "".concat(prefix, " ", name) : name });
-    };
-    __metadata = function(metadataKey, metadataValue) {
-      if (typeof Reflect === "object" && typeof Reflect.metadata === "function")
-        return Reflect.metadata(metadataKey, metadataValue);
-    };
-    __awaiter = function(thisArg, _arguments, P, generator) {
-      function adopt(value) {
-        return value instanceof P ? value : new P(function(resolve) {
-          resolve(value);
-        });
-      }
-      return new (P || (P = Promise))(function(resolve, reject) {
-        function fulfilled(value) {
-          try {
-            step(generator.next(value));
-          } catch (e) {
-            reject(e);
-          }
-        }
-        function rejected(value) {
-          try {
-            step(generator["throw"](value));
-          } catch (e) {
-            reject(e);
-          }
-        }
-        function step(result) {
-          result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
-        }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-      });
-    };
-    __generator = function(thisArg, body) {
-      var _ = { label: 0, sent: function() {
-        if (t[0] & 1)
-          throw t[1];
-        return t[1];
-      }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
-      return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() {
-        return this;
-      }), g;
-      function verb(n) {
-        return function(v) {
-          return step([n, v]);
-        };
-      }
-      function step(op) {
-        if (f)
-          throw new TypeError("Generator is already executing.");
-        while (g && (g = 0, op[0] && (_ = 0)), _)
-          try {
-            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done)
-              return t;
-            if (y = 0, t)
-              op = [op[0] & 2, t.value];
-            switch (op[0]) {
-              case 0:
-              case 1:
-                t = op;
-                break;
-              case 4:
-                _.label++;
-                return { value: op[1], done: false };
-              case 5:
-                _.label++;
-                y = op[1];
-                op = [0];
-                continue;
-              case 7:
-                op = _.ops.pop();
-                _.trys.pop();
-                continue;
-              default:
-                if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) {
-                  _ = 0;
-                  continue;
-                }
-                if (op[0] === 3 && (!t || op[1] > t[0] && op[1] < t[3])) {
-                  _.label = op[1];
-                  break;
-                }
-                if (op[0] === 6 && _.label < t[1]) {
-                  _.label = t[1];
-                  t = op;
-                  break;
-                }
-                if (t && _.label < t[2]) {
-                  _.label = t[2];
-                  _.ops.push(op);
-                  break;
-                }
-                if (t[2])
-                  _.ops.pop();
-                _.trys.pop();
-                continue;
-            }
-            op = body.call(thisArg, _);
-          } catch (e) {
-            op = [6, e];
-            y = 0;
-          } finally {
-            f = t = 0;
-          }
-        if (op[0] & 5)
-          throw op[1];
-        return { value: op[0] ? op[1] : undefined, done: true };
-      }
-    };
-    __exportStar = function(m, o) {
-      for (var p in m)
-        if (p !== "default" && !Object.prototype.hasOwnProperty.call(o, p))
-          __createBinding(o, m, p);
-    };
-    __createBinding = Object.create ? function(o, m, k, k2) {
-      if (k2 === undefined)
-        k2 = k;
-      var desc = Object.getOwnPropertyDescriptor(m, k);
-      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-        desc = { enumerable: true, get: function() {
-          return m[k];
-        } };
-      }
-      Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
-      if (k2 === undefined)
-        k2 = k;
-      o[k2] = m[k];
-    };
-    __values = function(o) {
-      var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
-      if (m)
-        return m.call(o);
-      if (o && typeof o.length === "number")
-        return {
-          next: function() {
-            if (o && i >= o.length)
-              o = undefined;
-            return { value: o && o[i++], done: !o };
-          }
-        };
-      throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
-    };
-    __read = function(o, n) {
-      var m = typeof Symbol === "function" && o[Symbol.iterator];
-      if (!m)
-        return o;
-      var i = m.call(o), r, ar = [], e;
-      try {
-        while ((n === undefined || n-- > 0) && !(r = i.next()).done)
-          ar.push(r.value);
-      } catch (error) {
-        e = { error };
-      } finally {
-        try {
-          if (r && !r.done && (m = i["return"]))
-            m.call(i);
-        } finally {
-          if (e)
-            throw e.error;
-        }
-      }
-      return ar;
-    };
-    __spread = function() {
-      for (var ar = [], i = 0;i < arguments.length; i++)
-        ar = ar.concat(__read(arguments[i]));
-      return ar;
-    };
-    __spreadArrays = function() {
-      for (var s = 0, i = 0, il = arguments.length;i < il; i++)
-        s += arguments[i].length;
-      for (var r = Array(s), k = 0, i = 0;i < il; i++)
-        for (var a = arguments[i], j = 0, jl = a.length;j < jl; j++, k++)
-          r[k] = a[j];
-      return r;
-    };
-    __spreadArray = function(to, from, pack) {
-      if (pack || arguments.length === 2)
-        for (var i = 0, l = from.length, ar;i < l; i++) {
-          if (ar || !(i in from)) {
-            if (!ar)
-              ar = Array.prototype.slice.call(from, 0, i);
-            ar[i] = from[i];
-          }
-        }
-      return to.concat(ar || Array.prototype.slice.call(from));
-    };
-    __await = function(v) {
-      return this instanceof __await ? (this.v = v, this) : new __await(v);
-    };
-    __asyncGenerator = function(thisArg, _arguments, generator) {
-      if (!Symbol.asyncIterator)
-        throw new TypeError("Symbol.asyncIterator is not defined.");
-      var g = generator.apply(thisArg, _arguments || []), i, q = [];
-      return i = Object.create((typeof AsyncIterator === "function" ? AsyncIterator : Object).prototype), verb("next"), verb("throw"), verb("return", awaitReturn), i[Symbol.asyncIterator] = function() {
-        return this;
-      }, i;
-      function awaitReturn(f) {
-        return function(v) {
-          return Promise.resolve(v).then(f, reject);
-        };
-      }
-      function verb(n, f) {
-        if (g[n]) {
-          i[n] = function(v) {
-            return new Promise(function(a, b) {
-              q.push([n, v, a, b]) > 1 || resume(n, v);
-            });
-          };
-          if (f)
-            i[n] = f(i[n]);
-        }
-      }
-      function resume(n, v) {
-        try {
-          step(g[n](v));
-        } catch (e) {
-          settle(q[0][3], e);
-        }
-      }
-      function step(r) {
-        r.value instanceof __await ? Promise.resolve(r.value.v).then(fulfill, reject) : settle(q[0][2], r);
-      }
-      function fulfill(value) {
-        resume("next", value);
-      }
-      function reject(value) {
-        resume("throw", value);
-      }
-      function settle(f, v) {
-        if (f(v), q.shift(), q.length)
-          resume(q[0][0], q[0][1]);
-      }
-    };
-    __asyncDelegator = function(o) {
-      var i, p;
-      return i = {}, verb("next"), verb("throw", function(e) {
-        throw e;
-      }), verb("return"), i[Symbol.iterator] = function() {
-        return this;
-      }, i;
-      function verb(n, f) {
-        i[n] = o[n] ? function(v) {
-          return (p = !p) ? { value: __await(o[n](v)), done: false } : f ? f(v) : v;
-        } : f;
-      }
-    };
-    __asyncValues = function(o) {
-      if (!Symbol.asyncIterator)
-        throw new TypeError("Symbol.asyncIterator is not defined.");
-      var m = o[Symbol.asyncIterator], i;
-      return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function() {
-        return this;
-      }, i);
-      function verb(n) {
-        i[n] = o[n] && function(v) {
-          return new Promise(function(resolve, reject) {
-            v = o[n](v), settle(resolve, reject, v.done, v.value);
-          });
-        };
-      }
-      function settle(resolve, reject, d, v) {
-        Promise.resolve(v).then(function(v2) {
-          resolve({ value: v2, done: d });
-        }, reject);
-      }
-    };
-    __makeTemplateObject = function(cooked, raw) {
-      if (Object.defineProperty) {
-        Object.defineProperty(cooked, "raw", { value: raw });
-      } else {
-        cooked.raw = raw;
-      }
-      return cooked;
-    };
-    var __setModuleDefault = Object.create ? function(o, v) {
-      Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
-      o["default"] = v;
-    };
-    var ownKeys2 = function(o) {
-      ownKeys2 = Object.getOwnPropertyNames || function(o2) {
-        var ar = [];
-        for (var k in o2)
-          if (Object.prototype.hasOwnProperty.call(o2, k))
-            ar[ar.length] = k;
-        return ar;
-      };
-      return ownKeys2(o);
-    };
-    __importStar = function(mod) {
-      if (mod && mod.__esModule)
-        return mod;
-      var result = {};
-      if (mod != null) {
-        for (var k = ownKeys2(mod), i = 0;i < k.length; i++)
-          if (k[i] !== "default")
-            __createBinding(result, mod, k[i]);
-      }
-      __setModuleDefault(result, mod);
-      return result;
-    };
-    __importDefault = function(mod) {
-      return mod && mod.__esModule ? mod : { default: mod };
-    };
-    __classPrivateFieldGet = function(receiver, state, kind, f) {
-      if (kind === "a" && !f)
-        throw new TypeError("Private accessor was defined without a getter");
-      if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver))
-        throw new TypeError("Cannot read private member from an object whose class did not declare it");
-      return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
-    };
-    __classPrivateFieldSet = function(receiver, state, value, kind, f) {
-      if (kind === "m")
-        throw new TypeError("Private method is not writable");
-      if (kind === "a" && !f)
-        throw new TypeError("Private accessor was defined without a setter");
-      if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver))
-        throw new TypeError("Cannot write private member to an object whose class did not declare it");
-      return kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value), value;
-    };
-    __classPrivateFieldIn = function(state, receiver) {
-      if (receiver === null || typeof receiver !== "object" && typeof receiver !== "function")
-        throw new TypeError("Cannot use 'in' operator on non-object");
-      return typeof state === "function" ? receiver === state : state.has(receiver);
-    };
-    __addDisposableResource = function(env, value, async) {
-      if (value !== null && value !== undefined) {
-        if (typeof value !== "object" && typeof value !== "function")
-          throw new TypeError("Object expected.");
-        var dispose, inner;
-        if (async) {
-          if (!Symbol.asyncDispose)
-            throw new TypeError("Symbol.asyncDispose is not defined.");
-          dispose = value[Symbol.asyncDispose];
-        }
-        if (dispose === undefined) {
-          if (!Symbol.dispose)
-            throw new TypeError("Symbol.dispose is not defined.");
-          dispose = value[Symbol.dispose];
-          if (async)
-            inner = dispose;
-        }
-        if (typeof dispose !== "function")
-          throw new TypeError("Object not disposable.");
-        if (inner)
-          dispose = function() {
-            try {
-              inner.call(this);
-            } catch (e) {
-              return Promise.reject(e);
-            }
-          };
-        env.stack.push({ value, dispose, async });
-      } else if (async) {
-        env.stack.push({ async: true });
-      }
-      return value;
-    };
-    var _SuppressedError = typeof SuppressedError === "function" ? SuppressedError : function(error, suppressed, message) {
-      var e = new Error(message);
-      return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
-    };
-    __disposeResources = function(env) {
-      function fail(e) {
-        env.error = env.hasError ? new _SuppressedError(e, env.error, "An error was suppressed during disposal.") : e;
-        env.hasError = true;
-      }
-      var r, s = 0;
-      function next() {
-        while (r = env.stack.pop()) {
-          try {
-            if (!r.async && s === 1)
-              return s = 0, env.stack.push(r), Promise.resolve().then(next);
-            if (r.dispose) {
-              var result = r.dispose.call(r.value);
-              if (r.async)
-                return s |= 2, Promise.resolve(result).then(next, function(e) {
-                  fail(e);
-                  return next();
-                });
-            } else
-              s |= 1;
-          } catch (e) {
-            fail(e);
-          }
-        }
-        if (s === 1)
-          return env.hasError ? Promise.reject(env.error) : Promise.resolve();
-        if (env.hasError)
-          throw env.error;
-      }
-      return next();
-    };
-    __rewriteRelativeImportExtension = function(path, preserveJsx) {
-      if (typeof path === "string" && /^\.\.?\//.test(path)) {
-        return path.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
-          return tsx ? preserveJsx ? ".jsx" : ".js" : d && (!ext || !cm) ? m : d + ext + "." + cm.toLowerCase() + "js";
-        });
-      }
-      return path;
-    };
-    exporter("__extends", __extends);
-    exporter("__assign", __assign);
-    exporter("__rest", __rest);
-    exporter("__decorate", __decorate);
-    exporter("__param", __param);
-    exporter("__esDecorate", __esDecorate);
-    exporter("__runInitializers", __runInitializers);
-    exporter("__propKey", __propKey);
-    exporter("__setFunctionName", __setFunctionName);
-    exporter("__metadata", __metadata);
-    exporter("__awaiter", __awaiter);
-    exporter("__generator", __generator);
-    exporter("__exportStar", __exportStar);
-    exporter("__createBinding", __createBinding);
-    exporter("__values", __values);
-    exporter("__read", __read);
-    exporter("__spread", __spread);
-    exporter("__spreadArrays", __spreadArrays);
-    exporter("__spreadArray", __spreadArray);
-    exporter("__await", __await);
-    exporter("__asyncGenerator", __asyncGenerator);
-    exporter("__asyncDelegator", __asyncDelegator);
-    exporter("__asyncValues", __asyncValues);
-    exporter("__makeTemplateObject", __makeTemplateObject);
-    exporter("__importStar", __importStar);
-    exporter("__importDefault", __importDefault);
-    exporter("__classPrivateFieldGet", __classPrivateFieldGet);
-    exporter("__classPrivateFieldSet", __classPrivateFieldSet);
-    exporter("__classPrivateFieldIn", __classPrivateFieldIn);
-    exporter("__addDisposableResource", __addDisposableResource);
-    exporter("__disposeResources", __disposeResources);
-    exporter("__rewriteRelativeImportExtension", __rewriteRelativeImportExtension);
-  });
-});
-
-// ../../node_modules/@supabase/auth-js/dist/main/lib/version.js
+// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/version.js
 var require_version2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.version = undefined;
   exports.version = "2.89.0";
 });
 
-// ../../node_modules/@supabase/auth-js/dist/main/lib/constants.js
+// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/constants.js
 var require_constants2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.JWKS_TTL = exports.BASE64URL_REGEX = exports.API_VERSIONS = exports.API_VERSION_HEADER_NAME = exports.NETWORK_FAILURE = exports.DEFAULT_HEADERS = exports.AUDIENCE = exports.STORAGE_KEY = exports.GOTRUE_URL = exports.EXPIRY_MARGIN_MS = exports.AUTO_REFRESH_TICK_THRESHOLD = exports.AUTO_REFRESH_TICK_DURATION_MS = undefined;
@@ -3948,7 +2738,7 @@ var require_constants2 = __commonJS((exports) => {
   exports.JWKS_TTL = 10 * 60 * 1000;
 });
 
-// ../../node_modules/@supabase/auth-js/dist/main/lib/errors.js
+// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/errors.js
 var require_errors = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.AuthInvalidJwtError = exports.AuthWeakPasswordError = exports.AuthRetryableFetchError = exports.AuthPKCECodeVerifierMissingError = exports.AuthPKCEGrantCodeExchangeError = exports.AuthImplicitGrantRedirectError = exports.AuthInvalidCredentialsError = exports.AuthInvalidTokenResponseError = exports.AuthSessionMissingError = exports.CustomAuthError = exports.AuthUnknownError = exports.AuthApiError = exports.AuthError = undefined;
@@ -4105,7 +2895,7 @@ var require_errors = __commonJS((exports) => {
   exports.AuthInvalidJwtError = AuthInvalidJwtError;
 });
 
-// ../../node_modules/@supabase/auth-js/dist/main/lib/base64url.js
+// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/base64url.js
 var require_base64url = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.byteToBase64URL = byteToBase64URL;
@@ -4293,7 +3083,7 @@ var require_base64url = __commonJS((exports) => {
   }
 });
 
-// ../../node_modules/@supabase/auth-js/dist/main/lib/helpers.js
+// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/helpers.js
 var require_helpers = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.Deferred = exports.removeItemAsync = exports.getItemAsync = exports.setItemAsync = exports.looksLikeFetchResponse = exports.resolveFetch = exports.supportsLocalStorage = exports.isBrowser = undefined;
@@ -4602,7 +3392,7 @@ var require_helpers = __commonJS((exports) => {
   }
 });
 
-// ../../node_modules/@supabase/auth-js/dist/main/lib/fetch.js
+// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/fetch.js
 var require_fetch = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.handleError = handleError2;
@@ -4613,7 +3403,7 @@ var require_fetch = __commonJS((exports) => {
   exports._ssoResponse = _ssoResponse;
   exports._generateLinkResponse = _generateLinkResponse;
   exports._noResolveJsonResponse = _noResolveJsonResponse;
-  var tslib_1 = require_tslib3();
+  var tslib_1 = require_tslib();
   var constants_1 = require_constants2();
   var helpers_1 = require_helpers();
   var errors_1 = require_errors();
@@ -4754,17 +3544,17 @@ var require_fetch = __commonJS((exports) => {
   }
 });
 
-// ../../node_modules/@supabase/auth-js/dist/main/lib/types.js
+// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/types.js
 var require_types2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.SIGN_OUT_SCOPES = undefined;
   exports.SIGN_OUT_SCOPES = ["global", "local", "others"];
 });
 
-// ../../node_modules/@supabase/auth-js/dist/main/GoTrueAdminApi.js
+// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/GoTrueAdminApi.js
 var require_GoTrueAdminApi = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  var tslib_1 = require_tslib3();
+  var tslib_1 = require_tslib();
   var fetch_1 = require_fetch();
   var helpers_1 = require_helpers();
   var types_1 = require_types2();
@@ -5088,7 +3878,7 @@ var require_GoTrueAdminApi = __commonJS((exports) => {
   exports.default = GoTrueAdminApi;
 });
 
-// ../../node_modules/@supabase/auth-js/dist/main/lib/local-storage.js
+// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/local-storage.js
 var require_local_storage = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.memoryLocalStorageAdapter = memoryLocalStorageAdapter;
@@ -5107,7 +3897,7 @@ var require_local_storage = __commonJS((exports) => {
   }
 });
 
-// ../../node_modules/@supabase/auth-js/dist/main/lib/locks.js
+// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/locks.js
 var require_locks = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.ProcessLockAcquireTimeoutError = exports.NavigatorLockAcquireTimeoutError = exports.LockAcquireTimeoutError = exports.internals = undefined;
@@ -5217,7 +4007,7 @@ var require_locks = __commonJS((exports) => {
   }
 });
 
-// ../../node_modules/@supabase/auth-js/dist/main/lib/polyfills.js
+// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/polyfills.js
 var require_polyfills = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.polyfillGlobalThis = polyfillGlobalThis;
@@ -5241,7 +4031,7 @@ var require_polyfills = __commonJS((exports) => {
   }
 });
 
-// ../../node_modules/@supabase/auth-js/dist/main/lib/web3/ethereum.js
+// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/web3/ethereum.js
 var require_ethereum = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.getAddress = getAddress;
@@ -5318,7 +4108,7 @@ ${suffix}`;
   }
 });
 
-// ../../node_modules/@supabase/auth-js/dist/main/lib/webauthn.errors.js
+// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/webauthn.errors.js
 var require_webauthn_errors = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.WebAuthnUnknownError = exports.WebAuthnError = undefined;
@@ -5498,7 +4288,7 @@ var require_webauthn_errors = __commonJS((exports) => {
   }
 });
 
-// ../../node_modules/@supabase/auth-js/dist/main/lib/webauthn.js
+// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/webauthn.js
 var require_webauthn = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.WebAuthnApi = exports.DEFAULT_REQUEST_OPTIONS = exports.DEFAULT_CREATION_OPTIONS = exports.webAuthnAbortService = exports.WebAuthnAbortService = exports.identifyAuthenticationError = exports.identifyRegistrationError = exports.isWebAuthnError = exports.WebAuthnError = undefined;
@@ -5511,7 +4301,7 @@ var require_webauthn = __commonJS((exports) => {
   exports.getCredential = getCredential;
   exports.mergeCredentialCreationOptions = mergeCredentialCreationOptions;
   exports.mergeCredentialRequestOptions = mergeCredentialRequestOptions;
-  var tslib_1 = require_tslib3();
+  var tslib_1 = require_tslib();
   var base64url_1 = require_base64url();
   var errors_1 = require_errors();
   var helpers_1 = require_helpers();
@@ -5942,10 +4732,10 @@ var require_webauthn = __commonJS((exports) => {
   exports.WebAuthnApi = WebAuthnApi;
 });
 
-// ../../node_modules/@supabase/auth-js/dist/main/GoTrueClient.js
+// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/GoTrueClient.js
 var require_GoTrueClient = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  var tslib_1 = require_tslib3();
+  var tslib_1 = require_tslib();
   var GoTrueAdminApi_1 = tslib_1.__importDefault(require_GoTrueAdminApi());
   var constants_1 = require_constants2();
   var errors_1 = require_errors();
@@ -8125,29 +6915,29 @@ var require_GoTrueClient = __commonJS((exports) => {
   exports.default = GoTrueClient;
 });
 
-// ../../node_modules/@supabase/auth-js/dist/main/AuthAdminApi.js
+// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/AuthAdminApi.js
 var require_AuthAdminApi = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  var tslib_1 = require_tslib3();
+  var tslib_1 = require_tslib();
   var GoTrueAdminApi_1 = tslib_1.__importDefault(require_GoTrueAdminApi());
   var AuthAdminApi = GoTrueAdminApi_1.default;
   exports.default = AuthAdminApi;
 });
 
-// ../../node_modules/@supabase/auth-js/dist/main/AuthClient.js
+// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/AuthClient.js
 var require_AuthClient = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  var tslib_1 = require_tslib3();
+  var tslib_1 = require_tslib();
   var GoTrueClient_1 = tslib_1.__importDefault(require_GoTrueClient());
   var AuthClient = GoTrueClient_1.default;
   exports.default = AuthClient;
 });
 
-// ../../node_modules/@supabase/auth-js/dist/main/index.js
+// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/index.js
 var require_main3 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.processLock = exports.lockInternals = exports.NavigatorLockAcquireTimeoutError = exports.navigatorLock = exports.AuthClient = exports.AuthAdminApi = exports.GoTrueClient = exports.GoTrueAdminApi = undefined;
-  var tslib_1 = require_tslib3();
+  var tslib_1 = require_tslib();
   var GoTrueAdminApi_1 = tslib_1.__importDefault(require_GoTrueAdminApi());
   exports.GoTrueAdminApi = GoTrueAdminApi_1.default;
   var GoTrueClient_1 = tslib_1.__importDefault(require_GoTrueClient());
@@ -8173,7 +6963,7 @@ var require_main3 = __commonJS((exports) => {
   } });
 });
 
-// ../../node_modules/posthog-js/dist/main.js
+// ../../node_modules/.bun/posthog-js@1.302.0/node_modules/posthog-js/dist/main.js
 var require_main4 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var t = typeof window != "undefined" ? window : undefined;
@@ -13103,7 +11893,7 @@ var require_main4 = __commonJS((exports) => {
   exports.COPY_AUTOCAPTURE_EVENT = ne, exports.Compression = oe, exports.DisplaySurveyType = Bn, exports.PostHog = jo, exports.SurveyEventName = zn, exports.SurveyEventProperties = Hn, exports.SurveyEventType = Mn, exports.SurveyPosition = An, exports.SurveyQuestionBranchingType = Nn, exports.SurveyQuestionType = Ln, exports.SurveySchedule = Un, exports.SurveyTabPosition = Dn, exports.SurveyType = jn, exports.SurveyWidgetType = On, exports.default = No, exports.posthog = No, exports.severityLevels = ["fatal", "error", "warning", "log", "info", "debug"];
 });
 
-// ../../node_modules/@supabase/supabase-js/dist/index.mjs
+// ../../node_modules/.bun/@supabase+supabase-js@2.89.0/node_modules/@supabase/supabase-js/dist/index.mjs
 var exports_dist3 = {};
 __export(exports_dist3, {
   createClient: () => createClient,
@@ -13117,7 +11907,7 @@ __export(exports_dist3, {
 });
 var import_functions_js = __toESM(require_main(), 1);
 
-// ../../node_modules/@supabase/postgrest-js/dist/index.mjs
+// ../../node_modules/.bun/@supabase+postgrest-js@2.89.0/node_modules/@supabase/postgrest-js/dist/index.mjs
 var exports_dist = {};
 __export(exports_dist, {
   default: () => src_default,
@@ -13706,10 +12496,10 @@ var src_default = {
   PostgrestError
 };
 
-// ../../node_modules/@supabase/supabase-js/dist/index.mjs
+// ../../node_modules/.bun/@supabase+supabase-js@2.89.0/node_modules/@supabase/supabase-js/dist/index.mjs
 var import_realtime_js = __toESM(require_main2(), 1);
 
-// ../../node_modules/@supabase/storage-js/dist/index.mjs
+// ../../node_modules/.bun/@supabase+storage-js@2.89.0/node_modules/@supabase/storage-js/dist/index.mjs
 var exports_dist2 = {};
 __export(exports_dist2, {
   validateVectorDimension: () => validateVectorDimension,
@@ -13736,7 +12526,7 @@ __export(exports_dist2, {
   StorageAnalyticsClient: () => StorageAnalyticsClient
 });
 
-// ../../node_modules/iceberg-js/dist/index.mjs
+// ../../node_modules/.bun/iceberg-js@0.8.1/node_modules/iceberg-js/dist/index.mjs
 var IcebergError = class extends Error {
   constructor(message, opts) {
     super(message);
@@ -14036,7 +12826,7 @@ var IcebergRestCatalog = class {
   }
 };
 
-// ../../node_modules/@supabase/storage-js/dist/index.mjs
+// ../../node_modules/.bun/@supabase+storage-js@2.89.0/node_modules/@supabase/storage-js/dist/index.mjs
 var StorageError = class extends Error {
   constructor(message) {
     super(message);
@@ -15474,7 +14264,7 @@ var StorageClient = class extends StorageBucketApi {
   }
 };
 
-// ../../node_modules/@supabase/supabase-js/dist/index.mjs
+// ../../node_modules/.bun/@supabase+supabase-js@2.89.0/node_modules/@supabase/supabase-js/dist/index.mjs
 var import_auth_js = __toESM(require_main3(), 1);
 __reExport(exports_dist3, __toESM(require_main2(), 1));
 __reExport(exports_dist3, __toESM(require_main3(), 1));
@@ -15809,7 +14599,7 @@ function createServerClient(schemas, captureFunc, disposeFunc) {
   };
 }
 
-// ../../node_modules/zod/v4/classic/external.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/classic/external.js
 var exports_external = {};
 __export(exports_external, {
   xid: () => xid2,
@@ -16039,7 +14829,7 @@ __export(exports_external, {
   $brand: () => $brand
 });
 
-// ../../node_modules/zod/v4/core/index.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/core/index.js
 var exports_core2 = {};
 __export(exports_core2, {
   version: () => version3,
@@ -16303,7 +15093,7 @@ __export(exports_core2, {
   $ZodAny: () => $ZodAny
 });
 
-// ../../node_modules/zod/v4/core/core.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/core/core.js
 var NEVER = Object.freeze({
   status: "aborted"
 });
@@ -16370,7 +15160,7 @@ function config(newConfig) {
     Object.assign(globalConfig, newConfig);
   return globalConfig;
 }
-// ../../node_modules/zod/v4/core/util.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/core/util.js
 var exports_util = {};
 __export(exports_util, {
   unwrapMessage: () => unwrapMessage,
@@ -16999,7 +15789,7 @@ class Class {
   constructor(..._args) {}
 }
 
-// ../../node_modules/zod/v4/core/errors.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/core/errors.js
 var initializer = (inst, def) => {
   inst.name = "$ZodError";
   Object.defineProperty(inst, "_zod", {
@@ -17136,7 +15926,7 @@ function prettifyError(error) {
 `);
 }
 
-// ../../node_modules/zod/v4/core/parse.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/core/parse.js
 var _parse = (_Err) => (schema, value, _ctx, _params) => {
   const ctx = _ctx ? Object.assign(_ctx, { async: false }) : { async: false };
   const result = schema._zod.run({ value, issues: [] }, ctx);
@@ -17223,7 +16013,7 @@ var _safeDecodeAsync = (_Err) => async (schema, value, _ctx) => {
   return _safeParseAsync(_Err)(schema, value, _ctx);
 };
 var safeDecodeAsync = /* @__PURE__ */ _safeDecodeAsync($ZodRealError);
-// ../../node_modules/zod/v4/core/regexes.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/core/regexes.js
 var exports_regexes = {};
 __export(exports_regexes, {
   xid: () => xid,
@@ -17375,7 +16165,7 @@ var sha512_hex = /^[0-9a-fA-F]{128}$/;
 var sha512_base64 = /* @__PURE__ */ fixedBase64(86, "==");
 var sha512_base64url = /* @__PURE__ */ fixedBase64url(86);
 
-// ../../node_modules/zod/v4/core/checks.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/core/checks.js
 var $ZodCheck = /* @__PURE__ */ $constructor("$ZodCheck", (inst, def) => {
   var _a;
   inst._zod ?? (inst._zod = {});
@@ -17916,7 +16706,7 @@ var $ZodCheckOverwrite = /* @__PURE__ */ $constructor("$ZodCheckOverwrite", (ins
   };
 });
 
-// ../../node_modules/zod/v4/core/doc.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/core/doc.js
 class Doc {
   constructor(args = []) {
     this.content = [];
@@ -17954,14 +16744,14 @@ class Doc {
   }
 }
 
-// ../../node_modules/zod/v4/core/versions.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/core/versions.js
 var version3 = {
   major: 4,
   minor: 1,
   patch: 12
 };
 
-// ../../node_modules/zod/v4/core/schemas.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/core/schemas.js
 var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
   var _a;
   inst ?? (inst = {});
@@ -19797,7 +18587,7 @@ function handleRefineResult(result, payload, input, inst) {
     payload.issues.push(issue(_iss));
   }
 }
-// ../../node_modules/zod/v4/locales/index.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/index.js
 var exports_locales = {};
 __export(exports_locales, {
   zhTW: () => zh_TW_default,
@@ -19849,7 +18639,7 @@ __export(exports_locales, {
   ar: () => ar_default
 });
 
-// ../../node_modules/zod/v4/locales/ar.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/ar.js
 var error = () => {
   const Sizable = {
     string: { unit: "حرف", verb: "أن يحوي" },
@@ -19965,7 +18755,7 @@ function ar_default() {
     localeError: error()
   };
 }
-// ../../node_modules/zod/v4/locales/az.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/az.js
 var error2 = () => {
   const Sizable = {
     string: { unit: "simvol", verb: "olmalıdır" },
@@ -20080,7 +18870,7 @@ function az_default() {
     localeError: error2()
   };
 }
-// ../../node_modules/zod/v4/locales/be.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/be.js
 function getBelarusianPlural(count, one, few, many) {
   const absCount = Math.abs(count);
   const lastDigit = absCount % 10;
@@ -20244,7 +19034,7 @@ function be_default() {
     localeError: error3()
   };
 }
-// ../../node_modules/zod/v4/locales/bg.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/bg.js
 var parsedType = (data) => {
   const t = typeof data;
   switch (t) {
@@ -20372,7 +19162,7 @@ function bg_default() {
     localeError: error4()
   };
 }
-// ../../node_modules/zod/v4/locales/ca.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/ca.js
 var error5 = () => {
   const Sizable = {
     string: { unit: "caràcters", verb: "contenir" },
@@ -20489,7 +19279,7 @@ function ca_default() {
     localeError: error5()
   };
 }
-// ../../node_modules/zod/v4/locales/cs.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/cs.js
 var error6 = () => {
   const Sizable = {
     string: { unit: "znaků", verb: "mít" },
@@ -20624,7 +19414,7 @@ function cs_default() {
     localeError: error6()
   };
 }
-// ../../node_modules/zod/v4/locales/da.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/da.js
 var error7 = () => {
   const Sizable = {
     string: { unit: "tegn", verb: "havde" },
@@ -20755,7 +19545,7 @@ function da_default() {
     localeError: error7()
   };
 }
-// ../../node_modules/zod/v4/locales/de.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/de.js
 var error8 = () => {
   const Sizable = {
     string: { unit: "Zeichen", verb: "zu haben" },
@@ -20871,7 +19661,7 @@ function de_default() {
     localeError: error8()
   };
 }
-// ../../node_modules/zod/v4/locales/en.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/en.js
 var parsedType2 = (data) => {
   const t = typeof data;
   switch (t) {
@@ -20988,7 +19778,7 @@ function en_default() {
     localeError: error9()
   };
 }
-// ../../node_modules/zod/v4/locales/eo.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/eo.js
 var parsedType3 = (data) => {
   const t = typeof data;
   switch (t) {
@@ -21104,7 +19894,7 @@ function eo_default() {
     localeError: error10()
   };
 }
-// ../../node_modules/zod/v4/locales/es.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/es.js
 var error11 = () => {
   const Sizable = {
     string: { unit: "caracteres", verb: "tener" },
@@ -21252,7 +20042,7 @@ function es_default() {
     localeError: error11()
   };
 }
-// ../../node_modules/zod/v4/locales/fa.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/fa.js
 var error12 = () => {
   const Sizable = {
     string: { unit: "کاراکتر", verb: "داشته باشد" },
@@ -21374,7 +20164,7 @@ function fa_default() {
     localeError: error12()
   };
 }
-// ../../node_modules/zod/v4/locales/fi.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/fi.js
 var error13 = () => {
   const Sizable = {
     string: { unit: "merkkiä", subject: "merkkijonon" },
@@ -21496,7 +20286,7 @@ function fi_default() {
     localeError: error13()
   };
 }
-// ../../node_modules/zod/v4/locales/fr.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/fr.js
 var error14 = () => {
   const Sizable = {
     string: { unit: "caractères", verb: "avoir" },
@@ -21612,7 +20402,7 @@ function fr_default() {
     localeError: error14()
   };
 }
-// ../../node_modules/zod/v4/locales/fr-CA.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/fr-CA.js
 var error15 = () => {
   const Sizable = {
     string: { unit: "caractères", verb: "avoir" },
@@ -21729,7 +20519,7 @@ function fr_CA_default() {
     localeError: error15()
   };
 }
-// ../../node_modules/zod/v4/locales/he.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/he.js
 var error16 = () => {
   const Sizable = {
     string: { unit: "אותיות", verb: "לכלול" },
@@ -21845,7 +20635,7 @@ function he_default() {
     localeError: error16()
   };
 }
-// ../../node_modules/zod/v4/locales/hu.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/hu.js
 var error17 = () => {
   const Sizable = {
     string: { unit: "karakter", verb: "legyen" },
@@ -21961,7 +20751,7 @@ function hu_default() {
     localeError: error17()
   };
 }
-// ../../node_modules/zod/v4/locales/id.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/id.js
 var error18 = () => {
   const Sizable = {
     string: { unit: "karakter", verb: "memiliki" },
@@ -22077,7 +20867,7 @@ function id_default() {
     localeError: error18()
   };
 }
-// ../../node_modules/zod/v4/locales/is.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/is.js
 var parsedType4 = (data) => {
   const t = typeof data;
   switch (t) {
@@ -22194,7 +20984,7 @@ function is_default() {
     localeError: error19()
   };
 }
-// ../../node_modules/zod/v4/locales/it.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/it.js
 var error20 = () => {
   const Sizable = {
     string: { unit: "caratteri", verb: "avere" },
@@ -22310,7 +21100,7 @@ function it_default() {
     localeError: error20()
   };
 }
-// ../../node_modules/zod/v4/locales/ja.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/ja.js
 var error21 = () => {
   const Sizable = {
     string: { unit: "文字", verb: "である" },
@@ -22425,7 +21215,7 @@ function ja_default() {
     localeError: error21()
   };
 }
-// ../../node_modules/zod/v4/locales/ka.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/ka.js
 var parsedType5 = (data) => {
   const t = typeof data;
   switch (t) {
@@ -22550,7 +21340,7 @@ function ka_default() {
     localeError: error22()
   };
 }
-// ../../node_modules/zod/v4/locales/km.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/km.js
 var error23 = () => {
   const Sizable = {
     string: { unit: "តួអក្សរ", verb: "គួរមាន" },
@@ -22668,11 +21458,11 @@ function km_default() {
   };
 }
 
-// ../../node_modules/zod/v4/locales/kh.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/kh.js
 function kh_default() {
   return km_default();
 }
-// ../../node_modules/zod/v4/locales/ko.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/ko.js
 var error24 = () => {
   const Sizable = {
     string: { unit: "문자", verb: "to have" },
@@ -22793,7 +21583,7 @@ function ko_default() {
     localeError: error24()
   };
 }
-// ../../node_modules/zod/v4/locales/lt.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/lt.js
 var parsedType6 = (data) => {
   const t = typeof data;
   return parsedTypeFromType(t, data);
@@ -23022,7 +21812,7 @@ function lt_default() {
     localeError: error25()
   };
 }
-// ../../node_modules/zod/v4/locales/mk.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/mk.js
 var error26 = () => {
   const Sizable = {
     string: { unit: "знаци", verb: "да имаат" },
@@ -23139,7 +21929,7 @@ function mk_default() {
     localeError: error26()
   };
 }
-// ../../node_modules/zod/v4/locales/ms.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/ms.js
 var error27 = () => {
   const Sizable = {
     string: { unit: "aksara", verb: "mempunyai" },
@@ -23255,7 +22045,7 @@ function ms_default() {
     localeError: error27()
   };
 }
-// ../../node_modules/zod/v4/locales/nl.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/nl.js
 var error28 = () => {
   const Sizable = {
     string: { unit: "tekens" },
@@ -23372,7 +22162,7 @@ function nl_default() {
     localeError: error28()
   };
 }
-// ../../node_modules/zod/v4/locales/no.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/no.js
 var error29 = () => {
   const Sizable = {
     string: { unit: "tegn", verb: "å ha" },
@@ -23488,7 +22278,7 @@ function no_default() {
     localeError: error29()
   };
 }
-// ../../node_modules/zod/v4/locales/ota.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/ota.js
 var error30 = () => {
   const Sizable = {
     string: { unit: "harf", verb: "olmalıdır" },
@@ -23604,7 +22394,7 @@ function ota_default() {
     localeError: error30()
   };
 }
-// ../../node_modules/zod/v4/locales/ps.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/ps.js
 var error31 = () => {
   const Sizable = {
     string: { unit: "توکي", verb: "ولري" },
@@ -23726,7 +22516,7 @@ function ps_default() {
     localeError: error31()
   };
 }
-// ../../node_modules/zod/v4/locales/pl.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/pl.js
 var error32 = () => {
   const Sizable = {
     string: { unit: "znaków", verb: "mieć" },
@@ -23843,7 +22633,7 @@ function pl_default() {
     localeError: error32()
   };
 }
-// ../../node_modules/zod/v4/locales/pt.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/pt.js
 var error33 = () => {
   const Sizable = {
     string: { unit: "caracteres", verb: "ter" },
@@ -23959,7 +22749,7 @@ function pt_default() {
     localeError: error33()
   };
 }
-// ../../node_modules/zod/v4/locales/ru.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/ru.js
 function getRussianPlural(count, one, few, many) {
   const absCount = Math.abs(count);
   const lastDigit = absCount % 10;
@@ -24123,7 +22913,7 @@ function ru_default() {
     localeError: error34()
   };
 }
-// ../../node_modules/zod/v4/locales/sl.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/sl.js
 var error35 = () => {
   const Sizable = {
     string: { unit: "znakov", verb: "imeti" },
@@ -24240,7 +23030,7 @@ function sl_default() {
     localeError: error35()
   };
 }
-// ../../node_modules/zod/v4/locales/sv.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/sv.js
 var error36 = () => {
   const Sizable = {
     string: { unit: "tecken", verb: "att ha" },
@@ -24358,7 +23148,7 @@ function sv_default() {
     localeError: error36()
   };
 }
-// ../../node_modules/zod/v4/locales/ta.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/ta.js
 var error37 = () => {
   const Sizable = {
     string: { unit: "எழுத்துக்கள்", verb: "கொண்டிருக்க வேண்டும்" },
@@ -24475,7 +23265,7 @@ function ta_default() {
     localeError: error37()
   };
 }
-// ../../node_modules/zod/v4/locales/th.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/th.js
 var error38 = () => {
   const Sizable = {
     string: { unit: "ตัวอักษร", verb: "ควรมี" },
@@ -24592,7 +23382,7 @@ function th_default() {
     localeError: error38()
   };
 }
-// ../../node_modules/zod/v4/locales/tr.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/tr.js
 var parsedType7 = (data) => {
   const t = typeof data;
   switch (t) {
@@ -24707,7 +23497,7 @@ function tr_default() {
     localeError: error39()
   };
 }
-// ../../node_modules/zod/v4/locales/uk.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/uk.js
 var error40 = () => {
   const Sizable = {
     string: { unit: "символів", verb: "матиме" },
@@ -24824,11 +23614,11 @@ function uk_default() {
   };
 }
 
-// ../../node_modules/zod/v4/locales/ua.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/ua.js
 function ua_default() {
   return uk_default();
 }
-// ../../node_modules/zod/v4/locales/ur.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/ur.js
 var error41 = () => {
   const Sizable = {
     string: { unit: "حروف", verb: "ہونا" },
@@ -24945,7 +23735,7 @@ function ur_default() {
     localeError: error41()
   };
 }
-// ../../node_modules/zod/v4/locales/vi.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/vi.js
 var error42 = () => {
   const Sizable = {
     string: { unit: "ký tự", verb: "có" },
@@ -25061,7 +23851,7 @@ function vi_default() {
     localeError: error42()
   };
 }
-// ../../node_modules/zod/v4/locales/zh-CN.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/zh-CN.js
 var error43 = () => {
   const Sizable = {
     string: { unit: "字符", verb: "包含" },
@@ -25177,7 +23967,7 @@ function zh_CN_default() {
     localeError: error43()
   };
 }
-// ../../node_modules/zod/v4/locales/zh-TW.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/zh-TW.js
 var error44 = () => {
   const Sizable = {
     string: { unit: "字元", verb: "擁有" },
@@ -25294,7 +24084,7 @@ function zh_TW_default() {
     localeError: error44()
   };
 }
-// ../../node_modules/zod/v4/locales/yo.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/locales/yo.js
 var error45 = () => {
   const Sizable = {
     string: { unit: "àmi", verb: "ní" },
@@ -25409,7 +24199,7 @@ function yo_default() {
     localeError: error45()
   };
 }
-// ../../node_modules/zod/v4/core/registries.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/core/registries.js
 var $output = Symbol("ZodOutput");
 var $input = Symbol("ZodInput");
 
@@ -25460,7 +24250,7 @@ function registry() {
   return new $ZodRegistry;
 }
 var globalRegistry = /* @__PURE__ */ registry();
-// ../../node_modules/zod/v4/core/api.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/core/api.js
 function _string(Class2, params) {
   return new Class2({
     type: "string",
@@ -26338,7 +25128,7 @@ function _stringFormat(Class2, format, fnOrRegex, _params = {}) {
   const inst = new Class2(def);
   return inst;
 }
-// ../../node_modules/zod/v4/core/to-json-schema.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/core/to-json-schema.js
 class JSONSchemaGenerator {
   constructor(params) {
     this.counter = 0;
@@ -27142,9 +25932,9 @@ function isTransforming(_schema, _ctx) {
   }
   throw new Error(`Unknown schema type: ${def.type}`);
 }
-// ../../node_modules/zod/v4/core/json-schema.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/core/json-schema.js
 var exports_json_schema = {};
-// ../../node_modules/zod/v4/classic/iso.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/classic/iso.js
 var exports_iso = {};
 __export(exports_iso, {
   time: () => time2,
@@ -27185,7 +25975,7 @@ function duration2(params) {
   return _isoDuration(ZodISODuration, params);
 }
 
-// ../../node_modules/zod/v4/classic/errors.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/classic/errors.js
 var initializer2 = (inst, issues) => {
   $ZodError.init(inst, issues);
   inst.name = "ZodError";
@@ -27220,7 +26010,7 @@ var ZodRealError = $constructor("ZodError", initializer2, {
   Parent: Error
 });
 
-// ../../node_modules/zod/v4/classic/parse.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/classic/parse.js
 var parse3 = /* @__PURE__ */ _parse(ZodRealError);
 var parseAsync2 = /* @__PURE__ */ _parseAsync(ZodRealError);
 var safeParse2 = /* @__PURE__ */ _safeParse(ZodRealError);
@@ -27234,7 +26024,7 @@ var safeDecode2 = /* @__PURE__ */ _safeDecode(ZodRealError);
 var safeEncodeAsync2 = /* @__PURE__ */ _safeEncodeAsync(ZodRealError);
 var safeDecodeAsync2 = /* @__PURE__ */ _safeDecodeAsync(ZodRealError);
 
-// ../../node_modules/zod/v4/classic/schemas.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/classic/schemas.js
 var ZodType = /* @__PURE__ */ $constructor("ZodType", (inst, def) => {
   $ZodType.init(inst, def);
   inst.def = def;
@@ -28201,7 +26991,7 @@ function json(params) {
 function preprocess(fn, schema) {
   return pipe(transform(fn), schema);
 }
-// ../../node_modules/zod/v4/classic/compat.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/classic/compat.js
 var ZodIssueCode = {
   invalid_type: "invalid_type",
   too_big: "too_big",
@@ -28225,7 +27015,7 @@ function getErrorMap() {
 }
 var ZodFirstPartyTypeKind;
 (function(ZodFirstPartyTypeKind2) {})(ZodFirstPartyTypeKind || (ZodFirstPartyTypeKind = {}));
-// ../../node_modules/zod/v4/classic/coerce.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/classic/coerce.js
 var exports_coerce = {};
 __export(exports_coerce, {
   string: () => string3,
@@ -28250,7 +27040,7 @@ function date4(params) {
   return _coercedDate(ZodDate, params);
 }
 
-// ../../node_modules/zod/v4/classic/external.js
+// ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/classic/external.js
 config(en_default());
 // ../../packages/analytics/src/schemas/analysis.events.ts
 var analysisEvents = {
@@ -28343,7 +27133,7 @@ var allEvents = {
   ...onboardingEvents,
   ...extensionEvents
 };
-// ../../node_modules/posthog-node/dist/extensions/error-tracking/modifiers/module.node.mjs
+// ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/extensions/error-tracking/modifiers/module.node.mjs
 import { dirname, posix, sep } from "path";
 function createModulerModifier() {
   const getModuleFromFileName = createGetModuleFromFilename();
@@ -28379,7 +27169,7 @@ function normalizeWindowsPath(path) {
   return path.replace(/^[A-Z]:/, "").replace(/\\/g, "/");
 }
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/featureFlagUtils.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/featureFlagUtils.mjs
 var normalizeFlagsResponse = (flagsResponse) => {
   if ("flags" in flagsResponse) {
     const featureFlags = getFlagValuesFromFlags(flagsResponse.flags);
@@ -28450,7 +27240,7 @@ var parsePayload = (response) => {
   }
 };
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/vendor/uuidv7.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/vendor/uuidv7.mjs
 /*! For license information please see uuidv7.mjs.LICENSE.txt */
 var DIGITS = "0123456789abcdef";
 
@@ -28628,7 +27418,7 @@ var defaultGenerator;
 var uuidv72 = () => uuidv7obj().toString();
 var uuidv7obj = () => (defaultGenerator || (defaultGenerator = new V7Generator)).generate();
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/utils/bot-detection.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/utils/bot-detection.mjs
 var DEFAULT_BLOCKED_UA_STRS = [
   "amazonbot",
   "amazonproductbot",
@@ -28717,7 +27507,7 @@ var isBlockedUA = function(ua, customBlockedUserAgents = []) {
     return uaLower.indexOf(blockedUaLower) !== -1;
   });
 };
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/types.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/types.mjs
 var types_PostHogPersistedProperty = /* @__PURE__ */ function(PostHogPersistedProperty) {
   PostHogPersistedProperty["AnonymousId"] = "anonymous_id";
   PostHogPersistedProperty["DistinctId"] = "distinct_id";
@@ -28747,7 +27537,7 @@ var types_PostHogPersistedProperty = /* @__PURE__ */ function(PostHogPersistedPr
   return PostHogPersistedProperty;
 }({});
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/utils/type-utils.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/utils/type-utils.mjs
 var nativeIsArray = Array.isArray;
 var ObjProto = Object.prototype;
 var type_utils_hasOwnProperty = ObjProto.hasOwnProperty;
@@ -28783,7 +27573,7 @@ function isPlainObject3(candidate) {
   return isBuiltin(candidate, "Object");
 }
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/utils/number-utils.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/utils/number-utils.mjs
 function clampToRange(value, min, max, logger, fallbackValue) {
   if (min > max) {
     logger.warn("min cannot be greater than max.");
@@ -28803,7 +27593,7 @@ function clampToRange(value, min, max, logger, fallbackValue) {
   return clampToRange(fallbackValue || max, min, max, logger);
 }
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/utils/bucketed-rate-limiter.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/utils/bucketed-rate-limiter.mjs
 var ONE_DAY_IN_MS = 86400000;
 
 class BucketedRateLimiter {
@@ -28847,7 +27637,7 @@ class BucketedRateLimiter {
     this._buckets = {};
   }
 }
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/utils/promise-queue.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/utils/promise-queue.mjs
 class PromiseQueue {
   add(promise2) {
     const promiseUUID = uuidv72();
@@ -28874,7 +27664,7 @@ class PromiseQueue {
   }
 }
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/utils/index.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/utils/index.mjs
 var STRING_FORMAT = "utf8";
 function assert2(truthyValue, message) {
   if (!truthyValue || typeof truthyValue != "string" || isEmpty(truthyValue))
@@ -28922,7 +27712,7 @@ function allSettled(promises) {
     reason
   }))));
 }
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/eventemitter.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/eventemitter.mjs
 class SimpleEventEmitter {
   constructor() {
     this.events = {};
@@ -28944,7 +27734,7 @@ class SimpleEventEmitter {
   }
 }
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/gzip.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/gzip.mjs
 function isGzipSupported() {
   return "CompressionStream" in globalThis;
 }
@@ -28964,7 +27754,7 @@ async function gzipCompress(input, isDebug = true) {
   }
 }
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/logger.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/logger.mjs
 function createConsole(consoleLike = console) {
   const lockedMethods = {
     log: consoleLike.log.bind(consoleLike),
@@ -29002,7 +27792,7 @@ function createLogger(prefix, maybeCall) {
   return _createLogger(prefix, maybeCall, createConsole());
 }
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/posthog-core-stateless.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/posthog-core-stateless.mjs
 class PostHogFetchHttpError extends Error {
   constructor(response, reqByteLength) {
     super("HTTP error while fetching PostHog: status=" + response.status + ", reqByteLength=" + reqByteLength), this.response = response, this.reqByteLength = reqByteLength, this.name = "PostHogFetchHttpError";
@@ -29666,7 +28456,7 @@ class PostHogCoreStateless {
     return this.shutdownPromise;
   }
 }
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/index.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/index.mjs
 var exports_error_tracking = {};
 __export(exports_error_tracking, {
   winjsStackLineParser: () => winjsStackLineParser,
@@ -29689,7 +28479,7 @@ __export(exports_error_tracking, {
   DOMExceptionCoercer: () => DOMExceptionCoercer
 });
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/chunk-ids.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/chunk-ids.mjs
 var parsedStackResults;
 var lastKeysCount;
 var cachedFilenameChunkIds;
@@ -29728,7 +28518,7 @@ function getFilenameToChunkIdMap(stackParser) {
   return cachedFilenameChunkIds;
 }
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/parsers/base.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/parsers/base.mjs
 var UNKNOWN_FUNCTION = "?";
 function createFrame(filename, func, lineno, colno) {
   const frame = {
@@ -29744,7 +28534,7 @@ function createFrame(filename, func, lineno, colno) {
   return frame;
 }
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/parsers/safari.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/parsers/safari.mjs
 var extractSafariExtensionDetails = (func, filename) => {
   const isSafariExtension = func.indexOf("safari-extension") !== -1;
   const isSafariWebExtension = func.indexOf("safari-web-extension") !== -1;
@@ -29757,7 +28547,7 @@ var extractSafariExtensionDetails = (func, filename) => {
   ];
 };
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/parsers/chrome.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/parsers/chrome.mjs
 var chromeRegexNoFnName = /^\s*at (\S+?)(?::(\d+))(?::(\d+))\s*$/i;
 var chromeRegex = /^\s*at (?:(.+?\)(?: \[.+\])?|.*?) ?\((?:address at )?)?(?:async )?((?:<anonymous>|[-a-z]+:|.*bundle|\/)?.*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i;
 var chromeEvalRegex = /\((\S*)(?::(\d+))(?::(\d+))\)/;
@@ -29783,14 +28573,14 @@ var chromeStackLineParser = (line) => {
   }
 };
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/parsers/winjs.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/parsers/winjs.mjs
 var winjsRegex = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:[-a-z]+):.*?):(\d+)(?::(\d+))?\)?\s*$/i;
 var winjsStackLineParser = (line) => {
   const parts = winjsRegex.exec(line);
   return parts ? createFrame(parts[2], parts[1] || UNKNOWN_FUNCTION, +parts[3], parts[4] ? +parts[4] : undefined) : undefined;
 };
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/parsers/gecko.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/parsers/gecko.mjs
 var geckoREgex = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)?((?:[-a-z]+)?:\/.*?|\[native code\]|[^@]*(?:bundle|\d+\.js)|\/[\w\-. /=]+)(?::(\d+))?(?::(\d+))?\s*$/i;
 var geckoEvalRegex = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i;
 var geckoStackLineParser = (line) => {
@@ -29813,7 +28603,7 @@ var geckoStackLineParser = (line) => {
   }
 };
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/parsers/opera.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/parsers/opera.mjs
 var opera10Regex = / line (\d+).*script (?:in )?(\S+)(?:: in function (\S+))?$/i;
 var opera10StackLineParser = (line) => {
   const parts = opera10Regex.exec(line);
@@ -29825,7 +28615,7 @@ var opera11StackLineParser = (line) => {
   return parts ? createFrame(parts[5], parts[3] || parts[4] || UNKNOWN_FUNCTION, +parts[1], +parts[2]) : undefined;
 };
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/parsers/node.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/parsers/node.mjs
 var FILENAME_MATCH = /^\s*[-]{4,}$/;
 var FULL_MATCH = /at (?:async )?(?:(.+?)\s+\()?(?:(.+):(\d+):(\d+)?|([^)]+))\)?/;
 var nodeStackLineParser = (line) => {
@@ -29894,7 +28684,7 @@ function _parseIntOrUndefined(input) {
   return parseInt(input || "", 10) || undefined;
 }
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/parsers/index.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/parsers/index.mjs
 var WEBPACK_ERROR_REGEXP = /\(error: (.*)\)/;
 var STACKTRACE_FRAME_LIMIT = 50;
 function reverseAndStripFrames(stack) {
@@ -29937,7 +28727,7 @@ function createStackParser(...parsers) {
   };
 }
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/error-properties-builder.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/error-properties-builder.mjs
 var MAX_CAUSE_RECURSION = 4;
 
 class ErrorPropertiesBuilder {
@@ -30058,7 +28848,7 @@ class ErrorPropertiesBuilder {
     return context;
   }
 }
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/coercers/dom-exception-coercer.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/coercers/dom-exception-coercer.mjs
 class DOMExceptionCoercer {
   match(err) {
     return this.isDOMException(err) || this.isDOMError(err);
@@ -30088,7 +28878,7 @@ class DOMExceptionCoercer {
     return isBuiltin(err, "DOMError");
   }
 }
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/coercers/error-coercer.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/coercers/error-coercer.mjs
 class ErrorCoercer {
   match(err) {
     return isPlainError(err);
@@ -30115,7 +28905,7 @@ class ErrorCoercer {
     return err.stacktrace || err.stack || undefined;
   }
 }
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/coercers/error-event-coercer.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/coercers/error-event-coercer.mjs
 class ErrorEventCoercer {
   constructor() {}
   match(err) {
@@ -30133,7 +28923,7 @@ class ErrorEventCoercer {
     return exceptionLike;
   }
 }
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/coercers/string-coercer.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/coercers/string-coercer.mjs
 var ERROR_TYPES_PATTERN = /^(?:[Uu]ncaught (?:exception: )?)?(?:((?:Eval|Internal|Range|Reference|Syntax|Type|URI|)Error): )?(.*)$/i;
 
 class StringCoercer {
@@ -30163,7 +28953,7 @@ class StringCoercer {
     ];
   }
 }
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/types.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/types.mjs
 var severityLevels = [
   "fatal",
   "error",
@@ -30173,7 +28963,7 @@ var severityLevels = [
   "debug"
 ];
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/coercers/utils.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/coercers/utils.mjs
 function extractExceptionKeysForMessage(err, maxLength = 40) {
   const keys = Object.keys(err);
   keys.sort();
@@ -30190,7 +28980,7 @@ function extractExceptionKeysForMessage(err, maxLength = 40) {
   return "";
 }
 
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/coercers/object-coercer.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/coercers/object-coercer.mjs
 class ObjectCoercer {
   match(candidate) {
     return typeof candidate == "object" && candidate !== null;
@@ -30243,7 +29033,7 @@ class ObjectCoercer {
     }
   }
 }
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/coercers/event-coercer.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/coercers/event-coercer.mjs
 class EventCoercer {
   match(err) {
     return isEvent(err);
@@ -30258,7 +29048,7 @@ class EventCoercer {
     };
   }
 }
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/coercers/primitive-coercer.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/coercers/primitive-coercer.mjs
 class PrimitiveCoercer {
   match(candidate) {
     return isPrimitive(candidate);
@@ -30272,7 +29062,7 @@ class PrimitiveCoercer {
     };
   }
 }
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/coercers/promise-rejection-event.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/coercers/promise-rejection-event.mjs
 class PromiseRejectionEventCoercer {
   match(err) {
     return isBuiltin(err, "PromiseRejectionEvent");
@@ -30300,7 +29090,7 @@ class PromiseRejectionEventCoercer {
     return error46;
   }
 }
-// ../../node_modules/posthog-node/node_modules/@posthog/core/dist/error-tracking/utils.mjs
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/utils.mjs
 class ReduceableCache {
   constructor(_maxSize2) {
     this._maxSize = _maxSize2;
@@ -30325,7 +29115,7 @@ class ReduceableCache {
     }
   }
 }
-// ../../node_modules/posthog-node/dist/extensions/error-tracking/modifiers/context-lines.node.mjs
+// ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/extensions/error-tracking/modifiers/context-lines.node.mjs
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
 var LRU_FILE_CONTENTS_CACHE = new exports_error_tracking.ReduceableCache(25);
@@ -30543,7 +29333,7 @@ function snipLine(line, colno) {
   return newLine;
 }
 
-// ../../node_modules/posthog-node/dist/extensions/error-tracking/autocapture.mjs
+// ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/extensions/error-tracking/autocapture.mjs
 function makeUncaughtExceptionHandler(captureFn, onFatalFn) {
   let calledFatalError = false;
   return Object.assign((error46) => {
@@ -30575,7 +29365,7 @@ function addUnhandledRejectionListener(captureFn) {
   }));
 }
 
-// ../../node_modules/posthog-node/dist/extensions/error-tracking/index.mjs
+// ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/extensions/error-tracking/index.mjs
 var SHUTDOWN_TIMEOUT = 2000;
 
 class ErrorTracking {
@@ -30640,10 +29430,10 @@ class ErrorTracking {
   }
 }
 
-// ../../node_modules/posthog-node/dist/version.mjs
+// ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/version.mjs
 var version4 = "5.11.0";
 
-// ../../node_modules/posthog-node/dist/extensions/feature-flags/crypto.mjs
+// ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/extensions/feature-flags/crypto.mjs
 async function hashSHA1(text) {
   const subtle = globalThis.crypto?.subtle;
   if (!subtle)
@@ -30653,7 +29443,7 @@ async function hashSHA1(text) {
   return hashArray.map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-// ../../node_modules/posthog-node/dist/extensions/feature-flags/feature-flags.mjs
+// ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/extensions/feature-flags/feature-flags.mjs
 var SIXTY_SECONDS = 60000;
 var LONG_SCALE = 1152921504606847000;
 var NULL_VALUES_ALLOWED_OPERATORS = [
@@ -31240,7 +30030,7 @@ function relativeDateParseForFeatureFlagMatching(value) {
   }
 }
 
-// ../../node_modules/posthog-node/dist/storage-memory.mjs
+// ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/storage-memory.mjs
 class PostHogMemoryStorage {
   getProperty(key) {
     return this._memoryStorage[key];
@@ -31253,7 +30043,7 @@ class PostHogMemoryStorage {
   }
 }
 
-// ../../node_modules/posthog-node/dist/client.mjs
+// ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/client.mjs
 var MINIMUM_POLLING_INTERVAL = 100;
 var THIRTY_SECONDS = 30000;
 var MAX_CACHE_SIZE = 50000;
@@ -31734,7 +30524,7 @@ class PostHogBackendClient extends PostHogCoreStateless {
   }
 }
 
-// ../../node_modules/posthog-node/dist/extensions/sentry-integration.mjs
+// ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/extensions/sentry-integration.mjs
 var NAME = "posthog-node";
 function createEventProcessor(_posthog, { organization, projectId, prefix, severityAllowList = [
   "error"
@@ -31802,7 +30592,7 @@ class PostHogSentryIntegration {
     };
   }
 }
-// ../../node_modules/posthog-node/dist/entrypoints/index.node.mjs
+// ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/entrypoints/index.node.mjs
 ErrorTracking.errorPropertiesBuilder = new exports_error_tracking.ErrorPropertiesBuilder([
   new exports_error_tracking.EventCoercer,
   new exports_error_tracking.ErrorCoercer,
@@ -31855,6 +30645,7 @@ var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
 var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
 var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
+var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
 var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
 var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
@@ -31870,6 +30661,7 @@ var SUPABASE_URL = "https://fnnlebrtmlxxjwdvngck.supabase.co";
 var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubmxlYnJ0bWx4eGp3ZHZuZ2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MzA3MjYsImV4cCI6MjA3MjMwNjcyNn0.0IE3HCY_DiyyALdewbRn1vkedwzDW27NQMQ28V6j4Dk";
 var POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ";
 var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
+var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
 
 // src/utils/logger.ts
 import { appendFile } from "node:fs/promises";

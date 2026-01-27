@@ -1,4 +1,4 @@
-// ../../node_modules/diff/libesm/diff/base.js
+// ../../node_modules/.bun/diff@8.0.0-beta/node_modules/diff/libesm/diff/base.js
 var Diff = function() {
   function Diff2() {}
   Diff2.prototype.diff = function(oldString, newString, options) {
@@ -209,7 +209,7 @@ var Diff = function() {
 }();
 var base_default = Diff;
 
-// ../../node_modules/diff/libesm/diff/character.js
+// ../../node_modules/.bun/diff@8.0.0-beta/node_modules/diff/libesm/diff/character.js
 var __extends = function() {
   var extendStatics = function(d, b) {
     extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
@@ -240,7 +240,7 @@ var CharacterDiff = function(_super) {
 }(base_default);
 var characterDiff = new CharacterDiff;
 
-// ../../node_modules/diff/libesm/util/string.js
+// ../../node_modules/.bun/diff@8.0.0-beta/node_modules/diff/libesm/util/string.js
 function longestCommonPrefix(str1, str2) {
   var i;
   for (i = 0;i < str1.length && i < str2.length; i++) {
@@ -336,7 +336,7 @@ function leadingWs(string) {
   return match ? match[0] : "";
 }
 
-// ../../node_modules/diff/libesm/diff/word.js
+// ../../node_modules/.bun/diff@8.0.0-beta/node_modules/diff/libesm/diff/word.js
 var __extends2 = function() {
   var extendStatics = function(d, b) {
     extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
@@ -508,7 +508,7 @@ var WordsWithSpaceDiff = function(_super) {
 }(base_default);
 var wordsWithSpaceDiff = new WordsWithSpaceDiff;
 
-// ../../node_modules/diff/libesm/diff/line.js
+// ../../node_modules/.bun/diff@8.0.0-beta/node_modules/diff/libesm/diff/line.js
 var __extends3 = function() {
   var extendStatics = function(d, b) {
     extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
@@ -585,7 +585,7 @@ function tokenize(value, options) {
   return retLines;
 }
 
-// ../../node_modules/diff/libesm/diff/sentence.js
+// ../../node_modules/.bun/diff@8.0.0-beta/node_modules/diff/libesm/diff/sentence.js
 var __extends4 = function() {
   var extendStatics = function(d, b) {
     extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
@@ -619,7 +619,7 @@ var SentenceDiff = function(_super) {
 }(base_default);
 var sentenceDiff = new SentenceDiff;
 
-// ../../node_modules/diff/libesm/diff/css.js
+// ../../node_modules/.bun/diff@8.0.0-beta/node_modules/diff/libesm/diff/css.js
 var __extends5 = function() {
   var extendStatics = function(d, b) {
     extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
@@ -653,7 +653,7 @@ var CssDiff = function(_super) {
 }(base_default);
 var cssDiff = new CssDiff;
 
-// ../../node_modules/diff/libesm/diff/json.js
+// ../../node_modules/.bun/diff@8.0.0-beta/node_modules/diff/libesm/diff/json.js
 var __extends6 = function() {
   var extendStatics = function(d, b) {
     extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
@@ -752,7 +752,7 @@ function canonicalize(obj, stack, replacementStack, replacer, key) {
   return canonicalizedObj;
 }
 
-// ../../node_modules/diff/libesm/diff/array.js
+// ../../node_modules/.bun/diff@8.0.0-beta/node_modules/diff/libesm/diff/array.js
 var __extends7 = function() {
   var extendStatics = function(d, b) {
     extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
@@ -792,7 +792,7 @@ var ArrayDiff = function(_super) {
 }(base_default);
 var arrayDiff = new ArrayDiff;
 
-// ../../node_modules/diff/libesm/patch/create.js
+// ../../node_modules/.bun/diff@8.0.0-beta/node_modules/diff/libesm/patch/create.js
 var __assign = function() {
   __assign = Object.assign || function(t) {
     for (var s, i = 1, n = arguments.length;i < n; i++) {
@@ -1000,6 +1000,7 @@ var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
 var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
 var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
+var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
 var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
 var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
@@ -1012,6 +1013,7 @@ var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
+var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
 
 // src/utils/logger.ts
 import { appendFile } from "node:fs/promises";

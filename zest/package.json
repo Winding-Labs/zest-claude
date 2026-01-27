@@ -1,10 +1,10 @@
 {
   "name": "zest-plugin",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "type": "module",
   "description": "Zest plugin for Claude Code CLI - track coding sessions and file changes",
   "main": "dist/commands/status-cli.js",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   }
 }

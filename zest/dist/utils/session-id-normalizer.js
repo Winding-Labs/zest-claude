@@ -1,13 +1,13 @@
-// ../../node_modules/uuid/dist-node/regex.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/regex.js
 var regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
 
-// ../../node_modules/uuid/dist-node/validate.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/validate.js
 function validate(uuid) {
   return typeof uuid === "string" && regex_default.test(uuid);
 }
 var validate_default = validate;
 
-// ../../node_modules/uuid/dist-node/parse.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/parse.js
 function parse(uuid) {
   if (!validate_default(uuid)) {
     throw TypeError("Invalid UUID");
@@ -17,7 +17,7 @@ function parse(uuid) {
 }
 var parse_default = parse;
 
-// ../../node_modules/uuid/dist-node/stringify.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/stringify.js
 var byteToHex = [];
 for (let i = 0;i < 256; ++i) {
   byteToHex.push((i + 256).toString(16).slice(1));
@@ -26,7 +26,7 @@ function unsafeStringify(arr, offset = 0) {
   return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
 }
 
-// ../../node_modules/uuid/dist-node/v35.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/v35.js
 function stringToBytes(str) {
   str = unescape(encodeURIComponent(str));
   const bytes = new Uint8Array(str.length);
@@ -62,7 +62,7 @@ function v35(version, hash, value, namespace, buf, offset) {
   return unsafeStringify(bytes);
 }
 
-// ../../node_modules/uuid/dist-node/sha1.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/sha1.js
 import { createHash } from "node:crypto";
 function sha1(bytes) {
   if (Array.isArray(bytes)) {
@@ -74,7 +74,7 @@ function sha1(bytes) {
 }
 var sha1_default = sha1;
 
-// ../../node_modules/uuid/dist-node/v5.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/v5.js
 function v5(value, namespace, buf, offset) {
   return v35(80, sha1_default, value, namespace, buf, offset);
 }
@@ -95,6 +95,7 @@ var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
 var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
 var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
+var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
 var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
 var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
@@ -107,6 +108,7 @@ var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var ZEST_SESSION_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341";
 var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
+var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
 
 // src/utils/session-id-normalizer.ts
 function isValidSessionId(sessionId) {

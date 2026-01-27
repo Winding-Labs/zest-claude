@@ -16,6 +16,7 @@ var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
 var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
 var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
+var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
 var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
 var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
@@ -28,6 +29,7 @@ var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
+var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
 
 // src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
