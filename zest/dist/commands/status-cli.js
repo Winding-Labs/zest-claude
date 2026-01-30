@@ -14558,6 +14558,7 @@ if (shouldShowDeprecationWarning())
 var AUTH_TOKEN_REFRESH_FAILED = "auth_token_refresh_failed";
 var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
 var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
+var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
 function getErrorCategory(errorType) {
   if (errorType.startsWith("auth_"))
     return "auth";
@@ -30649,20 +30650,24 @@ var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
 var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
 var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
+var SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
 var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
+var SYNC_INTERVAL_MS = 60000;
 var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
 var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
 var LOG_RETENTION_DAYS = 7;
 var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
+var MIN_MESSAGES_PER_SESSION = 3;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var SUPABASE_URL = "https://fnnlebrtmlxxjwdvngck.supabase.co";
 var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubmxlYnJ0bWx4eGp3ZHZuZ2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MzA3MjYsImV4cCI6MjA3MjMwNjcyNn0.0IE3HCY_DiyyALdewbRn1vkedwzDW27NQMQ28V6j4Dk";
 var POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ";
 var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
 var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
 
 // src/utils/logger.ts
 import { appendFile } from "node:fs/promises";
@@ -31064,19 +31069,35 @@ async function refreshSession(session) {
 
 // src/config/settings.ts
 import { readFile as readFile2, writeFile as writeFile2 } from "node:fs/promises";
+var PrivacySettingsSchema = exports_external.object({
+  approach: exports_external.enum(["detection", "encryption", "hybrid"]).default("detection"),
+  aggressiveMode: exports_external.boolean().default(false),
+  enableGitignore: exports_external.boolean().default(true),
+  enableZestRules: exports_external.boolean().default(true),
+  customExclusionPatterns: exports_external.array(exports_external.string()).default([])
+});
 var UserSettingsSchema = exports_external.object({
   enableRemotePersistence: exports_external.boolean(),
   excludePatterns: exports_external.array(exports_external.string()),
   respectGitignore: exports_external.boolean(),
   logLevel: exports_external.enum(["debug", "info", "warn", "error"]),
-  excludedFolders: exports_external.array(exports_external.string()).default([])
+  excludedFolders: exports_external.array(exports_external.string()).default([]),
+  privacy: PrivacySettingsSchema.optional()
 });
+var DEFAULT_PRIVACY_SETTINGS = {
+  approach: "detection",
+  aggressiveMode: false,
+  enableGitignore: true,
+  enableZestRules: true,
+  customExclusionPatterns: []
+};
 var DEFAULT_SETTINGS = {
   enableRemotePersistence: true,
   excludePatterns: [],
   respectGitignore: true,
   logLevel: "info",
-  excludedFolders: []
+  excludedFolders: [],
+  privacy: DEFAULT_PRIVACY_SETTINGS
 };
 async function loadSettings() {
   try {
@@ -31147,6 +31168,375 @@ function isFolderExcluded(folderPath, settings) {
 
 // src/utils/queue-manager.ts
 import { appendFile as appendFile2, readFile as readFile4, unlink as unlink4, writeFile as writeFile4 } from "node:fs/promises";
+
+// ../../packages/privacy-redaction/src/config/defaults.ts
+var DEFAULT_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+// ../../packages/privacy-redaction/src/detection/cache.ts
+class DetectionCache {
+  cache = new Map;
+  maxEntries;
+  ttlMs;
+  constructor(options = {}) {
+    this.maxEntries = options.maxEntries ?? 1000;
+    this.ttlMs = options.ttlMs ?? 5 * 60 * 1000;
+  }
+  get(key) {
+    const entry = this.cache.get(key);
+    if (!entry) {
+      return;
+    }
+    if (Date.now() - entry.timestamp > this.ttlMs) {
+      this.cache.delete(key);
+      return;
+    }
+    this.cache.delete(key);
+    this.cache.set(key, entry);
+    return entry.value;
+  }
+  set(key, value) {
+    if (this.cache.size >= this.maxEntries) {
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey !== undefined) {
+        this.cache.delete(firstKey);
+      }
+    }
+    this.cache.set(key, {
+      value,
+      timestamp: Date.now()
+    });
+  }
+  has(key) {
+    return this.get(key) !== undefined;
+  }
+  delete(key) {
+    return this.cache.delete(key);
+  }
+  clear() {
+    this.cache.clear();
+  }
+  get size() {
+    return this.cache.size;
+  }
+  prune() {
+    const now = Date.now();
+    let pruned = 0;
+    const keysToDelete = [];
+    this.cache.forEach((entry, key) => {
+      if (now - entry.timestamp > this.ttlMs) {
+        keysToDelete.push(key);
+      }
+    });
+    for (const key of keysToDelete) {
+      this.cache.delete(key);
+      pruned++;
+    }
+    return pruned;
+  }
+}
+// ../../packages/privacy-redaction/src/patterns/sensitive-patterns.ts
+function createPattern(name, description, regex, category, options = {}) {
+  return {
+    name,
+    description,
+    regex,
+    category,
+    redactionStrategy: options.redactionStrategy ?? "full",
+    aggressiveOnly: options.aggressiveOnly ?? false,
+    highlySensitive: options.highlySensitive ?? false,
+    priority: options.priority ?? 50
+  };
+}
+var SENSITIVE_DATA_PATTERNS = [
+  createPattern("api_key", "API keys and access keys (quoted)", /(?:api[_-]?key|apikey|access[_-]?key|secret[_-]?key)["\s]*[:=]["\s]*["']([^"']{16,})["']/gi, "api_keys", { redactionStrategy: "partial", priority: 60 }),
+  createPattern("api_key_unquoted", "API keys and access keys (unquoted)", /(?:api[_-]?key|apikey|access[_-]?key|secret[_-]?key)["\s]*(?:[:=]|is)["\s]*([a-zA-Z0-9_\-=+/]{16,})(?=\s|$|[^\w\-=+/])/gi, "api_keys", { redactionStrategy: "partial", priority: 55 }),
+  createPattern("jwt_token", "JWT tokens", /eyJ[a-zA-Z0-9_\-]*\.eyJ[a-zA-Z0-9_\-]*\.[a-zA-Z0-9_\-]*/g, "api_keys", { redactionStrategy: "partial", priority: 70 }),
+  createPattern("generic_secret", "Generic secrets and passwords", /(?:password|passwd|pwd|secret|token|key)["\s]*[:=]["\s]*["']([^"'\s]{8,})["']/gi, "generic", { redactionStrategy: "full", highlySensitive: true, priority: 40 }),
+  createPattern("generic_secret_unquoted", "Generic secrets and passwords (unquoted)", /(?:password|passwd|pwd)["\s]*[:=]["\s]*([^\s"']{6,})/gi, "generic", { redactionStrategy: "full", highlySensitive: true, priority: 45 }),
+  createPattern("aws_access_key", "AWS access keys", /AKIA[0-9A-Z]{16}/g, "cloud_services", {
+    redactionStrategy: "partial",
+    highlySensitive: true,
+    priority: 90
+  }),
+  createPattern("aws_secret_key", "AWS secret access keys", /(?:aws[_-]?secret[_-]?access[_-]?key)["\s]*[:=]["\s]*([a-zA-Z0-9/+=]{40})/gi, "cloud_services", { redactionStrategy: "full", highlySensitive: true, priority: 90 }),
+  createPattern("github_token", "GitHub personal access tokens", /gh[pousr]_[A-Za-z0-9_]{36,255}/g, "api_keys", { redactionStrategy: "partial", highlySensitive: true, priority: 85 }),
+  createPattern("github_app_token", "GitHub App installation access tokens", /ghs_[A-Za-z0-9_]{36}/g, "api_keys", { redactionStrategy: "partial", highlySensitive: true, priority: 85 }),
+  createPattern("github_oauth_token", "GitHub OAuth access tokens", /gho_[A-Za-z0-9_]{36}/g, "api_keys", { redactionStrategy: "partial", highlySensitive: true, priority: 85 }),
+  createPattern("gitlab_token", "GitLab personal access tokens", /glpat-[A-Za-z0-9_\-]{20}/g, "api_keys", { redactionStrategy: "partial", highlySensitive: true, priority: 85 }),
+  createPattern("bitbucket_token", "Bitbucket app passwords", /ATB[A-Za-z0-9]{95}/g, "api_keys", {
+    redactionStrategy: "full",
+    highlySensitive: true,
+    priority: 85
+  }),
+  createPattern("atlassian_token", "Atlassian API tokens", /ATATT[A-Za-z0-9\-_]{60}/g, "api_keys", {
+    redactionStrategy: "full",
+    priority: 80
+  }),
+  createPattern("slack_token", "Slack API tokens", /xox[baprs]-[A-Za-z0-9\-]+/g, "communication", {
+    redactionStrategy: "partial",
+    highlySensitive: true,
+    priority: 80
+  }),
+  createPattern("discord_token", "Discord bot tokens", /[MN][A-Za-z\d]{23}\.[\w-]{6}\.[\w-]{27}/g, "communication", { redactionStrategy: "full", highlySensitive: true, priority: 80 }),
+  createPattern("stripe_key", "Stripe live secret keys", /sk_live_[A-Za-z0-9]{24}/g, "payment", {
+    redactionStrategy: "full",
+    highlySensitive: true,
+    priority: 95
+  }),
+  createPattern("stripe_publishable_key", "Stripe live publishable keys", /pk_live_[A-Za-z0-9]{24}/g, "payment", { redactionStrategy: "partial", priority: 70 }),
+  createPattern("paypal_client_id", "PayPal client IDs", /A[A-Za-z0-9\-_]{79}/g, "payment", {
+    redactionStrategy: "partial",
+    highlySensitive: true,
+    priority: 75,
+    aggressiveOnly: true
+  }),
+  createPattern("square_token", "Square access tokens", /sq0atp-[A-Za-z0-9\-_]{22}/g, "payment", {
+    redactionStrategy: "full",
+    highlySensitive: true,
+    priority: 85
+  }),
+  createPattern("shopify_token", "Shopify access tokens", /shpat_[a-fA-F0-9]{32}/g, "payment", {
+    redactionStrategy: "full",
+    highlySensitive: true,
+    priority: 85
+  }),
+  createPattern("shopify_secret", "Shopify shared secrets", /shpss_[a-fA-F0-9]{32}/g, "payment", {
+    redactionStrategy: "full",
+    highlySensitive: true,
+    priority: 85
+  }),
+  createPattern("twilio_token", "Twilio auth tokens", /SK[a-f0-9]{32}/g, "communication", {
+    redactionStrategy: "full",
+    priority: 75,
+    aggressiveOnly: true
+  }),
+  createPattern("sendgrid_key", "SendGrid API keys", /SG\.[A-Za-z0-9\-_]{22}\.[A-Za-z0-9\-_]{43}/g, "communication", { redactionStrategy: "full", highlySensitive: true, priority: 85 }),
+  createPattern("mailgun_key", "Mailgun API keys", /key-[a-f0-9]{32}/g, "communication", {
+    redactionStrategy: "full",
+    highlySensitive: true,
+    priority: 80
+  }),
+  createPattern("firebase_key", "Firebase API keys", /AIza[A-Za-z0-9\-_]{35}/g, "cloud_services", {
+    redactionStrategy: "partial",
+    priority: 75
+  }),
+  createPattern("google_api_key", "Google Cloud API keys", /AIza[A-Za-z0-9\-_]{35}/g, "cloud_services", { redactionStrategy: "partial", highlySensitive: true, priority: 80 }),
+  createPattern("azure_storage_key", "Azure Storage account keys", /[A-Za-z0-9+/]{88}==/g, "cloud_services", { redactionStrategy: "full", highlySensitive: true, priority: 70, aggressiveOnly: true }),
+  createPattern("heroku_key", "Heroku API keys", /[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/g, "cloud_services", { redactionStrategy: "partial", highlySensitive: true, priority: 50, aggressiveOnly: true }),
+  createPattern("digitalocean_token", "DigitalOcean personal access tokens", /dop_v1_[a-f0-9]{64}/g, "cloud_services", { redactionStrategy: "full", highlySensitive: true, priority: 85 }),
+  createPattern("cloudflare_token", "Cloudflare API tokens (generic pattern)", /[A-Za-z0-9\-_]{40}/g, "cloud_services", { redactionStrategy: "partial", highlySensitive: true, priority: 30, aggressiveOnly: true }),
+  createPattern("npm_token", "npm authentication tokens", /npm_[A-Za-z0-9]{36}/g, "api_keys", {
+    redactionStrategy: "full",
+    priority: 80
+  }),
+  createPattern("docker_token", "Docker Hub personal access tokens", /dckr_pat_[A-Za-z0-9\-_]{36}/g, "api_keys", { redactionStrategy: "full", priority: 80 }),
+  createPattern("vercel_token", "Vercel access tokens", /vercel_[A-Za-z0-9]{24}/g, "cloud_services", { redactionStrategy: "full", highlySensitive: true, priority: 80 }),
+  createPattern("netlify_token", "Netlify access tokens", /netlify_[A-Za-z0-9\-_]{64}/g, "cloud_services", { redactionStrategy: "full", highlySensitive: true, priority: 80 }),
+  createPattern("railway_token", "Railway API tokens", /railway_[A-Za-z0-9]{40}/g, "cloud_services", { redactionStrategy: "full", highlySensitive: true, priority: 80 }),
+  createPattern("openai_key", "OpenAI API keys", /sk-[A-Za-z0-9]{48}/g, "api_keys", {
+    redactionStrategy: "full",
+    highlySensitive: true,
+    priority: 90
+  }),
+  createPattern("openai_project_key", "OpenAI project API keys", /sk-proj-[A-Za-z0-9\-_]{40,}/g, "api_keys", { redactionStrategy: "full", highlySensitive: true, priority: 90 }),
+  createPattern("anthropic_key", "Anthropic API keys", /sk-ant-[A-Za-z0-9\-_]{80,}/g, "api_keys", {
+    redactionStrategy: "full",
+    highlySensitive: true,
+    priority: 90
+  }),
+  createPattern("auth0_secret", "Auth0 client secrets (generic pattern)", /[A-Za-z0-9\-_]{64}/g, "api_keys", { redactionStrategy: "full", highlySensitive: true, priority: 25, aggressiveOnly: true }),
+  createPattern("okta_token", "Okta API tokens", /00[A-Za-z0-9]{38}/g, "api_keys", {
+    redactionStrategy: "full",
+    highlySensitive: true,
+    priority: 70,
+    aggressiveOnly: true
+  }),
+  createPattern("planetscale_password", "PlanetScale database passwords", /pscale_pw_[A-Za-z0-9\-_]{32}/g, "database", { redactionStrategy: "full", highlySensitive: true, priority: 85 }),
+  createPattern("mongodb_atlas", "MongoDB Atlas connection strings", /mongodb\+srv:\/\/[^:\s]+:[^@\s]+@[^\/\s]+\.mongodb\.net\/[^\s]*/gi, "database", { redactionStrategy: "full", highlySensitive: true, priority: 90 }),
+  createPattern("mongodb_connection", "MongoDB connection strings with credentials", /mongodb(?:\+srv)?:\/\/[^:\s]+:[^@\s]+@[^\s"']+/gi, "database", { redactionStrategy: "full", highlySensitive: true, priority: 85 }),
+  createPattern("supabase_key", "Supabase service role keys (JWT format)", /eyJ[A-Za-z0-9\-_]*\.eyJ[A-Za-z0-9\-_]*\.[A-Za-z0-9\-_]*/g, "database", { redactionStrategy: "full", highlySensitive: true, priority: 65 }),
+  createPattern("db_connection", "Database connection strings", /(?:mongodb|mysql|postgresql|postgres|redis|sqlite):\/\/[^\s\n"']+/gi, "database", { redactionStrategy: "partial", highlySensitive: true, priority: 80 }),
+  createPattern("private_key", "Private keys in PEM format", /-----BEGIN\s+(?:RSA\s+|EC\s+|OPENSSH\s+|DSA\s+)?PRIVATE\s+KEY-----[\s\S]*?-----END\s+(?:RSA\s+|EC\s+|OPENSSH\s+|DSA\s+)?PRIVATE\s+KEY-----/gi, "cryptographic", { redactionStrategy: "full", highlySensitive: true, priority: 100 }),
+  createPattern("email_in_config", "Email addresses in configuration", /(?:email|user|username|admin)["\s]*[:=]["\s]*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi, "pii", { redactionStrategy: "partial", priority: 60, aggressiveOnly: true }),
+  createPattern("credit_card", "Credit card numbers (continuous digits)", /(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3[0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})/g, "pii", { redactionStrategy: "full", highlySensitive: true, priority: 95 }),
+  createPattern("credit_card_formatted", "Credit card numbers (with dashes or spaces)", /(?:4[0-9]{3}[-\s]?[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{4}|5[1-5][0-9]{2}[-\s]?[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{4}|3[47][0-9]{2}[-\s]?[0-9]{6}[-\s]?[0-9]{5})/g, "pii", { redactionStrategy: "full", highlySensitive: true, priority: 95 }),
+  createPattern("ssn", "Social Security Numbers", /\b\d{3}-\d{2}-\d{4}\b/g, "pii", {
+    redactionStrategy: "full",
+    highlySensitive: true,
+    priority: 95
+  }),
+  createPattern("private_ip", "Private IP addresses", /\b(?:10\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|172\.(?:1[6-9]|2[0-9]|3[01])\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|192\.168\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))\b/g, "network", { redactionStrategy: "partial", priority: 50, aggressiveOnly: true })
+];
+// ../../packages/privacy-redaction/src/exclusion/built-in-rules.ts
+var SENSITIVE_FILE_RULES = [
+  { pattern: "*.env*", category: "sensitive_files", description: "Environment files" },
+  { pattern: "*.key", category: "sensitive_files", description: "Key files" },
+  { pattern: "*.pem", category: "sensitive_files", description: "PEM certificate files" },
+  { pattern: "*.p12", category: "sensitive_files", description: "PKCS#12 files" },
+  { pattern: "*.pfx", category: "sensitive_files", description: "PFX certificate files" },
+  { pattern: "*.jks", category: "sensitive_files", description: "Java keystore files" },
+  { pattern: "*.keystore", category: "sensitive_files", description: "Keystore files" }
+];
+var SENSITIVE_DIRECTORY_RULES = [
+  { pattern: "**/secrets/**", category: "sensitive_directories", description: "Secrets directory" },
+  {
+    pattern: "**/credentials/**",
+    category: "sensitive_directories",
+    description: "Credentials directory"
+  },
+  { pattern: "**/private/**", category: "sensitive_directories", description: "Private directory" },
+  { pattern: "**/.ssh/**", category: "sensitive_directories", description: "SSH directory" },
+  { pattern: "**/.aws/**", category: "sensitive_directories", description: "AWS credentials" },
+  { pattern: "**/.gcp/**", category: "sensitive_directories", description: "GCP credentials" }
+];
+var BUILD_ARTIFACT_RULES = [
+  { pattern: "**/node_modules/**", category: "build_artifacts", description: "Node.js modules" },
+  { pattern: "**/.git/**", category: "build_artifacts", description: "Git directory" },
+  { pattern: "**/dist/**", category: "build_artifacts", description: "Distribution folder" },
+  { pattern: "**/build/**", category: "build_artifacts", description: "Build folder" },
+  { pattern: "**/out/**", category: "build_artifacts", description: "Output folder" },
+  { pattern: "**/*.min.js", category: "build_artifacts", description: "Minified JavaScript" },
+  { pattern: "**/*.min.css", category: "build_artifacts", description: "Minified CSS" },
+  { pattern: "**/coverage/**", category: "build_artifacts", description: "Coverage reports" },
+  { pattern: "**/.nyc_output/**", category: "build_artifacts", description: "NYC coverage output" },
+  { pattern: "**/logs/**", category: "build_artifacts", description: "Log directory" },
+  { pattern: "**/*.log", category: "build_artifacts", description: "Log files" },
+  { pattern: "**/tmp/**", category: "build_artifacts", description: "Temp directory" },
+  { pattern: "**/temp/**", category: "build_artifacts", description: "Temp directory" },
+  { pattern: "**/.cache/**", category: "build_artifacts", description: "Cache directory" },
+  { pattern: "**/.DS_Store", category: "build_artifacts", description: "macOS metadata" },
+  { pattern: "**/Thumbs.db", category: "build_artifacts", description: "Windows thumbnails" }
+];
+var LOCK_FILE_RULES = [
+  { pattern: "**/package-lock.json", category: "lock_files", description: "npm lock file" },
+  { pattern: "**/yarn.lock", category: "lock_files", description: "Yarn lock file" },
+  { pattern: "**/pnpm-lock.yaml", category: "lock_files", description: "pnpm lock file" },
+  { pattern: "**/bun.lockb", category: "lock_files", description: "Bun lock file (binary)" },
+  { pattern: "**/bun.lock", category: "lock_files", description: "Bun lock file" },
+  { pattern: "**/poetry.lock", category: "lock_files", description: "Poetry lock file" },
+  { pattern: "**/Pipfile.lock", category: "lock_files", description: "Pipenv lock file" },
+  { pattern: "**/requirements.lock", category: "lock_files", description: "Requirements lock" },
+  { pattern: "**/Gemfile.lock", category: "lock_files", description: "Bundler lock file" },
+  { pattern: "**/composer.lock", category: "lock_files", description: "Composer lock file" },
+  { pattern: "**/Cargo.lock", category: "lock_files", description: "Cargo lock file" },
+  { pattern: "**/go.sum", category: "lock_files", description: "Go checksum file" },
+  { pattern: "**/packages.lock.json", category: "lock_files", description: ".NET lock file" },
+  { pattern: "**/project.assets.json", category: "lock_files", description: ".NET assets" },
+  { pattern: "**/pubspec.lock", category: "lock_files", description: "Pub lock file" },
+  { pattern: "**/mix.lock", category: "lock_files", description: "Mix lock file" },
+  { pattern: "**/Package.resolved", category: "lock_files", description: "Swift PM lock" },
+  { pattern: "**/gradle.lockfile", category: "lock_files", description: "Gradle lock file" },
+  { pattern: "**/gradle/dependencies.lock", category: "lock_files", description: "Gradle deps" },
+  { pattern: "**/renv.lock", category: "lock_files", description: "renv lock file" },
+  { pattern: "**/packrat/packrat.lock", category: "lock_files", description: "Packrat lock" },
+  { pattern: "**/cabal.project.freeze", category: "lock_files", description: "Cabal freeze" },
+  { pattern: "**/stack.yaml.lock", category: "lock_files", description: "Stack lock file" },
+  { pattern: "**/Manifest.toml", category: "lock_files", description: "Julia manifest" },
+  { pattern: "**/.terraform.lock.hcl", category: "lock_files", description: "Terraform lock" },
+  { pattern: "**/flake.lock", category: "lock_files", description: "Nix flake lock" },
+  { pattern: "**/npm-shrinkwrap.json", category: "lock_files", description: "npm shrinkwrap" }
+];
+var BINARY_MEDIA_RULES = [
+  { pattern: "**/*.exe", category: "binary_media", description: "Windows executable" },
+  { pattern: "**/*.dll", category: "binary_media", description: "Windows library" },
+  { pattern: "**/*.so", category: "binary_media", description: "Shared object" },
+  { pattern: "**/*.dylib", category: "binary_media", description: "macOS library" },
+  { pattern: "**/*.bin", category: "binary_media", description: "Binary file" },
+  { pattern: "**/*.obj", category: "binary_media", description: "Object file" },
+  { pattern: "**/*.o", category: "binary_media", description: "Object file" },
+  { pattern: "**/*.a", category: "binary_media", description: "Static library" },
+  { pattern: "**/*.lib", category: "binary_media", description: "Library file" },
+  { pattern: "**/*.jar", category: "binary_media", description: "Java archive" },
+  { pattern: "**/*.war", category: "binary_media", description: "Web archive" },
+  { pattern: "**/*.ear", category: "binary_media", description: "Enterprise archive" },
+  { pattern: "**/*.class", category: "binary_media", description: "Java class" },
+  { pattern: "**/*.pyc", category: "binary_media", description: "Python bytecode" },
+  { pattern: "**/*.pyo", category: "binary_media", description: "Python optimized" },
+  { pattern: "**/*.wasm", category: "binary_media", description: "WebAssembly" },
+  { pattern: "**/*.vsix", category: "binary_media", description: "VS Code extension" },
+  { pattern: "**/*.jpg", category: "binary_media", description: "JPEG image" },
+  { pattern: "**/*.jpeg", category: "binary_media", description: "JPEG image" },
+  { pattern: "**/*.png", category: "binary_media", description: "PNG image" },
+  { pattern: "**/*.gif", category: "binary_media", description: "GIF image" },
+  { pattern: "**/*.bmp", category: "binary_media", description: "Bitmap image" },
+  { pattern: "**/*.ico", category: "binary_media", description: "Icon file" },
+  { pattern: "**/*.webp", category: "binary_media", description: "WebP image" },
+  { pattern: "**/*.tiff", category: "binary_media", description: "TIFF image" },
+  { pattern: "**/*.psd", category: "binary_media", description: "Photoshop file" },
+  { pattern: "**/*.mp4", category: "binary_media", description: "MP4 video" },
+  { pattern: "**/*.avi", category: "binary_media", description: "AVI video" },
+  { pattern: "**/*.mov", category: "binary_media", description: "QuickTime video" },
+  { pattern: "**/*.wmv", category: "binary_media", description: "WMV video" },
+  { pattern: "**/*.flv", category: "binary_media", description: "Flash video" },
+  { pattern: "**/*.webm", category: "binary_media", description: "WebM video" },
+  { pattern: "**/*.mkv", category: "binary_media", description: "Matroska video" },
+  { pattern: "**/*.mp3", category: "binary_media", description: "MP3 audio" },
+  { pattern: "**/*.wav", category: "binary_media", description: "WAV audio" },
+  { pattern: "**/*.ogg", category: "binary_media", description: "Ogg audio" },
+  { pattern: "**/*.flac", category: "binary_media", description: "FLAC audio" },
+  { pattern: "**/*.aac", category: "binary_media", description: "AAC audio" },
+  { pattern: "**/*.m4a", category: "binary_media", description: "M4A audio" },
+  { pattern: "**/*.zip", category: "binary_media", description: "ZIP archive" },
+  { pattern: "**/*.tar", category: "binary_media", description: "TAR archive" },
+  { pattern: "**/*.gz", category: "binary_media", description: "Gzip archive" },
+  { pattern: "**/*.bz2", category: "binary_media", description: "Bzip2 archive" },
+  { pattern: "**/*.xz", category: "binary_media", description: "XZ archive" },
+  { pattern: "**/*.rar", category: "binary_media", description: "RAR archive" },
+  { pattern: "**/*.7z", category: "binary_media", description: "7-Zip archive" },
+  { pattern: "**/*.tgz", category: "binary_media", description: "Tarball" },
+  { pattern: "**/*.pdf", category: "binary_media", description: "PDF document" },
+  { pattern: "**/*.doc", category: "binary_media", description: "Word document" },
+  { pattern: "**/*.docx", category: "binary_media", description: "Word document" },
+  { pattern: "**/*.xls", category: "binary_media", description: "Excel spreadsheet" },
+  { pattern: "**/*.xlsx", category: "binary_media", description: "Excel spreadsheet" },
+  { pattern: "**/*.ppt", category: "binary_media", description: "PowerPoint" },
+  { pattern: "**/*.pptx", category: "binary_media", description: "PowerPoint" },
+  { pattern: "**/*.woff", category: "binary_media", description: "WOFF font" },
+  { pattern: "**/*.woff2", category: "binary_media", description: "WOFF2 font" },
+  { pattern: "**/*.ttf", category: "binary_media", description: "TrueType font" },
+  { pattern: "**/*.otf", category: "binary_media", description: "OpenType font" },
+  { pattern: "**/*.eot", category: "binary_media", description: "EOT font" },
+  { pattern: "**/*.db", category: "binary_media", description: "Database file" },
+  { pattern: "**/*.sqlite", category: "binary_media", description: "SQLite database" },
+  { pattern: "**/*.sqlite3", category: "binary_media", description: "SQLite database" }
+];
+var ALL_BUILT_IN_RULES = [
+  ...SENSITIVE_FILE_RULES,
+  ...SENSITIVE_DIRECTORY_RULES,
+  ...BUILD_ARTIFACT_RULES,
+  ...LOCK_FILE_RULES,
+  ...BINARY_MEDIA_RULES
+];
+// src/utils/queue-manager.ts
+async function readJsonl(filePath) {
+  try {
+    const content = await readFile4(filePath, "utf8");
+    const lines = content.trim().split(`
+`).filter(Boolean);
+    const results = [];
+    let corruptedLines = 0;
+    for (let i = 0;i < lines.length; i++) {
+      try {
+        results.push(JSON.parse(lines[i]));
+      } catch (error46) {
+        logger.warn(`Failed to parse line ${i + 1} in ${filePath}:`, error46);
+        corruptedLines++;
+      }
+    }
+    if (corruptedLines > 0) {
+      captureException(new Error(`Queue file has ${corruptedLines} corrupted lines`), QUEUE_READ_CORRUPTED, "queue-manager", {
+        ...buildFileSystemProperties({ filePath, operation: "read" }),
+        corrupted_lines: corruptedLines,
+        total_lines: lines.length
+      });
+    }
+    return results;
+  } catch (error46) {
+    if (error46.code === "ENOENT") {
+      return [];
+    }
+    throw error46;
+  }
+}
 async function countLines(filePath) {
   try {
     const content = await readFile4(filePath, "utf8");
@@ -31160,63 +31550,286 @@ async function countLines(filePath) {
     throw error46;
   }
 }
-async function getQueueStats() {
+async function getDetailedQueueStats() {
   try {
     await ensureDirectory(QUEUE_DIR);
     const [events, sessions, messages] = await Promise.all([
       countLines(EVENTS_QUEUE_FILE),
-      countLines(SESSIONS_QUEUE_FILE),
-      countLines(MESSAGES_QUEUE_FILE)
+      readJsonl(SESSIONS_QUEUE_FILE),
+      readJsonl(MESSAGES_QUEUE_FILE)
     ]);
-    return { events, sessions, messages };
+    const maxMessageIndexBySession = new Map;
+    for (const message of messages) {
+      if (!message.session_id || message.message_index === undefined)
+        continue;
+      const currentMax = maxMessageIndexBySession.get(message.session_id) ?? -1;
+      if (message.message_index > currentMax) {
+        maxMessageIndexBySession.set(message.session_id, message.message_index);
+      }
+    }
+    let readyToSync = 0;
+    let waitingForMessages = 0;
+    const readySessionIds = new Set;
+    for (const session of sessions) {
+      if (!session.id)
+        continue;
+      const maxIndex = maxMessageIndexBySession.get(session.id) ?? -1;
+      if (maxIndex >= MIN_MESSAGES_PER_SESSION - 1) {
+        readyToSync++;
+        readySessionIds.add(session.id);
+      } else {
+        waitingForMessages++;
+      }
+    }
+    let messagesInReadySessions = 0;
+    let messagesInWaitingSessions = 0;
+    for (const message of messages) {
+      if (!message.session_id)
+        continue;
+      if (readySessionIds.has(message.session_id)) {
+        messagesInReadySessions++;
+      } else {
+        messagesInWaitingSessions++;
+      }
+    }
+    return {
+      events,
+      sessions: {
+        total: sessions.length,
+        readyToSync,
+        waitingForMessages
+      },
+      messages: {
+        total: messages.length,
+        inReadySessions: messagesInReadySessions,
+        inWaitingSessions: messagesInWaitingSessions
+      }
+    };
   } catch (error46) {
-    logger.error("Failed to get queue stats:", error46);
-    return { events: 0, sessions: 0, messages: 0 };
+    logger.error("Failed to get detailed queue stats:", error46);
+    return {
+      events: 0,
+      sessions: { total: 0, readyToSync: 0, waitingForMessages: 0 },
+      messages: { total: 0, inReadySessions: 0, inWaitingSessions: 0 }
+    };
   }
 }
 
+// src/utils/status-cache-manager.ts
+import { readFileSync as readFileSync2, writeFileSync } from "node:fs";
+var DEFAULT_VERSION_CHECK = {
+  updateAvailable: false,
+  currentVersion: "unknown",
+  latestVersion: "unknown",
+  checkedAt: 0
+};
+var DEFAULT_SYNC_STATUS = {
+  hasError: false,
+  errorType: null,
+  errorMessage: null,
+  lastErrorAt: null,
+  lastSuccessAt: null
+};
+var DEFAULT_DEV_MODE_STATUS = {
+  active: false
+};
+var DEFAULT_STATUS_CACHE = {
+  versionCheck: DEFAULT_VERSION_CHECK,
+  syncStatus: DEFAULT_SYNC_STATUS,
+  devMode: DEFAULT_DEV_MODE_STATUS
+};
+function readStatusCache() {
+  try {
+    const data = readFileSync2(STATUS_CACHE_FILE, "utf-8");
+    const parsed = JSON.parse(data);
+    if (parsed.updateAvailable !== undefined && !parsed.versionCheck) {
+      logger.info("Migrating old update-check.json format to new status-cache.json format");
+      const migrated = {
+        versionCheck: {
+          updateAvailable: parsed.updateAvailable ?? false,
+          currentVersion: parsed.currentVersion ?? "unknown",
+          latestVersion: parsed.latestVersion ?? "unknown",
+          checkedAt: parsed.checkedAt ?? 0
+        },
+        syncStatus: DEFAULT_SYNC_STATUS
+      };
+      return migrated;
+    }
+    return {
+      versionCheck: {
+        ...DEFAULT_VERSION_CHECK,
+        ...parsed.versionCheck
+      },
+      syncStatus: {
+        ...DEFAULT_SYNC_STATUS,
+        ...parsed.syncStatus
+      },
+      devMode: {
+        ...DEFAULT_DEV_MODE_STATUS,
+        ...parsed.devMode
+      }
+    };
+  } catch (error46) {
+    if (error46.code === "ENOENT") {
+      logger.debug("Status cache file does not exist, using defaults");
+    } else {
+      logger.warn("Failed to read status cache file, using defaults", error46);
+    }
+    return DEFAULT_STATUS_CACHE;
+  }
+}
+
+// src/utils/sync-metrics-manager.ts
+import { readFile as readFile5, writeFile as writeFile5 } from "node:fs/promises";
+async function readMetrics() {
+  try {
+    const content = await readFile5(SYNC_METRICS_FILE, "utf8");
+    const lines = content.trim().split(`
+`).filter(Boolean);
+    const results = [];
+    for (const line of lines) {
+      try {
+        results.push(JSON.parse(line));
+      } catch {
+        logger.warn("Skipping corrupted line in sync metrics file");
+      }
+    }
+    return results;
+  } catch (error46) {
+    if (error46.code === "ENOENT") {
+      return [];
+    }
+    throw error46;
+  }
+}
+async function getLastHourMetrics() {
+  try {
+    const allMetrics = await readMetrics();
+    const cutoffTime = Date.now() - SYNC_METRICS_RETENTION_MS;
+    return allMetrics.filter((m) => m.timestamp > cutoffTime);
+  } catch (error46) {
+    logger.error("Failed to read sync metrics", error46);
+    return [];
+  }
+}
+async function aggregateLastHourStats() {
+  const metrics = await getLastHourMetrics();
+  const synced = {
+    sessions: 0,
+    messages: 0,
+    events: 0
+  };
+  let errors3 = 0;
+  let lastSyncAt = null;
+  for (const metric of metrics) {
+    if (metric.success) {
+      synced.sessions += metric.uploaded.sessions;
+      synced.messages += metric.uploaded.messages;
+      synced.events += metric.uploaded.events;
+      if (lastSyncAt === null || metric.timestamp > lastSyncAt) {
+        lastSyncAt = metric.timestamp;
+      }
+    } else {
+      errors3++;
+    }
+  }
+  const total = synced.sessions + synced.messages + synced.events;
+  return { synced, total, errors: errors3, lastSyncAt };
+}
+
 // src/commands/status-cli.ts
+function formatRelativeTime(timestamp) {
+  const now = Date.now();
+  const diffMs = now - timestamp;
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffSec < 5) {
+    return "just now";
+  }
+  if (diffSec < 60) {
+    return `${diffSec} sec ago`;
+  }
+  if (diffMin < 60) {
+    return `${diffMin} min ago`;
+  }
+  return `${diffHr} hr ago`;
+}
+function formatFutureTime(timestamp) {
+  const now = Date.now();
+  const diffMs = timestamp - now;
+  if (diffMs <= 0) {
+    return "now";
+  }
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffSec < 60) {
+    return `in ${diffSec} sec`;
+  }
+  return `in ${diffMin} min`;
+}
 async function main() {
   try {
     const session = await loadSession();
     const daemonPid = await getDaemonPid();
     const settings = await loadSettings();
-    const queueStats = await getQueueStats();
+    const queueStats = await getDetailedQueueStats();
+    const lastHourStats = await aggregateLastHourStats();
+    const statusCache = readStatusCache();
     if (session) {
       console.log(`✅ Authenticated: ${session.email}`);
-      if (session.workspaceId && session.workspaceName) {
-        console.log(`\uD83C\uDFE2 Workspace: ${session.workspaceName}`);
-      } else {
-        console.log("⚠️  No workspace selected - run /zest:workspace");
-      }
-      if (daemonPid) {
-        console.log(`\uD83D\uDD04 Sync daemon: Running (PID: ${daemonPid})`);
-      } else {
-        console.log("⚠️  Sync daemon: Not running (will auto-start on next session)");
-      }
-      if (settings.enableRemotePersistence) {
-        console.log("\uD83D\uDCE4 Remote sync: Enabled");
-      } else {
-        console.log("\uD83D\uDCE6 Remote sync: Disabled (local only)");
-      }
     } else {
       console.log("❌ Not authenticated (tracking locally)");
-      if (daemonPid) {
-        console.log(`\uD83D\uDD04 Sync daemon: Running (PID: ${daemonPid})`);
-      } else {
-        console.log("\uD83D\uDD04 Sync daemon: Not running");
+    }
+    if (session?.workspaceId && session?.workspaceName) {
+      console.log(`\uD83C\uDFE2 Workspace: ${session.workspaceName}`);
+    } else if (session) {
+      console.log("⚠️  No workspace selected - run /zest:workspace");
+    }
+    console.log("");
+    const { synced, lastSyncAt } = lastHourStats;
+    const syncedTotal = synced.sessions + synced.messages + synced.events;
+    if (syncedTotal > 0) {
+      const lastSyncStr = lastSyncAt ? ` (last: ${formatRelativeTime(lastSyncAt)})` : "";
+      console.log(`✅ Synced (last hour): ${synced.sessions} sessions, ${synced.messages} messages, ${synced.events} code diffs${lastSyncStr}`);
+    } else {
+      console.log("\uD83D\uDCCA Synced (last hour): No data synced yet");
+    }
+    const { sessions: sessionStats, messages: messageStats, events } = queueStats;
+    const totalPending = sessionStats.total + messageStats.total + events;
+    if (totalPending > 0) {
+      let nextSyncStr = "";
+      if (settings.enableRemotePersistence && daemonPid && lastSyncAt) {
+        const nextSyncTime = lastSyncAt + SYNC_INTERVAL_MS;
+        nextSyncStr = ` (next: ${formatFutureTime(nextSyncTime)})`;
+      } else if (settings.enableRemotePersistence && daemonPid) {
+        nextSyncStr = " (next: soon)";
       }
-      if (settings.enableRemotePersistence) {
-        console.log("\uD83D\uDCE4 Remote sync: Enabled (waiting for auth)");
-      } else {
-        console.log("\uD83D\uDCE6 Remote sync: Disabled (local only)");
+      console.log(`⏳ Pending: ${sessionStats.total} sessions, ${messageStats.total} messages, ${events} code diffs${nextSyncStr}`);
+      if (sessionStats.waitingForMessages > 0) {
+        console.log(`   ℹ️   ${sessionStats.waitingForMessages} session(s) waiting for 3+ messages to sync`);
+      }
+    } else {
+      console.log("✅ Pending: All synced");
+    }
+    if (lastHourStats.errors > 0 || statusCache.syncStatus.hasError) {
+      console.log("");
+      if (statusCache.syncStatus.hasError && statusCache.syncStatus.errorMessage) {
+        console.log(`❌ Sync error: ${statusCache.syncStatus.errorMessage}`);
+      } else if (lastHourStats.errors > 0) {
+        console.log(`⚠️  ${lastHourStats.errors} sync error(s) in the last hour`);
       }
     }
-    const totalPending = queueStats.sessions + queueStats.messages + queueStats.events;
-    if (totalPending > 0) {
-      console.log(`\uD83D\uDCCA Pending sync: ${queueStats.sessions} chats, ${queueStats.messages} messages, ${queueStats.events} events`);
+    console.log("");
+    if (daemonPid) {
+      console.log(`\uD83D\uDD04 Daemon: Running (PID: ${daemonPid})`);
     } else {
-      console.log("\uD83D\uDCCA Pending sync: All synced");
+      console.log("⚠️  Daemon: Not running (will auto-start on next session)");
+    }
+    if (settings.enableRemotePersistence) {
+      console.log("\uD83D\uDCE4 Remote sync: Enabled");
+    } else {
+      console.log("\uD83D\uDCE6 Remote sync: Disabled (local only)");
     }
     const currentFolder = process.cwd();
     const isExcluded = isFolderExcluded(currentFolder, settings);

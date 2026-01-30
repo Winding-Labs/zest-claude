@@ -12492,6 +12492,7 @@ var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
 var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
 var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
+var SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
 var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
@@ -12503,6 +12504,7 @@ var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
 var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
 
 // src/utils/log-rotation.ts
 var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
@@ -12607,19 +12609,35 @@ class Logger {
 var logger = new Logger;
 
 // src/config/settings.ts
+var PrivacySettingsSchema = exports_external.object({
+  approach: exports_external.enum(["detection", "encryption", "hybrid"]).default("detection"),
+  aggressiveMode: exports_external.boolean().default(false),
+  enableGitignore: exports_external.boolean().default(true),
+  enableZestRules: exports_external.boolean().default(true),
+  customExclusionPatterns: exports_external.array(exports_external.string()).default([])
+});
 var UserSettingsSchema = exports_external.object({
   enableRemotePersistence: exports_external.boolean(),
   excludePatterns: exports_external.array(exports_external.string()),
   respectGitignore: exports_external.boolean(),
   logLevel: exports_external.enum(["debug", "info", "warn", "error"]),
-  excludedFolders: exports_external.array(exports_external.string()).default([])
+  excludedFolders: exports_external.array(exports_external.string()).default([]),
+  privacy: PrivacySettingsSchema.optional()
 });
+var DEFAULT_PRIVACY_SETTINGS = {
+  approach: "detection",
+  aggressiveMode: false,
+  enableGitignore: true,
+  enableZestRules: true,
+  customExclusionPatterns: []
+};
 var DEFAULT_SETTINGS = {
   enableRemotePersistence: true,
   excludePatterns: [],
   respectGitignore: true,
   logLevel: "info",
-  excludedFolders: []
+  excludedFolders: [],
+  privacy: DEFAULT_PRIVACY_SETTINGS
 };
 async function loadSettings() {
   try {

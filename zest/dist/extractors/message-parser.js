@@ -19,6 +19,7 @@ var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
 var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
 var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
+var SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
 var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
@@ -37,9 +38,7 @@ var EXCLUDED_COMMAND_PATTERNS = [
 ];
 var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
 var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
-
-// src/extractors/extraction-utils.ts
-import { createHash } from "node:crypto";
+var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
 
 // src/utils/deletion-cache.ts
 import { readdir as readdir2, readFile, rm, stat as stat2, writeFile } from "node:fs/promises";
@@ -1349,10 +1348,6 @@ function extractToolUseResult(entry, sessionId) {
     return null;
   }
 }
-function generateMessageId(sessionId, messageIndex) {
-  const hash = createHash("sha256").update(`${sessionId}-${messageIndex}`).digest("hex");
-  return `msg_${hash.substring(0, 16)}`;
-}
 function logDiff(filePath, diff) {
   if (!diff)
     return;
@@ -1445,7 +1440,7 @@ function applyMessageFilter(role, textContent, currentState) {
 }
 
 // src/extractors/message-parser.ts
-async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0) {
+async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0, startingMessageIndex = 0) {
   const messages = [];
   const toolUses = [];
   const LOOKBACK_WINDOW = 10;
@@ -1456,8 +1451,11 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0)
     const rl = createInterface({ input: stream, crlfDelay: Number.POSITIVE_INFINITY });
     let lineNumber = 0;
     let lastSuccessfulLine = lastReadLine - 1;
-    let tempMessageCounter = 0;
-    let filteringState = { filteringAssistantResponses: false, lastWasZestCommand: false };
+    let messageCounter = startingMessageIndex;
+    let filteringState = {
+      filteringAssistantResponses: false,
+      lastWasZestCommand: false
+    };
     let filteringStateInitialized = false;
     for await (const line of rl) {
       const trimmedLine = line.trim();
@@ -1490,16 +1488,16 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0)
               const filterResult = applyMessageFilter(role, textContent, filteringState);
               filteringState = filterResult.newState;
               if (!filterResult.shouldFilter) {
-                const messageId = entry.uuid || generateMessageId(sessionId, tempMessageCounter);
                 messages.push({
-                  id: messageId,
+                  id: entry.uuid,
                   session_id: sessionId,
                   role,
                   content: textContent,
                   created_at: entry.timestamp || new Date().toISOString(),
-                  message_index: tempMessageCounter
+                  message_index: messageCounter,
+                  metadata: entry.uuid ? { claude_uuid: entry.uuid } : null
                 });
-                tempMessageCounter++;
+                messageCounter++;
                 logger.debug(`Extracted ${role} message at line ${lineNumber + 1}: ${textContent.substring(0, 50)}...`);
               }
             }
@@ -1531,13 +1529,20 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0)
     }
     if (!filteringStateInitialized && lineNumber <= lastReadLine) {
       logger.debug(`No new lines for ${sessionId}: total=${lineNumber}, lastRead=${lastReadLine}`);
-      return { messages, toolUses, newLastReadLine: lastReadLine, totalLines: lineNumber };
+      return {
+        messages,
+        toolUses,
+        newLastReadLine: lastReadLine,
+        lastMessageIndex: startingMessageIndex - 1,
+        totalLines: lineNumber
+      };
     }
     logger.info(`Incremental extraction complete: ${messages.length} messages, ${toolUses.length} tool uses`);
     return {
       messages,
       toolUses,
       newLastReadLine: lastSuccessfulLine + 1,
+      lastMessageIndex: messageCounter - 1,
       totalLines: lineNumber
     };
   } catch (error) {
@@ -1546,6 +1551,7 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0)
       messages,
       toolUses,
       newLastReadLine: lastReadLine,
+      lastMessageIndex: startingMessageIndex - 1,
       totalLines: lastReadLine
     };
   }

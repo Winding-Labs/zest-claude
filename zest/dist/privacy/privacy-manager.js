@@ -117,6 +117,7 @@ var SENSITIVE_DATA_PATTERNS = [
   createPattern("api_key_unquoted", "API keys and access keys (unquoted)", /(?:api[_-]?key|apikey|access[_-]?key|secret[_-]?key)["\s]*(?:[:=]|is)["\s]*([a-zA-Z0-9_\-=+/]{16,})(?=\s|$|[^\w\-=+/])/gi, "api_keys", { redactionStrategy: "partial", priority: 55 }),
   createPattern("jwt_token", "JWT tokens", /eyJ[a-zA-Z0-9_\-]*\.eyJ[a-zA-Z0-9_\-]*\.[a-zA-Z0-9_\-]*/g, "api_keys", { redactionStrategy: "partial", priority: 70 }),
   createPattern("generic_secret", "Generic secrets and passwords", /(?:password|passwd|pwd|secret|token|key)["\s]*[:=]["\s]*["']([^"'\s]{8,})["']/gi, "generic", { redactionStrategy: "full", highlySensitive: true, priority: 40 }),
+  createPattern("generic_secret_unquoted", "Generic secrets and passwords (unquoted)", /(?:password|passwd|pwd)["\s]*[:=]["\s]*([^\s"']{6,})/gi, "generic", { redactionStrategy: "full", highlySensitive: true, priority: 45 }),
   createPattern("aws_access_key", "AWS access keys", /AKIA[0-9A-Z]{16}/g, "cloud_services", {
     redactionStrategy: "partial",
     highlySensitive: true,
@@ -202,7 +203,8 @@ var SENSITIVE_DATA_PATTERNS = [
     highlySensitive: true,
     priority: 90
   }),
-  createPattern("anthropic_key", "Anthropic API keys", /sk-ant-[A-Za-z0-9\-_]{95}/g, "api_keys", {
+  createPattern("openai_project_key", "OpenAI project API keys", /sk-proj-[A-Za-z0-9\-_]{40,}/g, "api_keys", { redactionStrategy: "full", highlySensitive: true, priority: 90 }),
+  createPattern("anthropic_key", "Anthropic API keys", /sk-ant-[A-Za-z0-9\-_]{80,}/g, "api_keys", {
     redactionStrategy: "full",
     highlySensitive: true,
     priority: 90
@@ -216,11 +218,13 @@ var SENSITIVE_DATA_PATTERNS = [
   }),
   createPattern("planetscale_password", "PlanetScale database passwords", /pscale_pw_[A-Za-z0-9\-_]{32}/g, "database", { redactionStrategy: "full", highlySensitive: true, priority: 85 }),
   createPattern("mongodb_atlas", "MongoDB Atlas connection strings", /mongodb\+srv:\/\/[^:\s]+:[^@\s]+@[^\/\s]+\.mongodb\.net\/[^\s]*/gi, "database", { redactionStrategy: "full", highlySensitive: true, priority: 90 }),
+  createPattern("mongodb_connection", "MongoDB connection strings with credentials", /mongodb(?:\+srv)?:\/\/[^:\s]+:[^@\s]+@[^\s"']+/gi, "database", { redactionStrategy: "full", highlySensitive: true, priority: 85 }),
   createPattern("supabase_key", "Supabase service role keys (JWT format)", /eyJ[A-Za-z0-9\-_]*\.eyJ[A-Za-z0-9\-_]*\.[A-Za-z0-9\-_]*/g, "database", { redactionStrategy: "full", highlySensitive: true, priority: 65 }),
   createPattern("db_connection", "Database connection strings", /(?:mongodb|mysql|postgresql|postgres|redis|sqlite):\/\/[^\s\n"']+/gi, "database", { redactionStrategy: "partial", highlySensitive: true, priority: 80 }),
   createPattern("private_key", "Private keys in PEM format", /-----BEGIN\s+(?:RSA\s+|EC\s+|OPENSSH\s+|DSA\s+)?PRIVATE\s+KEY-----[\s\S]*?-----END\s+(?:RSA\s+|EC\s+|OPENSSH\s+|DSA\s+)?PRIVATE\s+KEY-----/gi, "cryptographic", { redactionStrategy: "full", highlySensitive: true, priority: 100 }),
   createPattern("email_in_config", "Email addresses in configuration", /(?:email|user|username|admin)["\s]*[:=]["\s]*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi, "pii", { redactionStrategy: "partial", priority: 60, aggressiveOnly: true }),
-  createPattern("credit_card", "Credit card numbers", /(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3[0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})/g, "pii", { redactionStrategy: "full", highlySensitive: true, priority: 95 }),
+  createPattern("credit_card", "Credit card numbers (continuous digits)", /(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3[0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})/g, "pii", { redactionStrategy: "full", highlySensitive: true, priority: 95 }),
+  createPattern("credit_card_formatted", "Credit card numbers (with dashes or spaces)", /(?:4[0-9]{3}[-\s]?[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{4}|5[1-5][0-9]{2}[-\s]?[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{4}|3[47][0-9]{2}[-\s]?[0-9]{6}[-\s]?[0-9]{5})/g, "pii", { redactionStrategy: "full", highlySensitive: true, priority: 95 }),
   createPattern("ssn", "Social Security Numbers", /\b\d{3}-\d{2}-\d{4}\b/g, "pii", {
     redactionStrategy: "full",
     highlySensitive: true,
@@ -235,19 +239,23 @@ var HIGHLY_SENSITIVE_PATTERN_NAMES = [
   "azure_storage_key",
   "google_api_key",
   "credit_card",
+  "credit_card_formatted",
   "stripe_key",
   "paypal_client_id",
   "square_token",
   "ssn",
   "mongodb_atlas",
+  "mongodb_connection",
   "planetscale_password",
   "supabase_key",
   "db_connection",
   "openai_key",
+  "openai_project_key",
   "anthropic_key",
   "auth0_secret",
   "okta_token",
   "generic_secret",
+  "generic_secret_unquoted",
   "slack_token",
   "discord_token",
   "github_token",
@@ -586,70 +594,6 @@ var ALL_BUILT_IN_RULES = [
 function getBuiltInPatterns() {
   return new Set(ALL_BUILT_IN_RULES.map((rule) => rule.pattern));
 }
-// ../../packages/privacy-redaction/src/exclusion/glob-matcher.ts
-function normalizePath(filePath) {
-  return filePath.replace(/\\/g, "/");
-}
-function globToRegex(pattern) {
-  let normalized = normalizePath(pattern);
-  let regexPattern = normalized.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*\*/g, "§DOUBLESTAR§").replace(/\*/g, "[^/]*").replace(/\?/g, "[^/]");
-  regexPattern = regexPattern.replace(/§DOUBLESTAR§\//g, "(?:.*/)?").replace(/\/§DOUBLESTAR§/g, "(?:/.*)?").replace(/§DOUBLESTAR§/g, ".*");
-  return new RegExp(`^${regexPattern}$`, "i");
-}
-function matchesGlob(filePath, pattern, workspaceRoot) {
-  const normalizedPath = normalizePath(filePath);
-  const regex = globToRegex(pattern);
-  if (regex.test(normalizedPath)) {
-    return true;
-  }
-  if (!pattern.includes("/")) {
-    const fileName = normalizedPath.split("/").pop() || "";
-    if (regex.test(fileName)) {
-      return true;
-    }
-  }
-  if (workspaceRoot) {
-    const normalizedRoot = normalizePath(workspaceRoot);
-    if (normalizedPath.startsWith(normalizedRoot)) {
-      let relativePath = normalizedPath.substring(normalizedRoot.length);
-      if (relativePath.startsWith("/")) {
-        relativePath = relativePath.substring(1);
-      }
-      if (regex.test(relativePath)) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-function matchesGlobRelative(filePath, pattern, baseDir) {
-  const normalizedPath = normalizePath(filePath);
-  const normalizedBase = normalizePath(baseDir);
-  if (!normalizedPath.startsWith(normalizedBase)) {
-    return false;
-  }
-  let relativePath = normalizedPath.substring(normalizedBase.length);
-  if (relativePath.startsWith("/")) {
-    relativePath = relativePath.substring(1);
-  }
-  return matchesGlob(relativePath, pattern);
-}
-function findMatchingPattern(filePath, patterns, workspaceRoot) {
-  for (const pattern of patterns) {
-    if (matchesGlob(filePath, pattern, workspaceRoot)) {
-      return pattern;
-    }
-  }
-  return null;
-}
-function findMatchingPatternWithBase(filePath, patternMap) {
-  for (const [pattern, baseDir] of patternMap) {
-    if (matchesGlobRelative(filePath, pattern, baseDir)) {
-      return { pattern, baseDir };
-    }
-  }
-  return null;
-}
 // ../../packages/privacy-redaction/src/exclusion/gitignore-parser.ts
 function parseGitignoreLine(line) {
   let pattern = line.trim();
@@ -714,6 +658,72 @@ function mergeGitignorePatterns(results) {
   }
   return patternMap;
 }
+
+// ../../packages/privacy-redaction/src/exclusion/glob-matcher.ts
+function normalizePath(filePath) {
+  return filePath.replace(/\\/g, "/");
+}
+function globToRegex(pattern) {
+  let normalized = normalizePath(pattern);
+  let regexPattern = normalized.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*\*/g, "§DOUBLESTAR§").replace(/\*/g, "[^/]*").replace(/\?/g, "[^/]");
+  regexPattern = regexPattern.replace(/§DOUBLESTAR§\//g, "(?:.*/)?").replace(/\/§DOUBLESTAR§/g, "(?:/.*)?").replace(/§DOUBLESTAR§/g, ".*");
+  return new RegExp(`^${regexPattern}$`, "i");
+}
+function matchesGlob(filePath, pattern, workspaceRoot) {
+  const normalizedPath = normalizePath(filePath);
+  const regex = globToRegex(pattern);
+  if (regex.test(normalizedPath)) {
+    return true;
+  }
+  if (!pattern.includes("/")) {
+    const fileName = normalizedPath.split("/").pop() || "";
+    if (regex.test(fileName)) {
+      return true;
+    }
+  }
+  if (workspaceRoot) {
+    const normalizedRoot = normalizePath(workspaceRoot);
+    if (normalizedPath.startsWith(normalizedRoot)) {
+      let relativePath = normalizedPath.substring(normalizedRoot.length);
+      if (relativePath.startsWith("/")) {
+        relativePath = relativePath.substring(1);
+      }
+      if (regex.test(relativePath)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+function matchesGlobRelative(filePath, pattern, baseDir) {
+  const normalizedPath = normalizePath(filePath);
+  const normalizedBase = normalizePath(baseDir);
+  if (!normalizedPath.startsWith(normalizedBase)) {
+    return false;
+  }
+  let relativePath = normalizedPath.substring(normalizedBase.length);
+  if (relativePath.startsWith("/")) {
+    relativePath = relativePath.substring(1);
+  }
+  return matchesGlob(relativePath, pattern);
+}
+function findMatchingPattern(filePath, patterns, workspaceRoot) {
+  for (const pattern of patterns) {
+    if (matchesGlob(filePath, pattern, workspaceRoot)) {
+      return pattern;
+    }
+  }
+  return null;
+}
+function findMatchingPatternWithBase(filePath, patternMap) {
+  for (const [pattern, baseDir] of patternMap) {
+    if (matchesGlobRelative(filePath, pattern, baseDir)) {
+      return { pattern, baseDir };
+    }
+  }
+  return null;
+}
+
 // ../../packages/privacy-redaction/src/exclusion/zest-rules-parser.ts
 var ZEST_RULES_FILENAME = ".zest.rules";
 function parseZestRulesContent(content) {
@@ -739,6 +749,7 @@ function mergeZestRulesPatterns(results) {
   }
   return patterns;
 }
+
 // ../../packages/privacy-redaction/src/exclusion/exclusion-service.ts
 class FileExclusionService {
   config;
@@ -1013,6 +1024,7 @@ function applyRedactionStrategy(text, strategy) {
       return fullRedact(text);
   }
 }
+
 // ../../packages/privacy-redaction/src/redaction/redactor.ts
 function redactContent(content, detections, config, options = {}) {
   const approach = options.approach ?? config.approach;
@@ -1226,6 +1238,7 @@ var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
 var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
 var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
+var SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
 var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
@@ -1237,6 +1250,7 @@ var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
 var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
 
 // src/utils/log-rotation.ts
 var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;

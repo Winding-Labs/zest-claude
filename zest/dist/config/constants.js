@@ -2,6 +2,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
+var CLAUDE_DIR_SEPARATOR_PATTERN = /[\/.\s]/g;
 var CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
 var CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
 var CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
@@ -15,6 +16,7 @@ var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
 var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
 var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
+var SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
 var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
@@ -57,11 +59,14 @@ var VERSION_CHECK_TIMEOUT_MS = 5000;
 var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
 var DAEMON_FRESH_PID_THRESHOLD_MS = 2000;
 var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
 export {
   ZEST_SESSION_NAMESPACE,
   WEB_APP_URL,
   VERSION_CHECK_TIMEOUT_MS,
   UPDATE_CHECK_CACHE_TTL_MS,
+  SYNC_METRICS_RETENTION_MS,
+  SYNC_METRICS_FILE,
   SYNC_INTERVAL_MS,
   SUPABASE_URL,
   SUPABASE_ANON_KEY,
@@ -108,5 +113,6 @@ export {
   CLAUDE_SETTINGS_FILE,
   CLAUDE_PROJECTS_DIR,
   CLAUDE_INSTANCES_FILE,
-  CLAUDE_INSTALL_DIR
+  CLAUDE_INSTALL_DIR,
+  CLAUDE_DIR_SEPARATOR_PATTERN
 };
