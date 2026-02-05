@@ -17493,6 +17493,16 @@ var authEvents = {
       workspaceId: exports_external.uuid(),
       workspaceName: exports_external.string()
     })
+  },
+  cliSignedIn: {
+    name: "CLI Signed In",
+    schema: exports_external.object({
+      plugin_version: exports_external.string(),
+      claude_code_version: exports_external.string().optional(),
+      node_version: exports_external.string(),
+      os_platform: exports_external.string(),
+      os_version: exports_external.string()
+    })
   }
 };
 
