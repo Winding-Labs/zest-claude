@@ -4972,7 +4972,7 @@ var require_main = __commonJS((exports) => {
   exports.COPY_AUTOCAPTURE_EVENT = ne, exports.Compression = oe, exports.DisplaySurveyType = Bn, exports.PostHog = jo, exports.SurveyEventName = zn, exports.SurveyEventProperties = Hn, exports.SurveyEventType = Mn, exports.SurveyPosition = An, exports.SurveyQuestionBranchingType = Nn, exports.SurveyQuestionType = Ln, exports.SurveySchedule = Un, exports.SurveyTabPosition = Dn, exports.SurveyType = jn, exports.SurveyWidgetType = On, exports.default = No, exports.posthog = No, exports.severityLevels = ["fatal", "error", "warning", "log", "info", "debug"];
 });
 
-// ../../node_modules/.bun/tslib@2.8.1/node_modules/tslib/tslib.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/functions-js/node_modules/tslib/tslib.js
 var require_tslib = __commonJS((exports2, module) => {
   var __extends;
   var __assign;
@@ -5577,7 +5577,7 @@ var require_tslib = __commonJS((exports2, module) => {
   });
 });
 
-// ../../node_modules/.bun/@supabase+functions-js@2.89.0/node_modules/@supabase/functions-js/dist/main/helper.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/functions-js/dist/main/helper.js
 var require_helper = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.resolveFetch = undefined;
@@ -5590,7 +5590,7 @@ var require_helper = __commonJS((exports2) => {
   exports2.resolveFetch = resolveFetch;
 });
 
-// ../../node_modules/.bun/@supabase+functions-js@2.89.0/node_modules/@supabase/functions-js/dist/main/types.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/functions-js/dist/main/types.js
 var require_types = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.FunctionRegion = exports2.FunctionsHttpError = exports2.FunctionsRelayError = exports2.FunctionsFetchError = exports2.FunctionsError = undefined;
@@ -5644,7 +5644,7 @@ var require_types = __commonJS((exports2) => {
   })(FunctionRegion || (exports2.FunctionRegion = FunctionRegion = {}));
 });
 
-// ../../node_modules/.bun/@supabase+functions-js@2.89.0/node_modules/@supabase/functions-js/dist/main/FunctionsClient.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/functions-js/dist/main/FunctionsClient.js
 var require_FunctionsClient = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.FunctionsClient = undefined;
@@ -5694,7 +5694,11 @@ var require_FunctionsClient = __commonJS((exports2) => {
               body = JSON.stringify(functionArgs);
             }
           } else {
-            body = functionArgs;
+            if (functionArgs && typeof functionArgs !== "string" && !(typeof Blob !== "undefined" && functionArgs instanceof Blob) && !(functionArgs instanceof ArrayBuffer) && !(typeof FormData !== "undefined" && functionArgs instanceof FormData)) {
+              body = JSON.stringify(functionArgs);
+            } else {
+              body = functionArgs;
+            }
           }
           let effectiveSignal = signal;
           if (timeout) {
@@ -5753,7 +5757,7 @@ var require_FunctionsClient = __commonJS((exports2) => {
   exports2.FunctionsClient = FunctionsClient;
 });
 
-// ../../node_modules/.bun/@supabase+functions-js@2.89.0/node_modules/@supabase/functions-js/dist/main/index.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/functions-js/dist/main/index.js
 var require_main2 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.FunctionRegion = exports2.FunctionsRelayError = exports2.FunctionsHttpError = exports2.FunctionsFetchError = exports2.FunctionsError = exports2.FunctionsClient = undefined;
@@ -5779,7 +5783,612 @@ var require_main2 = __commonJS((exports2) => {
   } });
 });
 
-// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/lib/websocket-factory.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/realtime-js/node_modules/tslib/tslib.js
+var require_tslib2 = __commonJS((exports2, module) => {
+  var __extends;
+  var __assign;
+  var __rest;
+  var __decorate;
+  var __param;
+  var __esDecorate;
+  var __runInitializers;
+  var __propKey;
+  var __setFunctionName;
+  var __metadata;
+  var __awaiter;
+  var __generator;
+  var __exportStar;
+  var __values;
+  var __read;
+  var __spread;
+  var __spreadArrays;
+  var __spreadArray;
+  var __await;
+  var __asyncGenerator;
+  var __asyncDelegator;
+  var __asyncValues;
+  var __makeTemplateObject;
+  var __importStar;
+  var __importDefault;
+  var __classPrivateFieldGet;
+  var __classPrivateFieldSet;
+  var __classPrivateFieldIn;
+  var __createBinding;
+  var __addDisposableResource;
+  var __disposeResources;
+  var __rewriteRelativeImportExtension;
+  (function(factory) {
+    var root = typeof global === "object" ? global : typeof self === "object" ? self : typeof this === "object" ? this : {};
+    if (typeof define === "function" && define.amd) {
+      define("tslib", ["exports"], function(exports3) {
+        factory(createExporter(root, createExporter(exports3)));
+      });
+    } else if (typeof module === "object" && typeof exports2 === "object") {
+      factory(createExporter(root, createExporter(exports2)));
+    } else {
+      factory(createExporter(root));
+    }
+    function createExporter(exports3, previous) {
+      if (exports3 !== root) {
+        if (typeof Object.create === "function") {
+          Object.defineProperty(exports3, "__esModule", { value: true });
+        } else {
+          exports3.__esModule = true;
+        }
+      }
+      return function(id, v) {
+        return exports3[id] = previous ? previous(id, v) : v;
+      };
+    }
+  })(function(exporter) {
+    var extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d, b) {
+      d.__proto__ = b;
+    } || function(d, b) {
+      for (var p in b)
+        if (Object.prototype.hasOwnProperty.call(b, p))
+          d[p] = b[p];
+    };
+    __extends = function(d, b) {
+      if (typeof b !== "function" && b !== null)
+        throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+      extendStatics(d, b);
+      function __() {
+        this.constructor = d;
+      }
+      d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __);
+    };
+    __assign = Object.assign || function(t) {
+      for (var s, i = 1, n = arguments.length;i < n; i++) {
+        s = arguments[i];
+        for (var p in s)
+          if (Object.prototype.hasOwnProperty.call(s, p))
+            t[p] = s[p];
+      }
+      return t;
+    };
+    __rest = function(s, e) {
+      var t = {};
+      for (var p in s)
+        if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+          t[p] = s[p];
+      if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s);i < p.length; i++) {
+          if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+            t[p[i]] = s[p[i]];
+        }
+      return t;
+    };
+    __decorate = function(decorators, target, key, desc) {
+      var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+      if (typeof Reflect === "object" && typeof Reflect.decorate === "function")
+        r = Reflect.decorate(decorators, target, key, desc);
+      else
+        for (var i = decorators.length - 1;i >= 0; i--)
+          if (d = decorators[i])
+            r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+      return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    __param = function(paramIndex, decorator) {
+      return function(target, key) {
+        decorator(target, key, paramIndex);
+      };
+    };
+    __esDecorate = function(ctor, descriptorIn, decorators, contextIn, initializers, extraInitializers) {
+      function accept(f) {
+        if (f !== undefined && typeof f !== "function")
+          throw new TypeError("Function expected");
+        return f;
+      }
+      var kind = contextIn.kind, key = kind === "getter" ? "get" : kind === "setter" ? "set" : "value";
+      var target = !descriptorIn && ctor ? contextIn["static"] ? ctor : ctor.prototype : null;
+      var descriptor = descriptorIn || (target ? Object.getOwnPropertyDescriptor(target, contextIn.name) : {});
+      var _, done = false;
+      for (var i = decorators.length - 1;i >= 0; i--) {
+        var context = {};
+        for (var p in contextIn)
+          context[p] = p === "access" ? {} : contextIn[p];
+        for (var p in contextIn.access)
+          context.access[p] = contextIn.access[p];
+        context.addInitializer = function(f) {
+          if (done)
+            throw new TypeError("Cannot add initializers after decoration has completed");
+          extraInitializers.push(accept(f || null));
+        };
+        var result = (0, decorators[i])(kind === "accessor" ? { get: descriptor.get, set: descriptor.set } : descriptor[key], context);
+        if (kind === "accessor") {
+          if (result === undefined)
+            continue;
+          if (result === null || typeof result !== "object")
+            throw new TypeError("Object expected");
+          if (_ = accept(result.get))
+            descriptor.get = _;
+          if (_ = accept(result.set))
+            descriptor.set = _;
+          if (_ = accept(result.init))
+            initializers.unshift(_);
+        } else if (_ = accept(result)) {
+          if (kind === "field")
+            initializers.unshift(_);
+          else
+            descriptor[key] = _;
+        }
+      }
+      if (target)
+        Object.defineProperty(target, contextIn.name, descriptor);
+      done = true;
+    };
+    __runInitializers = function(thisArg, initializers, value) {
+      var useValue = arguments.length > 2;
+      for (var i = 0;i < initializers.length; i++) {
+        value = useValue ? initializers[i].call(thisArg, value) : initializers[i].call(thisArg);
+      }
+      return useValue ? value : undefined;
+    };
+    __propKey = function(x) {
+      return typeof x === "symbol" ? x : "".concat(x);
+    };
+    __setFunctionName = function(f, name, prefix) {
+      if (typeof name === "symbol")
+        name = name.description ? "[".concat(name.description, "]") : "";
+      return Object.defineProperty(f, "name", { configurable: true, value: prefix ? "".concat(prefix, " ", name) : name });
+    };
+    __metadata = function(metadataKey, metadataValue) {
+      if (typeof Reflect === "object" && typeof Reflect.metadata === "function")
+        return Reflect.metadata(metadataKey, metadataValue);
+    };
+    __awaiter = function(thisArg, _arguments, P, generator) {
+      function adopt(value) {
+        return value instanceof P ? value : new P(function(resolve) {
+          resolve(value);
+        });
+      }
+      return new (P || (P = Promise))(function(resolve, reject) {
+        function fulfilled(value) {
+          try {
+            step(generator.next(value));
+          } catch (e) {
+            reject(e);
+          }
+        }
+        function rejected(value) {
+          try {
+            step(generator["throw"](value));
+          } catch (e) {
+            reject(e);
+          }
+        }
+        function step(result) {
+          result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
+        }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+      });
+    };
+    __generator = function(thisArg, body) {
+      var _ = { label: 0, sent: function() {
+        if (t[0] & 1)
+          throw t[1];
+        return t[1];
+      }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+      return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() {
+        return this;
+      }), g;
+      function verb(n) {
+        return function(v) {
+          return step([n, v]);
+        };
+      }
+      function step(op) {
+        if (f)
+          throw new TypeError("Generator is already executing.");
+        while (g && (g = 0, op[0] && (_ = 0)), _)
+          try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done)
+              return t;
+            if (y = 0, t)
+              op = [op[0] & 2, t.value];
+            switch (op[0]) {
+              case 0:
+              case 1:
+                t = op;
+                break;
+              case 4:
+                _.label++;
+                return { value: op[1], done: false };
+              case 5:
+                _.label++;
+                y = op[1];
+                op = [0];
+                continue;
+              case 7:
+                op = _.ops.pop();
+                _.trys.pop();
+                continue;
+              default:
+                if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) {
+                  _ = 0;
+                  continue;
+                }
+                if (op[0] === 3 && (!t || op[1] > t[0] && op[1] < t[3])) {
+                  _.label = op[1];
+                  break;
+                }
+                if (op[0] === 6 && _.label < t[1]) {
+                  _.label = t[1];
+                  t = op;
+                  break;
+                }
+                if (t && _.label < t[2]) {
+                  _.label = t[2];
+                  _.ops.push(op);
+                  break;
+                }
+                if (t[2])
+                  _.ops.pop();
+                _.trys.pop();
+                continue;
+            }
+            op = body.call(thisArg, _);
+          } catch (e) {
+            op = [6, e];
+            y = 0;
+          } finally {
+            f = t = 0;
+          }
+        if (op[0] & 5)
+          throw op[1];
+        return { value: op[0] ? op[1] : undefined, done: true };
+      }
+    };
+    __exportStar = function(m, o) {
+      for (var p in m)
+        if (p !== "default" && !Object.prototype.hasOwnProperty.call(o, p))
+          __createBinding(o, m, p);
+    };
+    __createBinding = Object.create ? function(o, m, k, k2) {
+      if (k2 === undefined)
+        k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    } : function(o, m, k, k2) {
+      if (k2 === undefined)
+        k2 = k;
+      o[k2] = m[k];
+    };
+    __values = function(o) {
+      var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+      if (m)
+        return m.call(o);
+      if (o && typeof o.length === "number")
+        return {
+          next: function() {
+            if (o && i >= o.length)
+              o = undefined;
+            return { value: o && o[i++], done: !o };
+          }
+        };
+      throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+    };
+    __read = function(o, n) {
+      var m = typeof Symbol === "function" && o[Symbol.iterator];
+      if (!m)
+        return o;
+      var i = m.call(o), r, ar = [], e;
+      try {
+        while ((n === undefined || n-- > 0) && !(r = i.next()).done)
+          ar.push(r.value);
+      } catch (error46) {
+        e = { error: error46 };
+      } finally {
+        try {
+          if (r && !r.done && (m = i["return"]))
+            m.call(i);
+        } finally {
+          if (e)
+            throw e.error;
+        }
+      }
+      return ar;
+    };
+    __spread = function() {
+      for (var ar = [], i = 0;i < arguments.length; i++)
+        ar = ar.concat(__read(arguments[i]));
+      return ar;
+    };
+    __spreadArrays = function() {
+      for (var s = 0, i = 0, il = arguments.length;i < il; i++)
+        s += arguments[i].length;
+      for (var r = Array(s), k = 0, i = 0;i < il; i++)
+        for (var a = arguments[i], j = 0, jl = a.length;j < jl; j++, k++)
+          r[k] = a[j];
+      return r;
+    };
+    __spreadArray = function(to, from, pack) {
+      if (pack || arguments.length === 2)
+        for (var i = 0, l = from.length, ar;i < l; i++) {
+          if (ar || !(i in from)) {
+            if (!ar)
+              ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+          }
+        }
+      return to.concat(ar || Array.prototype.slice.call(from));
+    };
+    __await = function(v) {
+      return this instanceof __await ? (this.v = v, this) : new __await(v);
+    };
+    __asyncGenerator = function(thisArg, _arguments, generator) {
+      if (!Symbol.asyncIterator)
+        throw new TypeError("Symbol.asyncIterator is not defined.");
+      var g = generator.apply(thisArg, _arguments || []), i, q = [];
+      return i = Object.create((typeof AsyncIterator === "function" ? AsyncIterator : Object).prototype), verb("next"), verb("throw"), verb("return", awaitReturn), i[Symbol.asyncIterator] = function() {
+        return this;
+      }, i;
+      function awaitReturn(f) {
+        return function(v) {
+          return Promise.resolve(v).then(f, reject);
+        };
+      }
+      function verb(n, f) {
+        if (g[n]) {
+          i[n] = function(v) {
+            return new Promise(function(a, b) {
+              q.push([n, v, a, b]) > 1 || resume(n, v);
+            });
+          };
+          if (f)
+            i[n] = f(i[n]);
+        }
+      }
+      function resume(n, v) {
+        try {
+          step(g[n](v));
+        } catch (e) {
+          settle(q[0][3], e);
+        }
+      }
+      function step(r) {
+        r.value instanceof __await ? Promise.resolve(r.value.v).then(fulfill, reject) : settle(q[0][2], r);
+      }
+      function fulfill(value) {
+        resume("next", value);
+      }
+      function reject(value) {
+        resume("throw", value);
+      }
+      function settle(f, v) {
+        if (f(v), q.shift(), q.length)
+          resume(q[0][0], q[0][1]);
+      }
+    };
+    __asyncDelegator = function(o) {
+      var i, p;
+      return i = {}, verb("next"), verb("throw", function(e) {
+        throw e;
+      }), verb("return"), i[Symbol.iterator] = function() {
+        return this;
+      }, i;
+      function verb(n, f) {
+        i[n] = o[n] ? function(v) {
+          return (p = !p) ? { value: __await(o[n](v)), done: false } : f ? f(v) : v;
+        } : f;
+      }
+    };
+    __asyncValues = function(o) {
+      if (!Symbol.asyncIterator)
+        throw new TypeError("Symbol.asyncIterator is not defined.");
+      var m = o[Symbol.asyncIterator], i;
+      return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function() {
+        return this;
+      }, i);
+      function verb(n) {
+        i[n] = o[n] && function(v) {
+          return new Promise(function(resolve, reject) {
+            v = o[n](v), settle(resolve, reject, v.done, v.value);
+          });
+        };
+      }
+      function settle(resolve, reject, d, v) {
+        Promise.resolve(v).then(function(v2) {
+          resolve({ value: v2, done: d });
+        }, reject);
+      }
+    };
+    __makeTemplateObject = function(cooked, raw) {
+      if (Object.defineProperty) {
+        Object.defineProperty(cooked, "raw", { value: raw });
+      } else {
+        cooked.raw = raw;
+      }
+      return cooked;
+    };
+    var __setModuleDefault = Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    };
+    var ownKeys = function(o) {
+      ownKeys = Object.getOwnPropertyNames || function(o2) {
+        var ar = [];
+        for (var k in o2)
+          if (Object.prototype.hasOwnProperty.call(o2, k))
+            ar[ar.length] = k;
+        return ar;
+      };
+      return ownKeys(o);
+    };
+    __importStar = function(mod) {
+      if (mod && mod.__esModule)
+        return mod;
+      var result = {};
+      if (mod != null) {
+        for (var k = ownKeys(mod), i = 0;i < k.length; i++)
+          if (k[i] !== "default")
+            __createBinding(result, mod, k[i]);
+      }
+      __setModuleDefault(result, mod);
+      return result;
+    };
+    __importDefault = function(mod) {
+      return mod && mod.__esModule ? mod : { default: mod };
+    };
+    __classPrivateFieldGet = function(receiver, state, kind, f) {
+      if (kind === "a" && !f)
+        throw new TypeError("Private accessor was defined without a getter");
+      if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver))
+        throw new TypeError("Cannot read private member from an object whose class did not declare it");
+      return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+    };
+    __classPrivateFieldSet = function(receiver, state, value, kind, f) {
+      if (kind === "m")
+        throw new TypeError("Private method is not writable");
+      if (kind === "a" && !f)
+        throw new TypeError("Private accessor was defined without a setter");
+      if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver))
+        throw new TypeError("Cannot write private member to an object whose class did not declare it");
+      return kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value), value;
+    };
+    __classPrivateFieldIn = function(state, receiver) {
+      if (receiver === null || typeof receiver !== "object" && typeof receiver !== "function")
+        throw new TypeError("Cannot use 'in' operator on non-object");
+      return typeof state === "function" ? receiver === state : state.has(receiver);
+    };
+    __addDisposableResource = function(env, value, async) {
+      if (value !== null && value !== undefined) {
+        if (typeof value !== "object" && typeof value !== "function")
+          throw new TypeError("Object expected.");
+        var dispose, inner;
+        if (async) {
+          if (!Symbol.asyncDispose)
+            throw new TypeError("Symbol.asyncDispose is not defined.");
+          dispose = value[Symbol.asyncDispose];
+        }
+        if (dispose === undefined) {
+          if (!Symbol.dispose)
+            throw new TypeError("Symbol.dispose is not defined.");
+          dispose = value[Symbol.dispose];
+          if (async)
+            inner = dispose;
+        }
+        if (typeof dispose !== "function")
+          throw new TypeError("Object not disposable.");
+        if (inner)
+          dispose = function() {
+            try {
+              inner.call(this);
+            } catch (e) {
+              return Promise.reject(e);
+            }
+          };
+        env.stack.push({ value, dispose, async });
+      } else if (async) {
+        env.stack.push({ async: true });
+      }
+      return value;
+    };
+    var _SuppressedError = typeof SuppressedError === "function" ? SuppressedError : function(error46, suppressed, message) {
+      var e = new Error(message);
+      return e.name = "SuppressedError", e.error = error46, e.suppressed = suppressed, e;
+    };
+    __disposeResources = function(env) {
+      function fail(e) {
+        env.error = env.hasError ? new _SuppressedError(e, env.error, "An error was suppressed during disposal.") : e;
+        env.hasError = true;
+      }
+      var r, s = 0;
+      function next() {
+        while (r = env.stack.pop()) {
+          try {
+            if (!r.async && s === 1)
+              return s = 0, env.stack.push(r), Promise.resolve().then(next);
+            if (r.dispose) {
+              var result = r.dispose.call(r.value);
+              if (r.async)
+                return s |= 2, Promise.resolve(result).then(next, function(e) {
+                  fail(e);
+                  return next();
+                });
+            } else
+              s |= 1;
+          } catch (e) {
+            fail(e);
+          }
+        }
+        if (s === 1)
+          return env.hasError ? Promise.reject(env.error) : Promise.resolve();
+        if (env.hasError)
+          throw env.error;
+      }
+      return next();
+    };
+    __rewriteRelativeImportExtension = function(path, preserveJsx) {
+      if (typeof path === "string" && /^\.\.?\//.test(path)) {
+        return path.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
+          return tsx ? preserveJsx ? ".jsx" : ".js" : d && (!ext || !cm) ? m : d + ext + "." + cm.toLowerCase() + "js";
+        });
+      }
+      return path;
+    };
+    exporter("__extends", __extends);
+    exporter("__assign", __assign);
+    exporter("__rest", __rest);
+    exporter("__decorate", __decorate);
+    exporter("__param", __param);
+    exporter("__esDecorate", __esDecorate);
+    exporter("__runInitializers", __runInitializers);
+    exporter("__propKey", __propKey);
+    exporter("__setFunctionName", __setFunctionName);
+    exporter("__metadata", __metadata);
+    exporter("__awaiter", __awaiter);
+    exporter("__generator", __generator);
+    exporter("__exportStar", __exportStar);
+    exporter("__createBinding", __createBinding);
+    exporter("__values", __values);
+    exporter("__read", __read);
+    exporter("__spread", __spread);
+    exporter("__spreadArrays", __spreadArrays);
+    exporter("__spreadArray", __spreadArray);
+    exporter("__await", __await);
+    exporter("__asyncGenerator", __asyncGenerator);
+    exporter("__asyncDelegator", __asyncDelegator);
+    exporter("__asyncValues", __asyncValues);
+    exporter("__makeTemplateObject", __makeTemplateObject);
+    exporter("__importStar", __importStar);
+    exporter("__importDefault", __importDefault);
+    exporter("__classPrivateFieldGet", __classPrivateFieldGet);
+    exporter("__classPrivateFieldSet", __classPrivateFieldSet);
+    exporter("__classPrivateFieldIn", __classPrivateFieldIn);
+    exporter("__addDisposableResource", __addDisposableResource);
+    exporter("__disposeResources", __disposeResources);
+    exporter("__rewriteRelativeImportExtension", __rewriteRelativeImportExtension);
+  });
+});
+
+// node_modules/@supabase/supabase-js/node_modules/@supabase/realtime-js/dist/main/lib/websocket-factory.js
 var require_websocket_factory = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.WebSocketFactory = undefined;
@@ -5811,8 +6420,9 @@ var require_websocket_factory = __commonJS((exports2) => {
           workaround: "Use serverless functions or a different deployment target for WebSocket functionality."
         };
       }
-      if (typeof process !== "undefined") {
-        const processVersions = process["versions"];
+      const _process = globalThis["process"];
+      if (_process) {
+        const processVersions = _process["versions"];
         if (processVersions && processVersions["node"]) {
           const versionString = processVersions["node"];
           const nodeVersion = parseInt(versionString.replace(/^v/, "").split(".")[0]);
@@ -5871,14 +6481,14 @@ Suggested solution: ${env.workaround}`;
   exports2.default = WebSocketFactory;
 });
 
-// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/lib/version.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/realtime-js/dist/main/lib/version.js
 var require_version = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.version = undefined;
-  exports2.version = "2.89.0";
+  exports2.version = "2.90.1";
 });
 
-// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/lib/constants.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/realtime-js/dist/main/lib/constants.js
 var require_constants = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.CONNECTION_STATE = exports2.TRANSPORTS = exports2.CHANNEL_EVENTS = exports2.CHANNEL_STATES = exports2.SOCKET_STATES = exports2.MAX_PUSH_BUFFER_SIZE = exports2.WS_CLOSE_NORMAL = exports2.DEFAULT_TIMEOUT = exports2.VERSION = exports2.DEFAULT_VSN = exports2.VSN_2_0_0 = exports2.VSN_1_0_0 = exports2.DEFAULT_VERSION = undefined;
@@ -5928,7 +6538,7 @@ var require_constants = __commonJS((exports2) => {
   })(CONNECTION_STATE || (exports2.CONNECTION_STATE = CONNECTION_STATE = {}));
 });
 
-// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/lib/serializer.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/realtime-js/dist/main/lib/serializer.js
 var require_serializer = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
 
@@ -6073,7 +6683,7 @@ var require_serializer = __commonJS((exports2) => {
   exports2.default = Serializer;
 });
 
-// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/lib/timer.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/realtime-js/dist/main/lib/timer.js
 var require_timer = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
 
@@ -6102,7 +6712,7 @@ var require_timer = __commonJS((exports2) => {
   exports2.default = Timer;
 });
 
-// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/lib/transformers.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/realtime-js/dist/main/lib/transformers.js
 var require_transformers = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.httpEndpointURL = exports2.toTimestampString = exports2.toArray = exports2.toJson = exports2.toNumber = exports2.toBoolean = exports2.convertCell = exports2.convertColumn = exports2.convertChangeData = exports2.PostgresTypes = undefined;
@@ -6271,7 +6881,7 @@ var require_transformers = __commonJS((exports2) => {
   exports2.httpEndpointURL = httpEndpointURL;
 });
 
-// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/lib/push.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/realtime-js/dist/main/lib/push.js
 var require_push = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   var constants_1 = require_constants();
@@ -6368,7 +6978,7 @@ var require_push = __commonJS((exports2) => {
   exports2.default = Push;
 });
 
-// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/RealtimePresence.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/realtime-js/dist/main/RealtimePresence.js
 var require_RealtimePresence = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.REALTIME_PRESENCE_LISTEN_EVENTS = undefined;
@@ -6537,11 +7147,11 @@ var require_RealtimePresence = __commonJS((exports2) => {
   exports2.default = RealtimePresence;
 });
 
-// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/RealtimeChannel.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/realtime-js/dist/main/RealtimeChannel.js
 var require_RealtimeChannel = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.REALTIME_CHANNEL_STATES = exports2.REALTIME_SUBSCRIBE_STATES = exports2.REALTIME_LISTEN_TYPES = exports2.REALTIME_POSTGRES_CHANGES_LISTEN_EVENT = undefined;
-  var tslib_1 = require_tslib();
+  var tslib_1 = require_tslib2();
   var constants_1 = require_constants();
   var push_1 = tslib_1.__importDefault(require_push());
   var timer_1 = tslib_1.__importDefault(require_timer());
@@ -6906,15 +7516,15 @@ var require_RealtimeChannel = __commonJS((exports2) => {
         }).map((bind) => bind.callback(handledPayload, ref));
       } else {
         (_b = this.bindings[typeLower]) === null || _b === undefined || _b.filter((bind) => {
-          var _a2, _b2, _c, _d, _e, _f;
+          var _a2, _b2, _c, _d, _e, _f, _g, _h;
           if (["broadcast", "presence", "postgres_changes"].includes(typeLower)) {
             if ("id" in bind) {
               const bindId = bind.id;
               const bindEvent = (_a2 = bind.filter) === null || _a2 === undefined ? undefined : _a2.event;
-              return bindId && ((_b2 = payload.ids) === null || _b2 === undefined ? undefined : _b2.includes(bindId)) && (bindEvent === "*" || (bindEvent === null || bindEvent === undefined ? undefined : bindEvent.toLocaleLowerCase()) === ((_c = payload.data) === null || _c === undefined ? undefined : _c.type.toLocaleLowerCase()));
+              return bindId && ((_b2 = payload.ids) === null || _b2 === undefined ? undefined : _b2.includes(bindId)) && (bindEvent === "*" || (bindEvent === null || bindEvent === undefined ? undefined : bindEvent.toLocaleLowerCase()) === ((_c = payload.data) === null || _c === undefined ? undefined : _c.type.toLocaleLowerCase())) && (!((_d = bind.filter) === null || _d === undefined ? undefined : _d.table) || bind.filter.table === ((_e = payload.data) === null || _e === undefined ? undefined : _e.table));
             } else {
-              const bindEvent = (_e = (_d = bind === null || bind === undefined ? undefined : bind.filter) === null || _d === undefined ? undefined : _d.event) === null || _e === undefined ? undefined : _e.toLocaleLowerCase();
-              return bindEvent === "*" || bindEvent === ((_f = payload === null || payload === undefined ? undefined : payload.event) === null || _f === undefined ? undefined : _f.toLocaleLowerCase());
+              const bindEvent = (_g = (_f = bind === null || bind === undefined ? undefined : bind.filter) === null || _f === undefined ? undefined : _f.event) === null || _g === undefined ? undefined : _g.toLocaleLowerCase();
+              return bindEvent === "*" || bindEvent === ((_h = payload === null || payload === undefined ? undefined : payload.event) === null || _h === undefined ? undefined : _h.toLocaleLowerCase());
             }
           } else {
             return bind.type.toLocaleLowerCase() === typeLower;
@@ -7033,10 +7643,10 @@ var require_RealtimeChannel = __commonJS((exports2) => {
   exports2.default = RealtimeChannel;
 });
 
-// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
 var require_RealtimeClient = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
-  var tslib_1 = require_tslib();
+  var tslib_1 = require_tslib2();
   var websocket_factory_1 = tslib_1.__importDefault(require_websocket_factory());
   var constants_1 = require_constants();
   var serializer_1 = tslib_1.__importDefault(require_serializer());
@@ -7092,6 +7702,7 @@ var require_RealtimeClient = __commonJS((exports2) => {
       this._connectionState = "disconnected";
       this._wasManualDisconnect = false;
       this._authPromise = null;
+      this._heartbeatSentAt = null;
       this._resolveFetch = (customFetch) => {
         if (customFetch) {
           return (...args) => customFetch(...args);
@@ -7262,6 +7873,7 @@ var require_RealtimeClient = __commonJS((exports2) => {
       }
       if (this.pendingHeartbeatRef) {
         this.pendingHeartbeatRef = null;
+        this._heartbeatSentAt = null;
         this.log("transport", "heartbeat timeout. Attempting to re-establish connection");
         try {
           this.heartbeatCallback("timeout");
@@ -7278,6 +7890,7 @@ var require_RealtimeClient = __commonJS((exports2) => {
         }, CONNECTION_TIMEOUTS.HEARTBEAT_TIMEOUT_FALLBACK);
         return;
       }
+      this._heartbeatSentAt = Date.now();
       this.pendingHeartbeatRef = this._makeRef();
       this.push({
         topic: "phoenix",
@@ -7322,14 +7935,14 @@ var require_RealtimeClient = __commonJS((exports2) => {
     }
     _onConnMessage(rawMessage) {
       this.decode(rawMessage.data, (msg) => {
-        if (msg.topic === "phoenix" && msg.event === "phx_reply") {
+        if (msg.topic === "phoenix" && msg.event === "phx_reply" && msg.ref && msg.ref === this.pendingHeartbeatRef) {
+          const latency = this._heartbeatSentAt ? Date.now() - this._heartbeatSentAt : undefined;
           try {
-            this.heartbeatCallback(msg.payload.status === "ok" ? "ok" : "error");
+            this.heartbeatCallback(msg.payload.status === "ok" ? "ok" : "error", latency);
           } catch (e) {
             this.log("error", "error in heartbeat callback", e);
           }
-        }
-        if (msg.ref && msg.ref === this.pendingHeartbeatRef) {
+          this._heartbeatSentAt = null;
           this.pendingHeartbeatRef = null;
         }
         const { topic, event, payload, ref } = msg;
@@ -7604,11 +8217,11 @@ var require_RealtimeClient = __commonJS((exports2) => {
   exports2.default = RealtimeClient;
 });
 
-// ../../node_modules/.bun/@supabase+realtime-js@2.89.0/node_modules/@supabase/realtime-js/dist/main/index.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/realtime-js/dist/main/index.js
 var require_main3 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.WebSocketFactory = exports2.REALTIME_CHANNEL_STATES = exports2.REALTIME_SUBSCRIBE_STATES = exports2.REALTIME_PRESENCE_LISTEN_EVENTS = exports2.REALTIME_POSTGRES_CHANGES_LISTEN_EVENT = exports2.REALTIME_LISTEN_TYPES = exports2.RealtimeClient = exports2.RealtimeChannel = exports2.RealtimePresence = undefined;
-  var tslib_1 = require_tslib();
+  var tslib_1 = require_tslib2();
   var RealtimeClient_1 = tslib_1.__importDefault(require_RealtimeClient());
   exports2.RealtimeClient = RealtimeClient_1.default;
   var RealtimeChannel_1 = tslib_1.__importStar(require_RealtimeChannel());
@@ -7634,14 +8247,619 @@ var require_main3 = __commonJS((exports2) => {
   exports2.WebSocketFactory = websocket_factory_1.default;
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/version.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/node_modules/tslib/tslib.js
+var require_tslib3 = __commonJS((exports2, module) => {
+  var __extends;
+  var __assign;
+  var __rest;
+  var __decorate;
+  var __param;
+  var __esDecorate;
+  var __runInitializers;
+  var __propKey;
+  var __setFunctionName;
+  var __metadata;
+  var __awaiter;
+  var __generator;
+  var __exportStar;
+  var __values;
+  var __read;
+  var __spread;
+  var __spreadArrays;
+  var __spreadArray;
+  var __await;
+  var __asyncGenerator;
+  var __asyncDelegator;
+  var __asyncValues;
+  var __makeTemplateObject;
+  var __importStar;
+  var __importDefault;
+  var __classPrivateFieldGet;
+  var __classPrivateFieldSet;
+  var __classPrivateFieldIn;
+  var __createBinding;
+  var __addDisposableResource;
+  var __disposeResources;
+  var __rewriteRelativeImportExtension;
+  (function(factory) {
+    var root = typeof global === "object" ? global : typeof self === "object" ? self : typeof this === "object" ? this : {};
+    if (typeof define === "function" && define.amd) {
+      define("tslib", ["exports"], function(exports3) {
+        factory(createExporter(root, createExporter(exports3)));
+      });
+    } else if (typeof module === "object" && typeof exports2 === "object") {
+      factory(createExporter(root, createExporter(exports2)));
+    } else {
+      factory(createExporter(root));
+    }
+    function createExporter(exports3, previous) {
+      if (exports3 !== root) {
+        if (typeof Object.create === "function") {
+          Object.defineProperty(exports3, "__esModule", { value: true });
+        } else {
+          exports3.__esModule = true;
+        }
+      }
+      return function(id, v) {
+        return exports3[id] = previous ? previous(id, v) : v;
+      };
+    }
+  })(function(exporter) {
+    var extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d, b) {
+      d.__proto__ = b;
+    } || function(d, b) {
+      for (var p in b)
+        if (Object.prototype.hasOwnProperty.call(b, p))
+          d[p] = b[p];
+    };
+    __extends = function(d, b) {
+      if (typeof b !== "function" && b !== null)
+        throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+      extendStatics(d, b);
+      function __() {
+        this.constructor = d;
+      }
+      d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __);
+    };
+    __assign = Object.assign || function(t) {
+      for (var s, i = 1, n = arguments.length;i < n; i++) {
+        s = arguments[i];
+        for (var p in s)
+          if (Object.prototype.hasOwnProperty.call(s, p))
+            t[p] = s[p];
+      }
+      return t;
+    };
+    __rest = function(s, e) {
+      var t = {};
+      for (var p in s)
+        if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+          t[p] = s[p];
+      if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s);i < p.length; i++) {
+          if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+            t[p[i]] = s[p[i]];
+        }
+      return t;
+    };
+    __decorate = function(decorators, target, key, desc) {
+      var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+      if (typeof Reflect === "object" && typeof Reflect.decorate === "function")
+        r = Reflect.decorate(decorators, target, key, desc);
+      else
+        for (var i = decorators.length - 1;i >= 0; i--)
+          if (d = decorators[i])
+            r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+      return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    __param = function(paramIndex, decorator) {
+      return function(target, key) {
+        decorator(target, key, paramIndex);
+      };
+    };
+    __esDecorate = function(ctor, descriptorIn, decorators, contextIn, initializers, extraInitializers) {
+      function accept(f) {
+        if (f !== undefined && typeof f !== "function")
+          throw new TypeError("Function expected");
+        return f;
+      }
+      var kind = contextIn.kind, key = kind === "getter" ? "get" : kind === "setter" ? "set" : "value";
+      var target = !descriptorIn && ctor ? contextIn["static"] ? ctor : ctor.prototype : null;
+      var descriptor = descriptorIn || (target ? Object.getOwnPropertyDescriptor(target, contextIn.name) : {});
+      var _, done = false;
+      for (var i = decorators.length - 1;i >= 0; i--) {
+        var context = {};
+        for (var p in contextIn)
+          context[p] = p === "access" ? {} : contextIn[p];
+        for (var p in contextIn.access)
+          context.access[p] = contextIn.access[p];
+        context.addInitializer = function(f) {
+          if (done)
+            throw new TypeError("Cannot add initializers after decoration has completed");
+          extraInitializers.push(accept(f || null));
+        };
+        var result = (0, decorators[i])(kind === "accessor" ? { get: descriptor.get, set: descriptor.set } : descriptor[key], context);
+        if (kind === "accessor") {
+          if (result === undefined)
+            continue;
+          if (result === null || typeof result !== "object")
+            throw new TypeError("Object expected");
+          if (_ = accept(result.get))
+            descriptor.get = _;
+          if (_ = accept(result.set))
+            descriptor.set = _;
+          if (_ = accept(result.init))
+            initializers.unshift(_);
+        } else if (_ = accept(result)) {
+          if (kind === "field")
+            initializers.unshift(_);
+          else
+            descriptor[key] = _;
+        }
+      }
+      if (target)
+        Object.defineProperty(target, contextIn.name, descriptor);
+      done = true;
+    };
+    __runInitializers = function(thisArg, initializers, value) {
+      var useValue = arguments.length > 2;
+      for (var i = 0;i < initializers.length; i++) {
+        value = useValue ? initializers[i].call(thisArg, value) : initializers[i].call(thisArg);
+      }
+      return useValue ? value : undefined;
+    };
+    __propKey = function(x) {
+      return typeof x === "symbol" ? x : "".concat(x);
+    };
+    __setFunctionName = function(f, name, prefix) {
+      if (typeof name === "symbol")
+        name = name.description ? "[".concat(name.description, "]") : "";
+      return Object.defineProperty(f, "name", { configurable: true, value: prefix ? "".concat(prefix, " ", name) : name });
+    };
+    __metadata = function(metadataKey, metadataValue) {
+      if (typeof Reflect === "object" && typeof Reflect.metadata === "function")
+        return Reflect.metadata(metadataKey, metadataValue);
+    };
+    __awaiter = function(thisArg, _arguments, P, generator) {
+      function adopt(value) {
+        return value instanceof P ? value : new P(function(resolve) {
+          resolve(value);
+        });
+      }
+      return new (P || (P = Promise))(function(resolve, reject) {
+        function fulfilled(value) {
+          try {
+            step(generator.next(value));
+          } catch (e) {
+            reject(e);
+          }
+        }
+        function rejected(value) {
+          try {
+            step(generator["throw"](value));
+          } catch (e) {
+            reject(e);
+          }
+        }
+        function step(result) {
+          result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
+        }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+      });
+    };
+    __generator = function(thisArg, body) {
+      var _ = { label: 0, sent: function() {
+        if (t[0] & 1)
+          throw t[1];
+        return t[1];
+      }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+      return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() {
+        return this;
+      }), g;
+      function verb(n) {
+        return function(v) {
+          return step([n, v]);
+        };
+      }
+      function step(op) {
+        if (f)
+          throw new TypeError("Generator is already executing.");
+        while (g && (g = 0, op[0] && (_ = 0)), _)
+          try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done)
+              return t;
+            if (y = 0, t)
+              op = [op[0] & 2, t.value];
+            switch (op[0]) {
+              case 0:
+              case 1:
+                t = op;
+                break;
+              case 4:
+                _.label++;
+                return { value: op[1], done: false };
+              case 5:
+                _.label++;
+                y = op[1];
+                op = [0];
+                continue;
+              case 7:
+                op = _.ops.pop();
+                _.trys.pop();
+                continue;
+              default:
+                if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) {
+                  _ = 0;
+                  continue;
+                }
+                if (op[0] === 3 && (!t || op[1] > t[0] && op[1] < t[3])) {
+                  _.label = op[1];
+                  break;
+                }
+                if (op[0] === 6 && _.label < t[1]) {
+                  _.label = t[1];
+                  t = op;
+                  break;
+                }
+                if (t && _.label < t[2]) {
+                  _.label = t[2];
+                  _.ops.push(op);
+                  break;
+                }
+                if (t[2])
+                  _.ops.pop();
+                _.trys.pop();
+                continue;
+            }
+            op = body.call(thisArg, _);
+          } catch (e) {
+            op = [6, e];
+            y = 0;
+          } finally {
+            f = t = 0;
+          }
+        if (op[0] & 5)
+          throw op[1];
+        return { value: op[0] ? op[1] : undefined, done: true };
+      }
+    };
+    __exportStar = function(m, o) {
+      for (var p in m)
+        if (p !== "default" && !Object.prototype.hasOwnProperty.call(o, p))
+          __createBinding(o, m, p);
+    };
+    __createBinding = Object.create ? function(o, m, k, k2) {
+      if (k2 === undefined)
+        k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    } : function(o, m, k, k2) {
+      if (k2 === undefined)
+        k2 = k;
+      o[k2] = m[k];
+    };
+    __values = function(o) {
+      var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+      if (m)
+        return m.call(o);
+      if (o && typeof o.length === "number")
+        return {
+          next: function() {
+            if (o && i >= o.length)
+              o = undefined;
+            return { value: o && o[i++], done: !o };
+          }
+        };
+      throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+    };
+    __read = function(o, n) {
+      var m = typeof Symbol === "function" && o[Symbol.iterator];
+      if (!m)
+        return o;
+      var i = m.call(o), r, ar = [], e;
+      try {
+        while ((n === undefined || n-- > 0) && !(r = i.next()).done)
+          ar.push(r.value);
+      } catch (error46) {
+        e = { error: error46 };
+      } finally {
+        try {
+          if (r && !r.done && (m = i["return"]))
+            m.call(i);
+        } finally {
+          if (e)
+            throw e.error;
+        }
+      }
+      return ar;
+    };
+    __spread = function() {
+      for (var ar = [], i = 0;i < arguments.length; i++)
+        ar = ar.concat(__read(arguments[i]));
+      return ar;
+    };
+    __spreadArrays = function() {
+      for (var s = 0, i = 0, il = arguments.length;i < il; i++)
+        s += arguments[i].length;
+      for (var r = Array(s), k = 0, i = 0;i < il; i++)
+        for (var a = arguments[i], j = 0, jl = a.length;j < jl; j++, k++)
+          r[k] = a[j];
+      return r;
+    };
+    __spreadArray = function(to, from, pack) {
+      if (pack || arguments.length === 2)
+        for (var i = 0, l = from.length, ar;i < l; i++) {
+          if (ar || !(i in from)) {
+            if (!ar)
+              ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+          }
+        }
+      return to.concat(ar || Array.prototype.slice.call(from));
+    };
+    __await = function(v) {
+      return this instanceof __await ? (this.v = v, this) : new __await(v);
+    };
+    __asyncGenerator = function(thisArg, _arguments, generator) {
+      if (!Symbol.asyncIterator)
+        throw new TypeError("Symbol.asyncIterator is not defined.");
+      var g = generator.apply(thisArg, _arguments || []), i, q = [];
+      return i = Object.create((typeof AsyncIterator === "function" ? AsyncIterator : Object).prototype), verb("next"), verb("throw"), verb("return", awaitReturn), i[Symbol.asyncIterator] = function() {
+        return this;
+      }, i;
+      function awaitReturn(f) {
+        return function(v) {
+          return Promise.resolve(v).then(f, reject);
+        };
+      }
+      function verb(n, f) {
+        if (g[n]) {
+          i[n] = function(v) {
+            return new Promise(function(a, b) {
+              q.push([n, v, a, b]) > 1 || resume(n, v);
+            });
+          };
+          if (f)
+            i[n] = f(i[n]);
+        }
+      }
+      function resume(n, v) {
+        try {
+          step(g[n](v));
+        } catch (e) {
+          settle(q[0][3], e);
+        }
+      }
+      function step(r) {
+        r.value instanceof __await ? Promise.resolve(r.value.v).then(fulfill, reject) : settle(q[0][2], r);
+      }
+      function fulfill(value) {
+        resume("next", value);
+      }
+      function reject(value) {
+        resume("throw", value);
+      }
+      function settle(f, v) {
+        if (f(v), q.shift(), q.length)
+          resume(q[0][0], q[0][1]);
+      }
+    };
+    __asyncDelegator = function(o) {
+      var i, p;
+      return i = {}, verb("next"), verb("throw", function(e) {
+        throw e;
+      }), verb("return"), i[Symbol.iterator] = function() {
+        return this;
+      }, i;
+      function verb(n, f) {
+        i[n] = o[n] ? function(v) {
+          return (p = !p) ? { value: __await(o[n](v)), done: false } : f ? f(v) : v;
+        } : f;
+      }
+    };
+    __asyncValues = function(o) {
+      if (!Symbol.asyncIterator)
+        throw new TypeError("Symbol.asyncIterator is not defined.");
+      var m = o[Symbol.asyncIterator], i;
+      return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function() {
+        return this;
+      }, i);
+      function verb(n) {
+        i[n] = o[n] && function(v) {
+          return new Promise(function(resolve, reject) {
+            v = o[n](v), settle(resolve, reject, v.done, v.value);
+          });
+        };
+      }
+      function settle(resolve, reject, d, v) {
+        Promise.resolve(v).then(function(v2) {
+          resolve({ value: v2, done: d });
+        }, reject);
+      }
+    };
+    __makeTemplateObject = function(cooked, raw) {
+      if (Object.defineProperty) {
+        Object.defineProperty(cooked, "raw", { value: raw });
+      } else {
+        cooked.raw = raw;
+      }
+      return cooked;
+    };
+    var __setModuleDefault = Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    };
+    var ownKeys2 = function(o) {
+      ownKeys2 = Object.getOwnPropertyNames || function(o2) {
+        var ar = [];
+        for (var k in o2)
+          if (Object.prototype.hasOwnProperty.call(o2, k))
+            ar[ar.length] = k;
+        return ar;
+      };
+      return ownKeys2(o);
+    };
+    __importStar = function(mod) {
+      if (mod && mod.__esModule)
+        return mod;
+      var result = {};
+      if (mod != null) {
+        for (var k = ownKeys2(mod), i = 0;i < k.length; i++)
+          if (k[i] !== "default")
+            __createBinding(result, mod, k[i]);
+      }
+      __setModuleDefault(result, mod);
+      return result;
+    };
+    __importDefault = function(mod) {
+      return mod && mod.__esModule ? mod : { default: mod };
+    };
+    __classPrivateFieldGet = function(receiver, state, kind, f) {
+      if (kind === "a" && !f)
+        throw new TypeError("Private accessor was defined without a getter");
+      if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver))
+        throw new TypeError("Cannot read private member from an object whose class did not declare it");
+      return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+    };
+    __classPrivateFieldSet = function(receiver, state, value, kind, f) {
+      if (kind === "m")
+        throw new TypeError("Private method is not writable");
+      if (kind === "a" && !f)
+        throw new TypeError("Private accessor was defined without a setter");
+      if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver))
+        throw new TypeError("Cannot write private member to an object whose class did not declare it");
+      return kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value), value;
+    };
+    __classPrivateFieldIn = function(state, receiver) {
+      if (receiver === null || typeof receiver !== "object" && typeof receiver !== "function")
+        throw new TypeError("Cannot use 'in' operator on non-object");
+      return typeof state === "function" ? receiver === state : state.has(receiver);
+    };
+    __addDisposableResource = function(env, value, async) {
+      if (value !== null && value !== undefined) {
+        if (typeof value !== "object" && typeof value !== "function")
+          throw new TypeError("Object expected.");
+        var dispose, inner;
+        if (async) {
+          if (!Symbol.asyncDispose)
+            throw new TypeError("Symbol.asyncDispose is not defined.");
+          dispose = value[Symbol.asyncDispose];
+        }
+        if (dispose === undefined) {
+          if (!Symbol.dispose)
+            throw new TypeError("Symbol.dispose is not defined.");
+          dispose = value[Symbol.dispose];
+          if (async)
+            inner = dispose;
+        }
+        if (typeof dispose !== "function")
+          throw new TypeError("Object not disposable.");
+        if (inner)
+          dispose = function() {
+            try {
+              inner.call(this);
+            } catch (e) {
+              return Promise.reject(e);
+            }
+          };
+        env.stack.push({ value, dispose, async });
+      } else if (async) {
+        env.stack.push({ async: true });
+      }
+      return value;
+    };
+    var _SuppressedError = typeof SuppressedError === "function" ? SuppressedError : function(error46, suppressed, message) {
+      var e = new Error(message);
+      return e.name = "SuppressedError", e.error = error46, e.suppressed = suppressed, e;
+    };
+    __disposeResources = function(env) {
+      function fail(e) {
+        env.error = env.hasError ? new _SuppressedError(e, env.error, "An error was suppressed during disposal.") : e;
+        env.hasError = true;
+      }
+      var r, s = 0;
+      function next() {
+        while (r = env.stack.pop()) {
+          try {
+            if (!r.async && s === 1)
+              return s = 0, env.stack.push(r), Promise.resolve().then(next);
+            if (r.dispose) {
+              var result = r.dispose.call(r.value);
+              if (r.async)
+                return s |= 2, Promise.resolve(result).then(next, function(e) {
+                  fail(e);
+                  return next();
+                });
+            } else
+              s |= 1;
+          } catch (e) {
+            fail(e);
+          }
+        }
+        if (s === 1)
+          return env.hasError ? Promise.reject(env.error) : Promise.resolve();
+        if (env.hasError)
+          throw env.error;
+      }
+      return next();
+    };
+    __rewriteRelativeImportExtension = function(path, preserveJsx) {
+      if (typeof path === "string" && /^\.\.?\//.test(path)) {
+        return path.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
+          return tsx ? preserveJsx ? ".jsx" : ".js" : d && (!ext || !cm) ? m : d + ext + "." + cm.toLowerCase() + "js";
+        });
+      }
+      return path;
+    };
+    exporter("__extends", __extends);
+    exporter("__assign", __assign);
+    exporter("__rest", __rest);
+    exporter("__decorate", __decorate);
+    exporter("__param", __param);
+    exporter("__esDecorate", __esDecorate);
+    exporter("__runInitializers", __runInitializers);
+    exporter("__propKey", __propKey);
+    exporter("__setFunctionName", __setFunctionName);
+    exporter("__metadata", __metadata);
+    exporter("__awaiter", __awaiter);
+    exporter("__generator", __generator);
+    exporter("__exportStar", __exportStar);
+    exporter("__createBinding", __createBinding);
+    exporter("__values", __values);
+    exporter("__read", __read);
+    exporter("__spread", __spread);
+    exporter("__spreadArrays", __spreadArrays);
+    exporter("__spreadArray", __spreadArray);
+    exporter("__await", __await);
+    exporter("__asyncGenerator", __asyncGenerator);
+    exporter("__asyncDelegator", __asyncDelegator);
+    exporter("__asyncValues", __asyncValues);
+    exporter("__makeTemplateObject", __makeTemplateObject);
+    exporter("__importStar", __importStar);
+    exporter("__importDefault", __importDefault);
+    exporter("__classPrivateFieldGet", __classPrivateFieldGet);
+    exporter("__classPrivateFieldSet", __classPrivateFieldSet);
+    exporter("__classPrivateFieldIn", __classPrivateFieldIn);
+    exporter("__addDisposableResource", __addDisposableResource);
+    exporter("__disposeResources", __disposeResources);
+    exporter("__rewriteRelativeImportExtension", __rewriteRelativeImportExtension);
+  });
+});
+
+// node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/version.js
 var require_version2 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.version = undefined;
-  exports2.version = "2.89.0";
+  exports2.version = "2.90.1";
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/constants.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/constants.js
 var require_constants2 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.JWKS_TTL = exports2.BASE64URL_REGEX = exports2.API_VERSIONS = exports2.API_VERSION_HEADER_NAME = exports2.NETWORK_FAILURE = exports2.DEFAULT_HEADERS = exports2.AUDIENCE = exports2.STORAGE_KEY = exports2.GOTRUE_URL = exports2.EXPIRY_MARGIN_MS = exports2.AUTO_REFRESH_TICK_THRESHOLD = exports2.AUTO_REFRESH_TICK_DURATION_MS = undefined;
@@ -7668,7 +8886,7 @@ var require_constants2 = __commonJS((exports2) => {
   exports2.JWKS_TTL = 10 * 60 * 1000;
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/errors.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/errors.js
 var require_errors = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.AuthInvalidJwtError = exports2.AuthWeakPasswordError = exports2.AuthRetryableFetchError = exports2.AuthPKCECodeVerifierMissingError = exports2.AuthPKCEGrantCodeExchangeError = exports2.AuthImplicitGrantRedirectError = exports2.AuthInvalidCredentialsError = exports2.AuthInvalidTokenResponseError = exports2.AuthSessionMissingError = exports2.CustomAuthError = exports2.AuthUnknownError = exports2.AuthApiError = exports2.AuthError = undefined;
@@ -7825,7 +9043,7 @@ var require_errors = __commonJS((exports2) => {
   exports2.AuthInvalidJwtError = AuthInvalidJwtError;
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/base64url.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/base64url.js
 var require_base64url = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.byteToBase64URL = byteToBase64URL;
@@ -8013,7 +9231,7 @@ var require_base64url = __commonJS((exports2) => {
   }
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/helpers.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/helpers.js
 var require_helpers = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.Deferred = exports2.removeItemAsync = exports2.getItemAsync = exports2.setItemAsync = exports2.looksLikeFetchResponse = exports2.resolveFetch = exports2.supportsLocalStorage = exports2.isBrowser = undefined;
@@ -8322,7 +9540,7 @@ var require_helpers = __commonJS((exports2) => {
   }
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/fetch.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/fetch.js
 var require_fetch = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.handleError = handleError2;
@@ -8333,7 +9551,7 @@ var require_fetch = __commonJS((exports2) => {
   exports2._ssoResponse = _ssoResponse;
   exports2._generateLinkResponse = _generateLinkResponse;
   exports2._noResolveJsonResponse = _noResolveJsonResponse;
-  var tslib_1 = require_tslib();
+  var tslib_1 = require_tslib3();
   var constants_1 = require_constants2();
   var helpers_1 = require_helpers();
   var errors_1 = require_errors();
@@ -8474,17 +9692,17 @@ var require_fetch = __commonJS((exports2) => {
   }
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/types.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/types.js
 var require_types2 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.SIGN_OUT_SCOPES = undefined;
   exports2.SIGN_OUT_SCOPES = ["global", "local", "others"];
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/GoTrueAdminApi.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/GoTrueAdminApi.js
 var require_GoTrueAdminApi = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
-  var tslib_1 = require_tslib();
+  var tslib_1 = require_tslib3();
   var fetch_1 = require_fetch();
   var helpers_1 = require_helpers();
   var types_1 = require_types2();
@@ -8808,7 +10026,7 @@ var require_GoTrueAdminApi = __commonJS((exports2) => {
   exports2.default = GoTrueAdminApi;
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/local-storage.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/local-storage.js
 var require_local_storage = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.memoryLocalStorageAdapter = memoryLocalStorageAdapter;
@@ -8827,7 +10045,7 @@ var require_local_storage = __commonJS((exports2) => {
   }
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/locks.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/locks.js
 var require_locks = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.ProcessLockAcquireTimeoutError = exports2.NavigatorLockAcquireTimeoutError = exports2.LockAcquireTimeoutError = exports2.internals = undefined;
@@ -8915,6 +10133,7 @@ var require_locks = __commonJS((exports2) => {
       }),
       acquireTimeout >= 0 ? new Promise((_, reject) => {
         setTimeout(() => {
+          console.warn(`@supabase/gotrue-js: Lock "${name}" acquisition timed out after ${acquireTimeout}ms. ` + "This may be caused by another operation holding the lock. " + "Consider increasing lockAcquireTimeout or checking for stuck operations.");
           reject(new ProcessLockAcquireTimeoutError(`Acquiring process lock with name "${name}" timed out`));
         }, acquireTimeout);
       }) : null
@@ -8937,7 +10156,7 @@ var require_locks = __commonJS((exports2) => {
   }
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/polyfills.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/polyfills.js
 var require_polyfills = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.polyfillGlobalThis = polyfillGlobalThis;
@@ -8961,7 +10180,7 @@ var require_polyfills = __commonJS((exports2) => {
   }
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/web3/ethereum.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/web3/ethereum.js
 var require_ethereum = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.getAddress = getAddress;
@@ -9038,7 +10257,7 @@ ${suffix}`;
   }
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/webauthn.errors.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/webauthn.errors.js
 var require_webauthn_errors = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.WebAuthnUnknownError = exports2.WebAuthnError = undefined;
@@ -9218,7 +10437,7 @@ var require_webauthn_errors = __commonJS((exports2) => {
   }
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/lib/webauthn.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/webauthn.js
 var require_webauthn = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.WebAuthnApi = exports2.DEFAULT_REQUEST_OPTIONS = exports2.DEFAULT_CREATION_OPTIONS = exports2.webAuthnAbortService = exports2.WebAuthnAbortService = exports2.identifyAuthenticationError = exports2.identifyRegistrationError = exports2.isWebAuthnError = exports2.WebAuthnError = undefined;
@@ -9231,7 +10450,7 @@ var require_webauthn = __commonJS((exports2) => {
   exports2.getCredential = getCredential;
   exports2.mergeCredentialCreationOptions = mergeCredentialCreationOptions;
   exports2.mergeCredentialRequestOptions = mergeCredentialRequestOptions;
-  var tslib_1 = require_tslib();
+  var tslib_1 = require_tslib3();
   var base64url_1 = require_base64url();
   var errors_1 = require_errors();
   var helpers_1 = require_helpers();
@@ -9662,10 +10881,10 @@ var require_webauthn = __commonJS((exports2) => {
   exports2.WebAuthnApi = WebAuthnApi;
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/GoTrueClient.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/GoTrueClient.js
 var require_GoTrueClient = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
-  var tslib_1 = require_tslib();
+  var tslib_1 = require_tslib3();
   var GoTrueAdminApi_1 = tslib_1.__importDefault(require_GoTrueAdminApi());
   var constants_1 = require_constants2();
   var errors_1 = require_errors();
@@ -9689,7 +10908,8 @@ var require_GoTrueClient = __commonJS((exports2) => {
     flowType: "implicit",
     debug: false,
     hasCustomAuthorizationHeader: false,
-    throwOnError: false
+    throwOnError: false,
+    lockAcquireTimeout: 1e4
   };
   async function lockNoOp(name, acquireTimeout, fn) {
     return await fn();
@@ -9717,6 +10937,7 @@ var require_GoTrueClient = __commonJS((exports2) => {
       this.memoryStorage = null;
       this.stateChangeEmitters = new Map;
       this.autoRefreshTicker = null;
+      this.autoRefreshTickTimeout = null;
       this.visibilityChangedCallback = null;
       this.refreshingDeferred = null;
       this.initializePromise = null;
@@ -9757,6 +10978,7 @@ var require_GoTrueClient = __commonJS((exports2) => {
       this.flowType = settings.flowType;
       this.hasCustomAuthorizationHeader = settings.hasCustomAuthorizationHeader;
       this.throwOnError = settings.throwOnError;
+      this.lockAcquireTimeout = settings.lockAcquireTimeout;
       if (settings.lock) {
         this.lock = settings.lock;
       } else if (this.persistSession && (0, helpers_1.isBrowser)() && ((_b = globalThis === null || globalThis === undefined ? undefined : globalThis.navigator) === null || _b === undefined ? undefined : _b.locks)) {
@@ -9839,7 +11061,7 @@ var require_GoTrueClient = __commonJS((exports2) => {
         return await this.initializePromise;
       }
       this.initializePromise = (async () => {
-        return await this._acquireLock(-1, async () => {
+        return await this._acquireLock(this.lockAcquireTimeout, async () => {
           return await this._initialize();
         });
       })();
@@ -9868,7 +11090,6 @@ var require_GoTrueClient = __commonJS((exports2) => {
                 return { error: error46 };
               }
             }
-            await this._removeSession();
             return { error: error46 };
           }
           const { session, redirectType } = data;
@@ -10047,7 +11268,7 @@ var require_GoTrueClient = __commonJS((exports2) => {
     }
     async exchangeCodeForSession(authCode) {
       await this.initializePromise;
-      return this._acquireLock(-1, async () => {
+      return this._acquireLock(this.lockAcquireTimeout, async () => {
         return this._exchangeCodeForSession(authCode);
       });
     }
@@ -10441,7 +11662,7 @@ var require_GoTrueClient = __commonJS((exports2) => {
     }
     async reauthenticate() {
       await this.initializePromise;
-      return await this._acquireLock(-1, async () => {
+      return await this._acquireLock(this.lockAcquireTimeout, async () => {
         return await this._reauthenticate();
       });
     }
@@ -10506,7 +11727,7 @@ var require_GoTrueClient = __commonJS((exports2) => {
     }
     async getSession() {
       await this.initializePromise;
-      const result = await this._acquireLock(-1, async () => {
+      const result = await this._acquireLock(this.lockAcquireTimeout, async () => {
         return this._useSession(async (result2) => {
           return result2;
         });
@@ -10618,7 +11839,7 @@ var require_GoTrueClient = __commonJS((exports2) => {
         return await this._getUser(jwt2);
       }
       await this.initializePromise;
-      const result = await this._acquireLock(-1, async () => {
+      const result = await this._acquireLock(this.lockAcquireTimeout, async () => {
         return await this._getUser();
       });
       if (result.data.user) {
@@ -10663,7 +11884,7 @@ var require_GoTrueClient = __commonJS((exports2) => {
     }
     async updateUser(attributes, options = {}) {
       await this.initializePromise;
-      return await this._acquireLock(-1, async () => {
+      return await this._acquireLock(this.lockAcquireTimeout, async () => {
         return await this._updateUser(attributes, options);
       });
     }
@@ -10708,7 +11929,7 @@ var require_GoTrueClient = __commonJS((exports2) => {
     }
     async setSession(currentSession) {
       await this.initializePromise;
-      return await this._acquireLock(-1, async () => {
+      return await this._acquireLock(this.lockAcquireTimeout, async () => {
         return await this._setSession(currentSession);
       });
     }
@@ -10761,7 +11982,7 @@ var require_GoTrueClient = __commonJS((exports2) => {
     }
     async refreshSession(currentSession) {
       await this.initializePromise;
-      return await this._acquireLock(-1, async () => {
+      return await this._acquireLock(this.lockAcquireTimeout, async () => {
         return await this._refreshSession(currentSession);
       });
     }
@@ -10885,7 +12106,7 @@ var require_GoTrueClient = __commonJS((exports2) => {
     }
     async signOut(options = { scope: "global" }) {
       await this.initializePromise;
-      return await this._acquireLock(-1, async () => {
+      return await this._acquireLock(this.lockAcquireTimeout, async () => {
         return await this._signOut(options);
       });
     }
@@ -10926,7 +12147,7 @@ var require_GoTrueClient = __commonJS((exports2) => {
       this.stateChangeEmitters.set(id, subscription);
       (async () => {
         await this.initializePromise;
-        await this._acquireLock(-1, async () => {
+        await this._acquireLock(this.lockAcquireTimeout, async () => {
           this._emitInitialSession(id);
         });
       })();
@@ -11327,10 +12548,16 @@ var require_GoTrueClient = __commonJS((exports2) => {
       } else if (typeof Deno !== "undefined" && typeof Deno.unrefTimer === "function") {
         Deno.unrefTimer(ticker);
       }
-      setTimeout(async () => {
+      const timeout = setTimeout(async () => {
         await this.initializePromise;
         await this._autoRefreshTokenTick();
       }, 0);
+      this.autoRefreshTickTimeout = timeout;
+      if (timeout && typeof timeout === "object" && typeof timeout.unref === "function") {
+        timeout.unref();
+      } else if (typeof Deno !== "undefined" && typeof Deno.unrefTimer === "function") {
+        Deno.unrefTimer(timeout);
+      }
     }
     async _stopAutoRefresh() {
       this._debug("#_stopAutoRefresh()");
@@ -11338,6 +12565,11 @@ var require_GoTrueClient = __commonJS((exports2) => {
       this.autoRefreshTicker = null;
       if (ticker) {
         clearInterval(ticker);
+      }
+      const timeout = this.autoRefreshTickTimeout;
+      this.autoRefreshTickTimeout = null;
+      if (timeout) {
+        clearTimeout(timeout);
       }
     }
     async startAutoRefresh() {
@@ -11407,7 +12639,7 @@ var require_GoTrueClient = __commonJS((exports2) => {
         }
         if (!calledFromInitialize) {
           await this.initializePromise;
-          await this._acquireLock(-1, async () => {
+          await this._acquireLock(this.lockAcquireTimeout, async () => {
             if (document.visibilityState !== "visible") {
               this._debug(methodName, "acquired the lock to recover the session, but the browser visibilityState is no longer visible, aborting");
               return;
@@ -11496,7 +12728,7 @@ var require_GoTrueClient = __commonJS((exports2) => {
       }
     }
     async _verify(params) {
-      return this._acquireLock(-1, async () => {
+      return this._acquireLock(this.lockAcquireTimeout, async () => {
         try {
           return await this._useSession(async (result) => {
             var _a;
@@ -11528,7 +12760,7 @@ var require_GoTrueClient = __commonJS((exports2) => {
       });
     }
     async _challenge(params) {
-      return this._acquireLock(-1, async () => {
+      return this._acquireLock(this.lockAcquireTimeout, async () => {
         try {
           return await this._useSession(async (result) => {
             var _a;
@@ -11845,29 +13077,29 @@ var require_GoTrueClient = __commonJS((exports2) => {
   exports2.default = GoTrueClient;
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/AuthAdminApi.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/AuthAdminApi.js
 var require_AuthAdminApi = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
-  var tslib_1 = require_tslib();
+  var tslib_1 = require_tslib3();
   var GoTrueAdminApi_1 = tslib_1.__importDefault(require_GoTrueAdminApi());
   var AuthAdminApi = GoTrueAdminApi_1.default;
   exports2.default = AuthAdminApi;
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/AuthClient.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/AuthClient.js
 var require_AuthClient = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
-  var tslib_1 = require_tslib();
+  var tslib_1 = require_tslib3();
   var GoTrueClient_1 = tslib_1.__importDefault(require_GoTrueClient());
   var AuthClient = GoTrueClient_1.default;
   exports2.default = AuthClient;
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.89.0/node_modules/@supabase/auth-js/dist/main/index.js
+// node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/index.js
 var require_main4 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.processLock = exports2.lockInternals = exports2.NavigatorLockAcquireTimeoutError = exports2.navigatorLock = exports2.AuthClient = exports2.AuthAdminApi = exports2.GoTrueClient = exports2.GoTrueAdminApi = undefined;
-  var tslib_1 = require_tslib();
+  var tslib_1 = require_tslib3();
   var GoTrueAdminApi_1 = tslib_1.__importDefault(require_GoTrueAdminApi());
   exports2.GoTrueAdminApi = GoTrueAdminApi_1.default;
   var GoTrueClient_1 = tslib_1.__importDefault(require_GoTrueClient());
@@ -24482,6 +25714,16 @@ var authEvents = {
       workspaceId: exports_external.uuid(),
       workspaceName: exports_external.string()
     })
+  },
+  cliSignedIn: {
+    name: "CLI Signed In",
+    schema: exports_external.object({
+      plugin_version: exports_external.string(),
+      claude_code_version: exports_external.string().optional(),
+      node_version: exports_external.string(),
+      os_platform: exports_external.string(),
+      os_version: exports_external.string()
+    })
   }
 };
 
@@ -28020,7 +29262,7 @@ function createServerAnalytics(posthogApiKey) {
 import { readFile, unlink as unlink2, writeFile } from "node:fs/promises";
 import { dirname as dirname3 } from "node:path";
 
-// ../../node_modules/.bun/@supabase+supabase-js@2.89.0/node_modules/@supabase/supabase-js/dist/index.mjs
+// node_modules/@supabase/supabase-js/dist/index.mjs
 var exports_dist3 = {};
 __export(exports_dist3, {
   createClient: () => createClient,
@@ -28034,7 +29276,7 @@ __export(exports_dist3, {
 });
 var import_functions_js = __toESM(require_main2(), 1);
 
-// ../../node_modules/.bun/@supabase+postgrest-js@2.89.0/node_modules/@supabase/postgrest-js/dist/index.mjs
+// node_modules/@supabase/supabase-js/node_modules/@supabase/postgrest-js/dist/index.mjs
 var exports_dist = {};
 __export(exports_dist, {
   default: () => src_default,
@@ -28465,6 +29707,12 @@ var PostgrestQueryBuilder = class {
     this.schema = schema;
     this.fetch = fetch$1;
   }
+  cloneRequestState() {
+    return {
+      url: new URL(this.url.toString()),
+      headers: new Headers(this.headers)
+    };
+  }
   select(columns, options) {
     const { head = false, count } = options !== null && options !== undefined ? options : {};
     const method = head ? "HEAD" : "GET";
@@ -28476,13 +29724,14 @@ var PostgrestQueryBuilder = class {
         quoted = !quoted;
       return c;
     }).join("");
-    this.url.searchParams.set("select", cleanedColumns);
+    const { url: url2, headers } = this.cloneRequestState();
+    url2.searchParams.set("select", cleanedColumns);
     if (count)
-      this.headers.append("Prefer", `count=${count}`);
+      headers.append("Prefer", `count=${count}`);
     return new PostgrestFilterBuilder({
       method,
-      url: this.url,
-      headers: this.headers,
+      url: url2,
+      headers,
       schema: this.schema,
       fetch: this.fetch
     });
@@ -28490,21 +29739,22 @@ var PostgrestQueryBuilder = class {
   insert(values, { count, defaultToNull = true } = {}) {
     var _this$fetch;
     const method = "POST";
+    const { url: url2, headers } = this.cloneRequestState();
     if (count)
-      this.headers.append("Prefer", `count=${count}`);
+      headers.append("Prefer", `count=${count}`);
     if (!defaultToNull)
-      this.headers.append("Prefer", `missing=default`);
+      headers.append("Prefer", `missing=default`);
     if (Array.isArray(values)) {
       const columns = values.reduce((acc, x) => acc.concat(Object.keys(x)), []);
       if (columns.length > 0) {
         const uniqueColumns = [...new Set(columns)].map((column) => `"${column}"`);
-        this.url.searchParams.set("columns", uniqueColumns.join(","));
+        url2.searchParams.set("columns", uniqueColumns.join(","));
       }
     }
     return new PostgrestFilterBuilder({
       method,
-      url: this.url,
-      headers: this.headers,
+      url: url2,
+      headers,
       schema: this.schema,
       body: values,
       fetch: (_this$fetch = this.fetch) !== null && _this$fetch !== undefined ? _this$fetch : fetch
@@ -28513,24 +29763,25 @@ var PostgrestQueryBuilder = class {
   upsert(values, { onConflict, ignoreDuplicates = false, count, defaultToNull = true } = {}) {
     var _this$fetch2;
     const method = "POST";
-    this.headers.append("Prefer", `resolution=${ignoreDuplicates ? "ignore" : "merge"}-duplicates`);
+    const { url: url2, headers } = this.cloneRequestState();
+    headers.append("Prefer", `resolution=${ignoreDuplicates ? "ignore" : "merge"}-duplicates`);
     if (onConflict !== undefined)
-      this.url.searchParams.set("on_conflict", onConflict);
+      url2.searchParams.set("on_conflict", onConflict);
     if (count)
-      this.headers.append("Prefer", `count=${count}`);
+      headers.append("Prefer", `count=${count}`);
     if (!defaultToNull)
-      this.headers.append("Prefer", "missing=default");
+      headers.append("Prefer", "missing=default");
     if (Array.isArray(values)) {
       const columns = values.reduce((acc, x) => acc.concat(Object.keys(x)), []);
       if (columns.length > 0) {
         const uniqueColumns = [...new Set(columns)].map((column) => `"${column}"`);
-        this.url.searchParams.set("columns", uniqueColumns.join(","));
+        url2.searchParams.set("columns", uniqueColumns.join(","));
       }
     }
     return new PostgrestFilterBuilder({
       method,
-      url: this.url,
-      headers: this.headers,
+      url: url2,
+      headers,
       schema: this.schema,
       body: values,
       fetch: (_this$fetch2 = this.fetch) !== null && _this$fetch2 !== undefined ? _this$fetch2 : fetch
@@ -28539,12 +29790,13 @@ var PostgrestQueryBuilder = class {
   update(values, { count } = {}) {
     var _this$fetch3;
     const method = "PATCH";
+    const { url: url2, headers } = this.cloneRequestState();
     if (count)
-      this.headers.append("Prefer", `count=${count}`);
+      headers.append("Prefer", `count=${count}`);
     return new PostgrestFilterBuilder({
       method,
-      url: this.url,
-      headers: this.headers,
+      url: url2,
+      headers,
       schema: this.schema,
       body: values,
       fetch: (_this$fetch3 = this.fetch) !== null && _this$fetch3 !== undefined ? _this$fetch3 : fetch
@@ -28553,12 +29805,13 @@ var PostgrestQueryBuilder = class {
   delete({ count } = {}) {
     var _this$fetch4;
     const method = "DELETE";
+    const { url: url2, headers } = this.cloneRequestState();
     if (count)
-      this.headers.append("Prefer", `count=${count}`);
+      headers.append("Prefer", `count=${count}`);
     return new PostgrestFilterBuilder({
       method,
-      url: this.url,
-      headers: this.headers,
+      url: url2,
+      headers,
       schema: this.schema,
       fetch: (_this$fetch4 = this.fetch) !== null && _this$fetch4 !== undefined ? _this$fetch4 : fetch
     });
@@ -28592,7 +29845,12 @@ var PostgrestClient = class PostgrestClient2 {
     let method;
     const url2 = new URL(`${this.url}/rpc/${fn}`);
     let body;
-    if (head || get) {
+    const _isObject = (v) => v !== null && typeof v === "object" && (!Array.isArray(v) || v.some(_isObject));
+    const _hasObjectArg = head && Object.values(args).some(_isObject);
+    if (_hasObjectArg) {
+      method = "POST";
+      body = args;
+    } else if (head || get) {
       method = head ? "HEAD" : "GET";
       Object.entries(args).filter(([_, value]) => value !== undefined).map(([name, value]) => [name, Array.isArray(value) ? `{${value.join(",")}}` : `${value}`]).forEach(([name, value]) => {
         url2.searchParams.append(name, value);
@@ -28602,7 +29860,9 @@ var PostgrestClient = class PostgrestClient2 {
       body = args;
     }
     const headers = new Headers(this.headers);
-    if (count)
+    if (_hasObjectArg)
+      headers.set("Prefer", count ? `count=${count},return=minimal` : "return=minimal");
+    else if (count)
       headers.set("Prefer", `count=${count}`);
     return new PostgrestFilterBuilder({
       method,
@@ -28623,10 +29883,10 @@ var src_default = {
   PostgrestError
 };
 
-// ../../node_modules/.bun/@supabase+supabase-js@2.89.0/node_modules/@supabase/supabase-js/dist/index.mjs
+// node_modules/@supabase/supabase-js/dist/index.mjs
 var import_realtime_js = __toESM(require_main3(), 1);
 
-// ../../node_modules/.bun/@supabase+storage-js@2.89.0/node_modules/@supabase/storage-js/dist/index.mjs
+// node_modules/@supabase/supabase-js/node_modules/@supabase/storage-js/dist/index.mjs
 var exports_dist2 = {};
 __export(exports_dist2, {
   validateVectorDimension: () => validateVectorDimension,
@@ -28653,7 +29913,7 @@ __export(exports_dist2, {
   StorageAnalyticsClient: () => StorageAnalyticsClient
 });
 
-// ../../node_modules/.bun/iceberg-js@0.8.1/node_modules/iceberg-js/dist/index.mjs
+// ../../node_modules/iceberg-js/dist/index.mjs
 var IcebergError = class extends Error {
   constructor(message, opts) {
     super(message);
@@ -28953,7 +30213,7 @@ var IcebergRestCatalog = class {
   }
 };
 
-// ../../node_modules/.bun/@supabase+storage-js@2.89.0/node_modules/@supabase/storage-js/dist/index.mjs
+// node_modules/@supabase/supabase-js/node_modules/@supabase/storage-js/dist/index.mjs
 var StorageError = class extends Error {
   constructor(message) {
     super(message);
@@ -29605,7 +30865,7 @@ var StorageFileApi = class {
     return params.join("&");
   }
 };
-var version3 = "2.89.0";
+var version3 = "2.90.1";
 var DEFAULT_HEADERS$1 = { "X-Client-Info": `storage-js/${version3}` };
 var StorageBucketApi = class {
   constructor(url2, headers = {}, fetch$1, opts) {
@@ -30391,11 +31651,11 @@ var StorageClient = class extends StorageBucketApi {
   }
 };
 
-// ../../node_modules/.bun/@supabase+supabase-js@2.89.0/node_modules/@supabase/supabase-js/dist/index.mjs
+// node_modules/@supabase/supabase-js/dist/index.mjs
 var import_auth_js = __toESM(require_main4(), 1);
 __reExport(exports_dist3, __toESM(require_main3(), 1));
 __reExport(exports_dist3, __toESM(require_main4(), 1));
-var version4 = "2.89.0";
+var version4 = "2.90.1";
 var JS_ENV = "";
 if (typeof Deno !== "undefined")
   JS_ENV = "deno";
@@ -30663,9 +31923,10 @@ var createClient = (supabaseUrl, supabaseKey, options) => {
 function shouldShowDeprecationWarning() {
   if (typeof window !== "undefined")
     return false;
-  if (typeof process === "undefined")
+  const _process = globalThis["process"];
+  if (!_process)
     return false;
-  const processVersion = process["version"];
+  const processVersion = _process["version"];
   if (processVersion === undefined || processVersion === null)
     return false;
   const versionMatch = processVersion.match(/^v(\d+)\./);
