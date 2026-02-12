@@ -13132,12 +13132,13 @@ var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
 var SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed";
 var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
 var FILE_LOCK_TIMEOUT = "file_lock_timeout";
+var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
 function getErrorCategory(errorType) {
   if (errorType.startsWith("auth_"))
     return "auth";
   if (errorType.startsWith("sync_"))
     return "sync";
-  if (errorType.startsWith("queue_") || errorType.startsWith("file_"))
+  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("extraction_"))
     return "filesystem";
   if (errorType.startsWith("daemon_"))
     return "daemon";
@@ -32744,6 +32745,13 @@ async function acquireFileLock(filePath) {
       const errCode = error46.code;
       if (errCode === "ENOENT" || errCode === "EACCES") {
         logger.error(`Failed to create lock file ${lockFile}:`, error46);
+        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
+          ...buildFileSystemProperties({
+            filePath: lockFile,
+            operation: "lock",
+            errnoCode: errCode
+          })
+        });
       }
       throw error46;
     }
@@ -33086,7 +33094,7 @@ function enrichMessagesForUpload(messages, userId) {
     session_id: normalizeSessionId(m.session_id),
     user_id: userId,
     code_diffs: null,
-    metadata: null
+    metadata: m.metadata ?? null
   }));
 }
 async function uploadSessionsToSupabase(supabase, sessions) {

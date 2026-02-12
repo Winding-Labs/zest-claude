@@ -13190,7 +13190,7 @@ import { join } from "node:path";
 var CLAUDE_INSTALL_DIR, CLAUDE_DIR_SEPARATOR_PATTERN, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, PLATFORM = "terminal", SOURCE = "claude-code", CLIENT_ID = "claude-cli", SYNC_INTERVAL_MS = 60000, MAX_RETRY_ATTEMPTS = 3, RETRY_BACKOFF_MS = 5000, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DEBOUNCE_WINDOW_MS = 500, DEBOUNCE_TRAILING_MS = 300, DELAYED_EXTRACTION_INITIAL_DELAY_MS = 500, DELAYED_EXTRACTION_MAX_WAIT_MS = 1e4, DELAYED_EXTRACTION_CHECK_INTERVAL_MS = 300, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MAX_CONTENT_PREVIEW_LENGTH = 1000, MAX_SESSION_TITLE_LENGTH = 100, MIN_SESSION_TITLE_LENGTH = 3, MIN_MESSAGES_PER_SESSION = 3, STALE_SESSION_AGE_MS, WEB_APP_URL = "https://app.meetzest.com", SUPABASE_URL = "https://fnnlebrtmlxxjwdvngck.supabase.co", SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubmxlYnJ0bWx4eGp3ZHZuZ2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MzA3MjYsImV4cCI6MjA3MjMwNjcyNn0.0IE3HCY_DiyyALdewbRn1vkedwzDW27NQMQ28V6j4Dk", POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", EXCLUDED_COMMAND_PATTERNS, ZEST_SESSION_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341", MARKETPLACE_PLUGIN_JSON_URL = "https://raw.githubusercontent.com/Winding-Labs/zest-claude/refs/heads/main/zest/.claude-plugin/plugin.json", VERSION_CHECK_TIMEOUT_MS = 5000, UPDATE_CHECK_CACHE_TTL_MS, DAEMON_FRESH_PID_THRESHOLD_MS = 2000, DAEMON_INACTIVITY_TIMEOUT_MS, SYNC_METRICS_RETENTION_MS;
 var init_constants = __esm(() => {
   CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
-  CLAUDE_DIR_SEPARATOR_PATTERN = /[\/.\s]/g;
+  CLAUDE_DIR_SEPARATOR_PATTERN = /[\\/:.\s_]/g;
   CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
   CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
   CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
@@ -31986,6 +31986,7 @@ var SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed";
 var SYNC_NETWORK_ERROR = "sync_network_error";
 var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
 var FILE_LOCK_TIMEOUT = "file_lock_timeout";
+var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
 var API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed";
 var API_PROFILE_UPDATE_FAILED = "api_profile_update_failed";
 function getErrorCategory(errorType) {
@@ -31993,7 +31994,7 @@ function getErrorCategory(errorType) {
     return "auth";
   if (errorType.startsWith("sync_"))
     return "sync";
-  if (errorType.startsWith("queue_") || errorType.startsWith("file_"))
+  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("extraction_"))
     return "filesystem";
   if (errorType.startsWith("daemon_"))
     return "daemon";
@@ -37865,6 +37866,13 @@ async function acquireFileLock(filePath) {
       const errCode = error46.code;
       if (errCode === "ENOENT" || errCode === "EACCES") {
         logger.error(`Failed to create lock file ${lockFile}:`, error46);
+        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
+          ...buildFileSystemProperties({
+            filePath: lockFile,
+            operation: "lock",
+            errnoCode: errCode
+          })
+        });
       }
       throw error46;
     }
@@ -38394,7 +38402,7 @@ function enrichMessagesForUpload(messages, userId) {
     session_id: normalizeSessionId(m.session_id),
     user_id: userId,
     code_diffs: null,
-    metadata: null
+    metadata: m.metadata ?? null
   }));
 }
 async function uploadSessionsToSupabase(supabase, sessions) {
@@ -38561,8 +38569,198 @@ async function uploadChatDataWithRetry(supabase, maxRetries = 3, backoffMs = 500
 }
 
 // src/supabase/events-uploader.ts
+import { fileURLToPath as fileURLToPath3 } from "node:url";
+
+// ../../packages/utils/src/git-utils.ts
+import { exec, execSync as execSync2 } from "node:child_process";
+import * as path2 from "node:path";
+import { promisify as promisify6 } from "node:util";
+
+// ../../node_modules/uuid/dist-node/regex.js
+var regex_default2 = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
+
+// ../../node_modules/uuid/dist-node/validate.js
+function validate2(uuid3) {
+  return typeof uuid3 === "string" && regex_default2.test(uuid3);
+}
+var validate_default2 = validate2;
+
+// ../../node_modules/uuid/dist-node/parse.js
+function parse6(uuid3) {
+  if (!validate_default2(uuid3)) {
+    throw TypeError("Invalid UUID");
+  }
+  let v;
+  return Uint8Array.of((v = parseInt(uuid3.slice(0, 8), 16)) >>> 24, v >>> 16 & 255, v >>> 8 & 255, v & 255, (v = parseInt(uuid3.slice(9, 13), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(14, 18), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(19, 23), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(24, 36), 16)) / 1099511627776 & 255, v / 4294967296 & 255, v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
+}
+var parse_default2 = parse6;
+
+// ../../node_modules/uuid/dist-node/stringify.js
+var byteToHex2 = [];
+for (let i = 0;i < 256; ++i) {
+  byteToHex2.push((i + 256).toString(16).slice(1));
+}
+function unsafeStringify2(arr, offset = 0) {
+  return (byteToHex2[arr[offset + 0]] + byteToHex2[arr[offset + 1]] + byteToHex2[arr[offset + 2]] + byteToHex2[arr[offset + 3]] + "-" + byteToHex2[arr[offset + 4]] + byteToHex2[arr[offset + 5]] + "-" + byteToHex2[arr[offset + 6]] + byteToHex2[arr[offset + 7]] + "-" + byteToHex2[arr[offset + 8]] + byteToHex2[arr[offset + 9]] + "-" + byteToHex2[arr[offset + 10]] + byteToHex2[arr[offset + 11]] + byteToHex2[arr[offset + 12]] + byteToHex2[arr[offset + 13]] + byteToHex2[arr[offset + 14]] + byteToHex2[arr[offset + 15]]).toLowerCase();
+}
+
+// ../../node_modules/uuid/dist-node/v35.js
+function stringToBytes2(str) {
+  str = unescape(encodeURIComponent(str));
+  const bytes = new Uint8Array(str.length);
+  for (let i = 0;i < str.length; ++i) {
+    bytes[i] = str.charCodeAt(i);
+  }
+  return bytes;
+}
+var DNS2 = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+var URL3 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
+function v352(version5, hash2, value, namespace, buf, offset) {
+  const valueBytes = typeof value === "string" ? stringToBytes2(value) : value;
+  const namespaceBytes = typeof namespace === "string" ? parse_default2(namespace) : namespace;
+  if (typeof namespace === "string") {
+    namespace = parse_default2(namespace);
+  }
+  if (namespace?.length !== 16) {
+    throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
+  }
+  let bytes = new Uint8Array(16 + valueBytes.length);
+  bytes.set(namespaceBytes);
+  bytes.set(valueBytes, namespaceBytes.length);
+  bytes = hash2(bytes);
+  bytes[6] = bytes[6] & 15 | version5;
+  bytes[8] = bytes[8] & 63 | 128;
+  if (buf) {
+    offset = offset || 0;
+    for (let i = 0;i < 16; ++i) {
+      buf[offset + i] = bytes[i];
+    }
+    return buf;
+  }
+  return unsafeStringify2(bytes);
+}
+
+// ../../node_modules/uuid/dist-node/sha1.js
+import { createHash as createHash2 } from "node:crypto";
+function sha12(bytes) {
+  if (Array.isArray(bytes)) {
+    bytes = Buffer.from(bytes);
+  } else if (typeof bytes === "string") {
+    bytes = Buffer.from(bytes, "utf8");
+  }
+  return createHash2("sha1").update(bytes).digest();
+}
+var sha1_default2 = sha12;
+
+// ../../node_modules/uuid/dist-node/v5.js
+function v52(value, namespace, buf, offset) {
+  return v352(80, sha1_default2, value, namespace, buf, offset);
+}
+v52.DNS = DNS2;
+v52.URL = URL3;
+var v5_default2 = v52;
+// ../../packages/utils/src/git-utils.ts
+var execAsync = promisify6(exec);
+var UNKNOWN_PROJECT = {
+  projectId: "unknown",
+  projectName: "unknown"
+};
+var PROJECT_ID_NAMESPACE = "e1f3b3c4-0b7a-4c1e-8a7b-9f3c0e1d2a3b";
+function generateProjectId(input) {
+  return v5_default2(input, PROJECT_ID_NAMESPACE);
+}
+function extractNameFromRemoteUrl(remoteUrl) {
+  const orgRepoMatch = remoteUrl.match(/[/:]([^/:.]+\/[^/]+?)(\.git)?$/);
+  if (orgRepoMatch?.[1]) {
+    return orgRepoMatch[1];
+  }
+  const repoMatch = remoteUrl.match(/\/([^/]+?)(\.git)?$/);
+  if (repoMatch?.[1]) {
+    return repoMatch[1];
+  }
+  return null;
+}
+function extractProjectName(workingDirectory) {
+  try {
+    try {
+      const remoteUrl = execSync2("git config --get remote.origin.url", {
+        cwd: workingDirectory,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 5000
+      }).trim();
+      if (remoteUrl) {
+        const name = extractNameFromRemoteUrl(remoteUrl);
+        if (name) {
+          return name;
+        }
+      }
+    } catch {}
+    try {
+      const repoRoot = execSync2("git rev-parse --show-toplevel", {
+        cwd: workingDirectory,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 5000
+      }).trim();
+      if (repoRoot) {
+        return path2.basename(repoRoot);
+      }
+    } catch {}
+    return path2.basename(workingDirectory);
+  } catch {
+    return null;
+  }
+}
+function isGitRepository(workingDirectory) {
+  try {
+    execSync2("git rev-parse --is-inside-work-tree", {
+      cwd: workingDirectory,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout: 5000
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+function getProjectInfoSync(workingDirectory) {
+  try {
+    if (!isGitRepository(workingDirectory)) {
+      return UNKNOWN_PROJECT;
+    }
+    const projectName = extractProjectName(workingDirectory);
+    if (!projectName) {
+      return UNKNOWN_PROJECT;
+    }
+    const absolutePath = path2.resolve(workingDirectory);
+    const projectId = generateProjectId(absolutePath);
+    return {
+      projectId,
+      projectName
+    };
+  } catch {
+    return UNKNOWN_PROJECT;
+  }
+}
+// src/supabase/events-uploader.ts
 init_constants();
-function transformEventForUpload(event, userId) {
+var UNKNOWN_PROJECT2 = {
+  projectId: "unknown",
+  projectName: "unknown"
+};
+function parseFileUri(uri) {
+  if (uri.startsWith("file://")) {
+    try {
+      return fileURLToPath3(uri);
+    } catch {
+      return uri.replace(/^file:\/\//, "");
+    }
+  }
+  return uri;
+}
+function transformEventForUpload(event, userId, projectInfo) {
   let normalizedPayload = event.payload;
   if (event.payload && typeof event.payload === "object" && !Array.isArray(event.payload) && "session_id" in event.payload && typeof event.payload.session_id === "string") {
     normalizedPayload = {
@@ -38577,7 +38775,8 @@ function transformEventForUpload(event, userId) {
     user_id: userId,
     platform: PLATFORM,
     source: SOURCE,
-    payload: normalizedPayload
+    payload: normalizedPayload,
+    project_id: projectInfo.projectId !== "unknown" ? projectInfo.projectId : null
   };
 }
 function deduplicateEvents(events) {
@@ -38615,7 +38814,21 @@ async function uploadEvents(supabase) {
       logger.info(`Deduplicated events: ${queuedEvents.length} → ${uniqueEvents.length} (removed ${queuedEvents.length - uniqueEvents.length} duplicates)`);
     }
     logger.info(`Uploading ${uniqueEvents.length} code digest events`);
-    const eventsToUpload = uniqueEvents.map((e) => transformEventForUpload(e, session.userId));
+    const projectInfoCache = new Map;
+    for (const event of uniqueEvents) {
+      if (!event.workspace_folder_uri) {
+        logger.debug("Event missing workspace_folder_uri, using unknown project");
+        continue;
+      }
+      const workingDirectory = parseFileUri(event.workspace_folder_uri);
+      if (!projectInfoCache.has(workingDirectory)) {
+        projectInfoCache.set(workingDirectory, getProjectInfoSync(workingDirectory));
+      }
+    }
+    const eventsToUpload = uniqueEvents.map((e) => {
+      const projectInfo = e.workspace_folder_uri ? projectInfoCache.get(parseFileUri(e.workspace_folder_uri)) ?? UNKNOWN_PROJECT2 : UNKNOWN_PROJECT2;
+      return transformEventForUpload(e, session.userId, projectInfo);
+    });
     const batchSize = 100;
     let uploadedCount = 0;
     const successfullyUploadedIds = new Set;
@@ -38669,7 +38882,7 @@ async function uploadEventsWithRetry(supabase, maxRetries = 3, backoffMs = 5000)
       if (attempt < maxRetries) {
         const delay = backoffMs * attempt;
         logger.debug(`Retrying in ${delay}ms...`);
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await new Promise((resolve2) => setTimeout(resolve2, delay));
       }
     }
   }

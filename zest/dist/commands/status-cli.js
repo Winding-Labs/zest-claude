@@ -15815,7 +15815,7 @@ function getErrorCategory(errorType) {
     return "auth";
   if (errorType.startsWith("sync_"))
     return "sync";
-  if (errorType.startsWith("queue_") || errorType.startsWith("file_"))
+  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("extraction_"))
     return "filesystem";
   if (errorType.startsWith("daemon_"))
     return "daemon";
@@ -32327,6 +32327,23 @@ async function refreshSession(session) {
     throw error46;
   }
 }
+async function getValidSession() {
+  const session = await loadSession();
+  if (!session) {
+    logger.debug("getValidSession: No session found");
+    return null;
+  }
+  if (session.expiresAt < Date.now() + PROACTIVE_REFRESH_THRESHOLD_MS) {
+    try {
+      const refreshedSession = await refreshSession(session);
+      return refreshedSession;
+    } catch (error46) {
+      logger.warn("getValidSession: Failed to refresh session", error46);
+      return null;
+    }
+  }
+  return session;
+}
 
 // src/config/settings.ts
 import { readFile as readFile2, writeFile as writeFile2 } from "node:fs/promises";
@@ -36351,6 +36368,59 @@ async function loadSettings() {
   }
 }
 
+// src/supabase/client.ts
+async function getSupabaseClient() {
+  try {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      logger.warn("Supabase configuration missing (URL or anon key)");
+      return null;
+    }
+    const session = await getValidSession();
+    if (!session) {
+      logger.debug("No valid session available, skipping Supabase client creation");
+      return null;
+    }
+    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: false
+      },
+      global: {
+        headers: {
+          Authorization: `Bearer ${session.accessToken}`
+        }
+      }
+    });
+    logger.debug("Supabase client created successfully");
+    return client;
+  } catch (error46) {
+    logger.error("Failed to create Supabase client", error46);
+    return null;
+  }
+}
+
+// src/supabase/standup.ts
+async function fetchAutoRefreshEligibility(workspaceId, userId) {
+  try {
+    const supabase = await getSupabaseClient();
+    if (!supabase) {
+      throw new Error("Failed to create Supabase client");
+    }
+    logger.debug("Fetching auto-refresh eligibility", { workspaceId, userId });
+    const { data, error: error46 } = await supabase.rpc("check_auto_refresh_eligibility", {
+      p_workspace_id: workspaceId,
+      p_user_id: userId
+    }).maybeSingle();
+    if (error46) {
+      logger.error("Failed to fetch auto-refresh eligibility", error46);
+      return null;
+    }
+    return data;
+  } catch (error46) {
+    logger.error("Error fetching auto-refresh eligibility", error46);
+    return null;
+  }
+}
+
 // src/utils/daemon-manager.ts
 import { readFile as readFile3, stat as stat2, unlink as unlink3, writeFile as writeFile3 } from "node:fs/promises";
 import { dirname as dirname4, join as join4 } from "node:path";
@@ -37012,6 +37082,7 @@ async function main() {
     const queueStats = await getDetailedQueueStats();
     const lastHourStats = await aggregateLastHourStats();
     const statusCache = readStatusCache();
+    console.log("okok: ", process.env.CLAUDE_PROJECT_DIR);
     if (session) {
       console.log(`✅ Authenticated: ${session.email}`);
     } else {
@@ -37048,6 +37119,22 @@ async function main() {
     } else {
       console.log("✅ Pending: All synced");
     }
+    if (session?.workspaceId) {
+      const eligibility = await fetchAutoRefreshEligibility(session.workspaceId, session.userId);
+      if (!eligibility || !eligibility.last_analysis_at) {
+        console.log("\uD83D\uDDD3️ Standups: None yet - visit web dashboard or run /zest:standup");
+      } else {
+        const generatedAgo = formatRelativeTime(new Date(eligibility.last_analysis_at).getTime());
+        if (eligibility.reason === "user_generated_today") {
+          console.log(`\uD83D\uDDD3️ Standups: Generated ${generatedAgo} - to regenerate, run /zest:standup`);
+        } else if (eligibility.cooldown_remaining_seconds > 0) {
+          const minutes = Math.ceil(eligibility.cooldown_remaining_seconds / 60);
+          console.log(`\uD83D\uDDD3️ Standups: Generated ${generatedAgo}, next one in ${minutes} min on web app visit (or run /zest:standup)`);
+        } else {
+          console.log(`\uD83D\uDDD3️ Standups: Generated ${generatedAgo}, ready to auto-refresh on web app visit (or run /zest:standup)`);
+        }
+      }
+    }
     if (lastHourStats.errors > 0 || statusCache.syncStatus.hasError) {
       console.log("");
       if (statusCache.syncStatus.hasError && statusCache.syncStatus.errorMessage) {
@@ -37056,7 +37143,6 @@ async function main() {
         console.log(`⚠️  ${lastHourStats.errors} sync error(s) in the last hour`);
       }
     }
-    console.log("");
     if (daemonPid) {
       console.log(`\uD83D\uDD04 Daemon: Running (PID: ${daemonPid})`);
     } else {

@@ -1,5 +1,8 @@
 // src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
+function sanitizeForFilename(input) {
+  return input.replace(/[\\/:*?"<>|]/g, "_");
+}
 async function ensureDirectory(dirPath) {
   try {
     await stat(dirPath);
@@ -8,5 +11,6 @@ async function ensureDirectory(dirPath) {
   }
 }
 export {
+  sanitizeForFilename,
   ensureDirectory
 };
