@@ -13125,7 +13125,18 @@ var require_main4 = __commonJS((exports2) => {
     return locks_1.processLock;
   } });
 });
-
+// ../../packages/utils/src/date-range.ts
+function calculateTodayDateRange(baseDate = new Date) {
+  const year = baseDate.getFullYear();
+  const month = baseDate.getMonth();
+  const day = baseDate.getDate();
+  const start = new Date(year, month, day, 0, 0, 0, 0);
+  const end = new Date(year, month, day, 23, 59, 59, 999);
+  return {
+    dateFrom: start.toISOString(),
+    dateTo: end.toISOString()
+  };
+}
 // src/analytics/events.ts
 var AUTH_TOKEN_REFRESH_FAILED = "auth_token_refresh_failed";
 var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
@@ -32468,11 +32479,7 @@ async function main() {
       console.log("❌ No standup prompt configured for this workspace");
       return;
     }
-    const now = new Date;
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-    const dateFrom = startOfDay.toISOString();
-    const dateTo = endOfDay.toISOString();
+    const { dateFrom, dateTo } = calculateTodayDateRange();
     const supabase = await getSupabaseClient();
     if (!supabase) {
       console.log("❌ Failed to connect to Zest");
