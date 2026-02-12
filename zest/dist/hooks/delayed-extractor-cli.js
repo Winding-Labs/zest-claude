@@ -85,6 +85,9 @@ var init_constants = __esm(() => {
 
 // src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
+function sanitizeForFilename(input) {
+  return input.replace(/[\\/:*?"<>|]/g, "_");
+}
 async function ensureDirectory(dirPath) {
   try {
     await stat(dirPath);
@@ -17378,12 +17381,13 @@ var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
 var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
 var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
 var FILE_LOCK_TIMEOUT = "file_lock_timeout";
+var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
 function getErrorCategory(errorType) {
   if (errorType.startsWith("auth_"))
     return "auth";
   if (errorType.startsWith("sync_"))
     return "sync";
-  if (errorType.startsWith("queue_") || errorType.startsWith("file_"))
+  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("extraction_"))
     return "filesystem";
   if (errorType.startsWith("daemon_"))
     return "daemon";
@@ -36496,6 +36500,13 @@ async function acquireFileLock(filePath) {
       const errCode = error46.code;
       if (errCode === "ENOENT" || errCode === "EACCES") {
         logger.error(`Failed to create lock file ${lockFile}:`, error46);
+        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
+          ...buildFileSystemProperties({
+            filePath: lockFile,
+            operation: "lock",
+            errnoCode: errCode
+          })
+        });
       }
       throw error46;
     }
@@ -36546,7 +36557,7 @@ async function withFileLock(filePath, fn) {
 init_fs_utils();
 init_logger();
 async function shouldProcessNow(hookType, sessionId) {
-  const debounceFile = join5(DEBOUNCE_DIR, `trailing-${hookType}-${sessionId}.json`);
+  const debounceFile = join5(DEBOUNCE_DIR, `trailing-${hookType}-${sanitizeForFilename(sessionId)}.json`);
   const now = Date.now();
   try {
     const content = await readFile4(debounceFile, "utf-8");
@@ -36649,6 +36660,179 @@ var languageMap = {
 function getLanguageFromPath(filePath) {
   const ext = filePath.split(".").pop()?.toLowerCase();
   return languageMap[ext || ""] || "plaintext";
+}
+// ../../packages/utils/src/git-utils.ts
+import { exec, execSync } from "node:child_process";
+import * as path from "node:path";
+import { promisify } from "node:util";
+
+// ../../node_modules/uuid/dist-node/regex.js
+var regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
+
+// ../../node_modules/uuid/dist-node/validate.js
+function validate(uuid3) {
+  return typeof uuid3 === "string" && regex_default.test(uuid3);
+}
+var validate_default = validate;
+
+// ../../node_modules/uuid/dist-node/parse.js
+function parse5(uuid3) {
+  if (!validate_default(uuid3)) {
+    throw TypeError("Invalid UUID");
+  }
+  let v;
+  return Uint8Array.of((v = parseInt(uuid3.slice(0, 8), 16)) >>> 24, v >>> 16 & 255, v >>> 8 & 255, v & 255, (v = parseInt(uuid3.slice(9, 13), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(14, 18), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(19, 23), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(24, 36), 16)) / 1099511627776 & 255, v / 4294967296 & 255, v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
+}
+var parse_default = parse5;
+
+// ../../node_modules/uuid/dist-node/stringify.js
+var byteToHex = [];
+for (let i = 0;i < 256; ++i) {
+  byteToHex.push((i + 256).toString(16).slice(1));
+}
+function unsafeStringify(arr, offset = 0) {
+  return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
+}
+
+// ../../node_modules/uuid/dist-node/v35.js
+function stringToBytes(str) {
+  str = unescape(encodeURIComponent(str));
+  const bytes = new Uint8Array(str.length);
+  for (let i = 0;i < str.length; ++i) {
+    bytes[i] = str.charCodeAt(i);
+  }
+  return bytes;
+}
+var DNS = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+var URL2 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
+function v35(version5, hash2, value, namespace, buf, offset) {
+  const valueBytes = typeof value === "string" ? stringToBytes(value) : value;
+  const namespaceBytes = typeof namespace === "string" ? parse_default(namespace) : namespace;
+  if (typeof namespace === "string") {
+    namespace = parse_default(namespace);
+  }
+  if (namespace?.length !== 16) {
+    throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
+  }
+  let bytes = new Uint8Array(16 + valueBytes.length);
+  bytes.set(namespaceBytes);
+  bytes.set(valueBytes, namespaceBytes.length);
+  bytes = hash2(bytes);
+  bytes[6] = bytes[6] & 15 | version5;
+  bytes[8] = bytes[8] & 63 | 128;
+  if (buf) {
+    offset = offset || 0;
+    for (let i = 0;i < 16; ++i) {
+      buf[offset + i] = bytes[i];
+    }
+    return buf;
+  }
+  return unsafeStringify(bytes);
+}
+
+// ../../node_modules/uuid/dist-node/sha1.js
+import { createHash } from "node:crypto";
+function sha1(bytes) {
+  if (Array.isArray(bytes)) {
+    bytes = Buffer.from(bytes);
+  } else if (typeof bytes === "string") {
+    bytes = Buffer.from(bytes, "utf8");
+  }
+  return createHash("sha1").update(bytes).digest();
+}
+var sha1_default = sha1;
+
+// ../../node_modules/uuid/dist-node/v5.js
+function v5(value, namespace, buf, offset) {
+  return v35(80, sha1_default, value, namespace, buf, offset);
+}
+v5.DNS = DNS;
+v5.URL = URL2;
+var v5_default = v5;
+// ../../packages/utils/src/git-utils.ts
+var execAsync = promisify(exec);
+var UNKNOWN_PROJECT = {
+  projectId: "unknown",
+  projectName: "unknown"
+};
+var PROJECT_ID_NAMESPACE = "e1f3b3c4-0b7a-4c1e-8a7b-9f3c0e1d2a3b";
+function generateProjectId(input) {
+  return v5_default(input, PROJECT_ID_NAMESPACE);
+}
+function extractNameFromRemoteUrl(remoteUrl) {
+  const orgRepoMatch = remoteUrl.match(/[/:]([^/:.]+\/[^/]+?)(\.git)?$/);
+  if (orgRepoMatch?.[1]) {
+    return orgRepoMatch[1];
+  }
+  const repoMatch = remoteUrl.match(/\/([^/]+?)(\.git)?$/);
+  if (repoMatch?.[1]) {
+    return repoMatch[1];
+  }
+  return null;
+}
+function extractProjectName(workingDirectory) {
+  try {
+    try {
+      const remoteUrl = execSync("git config --get remote.origin.url", {
+        cwd: workingDirectory,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 5000
+      }).trim();
+      if (remoteUrl) {
+        const name = extractNameFromRemoteUrl(remoteUrl);
+        if (name) {
+          return name;
+        }
+      }
+    } catch {}
+    try {
+      const repoRoot = execSync("git rev-parse --show-toplevel", {
+        cwd: workingDirectory,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 5000
+      }).trim();
+      if (repoRoot) {
+        return path.basename(repoRoot);
+      }
+    } catch {}
+    return path.basename(workingDirectory);
+  } catch {
+    return null;
+  }
+}
+function isGitRepository(workingDirectory) {
+  try {
+    execSync("git rev-parse --is-inside-work-tree", {
+      cwd: workingDirectory,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout: 5000
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+function getProjectInfoSync(workingDirectory) {
+  try {
+    if (!isGitRepository(workingDirectory)) {
+      return UNKNOWN_PROJECT;
+    }
+    const projectName = extractProjectName(workingDirectory);
+    if (!projectName) {
+      return UNKNOWN_PROJECT;
+    }
+    const absolutePath = path.resolve(workingDirectory);
+    const projectId = generateProjectId(absolutePath);
+    return {
+      projectId,
+      projectName
+    };
+  } catch {
+    return UNKNOWN_PROJECT;
+  }
 }
 // src/utils/extraction-helpers.ts
 init_constants();
@@ -36769,16 +36953,16 @@ var Diff = function() {
       }
     }
   };
-  Diff2.prototype.addToPath = function(path, added, removed, oldPosInc, options) {
-    var last = path.lastComponent;
+  Diff2.prototype.addToPath = function(path2, added, removed, oldPosInc, options) {
+    var last = path2.lastComponent;
     if (last && !options.oneChangePerToken && last.added === added && last.removed === removed) {
       return {
-        oldPos: path.oldPos + oldPosInc,
+        oldPos: path2.oldPos + oldPosInc,
         lastComponent: { count: last.count + 1, added, removed, previousComponent: last.previousComponent }
       };
     } else {
       return {
-        oldPos: path.oldPos + oldPosInc,
+        oldPos: path2.oldPos + oldPosInc,
         lastComponent: { count: 1, added, removed, previousComponent: last }
       };
     }
@@ -37964,6 +38148,12 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
               const filterResult = applyMessageFilter(role, textContent, filteringState);
               filteringState = filterResult.newState;
               if (!filterResult.shouldFilter) {
+                const metadata = {};
+                if (entry.uuid)
+                  metadata.claude_uuid = entry.uuid;
+                if (role === "assistant" && entry.message.model) {
+                  metadata.modelName = entry.message.model;
+                }
                 messages.push({
                   id: entry.uuid,
                   session_id: sessionId,
@@ -37971,7 +38161,7 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
                   content: textContent,
                   created_at: entry.timestamp || new Date().toISOString(),
                   message_index: messageCounter,
-                  metadata: entry.uuid ? { claude_uuid: entry.uuid } : null
+                  metadata: Object.keys(metadata).length > 0 ? metadata : null
                 });
                 messageCounter++;
                 logger.debug(`Extracted ${role} message at line ${lineNumber + 1}: ${textContent.substring(0, 50)}...`);
@@ -39245,19 +39435,19 @@ init_logger();
 import { readFile as readFile6, readdir as readdir5, stat as stat4 } from "node:fs/promises";
 function createNodeFsAdapter(workspaceRoot) {
   return {
-    async readFile(path) {
-      return readFile6(path, "utf-8");
+    async readFile(path2) {
+      return readFile6(path2, "utf-8");
     },
-    async fileExists(path) {
+    async fileExists(path2) {
       try {
-        await stat4(path);
+        await stat4(path2);
         return true;
       } catch {
         return false;
       }
     },
-    async readDir(path) {
-      return readdir5(path);
+    async readDir(path2) {
+      return readdir5(path2);
     },
     getWorkspaceRoot() {
       return workspaceRoot;
@@ -39624,10 +39814,13 @@ async function extractNewSessionData(conversationFile, sessionId) {
 async function queueSessionData(sessionId, messages, toolUses, fileStats, projectDir, conversationFile, newLastReadLine, lastMessageIndex, isNewSession) {
   await ensurePrivacyInitialized(projectDir);
   if (isNewSession) {
+    const projectInfo = getProjectInfoSync(projectDir);
     const session = {
       id: sessionId,
       title: messages.length > 0 ? messages[0].content.substring(0, 100) : `Session ${sessionId}`,
-      created_at: fileStats.birthtime.toISOString()
+      created_at: fileStats.birthtime.toISOString(),
+      project_id: projectInfo.projectId !== "unknown" ? projectInfo.projectId : null,
+      project_name: projectInfo.projectName !== "unknown" ? projectInfo.projectName : null
     };
     await enqueueChatSession(session);
   }
@@ -39638,7 +39831,8 @@ async function queueSessionData(sessionId, messages, toolUses, fileStats, projec
       message_index: message.message_index,
       role: message.role,
       content: message.content,
-      created_at: message.created_at
+      created_at: message.created_at,
+      metadata: message.metadata
     };
     await enqueueChatMessage(extractedMessage);
   }
@@ -39680,12 +39874,12 @@ async function queueToolUseEvents(toolUses, sessionId, projectDir) {
 }
 
 // src/utils/folder-exclusion.ts
-import { normalize, resolve, sep as sep2 } from "node:path";
+import { normalize, resolve as resolve2, sep as sep2 } from "node:path";
 function isCaseInsensitiveFilesystem() {
   return process.platform === "win32" || process.platform === "darwin";
 }
-function normalizeForComparison(path) {
-  const normalized = normalize(resolve(path));
+function normalizeForComparison(path2) {
+  const normalized = normalize(resolve2(path2));
   return isCaseInsensitiveFilesystem() ? normalized.toLowerCase() : normalized;
 }
 function isFolderExcluded(folderPath, settings) {
@@ -39716,7 +39910,7 @@ async function main() {
       }
     }
     await initializeQueue();
-    await new Promise((resolve2) => setTimeout(resolve2, DELAYED_EXTRACTION_INITIAL_DELAY_MS));
+    await new Promise((resolve3) => setTimeout(resolve3, DELAYED_EXTRACTION_INITIAL_DELAY_MS));
     let totalWait = DELAYED_EXTRACTION_INITIAL_DELAY_MS;
     while (totalWait < DELAYED_EXTRACTION_MAX_WAIT_MS) {
       const { shouldProcess } = await shouldProcessNow("PostToolUse", sessionId);
@@ -39724,14 +39918,14 @@ async function main() {
         break;
       }
       logger.debug(`Hooks still firing, waiting ${DELAYED_EXTRACTION_CHECK_INTERVAL_MS}ms more...`);
-      await new Promise((resolve2) => setTimeout(resolve2, DELAYED_EXTRACTION_CHECK_INTERVAL_MS));
+      await new Promise((resolve3) => setTimeout(resolve3, DELAYED_EXTRACTION_CHECK_INTERVAL_MS));
       totalWait += DELAYED_EXTRACTION_CHECK_INTERVAL_MS;
     }
     if (totalWait >= DELAYED_EXTRACTION_MAX_WAIT_MS) {
       logger.warn(`Max wait time (${DELAYED_EXTRACTION_MAX_WAIT_MS}ms) reached, proceeding anyway`);
     }
     const finalDelayMs = 3000;
-    await new Promise((resolve2) => setTimeout(resolve2, finalDelayMs));
+    await new Promise((resolve3) => setTimeout(resolve3, finalDelayMs));
     const fileStats = await stat6(conversationFile);
     const extractionResult = await extractNewSessionData(conversationFile, sessionId);
     if (!extractionResult.hasNewData) {

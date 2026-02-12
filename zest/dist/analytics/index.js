@@ -31883,7 +31883,7 @@ function getErrorCategory(errorType) {
     return "auth";
   if (errorType.startsWith("sync_"))
     return "sync";
-  if (errorType.startsWith("queue_") || errorType.startsWith("file_"))
+  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("extraction_"))
     return "filesystem";
   if (errorType.startsWith("daemon_"))
     return "daemon";

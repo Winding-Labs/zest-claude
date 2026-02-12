@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 var __create = Object.create;
 var __getProtoOf = Object.getPrototypeOf;
 var __defProp = Object.defineProperty;
@@ -2571,8 +2570,8 @@ var require_RealtimeChannel = __commonJS((exports) => {
     _trigger(type, payload, ref) {
       var _a, _b;
       const typeLower = type.toLocaleLowerCase();
-      const { close, error, leave, join } = constants_1.CHANNEL_EVENTS;
-      const events = [close, error, leave, join];
+      const { close, error, leave, join: join3 } = constants_1.CHANNEL_EVENTS;
+      const events = [close, error, leave, join3];
       if (ref && events.indexOf(typeLower) >= 0 && ref !== this._joinRef()) {
         return;
       }
@@ -13126,9 +13125,163 @@ var require_main4 = __commonJS((exports) => {
   exports.COPY_AUTOCAPTURE_EVENT = ne, exports.Compression = oe, exports.DisplaySurveyType = Bn, exports.PostHog = jo, exports.SurveyEventName = zn, exports.SurveyEventProperties = Hn, exports.SurveyEventType = Mn, exports.SurveyPosition = An, exports.SurveyQuestionBranchingType = Nn, exports.SurveyQuestionType = Ln, exports.SurveySchedule = Un, exports.SurveyTabPosition = Dn, exports.SurveyType = jn, exports.SurveyWidgetType = On, exports.default = No, exports.posthog = No, exports.severityLevels = ["fatal", "error", "warning", "log", "info", "debug"];
 });
 
-// src/auth/session-manager.ts
-import { readFile, unlink as unlink2, writeFile } from "node:fs/promises";
-import { dirname as dirname3 } from "node:path";
+// src/utils/logger.ts
+import { appendFile } from "node:fs/promises";
+import { dirname } from "node:path";
+
+// src/utils/fs-utils.ts
+import { mkdir, stat } from "node:fs/promises";
+async function ensureDirectory(dirPath) {
+  try {
+    await stat(dirPath);
+  } catch {
+    await mkdir(dirPath, { recursive: true, mode: 448 });
+  }
+}
+
+// src/utils/log-rotation.ts
+import { readdir, unlink } from "node:fs/promises";
+import { join as join2 } from "node:path";
+
+// src/config/constants.ts
+import { homedir } from "node:os";
+import { join } from "node:path";
+var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
+var CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
+var CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
+var CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
+var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
+var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
+var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
+var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
+var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
+var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
+var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
+var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
+var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
+var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
+var SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
+var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
+var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
+var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
+var LOCK_RETRY_MS = 50;
+var LOCK_MAX_RETRIES = 300;
+var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
+var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
+var LOG_RETENTION_DAYS = 7;
+var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
+var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+var SUPABASE_URL = "http://127.0.0.1:54321";
+var SUPABASE_ANON_KEY = "sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH";
+var POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ";
+var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
+var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+var NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
+var STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
+var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
+
+// src/utils/log-rotation.ts
+var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
+var lastCleanupTime = {};
+function getDateString() {
+  return new Date().toISOString().split("T")[0];
+}
+function getDatedLogPath(logPrefix) {
+  const dateStr = getDateString();
+  return join2(LOGS_DIR, `${logPrefix}-${dateStr}.log`);
+}
+function parseDateFromFilename(filename, logPrefix) {
+  const pattern = new RegExp(`^${logPrefix}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
+  const match = filename.match(pattern);
+  if (!match) {
+    return null;
+  }
+  const date = new Date(match[1] + "T00:00:00Z");
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+async function cleanupStaleLogs(logPrefix) {
+  const now = Date.now();
+  const lastCleanup = lastCleanupTime[logPrefix] || 0;
+  if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
+    return;
+  }
+  lastCleanupTime[logPrefix] = now;
+  try {
+    await ensureDirectory(LOGS_DIR);
+    const files = await readdir(LOGS_DIR);
+    const cutoffDate = new Date(now - LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    for (const file of files) {
+      const fileDate = parseDateFromFilename(file, logPrefix);
+      if (fileDate && fileDate < cutoffDate) {
+        const filePath = join2(LOGS_DIR, file);
+        try {
+          await unlink(filePath);
+        } catch (error) {
+          logger.error(`Failed to delete old log file ${file}`, error);
+        }
+      }
+    }
+  } catch (error) {
+    logger.error("Failed to cleanup old logs", error);
+  }
+}
+
+// src/utils/logger.ts
+class Logger {
+  minLevel = "debug";
+  logPrefix;
+  levels = {
+    debug: 0,
+    info: 1,
+    warn: 2,
+    error: 3
+  };
+  constructor(logPrefix = "plugin") {
+    this.logPrefix = logPrefix;
+  }
+  setLevel(level) {
+    this.minLevel = level;
+  }
+  async writeToFile(message) {
+    try {
+      const logFilePath = getDatedLogPath(this.logPrefix);
+      await ensureDirectory(dirname(logFilePath));
+      const timestamp = new Date().toISOString();
+      await appendFile(logFilePath, `[${timestamp}] ${message}
+`, "utf-8");
+      cleanupStaleLogs(this.logPrefix);
+    } catch (error) {
+      console.error("Failed to write to log file:", error);
+    }
+  }
+  shouldLog(level) {
+    return this.levels[level] >= this.levels[this.minLevel];
+  }
+  debug(message, ...args) {
+    if (this.shouldLog("debug")) {
+      this.writeToFile(`DEBUG: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  info(message, ...args) {
+    if (this.shouldLog("info")) {
+      this.writeToFile(`INFO: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  warn(message, ...args) {
+    if (this.shouldLog("warn")) {
+      console.warn(`[Zest:Warn] ${message}`, ...args);
+      this.writeToFile(`WARN: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  error(message, error) {
+    if (this.shouldLog("error")) {
+      console.error(`[Zest:Error] ${message}`, error);
+      this.writeToFile(`ERROR: ${message} ${error instanceof Error ? error.stack : JSON.stringify(error)}`);
+    }
+  }
+}
+var logger = new Logger;
 
 // node_modules/@supabase/supabase-js/dist/index.mjs
 var exports_dist3 = {};
@@ -15806,28 +15959,26 @@ if (shouldShowDeprecationWarning())
   console.warn("⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217");
 
 // src/analytics/events.ts
-var AUTH_TOKEN_REFRESH_FAILED = "auth_token_refresh_failed";
 var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
 var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
-var SYNC_NOT_AUTHENTICATED = "sync_not_authenticated";
-var SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed";
-var SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted";
-var SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed";
-var SYNC_NETWORK_ERROR = "sync_network_error";
-var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
 var FILE_LOCK_TIMEOUT = "file_lock_timeout";
 var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
+var SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed";
+var SUPABASE_SESSION_SET_FAILED = "supabase_session_set_failed";
+var SUPABASE_SESSION_REFRESH_PERSIST_FAILED = "supabase_session_refresh_persist_failed";
 function getErrorCategory(errorType) {
   if (errorType.startsWith("auth_"))
     return "auth";
   if (errorType.startsWith("sync_"))
     return "sync";
-  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("extraction_"))
+  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("notification_"))
     return "filesystem";
   if (errorType.startsWith("daemon_"))
     return "daemon";
   if (errorType.startsWith("api_"))
     return "api";
+  if (errorType.startsWith("supabase_"))
+    return "supabase";
   return "api";
 }
 
@@ -28404,7 +28555,7 @@ var allEvents = {
   ...extensionEvents
 };
 // ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/extensions/error-tracking/modifiers/module.node.mjs
-import { dirname, posix, sep } from "path";
+import { dirname as dirname2, posix, sep } from "path";
 function createModulerModifier() {
   const getModuleFromFileName = createGetModuleFromFilename();
   return async (frames) => {
@@ -28413,7 +28564,7 @@ function createModulerModifier() {
     return frames;
   };
 }
-function createGetModuleFromFilename(basePath = process.argv[1] ? dirname(process.argv[1]) : process.cwd(), isWindows = sep === "\\") {
+function createGetModuleFromFilename(basePath = process.argv[1] ? dirname2(process.argv[1]) : process.cwd(), isWindows = sep === "\\") {
   const normalizedBase = isWindows ? normalizeWindowsPath(basePath) : basePath;
   return (filename) => {
     if (!filename)
@@ -28844,23 +28995,23 @@ function isPlainObject3(candidate) {
 }
 
 // ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/utils/number-utils.mjs
-function clampToRange(value, min, max, logger, fallbackValue) {
+function clampToRange(value, min, max, logger2, fallbackValue) {
   if (min > max) {
-    logger.warn("min cannot be greater than max.");
+    logger2.warn("min cannot be greater than max.");
     min = max;
   }
   if (isNumber(value))
     if (value > max) {
-      logger.warn(" cannot be  greater than max: " + max + ". Using max value instead.");
+      logger2.warn(" cannot be  greater than max: " + max + ". Using max value instead.");
       return max;
     } else {
       if (!(value < min))
         return value;
-      logger.warn(" cannot be less than min: " + min + ". Using min value instead.");
+      logger2.warn(" cannot be less than min: " + min + ". Using min value instead.");
       return min;
     }
-  logger.warn(" must be a number. using max or fallback. max: " + max + ", fallback: " + fallbackValue);
-  return clampToRange(fallbackValue || max, min, max, logger);
+  logger2.warn(" must be a number. using max or fallback. max: " + max + ", fallback: " + fallbackValue);
+  return clampToRange(fallbackValue || max, min, max, logger2);
 }
 
 // ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/utils/bucketed-rate-limiter.mjs
@@ -29041,7 +29192,7 @@ var _createLogger = (prefix, maybeCall, consoleLike) => {
       consoleMethod(prefix, ...args);
     });
   }
-  const logger = {
+  const logger2 = {
     info: (...args) => {
       _log("log", ...args);
     },
@@ -29056,7 +29207,7 @@ var _createLogger = (prefix, maybeCall, consoleLike) => {
     },
     createLogger: (additionalPrefix) => _createLogger(`${prefix} ${additionalPrefix}`, maybeCall, consoleLike)
   };
-  return logger;
+  return logger2;
 };
 function createLogger(prefix, maybeCall) {
   return _createLogger(prefix, maybeCall, createConsole());
@@ -31901,163 +32052,86 @@ function createServerAnalytics(posthogApiKey) {
     }
   };
 }
-// src/config/constants.ts
-import { homedir } from "node:os";
-import { join } from "node:path";
-var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
-var CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
-var CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
-var CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
-var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
-var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
-var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
-var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
-var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
-var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
-var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
-var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
-var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
-var SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
-var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
-var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
-var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
-var PLATFORM = "terminal";
-var SOURCE = "claude-code";
-var LOCK_RETRY_MS = 50;
-var LOCK_MAX_RETRIES = 300;
-var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
-var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
-var LOG_RETENTION_DAYS = 7;
-var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
-var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
-var MIN_MESSAGES_PER_SESSION = 3;
-var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-var SUPABASE_URL = "https://fnnlebrtmlxxjwdvngck.supabase.co";
-var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubmxlYnJ0bWx4eGp3ZHZuZ2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MzA3MjYsImV4cCI6MjA3MjMwNjcyNn0.0IE3HCY_DiyyALdewbRn1vkedwzDW27NQMQ28V6j4Dk";
-var POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ";
-var ZEST_SESSION_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341";
-var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
-var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
-var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
+// src/auth/session-manager.ts
+import { readFile, unlink as unlink2, writeFile } from "node:fs/promises";
+import { dirname as dirname3 } from "node:path";
 
-// src/utils/logger.ts
-import { appendFile } from "node:fs/promises";
-import { dirname as dirname2 } from "node:path";
+// src/analytics/properties.ts
+import { basename } from "node:path";
+function buildFileSystemProperties(options) {
+  const anonymizedPath = options.filePath ? basename(options.filePath) : undefined;
+  return {
+    ...anonymizedPath && { file_name: anonymizedPath },
+    operation: options.operation,
+    ...options.errnoCode && { errno_code: options.errnoCode }
+  };
+}
 
-// src/utils/fs-utils.ts
-import { mkdir, stat } from "node:fs/promises";
-async function ensureDirectory(dirPath) {
+// src/auth/session-manager.ts
+async function loadSessionFile() {
   try {
-    await stat(dirPath);
-  } catch {
-    await mkdir(dirPath, { recursive: true, mode: 448 });
-  }
-}
-
-// src/utils/log-rotation.ts
-import { readdir, unlink } from "node:fs/promises";
-import { join as join2 } from "node:path";
-var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
-var lastCleanupTime = {};
-function getDateString() {
-  return new Date().toISOString().split("T")[0];
-}
-function getDatedLogPath(logPrefix) {
-  const dateStr = getDateString();
-  return join2(LOGS_DIR, `${logPrefix}-${dateStr}.log`);
-}
-function parseDateFromFilename(filename, logPrefix) {
-  const pattern = new RegExp(`^${logPrefix}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
-  const match = filename.match(pattern);
-  if (!match) {
+    const content = await readFile(SESSION_FILE, "utf-8");
+    const session = JSON.parse(content);
+    if (!session.accessToken || !session.refreshToken || !session.userId || !session.email) {
+      logger.warn("Invalid session structure, clearing session");
+      await clearSession();
+      return null;
+    }
+    return session;
+  } catch (error46) {
+    if (error46.code === "ENOENT") {
+      return null;
+    }
+    logger.error("Failed to load session file", error46);
+    if (error46 instanceof Error) {
+      captureException(error46, AUTH_SESSION_LOAD_FAILED, "session-manager", {
+        ...buildFileSystemProperties({
+          filePath: SESSION_FILE,
+          operation: "read",
+          errnoCode: error46.code
+        })
+      });
+    }
     return null;
   }
-  const date5 = new Date(match[1] + "T00:00:00Z");
-  return Number.isNaN(date5.getTime()) ? null : date5;
 }
-async function cleanupStaleLogs(logPrefix) {
-  const now = Date.now();
-  const lastCleanup = lastCleanupTime[logPrefix] || 0;
-  if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
-    return;
-  }
-  lastCleanupTime[logPrefix] = now;
+async function loadSession() {
+  return loadSessionFile();
+}
+async function saveSession(session) {
   try {
-    await ensureDirectory(LOGS_DIR);
-    const files = await readdir(LOGS_DIR);
-    const cutoffDate = new Date(now - LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000);
-    for (const file2 of files) {
-      const fileDate = parseDateFromFilename(file2, logPrefix);
-      if (fileDate && fileDate < cutoffDate) {
-        const filePath = join2(LOGS_DIR, file2);
-        try {
-          await unlink(filePath);
-        } catch (error46) {
-          logger.error(`Failed to delete old log file ${file2}`, error46);
-        }
-      }
-    }
+    await ensureDirectory(dirname3(SESSION_FILE));
+    await writeFile(SESSION_FILE, JSON.stringify(session, null, 2), {
+      encoding: "utf-8",
+      mode: 384
+    });
+    logger.info("Session saved successfully");
   } catch (error46) {
-    logger.error("Failed to cleanup old logs", error46);
+    logger.error("Failed to save session", error46);
+    if (error46 instanceof Error) {
+      captureException(error46, AUTH_SESSION_SAVE_FAILED, "session-manager", {
+        ...buildFileSystemProperties({
+          filePath: SESSION_FILE,
+          operation: "write",
+          errnoCode: error46.code
+        })
+      });
+    }
+    throw error46;
   }
 }
-
-// src/utils/logger.ts
-class Logger {
-  minLevel = "info";
-  logPrefix;
-  levels = {
-    debug: 0,
-    info: 1,
-    warn: 2,
-    error: 3
-  };
-  constructor(logPrefix = "plugin") {
-    this.logPrefix = logPrefix;
-  }
-  setLevel(level) {
-    this.minLevel = level;
-  }
-  async writeToFile(message) {
-    try {
-      const logFilePath = getDatedLogPath(this.logPrefix);
-      await ensureDirectory(dirname2(logFilePath));
-      const timestamp = new Date().toISOString();
-      await appendFile(logFilePath, `[${timestamp}] ${message}
-`, "utf-8");
-      cleanupStaleLogs(this.logPrefix);
-    } catch (error46) {
-      console.error("Failed to write to log file:", error46);
+async function clearSession() {
+  try {
+    await unlink2(SESSION_FILE);
+    logger.info("Session cleared successfully");
+  } catch (error46) {
+    if (error46.code === "ENOENT") {
+      return;
     }
-  }
-  shouldLog(level) {
-    return this.levels[level] >= this.levels[this.minLevel];
-  }
-  debug(message, ...args) {
-    if (this.shouldLog("debug")) {
-      this.writeToFile(`DEBUG: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  info(message, ...args) {
-    if (this.shouldLog("info")) {
-      this.writeToFile(`INFO: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  warn(message, ...args) {
-    if (this.shouldLog("warn")) {
-      console.warn(`[Zest:Warn] ${message}`, ...args);
-      this.writeToFile(`WARN: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  error(message, error46) {
-    if (this.shouldLog("error")) {
-      console.error(`[Zest:Error] ${message}`, error46);
-      this.writeToFile(`ERROR: ${message} ${error46 instanceof Error ? error46.stack : JSON.stringify(error46)}`);
-    }
+    logger.error("Failed to clear session", error46);
+    throw error46;
   }
 }
-var logger = new Logger;
 
 // src/utils/plugin-version.ts
 import { readFileSync } from "node:fs";
@@ -32143,573 +32217,6 @@ async function captureException(error46, errorType, errorSource, additionalPrope
   }
 }
 
-// src/analytics/properties.ts
-import { basename } from "node:path";
-function buildAuthProperties(options) {
-  return {
-    auth_method: options.authMethod,
-    ...options.responseStatus !== undefined && { response_status: options.responseStatus },
-    ...options.timeUntilExpiry !== undefined && { time_until_expiry: options.timeUntilExpiry }
-  };
-}
-function buildSyncProperties(options) {
-  return {
-    ...options.syncErrorType && { sync_error_type: options.syncErrorType },
-    ...options.eventsAttempted !== undefined && { events_attempted: options.eventsAttempted },
-    ...options.sessionsAttempted !== undefined && {
-      sessions_attempted: options.sessionsAttempted
-    },
-    ...options.messagesAttempted !== undefined && {
-      messages_attempted: options.messagesAttempted
-    },
-    ...options.retryAttempt !== undefined && { retry_attempt: options.retryAttempt }
-  };
-}
-function buildFileSystemProperties(options) {
-  const anonymizedPath = options.filePath ? basename(options.filePath) : undefined;
-  return {
-    ...anonymizedPath && { file_name: anonymizedPath },
-    operation: options.operation,
-    ...options.errnoCode && { errno_code: options.errnoCode }
-  };
-}
-
-// src/auth/session-manager.ts
-async function loadSession() {
-  try {
-    const content = await readFile(SESSION_FILE, "utf-8");
-    const session = JSON.parse(content);
-    if (!session.accessToken || !session.refreshToken || !session.expiresAt || !session.userId || !session.email) {
-      logger.warn("Invalid session structure, clearing session");
-      await clearSession();
-      return null;
-    }
-    const now = Date.now();
-    if (session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < now) {
-      logger.warn("Refresh token expired, user must re-authenticate");
-      await clearSession();
-      return null;
-    }
-    if (session.expiresAt < now) {
-      logger.debug("Access token expired, attempting refresh");
-      try {
-        return await refreshSession(session);
-      } catch (error46) {
-        logger.warn("Failed to refresh session", error46);
-        await clearSession();
-        return null;
-      }
-    }
-    return session;
-  } catch (error46) {
-    if (error46.code === "ENOENT") {
-      return null;
-    }
-    logger.error("Failed to load session", error46);
-    if (error46 instanceof Error) {
-      captureException(error46, AUTH_SESSION_LOAD_FAILED, "session-manager", {
-        ...buildFileSystemProperties({
-          filePath: SESSION_FILE,
-          operation: "read",
-          errnoCode: error46.code
-        })
-      });
-    }
-    return null;
-  }
-}
-async function saveSession(session) {
-  try {
-    await ensureDirectory(dirname3(SESSION_FILE));
-    await writeFile(SESSION_FILE, JSON.stringify(session, null, 2), {
-      encoding: "utf-8",
-      mode: 384
-    });
-    logger.info("Session saved successfully");
-  } catch (error46) {
-    logger.error("Failed to save session", error46);
-    if (error46 instanceof Error) {
-      captureException(error46, AUTH_SESSION_SAVE_FAILED, "session-manager", {
-        ...buildFileSystemProperties({
-          filePath: SESSION_FILE,
-          operation: "write",
-          errnoCode: error46.code
-        })
-      });
-    }
-    throw error46;
-  }
-}
-async function clearSession() {
-  try {
-    await unlink2(SESSION_FILE);
-    logger.info("Session cleared successfully");
-  } catch (error46) {
-    if (error46.code === "ENOENT") {
-      return;
-    }
-    logger.error("Failed to clear session", error46);
-    throw error46;
-  }
-}
-async function refreshSession(session) {
-  try {
-    const now = Date.now();
-    const timeUntilExpiration = session.expiresAt - now;
-    logger.debug("=== Starting Token Refresh ===");
-    logger.debug(`Current access token expires at: ${new Date(session.expiresAt).toISOString()}`);
-    logger.debug(`Time until expiration: ${Math.round(timeUntilExpiration / 1000)}s`);
-    logger.debug(`Token is ${timeUntilExpiration < 0 ? "EXPIRED" : "still valid"}`);
-    if (session.refreshTokenExpiresAt) {
-      const timeUntilRefreshExpiration = session.refreshTokenExpiresAt - now;
-      logger.debug(`Refresh token expires at: ${new Date(session.refreshTokenExpiresAt).toISOString()}`);
-      logger.debug(`Refresh token time remaining: ${Math.round(timeUntilRefreshExpiration / 1000)}s`);
-    } else {
-      logger.debug("Refresh token: Never expires");
-    }
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      throw new Error("Supabase configuration missing (URL or anon key)");
-    }
-    logger.debug("Using Supabase JS client to refresh session");
-    logger.debug(`Supabase URL: ${SUPABASE_URL}`);
-    logger.debug(`Refresh token length: ${session.refreshToken.length} characters`);
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false
-      }
-    });
-    const { data, error: error46 } = await supabase.auth.refreshSession({
-      refresh_token: session.refreshToken
-    });
-    if (error46) {
-      logger.error(`Supabase refresh error: ${error46.message}`, error46);
-      throw new Error(`Token refresh failed: ${error46.message}`);
-    }
-    if (!data.session) {
-      throw new Error("Token refresh failed: No session returned from Supabase");
-    }
-    logger.debug("Refresh response received successfully from Supabase");
-    logger.debug(`New access token length: ${data.session.access_token.length} characters`);
-    logger.debug(`New refresh token length: ${data.session.refresh_token.length} characters`);
-    logger.debug(`Access token expires in: ${data.session.expires_in || "unknown"} seconds`);
-    let expiresAt;
-    if (data.session.expires_at) {
-      expiresAt = data.session.expires_at * 1000;
-    } else if (data.session.expires_in) {
-      expiresAt = now + data.session.expires_in * 1000;
-    } else {
-      expiresAt = now + 3600 * 1000;
-      logger.warn("No expiration info from Supabase, assuming 1 hour");
-    }
-    const refreshTokenExpiresAt = session.refreshTokenExpiresAt;
-    const accessTokenChanged = session.accessToken !== data.session.access_token;
-    const refreshTokenChanged = session.refreshToken !== data.session.refresh_token;
-    logger.debug(`Access token changed: ${accessTokenChanged}`);
-    logger.debug(`Refresh token changed: ${refreshTokenChanged}`);
-    if (!accessTokenChanged) {
-      logger.warn("⚠️  Access token did not change after refresh - this might indicate an issue");
-    }
-    if (!refreshTokenChanged) {
-      logger.debug("Refresh token did not change (this is normal for Supabase)");
-    }
-    const newSession = {
-      ...session,
-      accessToken: data.session.access_token,
-      refreshToken: data.session.refresh_token,
-      expiresAt,
-      refreshTokenExpiresAt,
-      userId: data.session.user.id,
-      email: data.session.user.email || session.email
-    };
-    logger.debug(`New access token will expire at: ${new Date(expiresAt).toISOString()}`);
-    logger.debug(`New expiration is ${Math.round((expiresAt - session.expiresAt) / 1000)}s from old expiration`);
-    if (refreshTokenExpiresAt) {
-      logger.debug(`Refresh token will expire at: ${new Date(refreshTokenExpiresAt).toISOString()}`);
-    } else {
-      logger.debug("Refresh token does not expire");
-    }
-    logger.debug("Saving new session to file...");
-    await saveSession(newSession);
-    logger.info("✅ Session refreshed and saved successfully");
-    logger.debug("=== Token Refresh Complete ===");
-    return newSession;
-  } catch (error46) {
-    logger.error("❌ Failed to refresh session", error46);
-    if (error46 instanceof Error) {
-      logger.debug(`Error type: ${error46.constructor.name}`);
-      logger.debug(`Error message: ${error46.message}`);
-      if (error46.stack) {
-        logger.debug(`Error stack: ${error46.stack}`);
-      }
-      const timeUntilExpiry = session.expiresAt - Date.now();
-      captureException(error46, AUTH_TOKEN_REFRESH_FAILED, "session-manager", buildAuthProperties({
-        authMethod: "token_refresh",
-        timeUntilExpiry: Math.round(timeUntilExpiry / 1000)
-      }));
-    }
-    throw error46;
-  }
-}
-async function getValidSession() {
-  const session = await loadSession();
-  if (!session) {
-    logger.debug("getValidSession: No session found");
-    return null;
-  }
-  if (session.expiresAt < Date.now() + PROACTIVE_REFRESH_THRESHOLD_MS) {
-    try {
-      const refreshedSession = await refreshSession(session);
-      return refreshedSession;
-    } catch (error46) {
-      logger.warn("getValidSession: Failed to refresh session", error46);
-      return null;
-    }
-  }
-  return session;
-}
-
-// src/utils/queue-manager.ts
-import { appendFile as appendFile2, readFile as readFile3, unlink as unlink4, writeFile as writeFile3 } from "node:fs/promises";
-import { dirname as dirname6 } from "node:path";
-
-// ../../packages/privacy-redaction/src/config/defaults.ts
-var DEFAULT_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-// ../../packages/privacy-redaction/src/detection/cache.ts
-class DetectionCache {
-  cache = new Map;
-  maxEntries;
-  ttlMs;
-  constructor(options = {}) {
-    this.maxEntries = options.maxEntries ?? 1000;
-    this.ttlMs = options.ttlMs ?? 5 * 60 * 1000;
-  }
-  get(key) {
-    const entry = this.cache.get(key);
-    if (!entry) {
-      return;
-    }
-    if (Date.now() - entry.timestamp > this.ttlMs) {
-      this.cache.delete(key);
-      return;
-    }
-    this.cache.delete(key);
-    this.cache.set(key, entry);
-    return entry.value;
-  }
-  set(key, value) {
-    if (this.cache.size >= this.maxEntries) {
-      const firstKey = this.cache.keys().next().value;
-      if (firstKey !== undefined) {
-        this.cache.delete(firstKey);
-      }
-    }
-    this.cache.set(key, {
-      value,
-      timestamp: Date.now()
-    });
-  }
-  has(key) {
-    return this.get(key) !== undefined;
-  }
-  delete(key) {
-    return this.cache.delete(key);
-  }
-  clear() {
-    this.cache.clear();
-  }
-  get size() {
-    return this.cache.size;
-  }
-  prune() {
-    const now = Date.now();
-    let pruned = 0;
-    const keysToDelete = [];
-    this.cache.forEach((entry, key) => {
-      if (now - entry.timestamp > this.ttlMs) {
-        keysToDelete.push(key);
-      }
-    });
-    for (const key of keysToDelete) {
-      this.cache.delete(key);
-      pruned++;
-    }
-    return pruned;
-  }
-}
-// ../../packages/privacy-redaction/src/patterns/sensitive-patterns.ts
-function createPattern(name, description, regex, category, options = {}) {
-  return {
-    name,
-    description,
-    regex,
-    category,
-    redactionStrategy: options.redactionStrategy ?? "full",
-    aggressiveOnly: options.aggressiveOnly ?? false,
-    highlySensitive: options.highlySensitive ?? false,
-    priority: options.priority ?? 50
-  };
-}
-var SENSITIVE_DATA_PATTERNS = [
-  createPattern("api_key", "API keys and access keys (quoted)", /(?:api[_-]?key|apikey|access[_-]?key|secret[_-]?key)["\s]*[:=]["\s]*["']([^"']{16,})["']/gi, "api_keys", { redactionStrategy: "partial", priority: 60 }),
-  createPattern("api_key_unquoted", "API keys and access keys (unquoted)", /(?:api[_-]?key|apikey|access[_-]?key|secret[_-]?key)["\s]*(?:[:=]|is)["\s]*([a-zA-Z0-9_\-=+/]{16,})(?=\s|$|[^\w\-=+/])/gi, "api_keys", { redactionStrategy: "partial", priority: 55 }),
-  createPattern("jwt_token", "JWT tokens", /eyJ[a-zA-Z0-9_\-]*\.eyJ[a-zA-Z0-9_\-]*\.[a-zA-Z0-9_\-]*/g, "api_keys", { redactionStrategy: "partial", priority: 70 }),
-  createPattern("generic_secret", "Generic secrets and passwords", /(?:password|passwd|pwd|secret|token|key)["\s]*[:=]["\s]*["']([^"'\s]{8,})["']/gi, "generic", { redactionStrategy: "full", highlySensitive: true, priority: 40 }),
-  createPattern("generic_secret_unquoted", "Generic secrets and passwords (unquoted)", /(?:password|passwd|pwd)["\s]*[:=]["\s]*([^\s"']{6,})/gi, "generic", { redactionStrategy: "full", highlySensitive: true, priority: 45 }),
-  createPattern("aws_access_key", "AWS access keys", /AKIA[0-9A-Z]{16}/g, "cloud_services", {
-    redactionStrategy: "partial",
-    highlySensitive: true,
-    priority: 90
-  }),
-  createPattern("aws_secret_key", "AWS secret access keys", /(?:aws[_-]?secret[_-]?access[_-]?key)["\s]*[:=]["\s]*([a-zA-Z0-9/+=]{40})/gi, "cloud_services", { redactionStrategy: "full", highlySensitive: true, priority: 90 }),
-  createPattern("github_token", "GitHub personal access tokens", /gh[pousr]_[A-Za-z0-9_]{36,255}/g, "api_keys", { redactionStrategy: "partial", highlySensitive: true, priority: 85 }),
-  createPattern("github_app_token", "GitHub App installation access tokens", /ghs_[A-Za-z0-9_]{36}/g, "api_keys", { redactionStrategy: "partial", highlySensitive: true, priority: 85 }),
-  createPattern("github_oauth_token", "GitHub OAuth access tokens", /gho_[A-Za-z0-9_]{36}/g, "api_keys", { redactionStrategy: "partial", highlySensitive: true, priority: 85 }),
-  createPattern("gitlab_token", "GitLab personal access tokens", /glpat-[A-Za-z0-9_\-]{20}/g, "api_keys", { redactionStrategy: "partial", highlySensitive: true, priority: 85 }),
-  createPattern("bitbucket_token", "Bitbucket app passwords", /ATB[A-Za-z0-9]{95}/g, "api_keys", {
-    redactionStrategy: "full",
-    highlySensitive: true,
-    priority: 85
-  }),
-  createPattern("atlassian_token", "Atlassian API tokens", /ATATT[A-Za-z0-9\-_]{60}/g, "api_keys", {
-    redactionStrategy: "full",
-    priority: 80
-  }),
-  createPattern("slack_token", "Slack API tokens", /xox[baprs]-[A-Za-z0-9\-]+/g, "communication", {
-    redactionStrategy: "partial",
-    highlySensitive: true,
-    priority: 80
-  }),
-  createPattern("discord_token", "Discord bot tokens", /[MN][A-Za-z\d]{23}\.[\w-]{6}\.[\w-]{27}/g, "communication", { redactionStrategy: "full", highlySensitive: true, priority: 80 }),
-  createPattern("stripe_key", "Stripe live secret keys", /sk_live_[A-Za-z0-9]{24}/g, "payment", {
-    redactionStrategy: "full",
-    highlySensitive: true,
-    priority: 95
-  }),
-  createPattern("stripe_publishable_key", "Stripe live publishable keys", /pk_live_[A-Za-z0-9]{24}/g, "payment", { redactionStrategy: "partial", priority: 70 }),
-  createPattern("paypal_client_id", "PayPal client IDs", /A[A-Za-z0-9\-_]{79}/g, "payment", {
-    redactionStrategy: "partial",
-    highlySensitive: true,
-    priority: 75,
-    aggressiveOnly: true
-  }),
-  createPattern("square_token", "Square access tokens", /sq0atp-[A-Za-z0-9\-_]{22}/g, "payment", {
-    redactionStrategy: "full",
-    highlySensitive: true,
-    priority: 85
-  }),
-  createPattern("shopify_token", "Shopify access tokens", /shpat_[a-fA-F0-9]{32}/g, "payment", {
-    redactionStrategy: "full",
-    highlySensitive: true,
-    priority: 85
-  }),
-  createPattern("shopify_secret", "Shopify shared secrets", /shpss_[a-fA-F0-9]{32}/g, "payment", {
-    redactionStrategy: "full",
-    highlySensitive: true,
-    priority: 85
-  }),
-  createPattern("twilio_token", "Twilio auth tokens", /SK[a-f0-9]{32}/g, "communication", {
-    redactionStrategy: "full",
-    priority: 75,
-    aggressiveOnly: true
-  }),
-  createPattern("sendgrid_key", "SendGrid API keys", /SG\.[A-Za-z0-9\-_]{22}\.[A-Za-z0-9\-_]{43}/g, "communication", { redactionStrategy: "full", highlySensitive: true, priority: 85 }),
-  createPattern("mailgun_key", "Mailgun API keys", /key-[a-f0-9]{32}/g, "communication", {
-    redactionStrategy: "full",
-    highlySensitive: true,
-    priority: 80
-  }),
-  createPattern("firebase_key", "Firebase API keys", /AIza[A-Za-z0-9\-_]{35}/g, "cloud_services", {
-    redactionStrategy: "partial",
-    priority: 75
-  }),
-  createPattern("google_api_key", "Google Cloud API keys", /AIza[A-Za-z0-9\-_]{35}/g, "cloud_services", { redactionStrategy: "partial", highlySensitive: true, priority: 80 }),
-  createPattern("azure_storage_key", "Azure Storage account keys", /[A-Za-z0-9+/]{88}==/g, "cloud_services", { redactionStrategy: "full", highlySensitive: true, priority: 70, aggressiveOnly: true }),
-  createPattern("heroku_key", "Heroku API keys", /[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/g, "cloud_services", { redactionStrategy: "partial", highlySensitive: true, priority: 50, aggressiveOnly: true }),
-  createPattern("digitalocean_token", "DigitalOcean personal access tokens", /dop_v1_[a-f0-9]{64}/g, "cloud_services", { redactionStrategy: "full", highlySensitive: true, priority: 85 }),
-  createPattern("cloudflare_token", "Cloudflare API tokens (generic pattern)", /[A-Za-z0-9\-_]{40}/g, "cloud_services", { redactionStrategy: "partial", highlySensitive: true, priority: 30, aggressiveOnly: true }),
-  createPattern("npm_token", "npm authentication tokens", /npm_[A-Za-z0-9]{36}/g, "api_keys", {
-    redactionStrategy: "full",
-    priority: 80
-  }),
-  createPattern("docker_token", "Docker Hub personal access tokens", /dckr_pat_[A-Za-z0-9\-_]{36}/g, "api_keys", { redactionStrategy: "full", priority: 80 }),
-  createPattern("vercel_token", "Vercel access tokens", /vercel_[A-Za-z0-9]{24}/g, "cloud_services", { redactionStrategy: "full", highlySensitive: true, priority: 80 }),
-  createPattern("netlify_token", "Netlify access tokens", /netlify_[A-Za-z0-9\-_]{64}/g, "cloud_services", { redactionStrategy: "full", highlySensitive: true, priority: 80 }),
-  createPattern("railway_token", "Railway API tokens", /railway_[A-Za-z0-9]{40}/g, "cloud_services", { redactionStrategy: "full", highlySensitive: true, priority: 80 }),
-  createPattern("openai_key", "OpenAI API keys", /sk-[A-Za-z0-9]{48}/g, "api_keys", {
-    redactionStrategy: "full",
-    highlySensitive: true,
-    priority: 90
-  }),
-  createPattern("openai_project_key", "OpenAI project API keys", /sk-proj-[A-Za-z0-9\-_]{40,}/g, "api_keys", { redactionStrategy: "full", highlySensitive: true, priority: 90 }),
-  createPattern("anthropic_key", "Anthropic API keys", /sk-ant-[A-Za-z0-9\-_]{80,}/g, "api_keys", {
-    redactionStrategy: "full",
-    highlySensitive: true,
-    priority: 90
-  }),
-  createPattern("auth0_secret", "Auth0 client secrets (generic pattern)", /[A-Za-z0-9\-_]{64}/g, "api_keys", { redactionStrategy: "full", highlySensitive: true, priority: 25, aggressiveOnly: true }),
-  createPattern("okta_token", "Okta API tokens", /00[A-Za-z0-9]{38}/g, "api_keys", {
-    redactionStrategy: "full",
-    highlySensitive: true,
-    priority: 70,
-    aggressiveOnly: true
-  }),
-  createPattern("planetscale_password", "PlanetScale database passwords", /pscale_pw_[A-Za-z0-9\-_]{32}/g, "database", { redactionStrategy: "full", highlySensitive: true, priority: 85 }),
-  createPattern("mongodb_atlas", "MongoDB Atlas connection strings", /mongodb\+srv:\/\/[^:\s]+:[^@\s]+@[^\/\s]+\.mongodb\.net\/[^\s]*/gi, "database", { redactionStrategy: "full", highlySensitive: true, priority: 90 }),
-  createPattern("mongodb_connection", "MongoDB connection strings with credentials", /mongodb(?:\+srv)?:\/\/[^:\s]+:[^@\s]+@[^\s"']+/gi, "database", { redactionStrategy: "full", highlySensitive: true, priority: 85 }),
-  createPattern("supabase_key", "Supabase service role keys (JWT format)", /eyJ[A-Za-z0-9\-_]*\.eyJ[A-Za-z0-9\-_]*\.[A-Za-z0-9\-_]*/g, "database", { redactionStrategy: "full", highlySensitive: true, priority: 65 }),
-  createPattern("db_connection", "Database connection strings", /(?:mongodb|mysql|postgresql|postgres|redis|sqlite):\/\/[^\s\n"']+/gi, "database", { redactionStrategy: "partial", highlySensitive: true, priority: 80 }),
-  createPattern("private_key", "Private keys in PEM format", /-----BEGIN\s+(?:RSA\s+|EC\s+|OPENSSH\s+|DSA\s+)?PRIVATE\s+KEY-----[\s\S]*?-----END\s+(?:RSA\s+|EC\s+|OPENSSH\s+|DSA\s+)?PRIVATE\s+KEY-----/gi, "cryptographic", { redactionStrategy: "full", highlySensitive: true, priority: 100 }),
-  createPattern("email_in_config", "Email addresses in configuration", /(?:email|user|username|admin)["\s]*[:=]["\s]*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi, "pii", { redactionStrategy: "partial", priority: 60, aggressiveOnly: true }),
-  createPattern("credit_card", "Credit card numbers (continuous digits)", /(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3[0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})/g, "pii", { redactionStrategy: "full", highlySensitive: true, priority: 95 }),
-  createPattern("credit_card_formatted", "Credit card numbers (with dashes or spaces)", /(?:4[0-9]{3}[-\s]?[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{4}|5[1-5][0-9]{2}[-\s]?[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{4}|3[47][0-9]{2}[-\s]?[0-9]{6}[-\s]?[0-9]{5})/g, "pii", { redactionStrategy: "full", highlySensitive: true, priority: 95 }),
-  createPattern("ssn", "Social Security Numbers", /\b\d{3}-\d{2}-\d{4}\b/g, "pii", {
-    redactionStrategy: "full",
-    highlySensitive: true,
-    priority: 95
-  }),
-  createPattern("private_ip", "Private IP addresses", /\b(?:10\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|172\.(?:1[6-9]|2[0-9]|3[01])\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|192\.168\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))\b/g, "network", { redactionStrategy: "partial", priority: 50, aggressiveOnly: true })
-];
-// ../../packages/privacy-redaction/src/exclusion/built-in-rules.ts
-var SENSITIVE_FILE_RULES = [
-  { pattern: "*.env*", category: "sensitive_files", description: "Environment files" },
-  { pattern: "*.key", category: "sensitive_files", description: "Key files" },
-  { pattern: "*.pem", category: "sensitive_files", description: "PEM certificate files" },
-  { pattern: "*.p12", category: "sensitive_files", description: "PKCS#12 files" },
-  { pattern: "*.pfx", category: "sensitive_files", description: "PFX certificate files" },
-  { pattern: "*.jks", category: "sensitive_files", description: "Java keystore files" },
-  { pattern: "*.keystore", category: "sensitive_files", description: "Keystore files" }
-];
-var SENSITIVE_DIRECTORY_RULES = [
-  { pattern: "**/secrets/**", category: "sensitive_directories", description: "Secrets directory" },
-  {
-    pattern: "**/credentials/**",
-    category: "sensitive_directories",
-    description: "Credentials directory"
-  },
-  { pattern: "**/private/**", category: "sensitive_directories", description: "Private directory" },
-  { pattern: "**/.ssh/**", category: "sensitive_directories", description: "SSH directory" },
-  { pattern: "**/.aws/**", category: "sensitive_directories", description: "AWS credentials" },
-  { pattern: "**/.gcp/**", category: "sensitive_directories", description: "GCP credentials" }
-];
-var BUILD_ARTIFACT_RULES = [
-  { pattern: "**/node_modules/**", category: "build_artifacts", description: "Node.js modules" },
-  { pattern: "**/.git/**", category: "build_artifacts", description: "Git directory" },
-  { pattern: "**/dist/**", category: "build_artifacts", description: "Distribution folder" },
-  { pattern: "**/build/**", category: "build_artifacts", description: "Build folder" },
-  { pattern: "**/out/**", category: "build_artifacts", description: "Output folder" },
-  { pattern: "**/*.min.js", category: "build_artifacts", description: "Minified JavaScript" },
-  { pattern: "**/*.min.css", category: "build_artifacts", description: "Minified CSS" },
-  { pattern: "**/coverage/**", category: "build_artifacts", description: "Coverage reports" },
-  { pattern: "**/.nyc_output/**", category: "build_artifacts", description: "NYC coverage output" },
-  { pattern: "**/logs/**", category: "build_artifacts", description: "Log directory" },
-  { pattern: "**/*.log", category: "build_artifacts", description: "Log files" },
-  { pattern: "**/tmp/**", category: "build_artifacts", description: "Temp directory" },
-  { pattern: "**/temp/**", category: "build_artifacts", description: "Temp directory" },
-  { pattern: "**/.cache/**", category: "build_artifacts", description: "Cache directory" },
-  { pattern: "**/.DS_Store", category: "build_artifacts", description: "macOS metadata" },
-  { pattern: "**/Thumbs.db", category: "build_artifacts", description: "Windows thumbnails" }
-];
-var LOCK_FILE_RULES = [
-  { pattern: "**/package-lock.json", category: "lock_files", description: "npm lock file" },
-  { pattern: "**/yarn.lock", category: "lock_files", description: "Yarn lock file" },
-  { pattern: "**/pnpm-lock.yaml", category: "lock_files", description: "pnpm lock file" },
-  { pattern: "**/bun.lockb", category: "lock_files", description: "Bun lock file (binary)" },
-  { pattern: "**/bun.lock", category: "lock_files", description: "Bun lock file" },
-  { pattern: "**/poetry.lock", category: "lock_files", description: "Poetry lock file" },
-  { pattern: "**/Pipfile.lock", category: "lock_files", description: "Pipenv lock file" },
-  { pattern: "**/requirements.lock", category: "lock_files", description: "Requirements lock" },
-  { pattern: "**/Gemfile.lock", category: "lock_files", description: "Bundler lock file" },
-  { pattern: "**/composer.lock", category: "lock_files", description: "Composer lock file" },
-  { pattern: "**/Cargo.lock", category: "lock_files", description: "Cargo lock file" },
-  { pattern: "**/go.sum", category: "lock_files", description: "Go checksum file" },
-  { pattern: "**/packages.lock.json", category: "lock_files", description: ".NET lock file" },
-  { pattern: "**/project.assets.json", category: "lock_files", description: ".NET assets" },
-  { pattern: "**/pubspec.lock", category: "lock_files", description: "Pub lock file" },
-  { pattern: "**/mix.lock", category: "lock_files", description: "Mix lock file" },
-  { pattern: "**/Package.resolved", category: "lock_files", description: "Swift PM lock" },
-  { pattern: "**/gradle.lockfile", category: "lock_files", description: "Gradle lock file" },
-  { pattern: "**/gradle/dependencies.lock", category: "lock_files", description: "Gradle deps" },
-  { pattern: "**/renv.lock", category: "lock_files", description: "renv lock file" },
-  { pattern: "**/packrat/packrat.lock", category: "lock_files", description: "Packrat lock" },
-  { pattern: "**/cabal.project.freeze", category: "lock_files", description: "Cabal freeze" },
-  { pattern: "**/stack.yaml.lock", category: "lock_files", description: "Stack lock file" },
-  { pattern: "**/Manifest.toml", category: "lock_files", description: "Julia manifest" },
-  { pattern: "**/.terraform.lock.hcl", category: "lock_files", description: "Terraform lock" },
-  { pattern: "**/flake.lock", category: "lock_files", description: "Nix flake lock" },
-  { pattern: "**/npm-shrinkwrap.json", category: "lock_files", description: "npm shrinkwrap" }
-];
-var BINARY_MEDIA_RULES = [
-  { pattern: "**/*.exe", category: "binary_media", description: "Windows executable" },
-  { pattern: "**/*.dll", category: "binary_media", description: "Windows library" },
-  { pattern: "**/*.so", category: "binary_media", description: "Shared object" },
-  { pattern: "**/*.dylib", category: "binary_media", description: "macOS library" },
-  { pattern: "**/*.bin", category: "binary_media", description: "Binary file" },
-  { pattern: "**/*.obj", category: "binary_media", description: "Object file" },
-  { pattern: "**/*.o", category: "binary_media", description: "Object file" },
-  { pattern: "**/*.a", category: "binary_media", description: "Static library" },
-  { pattern: "**/*.lib", category: "binary_media", description: "Library file" },
-  { pattern: "**/*.jar", category: "binary_media", description: "Java archive" },
-  { pattern: "**/*.war", category: "binary_media", description: "Web archive" },
-  { pattern: "**/*.ear", category: "binary_media", description: "Enterprise archive" },
-  { pattern: "**/*.class", category: "binary_media", description: "Java class" },
-  { pattern: "**/*.pyc", category: "binary_media", description: "Python bytecode" },
-  { pattern: "**/*.pyo", category: "binary_media", description: "Python optimized" },
-  { pattern: "**/*.wasm", category: "binary_media", description: "WebAssembly" },
-  { pattern: "**/*.vsix", category: "binary_media", description: "VS Code extension" },
-  { pattern: "**/*.jpg", category: "binary_media", description: "JPEG image" },
-  { pattern: "**/*.jpeg", category: "binary_media", description: "JPEG image" },
-  { pattern: "**/*.png", category: "binary_media", description: "PNG image" },
-  { pattern: "**/*.gif", category: "binary_media", description: "GIF image" },
-  { pattern: "**/*.bmp", category: "binary_media", description: "Bitmap image" },
-  { pattern: "**/*.ico", category: "binary_media", description: "Icon file" },
-  { pattern: "**/*.webp", category: "binary_media", description: "WebP image" },
-  { pattern: "**/*.tiff", category: "binary_media", description: "TIFF image" },
-  { pattern: "**/*.psd", category: "binary_media", description: "Photoshop file" },
-  { pattern: "**/*.mp4", category: "binary_media", description: "MP4 video" },
-  { pattern: "**/*.avi", category: "binary_media", description: "AVI video" },
-  { pattern: "**/*.mov", category: "binary_media", description: "QuickTime video" },
-  { pattern: "**/*.wmv", category: "binary_media", description: "WMV video" },
-  { pattern: "**/*.flv", category: "binary_media", description: "Flash video" },
-  { pattern: "**/*.webm", category: "binary_media", description: "WebM video" },
-  { pattern: "**/*.mkv", category: "binary_media", description: "Matroska video" },
-  { pattern: "**/*.mp3", category: "binary_media", description: "MP3 audio" },
-  { pattern: "**/*.wav", category: "binary_media", description: "WAV audio" },
-  { pattern: "**/*.ogg", category: "binary_media", description: "Ogg audio" },
-  { pattern: "**/*.flac", category: "binary_media", description: "FLAC audio" },
-  { pattern: "**/*.aac", category: "binary_media", description: "AAC audio" },
-  { pattern: "**/*.m4a", category: "binary_media", description: "M4A audio" },
-  { pattern: "**/*.zip", category: "binary_media", description: "ZIP archive" },
-  { pattern: "**/*.tar", category: "binary_media", description: "TAR archive" },
-  { pattern: "**/*.gz", category: "binary_media", description: "Gzip archive" },
-  { pattern: "**/*.bz2", category: "binary_media", description: "Bzip2 archive" },
-  { pattern: "**/*.xz", category: "binary_media", description: "XZ archive" },
-  { pattern: "**/*.rar", category: "binary_media", description: "RAR archive" },
-  { pattern: "**/*.7z", category: "binary_media", description: "7-Zip archive" },
-  { pattern: "**/*.tgz", category: "binary_media", description: "Tarball" },
-  { pattern: "**/*.pdf", category: "binary_media", description: "PDF document" },
-  { pattern: "**/*.doc", category: "binary_media", description: "Word document" },
-  { pattern: "**/*.docx", category: "binary_media", description: "Word document" },
-  { pattern: "**/*.xls", category: "binary_media", description: "Excel spreadsheet" },
-  { pattern: "**/*.xlsx", category: "binary_media", description: "Excel spreadsheet" },
-  { pattern: "**/*.ppt", category: "binary_media", description: "PowerPoint" },
-  { pattern: "**/*.pptx", category: "binary_media", description: "PowerPoint" },
-  { pattern: "**/*.woff", category: "binary_media", description: "WOFF font" },
-  { pattern: "**/*.woff2", category: "binary_media", description: "WOFF2 font" },
-  { pattern: "**/*.ttf", category: "binary_media", description: "TrueType font" },
-  { pattern: "**/*.otf", category: "binary_media", description: "OpenType font" },
-  { pattern: "**/*.eot", category: "binary_media", description: "EOT font" },
-  { pattern: "**/*.db", category: "binary_media", description: "Database file" },
-  { pattern: "**/*.sqlite", category: "binary_media", description: "SQLite database" },
-  { pattern: "**/*.sqlite3", category: "binary_media", description: "SQLite database" }
-];
-var ALL_BUILT_IN_RULES = [
-  ...SENSITIVE_FILE_RULES,
-  ...SENSITIVE_DIRECTORY_RULES,
-  ...BUILD_ARTIFACT_RULES,
-  ...LOCK_FILE_RULES,
-  ...BINARY_MEDIA_RULES
-];
 // src/utils/file-lock.ts
 import { readdir as readdir2, readFile as readFile2, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
 import { dirname as dirname5 } from "node:path";
@@ -32803,1184 +32310,202 @@ async function withFileLock(filePath, fn) {
   }
 }
 
-// src/utils/queue-manager.ts
-async function readJsonl(filePath) {
-  try {
-    const content = await readFile3(filePath, "utf8");
-    const lines = content.trim().split(`
-`).filter(Boolean);
-    const results = [];
-    let corruptedLines = 0;
-    for (let i = 0;i < lines.length; i++) {
-      try {
-        results.push(JSON.parse(lines[i]));
-      } catch (error46) {
-        logger.warn(`Failed to parse line ${i + 1} in ${filePath}:`, error46);
-        corruptedLines++;
-      }
-    }
-    if (corruptedLines > 0) {
-      captureException(new Error(`Queue file has ${corruptedLines} corrupted lines`), QUEUE_READ_CORRUPTED, "queue-manager", {
-        ...buildFileSystemProperties({ filePath, operation: "read" }),
-        corrupted_lines: corruptedLines,
-        total_lines: lines.length
-      });
-    }
-    return results;
-  } catch (error46) {
-    if (error46.code === "ENOENT") {
-      return [];
-    }
-    throw error46;
-  }
-}
-async function countLines(filePath) {
-  try {
-    const content = await readFile3(filePath, "utf8");
-    const lines = content.trim().split(`
-`).filter(Boolean);
-    return lines.length;
-  } catch (error46) {
-    if (error46.code === "ENOENT") {
-      return 0;
-    }
-    throw error46;
-  }
-}
-async function readQueue(queueFile) {
-  try {
-    return await readJsonl(queueFile);
-  } catch (error46) {
-    logger.error(`Failed to read queue file ${queueFile}:`, error46);
-    throw error46;
-  }
-}
-async function atomicUpdateQueue(queueFile, transform2) {
-  try {
-    await withFileLock(queueFile, async () => {
-      const currentItems = await readJsonl(queueFile);
-      const newItems = transform2(currentItems);
-      await ensureDirectory(dirname6(queueFile));
-      const content = newItems.map((item) => JSON.stringify(item)).join(`
-`) + (newItems.length > 0 ? `
-` : "");
-      await writeFile3(queueFile, content, "utf8");
-      logger.debug(`Atomically updated queue file: ${queueFile} (${currentItems.length} → ${newItems.length} items)`);
-    });
-  } catch (error46) {
-    logger.error(`Failed to atomically update queue file ${queueFile}:`, error46);
-    throw error46;
-  }
-}
-async function getQueueStats() {
-  try {
-    await ensureDirectory(QUEUE_DIR);
-    const [events, sessions, messages] = await Promise.all([
-      countLines(EVENTS_QUEUE_FILE),
-      countLines(SESSIONS_QUEUE_FILE),
-      countLines(MESSAGES_QUEUE_FILE)
-    ]);
-    return { events, sessions, messages };
-  } catch (error46) {
-    logger.error("Failed to get queue stats:", error46);
-    return { events: 0, sessions: 0, messages: 0 };
-  }
-}
-
-// src/utils/status-cache-manager.ts
-import { readFileSync as readFileSync2, writeFileSync } from "node:fs";
-var DEFAULT_VERSION_CHECK = {
-  updateAvailable: false,
-  currentVersion: "unknown",
-  latestVersion: "unknown",
-  checkedAt: 0
-};
-var DEFAULT_SYNC_STATUS = {
-  hasError: false,
-  errorType: null,
-  errorMessage: null,
-  lastErrorAt: null,
-  lastSuccessAt: null
-};
-var DEFAULT_DEV_MODE_STATUS = {
-  active: false
-};
-var DEFAULT_STATUS_CACHE = {
-  versionCheck: DEFAULT_VERSION_CHECK,
-  syncStatus: DEFAULT_SYNC_STATUS,
-  devMode: DEFAULT_DEV_MODE_STATUS
-};
-function readStatusCache() {
-  try {
-    const data = readFileSync2(STATUS_CACHE_FILE, "utf-8");
-    const parsed = JSON.parse(data);
-    if (parsed.updateAvailable !== undefined && !parsed.versionCheck) {
-      logger.info("Migrating old update-check.json format to new status-cache.json format");
-      const migrated = {
-        versionCheck: {
-          updateAvailable: parsed.updateAvailable ?? false,
-          currentVersion: parsed.currentVersion ?? "unknown",
-          latestVersion: parsed.latestVersion ?? "unknown",
-          checkedAt: parsed.checkedAt ?? 0
-        },
-        syncStatus: DEFAULT_SYNC_STATUS
-      };
-      return migrated;
-    }
-    return {
-      versionCheck: {
-        ...DEFAULT_VERSION_CHECK,
-        ...parsed.versionCheck
-      },
-      syncStatus: {
-        ...DEFAULT_SYNC_STATUS,
-        ...parsed.syncStatus
-      },
-      devMode: {
-        ...DEFAULT_DEV_MODE_STATUS,
-        ...parsed.devMode
-      }
-    };
-  } catch (error46) {
-    if (error46.code === "ENOENT") {
-      logger.debug("Status cache file does not exist, using defaults");
-    } else {
-      logger.warn("Failed to read status cache file, using defaults", error46);
-    }
-    return DEFAULT_STATUS_CACHE;
-  }
-}
-async function writeSyncStatus(status) {
-  try {
-    await withFileLock(STATUS_CACHE_FILE, async () => {
-      const currentCache = readStatusCache();
-      const updatedCache = {
-        ...currentCache,
-        syncStatus: status
-      };
-      writeFileSync(STATUS_CACHE_FILE, JSON.stringify(updatedCache, null, 2), "utf-8");
-      logger.debug("Wrote sync status to status cache", {
-        hasError: status.hasError,
-        errorType: status.errorType
-      });
-    });
-  } catch (error46) {
-    logger.error("Failed to write sync status to status cache", error46);
-  }
-}
-async function clearSyncError() {
-  try {
-    await withFileLock(STATUS_CACHE_FILE, async () => {
-      const currentCache = readStatusCache();
-      const clearedStatus = {
-        hasError: false,
-        errorType: null,
-        errorMessage: null,
-        lastErrorAt: currentCache.syncStatus.lastErrorAt,
-        lastSuccessAt: Date.now()
-      };
-      const updatedCache = {
-        ...currentCache,
-        syncStatus: clearedStatus
-      };
-      writeFileSync(STATUS_CACHE_FILE, JSON.stringify(updatedCache, null, 2), "utf-8");
-      logger.debug("Cleared sync error in status cache");
-    });
-  } catch (error46) {
-    logger.error("Failed to clear sync error in status cache", error46);
-  }
-}
-
-// src/utils/sync-metrics-manager.ts
-import { readFile as readFile4, writeFile as writeFile4 } from "node:fs/promises";
-import { dirname as dirname7 } from "node:path";
-async function readMetrics() {
-  try {
-    const content = await readFile4(SYNC_METRICS_FILE, "utf8");
-    const lines = content.trim().split(`
-`).filter(Boolean);
-    const results = [];
-    for (const line of lines) {
-      try {
-        results.push(JSON.parse(line));
-      } catch {
-        logger.warn("Skipping corrupted line in sync metrics file");
-      }
-    }
-    return results;
-  } catch (error46) {
-    if (error46.code === "ENOENT") {
-      return [];
-    }
-    throw error46;
-  }
-}
-async function writeMetrics(entries) {
-  await ensureDirectory(dirname7(SYNC_METRICS_FILE));
-  const content = entries.map((entry) => JSON.stringify(entry)).join(`
-`) + (entries.length > 0 ? `
-` : "");
-  await writeFile4(SYNC_METRICS_FILE, content, "utf8");
-}
-async function recordSyncMetric(entry) {
-  try {
-    await withFileLock(SYNC_METRICS_FILE, async () => {
-      const existingMetrics = await readMetrics();
-      const cutoffTime = Date.now() - SYNC_METRICS_RETENTION_MS;
-      const recentMetrics = existingMetrics.filter((m) => m.timestamp > cutoffTime);
-      recentMetrics.push(entry);
-      await writeMetrics(recentMetrics);
-      logger.debug("Recorded sync metric", {
-        success: entry.success,
-        uploaded: entry.uploaded,
-        totalMetrics: recentMetrics.length
-      });
-    });
-  } catch (error46) {
-    logger.error("Failed to record sync metric", error46);
-  }
-}
-
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/regex.js
-var regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
-
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/validate.js
-function validate(uuid3) {
-  return typeof uuid3 === "string" && regex_default.test(uuid3);
-}
-var validate_default = validate;
-
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/parse.js
-function parse5(uuid3) {
-  if (!validate_default(uuid3)) {
-    throw TypeError("Invalid UUID");
-  }
-  let v;
-  return Uint8Array.of((v = parseInt(uuid3.slice(0, 8), 16)) >>> 24, v >>> 16 & 255, v >>> 8 & 255, v & 255, (v = parseInt(uuid3.slice(9, 13), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(14, 18), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(19, 23), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(24, 36), 16)) / 1099511627776 & 255, v / 4294967296 & 255, v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
-}
-var parse_default = parse5;
-
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/stringify.js
-var byteToHex = [];
-for (let i = 0;i < 256; ++i) {
-  byteToHex.push((i + 256).toString(16).slice(1));
-}
-function unsafeStringify(arr, offset = 0) {
-  return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
-}
-
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/v35.js
-function stringToBytes(str) {
-  str = unescape(encodeURIComponent(str));
-  const bytes = new Uint8Array(str.length);
-  for (let i = 0;i < str.length; ++i) {
-    bytes[i] = str.charCodeAt(i);
-  }
-  return bytes;
-}
-var DNS = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
-var URL2 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
-function v35(version5, hash2, value, namespace, buf, offset) {
-  const valueBytes = typeof value === "string" ? stringToBytes(value) : value;
-  const namespaceBytes = typeof namespace === "string" ? parse_default(namespace) : namespace;
-  if (typeof namespace === "string") {
-    namespace = parse_default(namespace);
-  }
-  if (namespace?.length !== 16) {
-    throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
-  }
-  let bytes = new Uint8Array(16 + valueBytes.length);
-  bytes.set(namespaceBytes);
-  bytes.set(valueBytes, namespaceBytes.length);
-  bytes = hash2(bytes);
-  bytes[6] = bytes[6] & 15 | version5;
-  bytes[8] = bytes[8] & 63 | 128;
-  if (buf) {
-    offset = offset || 0;
-    for (let i = 0;i < 16; ++i) {
-      buf[offset + i] = bytes[i];
-    }
-    return buf;
-  }
-  return unsafeStringify(bytes);
-}
-
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/sha1.js
-import { createHash } from "crypto";
-function sha1(bytes) {
-  if (Array.isArray(bytes)) {
-    bytes = Buffer.from(bytes);
-  } else if (typeof bytes === "string") {
-    bytes = Buffer.from(bytes, "utf8");
-  }
-  return createHash("sha1").update(bytes).digest();
-}
-var sha1_default = sha1;
-
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/v5.js
-function v5(value, namespace, buf, offset) {
-  return v35(80, sha1_default, value, namespace, buf, offset);
-}
-v5.DNS = DNS;
-v5.URL = URL2;
-var v5_default = v5;
-// src/utils/session-id-normalizer.ts
-function normalizeSessionId(sessionId) {
-  if (validate_default(sessionId)) {
-    return sessionId;
-  }
-  return v5_default(sessionId, ZEST_SESSION_NAMESPACE);
-}
-
-// src/supabase/chat-uploader.ts
-function getMaxMessageIndexPerSession(messages) {
-  const maxIndices = new Map;
-  for (const message of messages) {
-    if (!message.session_id || message.message_index === undefined)
-      continue;
-    const currentMax = maxIndices.get(message.session_id) ?? -1;
-    if (message.message_index > currentMax) {
-      maxIndices.set(message.session_id, message.message_index);
-    }
-  }
-  return maxIndices;
-}
-function categorizeSessions(sessions, maxMessageIndexBySession) {
-  const now = Date.now();
-  const staleThreshold = now - STALE_SESSION_AGE_MS;
-  const valid = [];
-  const stale = [];
-  const pending = [];
-  for (const session of sessions) {
-    if (!session.id)
-      continue;
-    const maxMessageIndex = maxMessageIndexBySession.get(session.id) ?? -1;
-    const sessionAge = session.created_at ? new Date(session.created_at).getTime() : now;
-    if (maxMessageIndex >= MIN_MESSAGES_PER_SESSION - 1) {
-      valid.push(session);
-    } else if (sessionAge < staleThreshold) {
-      stale.push(session);
-    } else {
-      pending.push(session);
-    }
-  }
-  return {
-    valid,
-    stale,
-    pending,
-    validIds: new Set(valid.map((s) => s.id).filter((id) => !!id)),
-    staleIds: new Set(stale.map((s) => s.id).filter((id) => !!id)),
-    pendingIds: new Set(pending.map((s) => s.id).filter((id) => !!id))
-  };
-}
-function partitionMessagesBySessionCategory(messages, categories) {
-  const allSessionIds = new Set([
-    ...categories.validIds,
-    ...categories.staleIds,
-    ...categories.pendingIds
-  ]);
-  const orphaned = [];
-  const valid = [];
-  const stale = [];
-  const pending = [];
-  for (const message of messages) {
-    if (!message.session_id)
-      continue;
-    if (categories.validIds.has(message.session_id)) {
-      valid.push(message);
-    } else if (categories.staleIds.has(message.session_id)) {
-      stale.push(message);
-    } else if (categories.pendingIds.has(message.session_id)) {
-      pending.push(message);
-    } else {
-      orphaned.push(message);
-    }
-  }
-  return { valid, stale, pending, orphaned };
-}
-var STALE_SESSION_AGE_DAYS = Math.round(STALE_SESSION_AGE_MS / (24 * 60 * 60 * 1000));
-function logSessionCategorization(categories, messagePartition) {
-  if (categories.stale.length > 0) {
-    logger.info(`Removing ${categories.stale.length} stale sessions (< ${MIN_MESSAGES_PER_SESSION} messages, > ${STALE_SESSION_AGE_DAYS} days old) with ${messagePartition.stale.length} messages`);
-  }
-  if (categories.pending.length > 0) {
-    logger.info(`Keeping ${categories.pending.length} pending sessions (< ${MIN_MESSAGES_PER_SESSION} messages, within ${STALE_SESSION_AGE_DAYS} days) with ${messagePartition.pending.length} messages`);
-  }
-}
-async function removeStaleSessionsFromQueue(staleSessionIds) {
-  await atomicUpdateQueue(SESSIONS_QUEUE_FILE, (currentSessions) => {
-    return currentSessions.filter((s) => s.id && !staleSessionIds.has(s.id));
-  });
-  await atomicUpdateQueue(MESSAGES_QUEUE_FILE, (currentMessages) => {
-    return currentMessages.filter((m) => m.session_id && !staleSessionIds.has(m.session_id));
-  });
-}
-function deduplicateSessions(sessions) {
-  const sessionMap = new Map;
-  for (const session of sessions) {
-    if (!session.id)
-      continue;
-    const existing = sessionMap.get(session.id);
-    if (!existing) {
-      sessionMap.set(session.id, session);
-      continue;
-    }
-    const existingTime = existing.created_at ? new Date(existing.created_at).getTime() : 0;
-    const currentTime = session.created_at ? new Date(session.created_at).getTime() : 0;
-    if (currentTime >= existingTime) {
-      sessionMap.set(session.id, session);
-    }
-  }
-  return Array.from(sessionMap.values());
-}
-function deduplicateMessages(messages) {
-  const messageMap = new Map;
-  for (const message of messages) {
-    if (!message.session_id)
-      continue;
-    const key = `${message.session_id}:${message.message_index}`;
-    const existing = messageMap.get(key);
-    if (!existing) {
-      messageMap.set(key, message);
-      continue;
-    }
-    const existingTime = existing.created_at ? new Date(existing.created_at).getTime() : 0;
-    const currentTime = message.created_at ? new Date(message.created_at).getTime() : 0;
-    if (currentTime >= existingTime) {
-      messageMap.set(key, message);
-    }
-  }
-  return Array.from(messageMap.values());
-}
-function enrichSessionsForUpload(sessions, userId, workspaceId) {
-  const filteredSessions = sessions.filter((s) => s.id);
-  if (filteredSessions.length < sessions.length) {
-    logger.warn(`Filtered out ${sessions.length - filteredSessions.length} sessions without IDs`);
-  }
-  return filteredSessions.map((s) => {
-    return {
-      ...s,
-      id: normalizeSessionId(s.id),
-      user_id: userId,
-      platform: PLATFORM,
-      source: SOURCE,
-      analysis_status: "pending",
-      workspace_id: workspaceId,
-      metadata: null
-    };
-  });
-}
-function enrichMessagesForUpload(messages, userId) {
-  const filteredMessages = messages.filter((m) => m.session_id);
-  if (filteredMessages.length < messages.length) {
-    logger.warn(`Filtered out ${messages.length - filteredMessages.length} messages without session IDs`);
-  }
-  return filteredMessages.map((m) => ({
-    ...m,
-    session_id: normalizeSessionId(m.session_id),
-    user_id: userId,
-    code_diffs: null,
-    metadata: m.metadata ?? null
-  }));
-}
-async function uploadSessionsToSupabase(supabase, sessions) {
-  if (sessions.length === 0) {
-    return true;
-  }
-  const { error: error46 } = await supabase.from("chat_sessions").upsert(sessions, { onConflict: "id" });
-  if (error46) {
-    logger.error("Failed to upload chat sessions", error46);
-    return false;
-  }
-  logger.info(`✓ Uploaded ${sessions.length} chat sessions`);
-  return true;
-}
-async function uploadMessagesToSupabase(supabase, messages) {
-  if (messages.length === 0) {
-    return true;
-  }
-  const messagesWithoutId = messages.map(({ id, ...rest }) => rest);
-  const { error: error46 } = await supabase.from("chat_messages").upsert(messagesWithoutId, { onConflict: "session_id,message_index" });
-  if (error46) {
-    logger.error("Failed to upload chat messages", error46);
-    return false;
-  }
-  logger.info(`✓ Uploaded ${messages.length} chat messages`);
-  return true;
-}
-async function removeProcessedSessionsFromQueue(sessionsToRemove) {
-  await atomicUpdateQueue(SESSIONS_QUEUE_FILE, (currentSessions) => {
-    return currentSessions.filter((s) => s.id && !sessionsToRemove.has(s.id));
-  });
-  await atomicUpdateQueue(MESSAGES_QUEUE_FILE, (currentMessages) => {
-    return currentMessages.filter((m) => m.session_id && !sessionsToRemove.has(m.session_id));
-  });
-}
-async function removeMessagesFromQueue(messageIdsToRemove) {
-  await atomicUpdateQueue(MESSAGES_QUEUE_FILE, (currentMessages) => {
-    return currentMessages.filter((m) => m.id && !messageIdsToRemove.has(m.id));
-  });
-}
-async function uploadChatData(supabase) {
-  try {
-    const session = await getValidSession();
-    if (!session) {
-      logger.debug("Not authenticated, skipping chat upload");
-      return { success: false, uploaded: { sessions: 0, messages: 0 } };
-    }
-    const queuedSessions = await readQueue(SESSIONS_QUEUE_FILE);
-    const queuedMessages = await readQueue(MESSAGES_QUEUE_FILE);
-    if (queuedSessions.length === 0 && queuedMessages.length === 0) {
-      logger.debug("No chat data to upload");
-      return { success: true, uploaded: { sessions: 0, messages: 0 } };
-    }
-    const maxMessageIndexBySession = getMaxMessageIndexPerSession(queuedMessages);
-    const categories = categorizeSessions(queuedSessions, maxMessageIndexBySession);
-    const messagePartition = partitionMessagesBySessionCategory(queuedMessages, categories);
-    logSessionCategorization(categories, messagePartition);
-    if (messagePartition.orphaned.length > 0) {
-      const orphanedSessionIds2 = [
-        ...new Set(messagePartition.orphaned.map((m) => m.session_id).filter((id) => !!id).map((id) => normalizeSessionId(id)))
-      ];
-      const { data: existingSessions, error: queryError } = await supabase.from("chat_sessions").select("id").in("id", orphanedSessionIds2);
-      if (queryError) {
-        const orphanedMessageIds = new Set(messagePartition.orphaned.map((m) => m.id).filter((id) => !!id));
-        await removeMessagesFromQueue(orphanedMessageIds);
-        messagePartition.orphaned = [];
-      } else {
-        const existingSessionIds = new Set(existingSessions?.map((s) => s.id) || []);
-        const validOrphaned = [];
-        const invalidOrphaned = [];
-        for (const message of messagePartition.orphaned) {
-          if (!message.session_id) {
-            invalidOrphaned.push(message);
-            continue;
-          }
-          const normalizedSessionId = normalizeSessionId(message.session_id);
-          if (existingSessionIds.has(normalizedSessionId)) {
-            validOrphaned.push(message);
-          } else {
-            invalidOrphaned.push(message);
-          }
-        }
-        if (invalidOrphaned.length > 0) {
-          const invalidMessageIds = new Set(invalidOrphaned.map((m) => m.id).filter((id) => !!id));
-          await removeMessagesFromQueue(invalidMessageIds);
-        }
-        messagePartition.orphaned = validOrphaned;
-      }
-    }
-    if (categories.stale.length > 0) {
-      await removeStaleSessionsFromQueue(categories.staleIds);
-    }
-    if (categories.valid.length === 0 && messagePartition.orphaned.length === 0) {
-      return { success: true, uploaded: { sessions: 0, messages: 0 } };
-    }
-    const uniqueSessions = deduplicateSessions(categories.valid);
-    const allMessagesToUpload = [...messagePartition.valid, ...messagePartition.orphaned];
-    const uniqueMessages = deduplicateMessages(allMessagesToUpload);
-    const sessionsToUpload = enrichSessionsForUpload(uniqueSessions, session.userId, session.workspaceId || null);
-    const uploadedSessionIds = new Set(sessionsToUpload.map((s) => s.id));
-    const orphanedSessionIds = new Set(messagePartition.orphaned.map((m) => normalizeSessionId(m.session_id)).filter((id) => !!id));
-    const allValidSessionIds = new Set([...uploadedSessionIds, ...orphanedSessionIds]);
-    const messagesToUpload = enrichMessagesForUpload(uniqueMessages, session.userId).filter((m) => allValidSessionIds.has(m.session_id));
-    const messageSessionIds = new Set(messagesToUpload.map((m) => m.session_id));
-    const missingSessionIds = [...messageSessionIds].filter((id) => !allValidSessionIds.has(id));
-    if (missingSessionIds.length > 0) {
-      return { success: false, uploaded: { sessions: 0, messages: 0 } };
-    }
-    const sessionsUploaded = await uploadSessionsToSupabase(supabase, sessionsToUpload);
-    if (!sessionsUploaded) {
-      return { success: false, uploaded: { sessions: 0, messages: 0 } };
-    }
-    const messagesUploaded = await uploadMessagesToSupabase(supabase, messagesToUpload);
-    if (!messagesUploaded) {
-      return {
-        success: false,
-        uploaded: { sessions: sessionsToUpload.length, messages: 0 }
-      };
-    }
-    const sessionsToRemove = new Set([...categories.validIds, ...categories.staleIds]);
-    await removeProcessedSessionsFromQueue(sessionsToRemove);
-    if (messagePartition.orphaned.length > 0) {
-      const orphanedMessageIds = new Set(messagePartition.orphaned.map((m) => m.id).filter((id) => !!id));
-      await removeMessagesFromQueue(orphanedMessageIds);
-    }
-    return {
-      success: true,
-      uploaded: {
-        sessions: sessionsToUpload.length,
-        messages: messagesToUpload.length
-      }
-    };
-  } catch (error46) {
-    logger.error("Failed to upload chat data", error46);
-    if (error46 instanceof Error) {
-      captureException(error46, SYNC_CHAT_UPLOAD_FAILED, "chat-uploader", {
-        ...buildSyncProperties({ syncErrorType: "upload_failed" })
-      });
-    }
-    return { success: false, uploaded: { sessions: 0, messages: 0 } };
-  }
-}
-async function uploadChatDataWithRetry(supabase, maxRetries = 3, backoffMs = 5000) {
-  let lastError = null;
-  for (let attempt = 1;attempt <= maxRetries; attempt++) {
-    try {
-      const result = await uploadChatData(supabase);
-      if (result.success) {
-        return result;
-      }
-      return result;
-    } catch (error46) {
-      lastError = error46;
-      logger.warn(`Chat upload attempt ${attempt}/${maxRetries} failed: ${lastError.message}`);
-      if (attempt < maxRetries) {
-        const delay = backoffMs * attempt;
-        logger.debug(`Retrying in ${delay}ms...`);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
-    }
-  }
-  logger.error(`Chat upload failed after ${maxRetries} attempts`, lastError);
-  return { success: false, uploaded: { sessions: 0, messages: 0 } };
-}
-
 // src/supabase/client.ts
+var supabaseClient = null;
+var authStateUnsubscribe = null;
 async function getSupabaseClient() {
   try {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       logger.warn("Supabase configuration missing (URL or anon key)");
       return null;
     }
-    const session = await getValidSession();
+    const session = await loadSessionFile();
     if (!session) {
-      logger.debug("No valid session available, skipping Supabase client creation");
+      logger.debug("No session available, skipping Supabase client creation");
+      if (supabaseClient) {
+        await destroySupabaseClient();
+      }
       return null;
     }
-    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        persistSession: false
-      },
-      global: {
-        headers: {
-          Authorization: `Bearer ${session.accessToken}`
-        }
+    if (session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now()) {
+      logger.warn("Refresh token expired, user must re-authenticate");
+      await clearSession();
+      if (supabaseClient) {
+        await destroySupabaseClient();
       }
-    });
-    logger.debug("Supabase client created successfully");
-    return client;
-  } catch (error46) {
-    logger.error("Failed to create Supabase client", error46);
-    return null;
-  }
-}
-
-// src/supabase/events-uploader.ts
-import { fileURLToPath as fileURLToPath2 } from "node:url";
-
-// ../../packages/utils/src/git-utils.ts
-import { exec, execSync } from "node:child_process";
-import * as path from "node:path";
-import { promisify } from "node:util";
-
-// ../../node_modules/uuid/dist-node/regex.js
-var regex_default2 = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
-
-// ../../node_modules/uuid/dist-node/validate.js
-function validate2(uuid3) {
-  return typeof uuid3 === "string" && regex_default2.test(uuid3);
-}
-var validate_default2 = validate2;
-
-// ../../node_modules/uuid/dist-node/parse.js
-function parse6(uuid3) {
-  if (!validate_default2(uuid3)) {
-    throw TypeError("Invalid UUID");
-  }
-  let v;
-  return Uint8Array.of((v = parseInt(uuid3.slice(0, 8), 16)) >>> 24, v >>> 16 & 255, v >>> 8 & 255, v & 255, (v = parseInt(uuid3.slice(9, 13), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(14, 18), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(19, 23), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(24, 36), 16)) / 1099511627776 & 255, v / 4294967296 & 255, v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
-}
-var parse_default2 = parse6;
-
-// ../../node_modules/uuid/dist-node/stringify.js
-var byteToHex2 = [];
-for (let i = 0;i < 256; ++i) {
-  byteToHex2.push((i + 256).toString(16).slice(1));
-}
-function unsafeStringify2(arr, offset = 0) {
-  return (byteToHex2[arr[offset + 0]] + byteToHex2[arr[offset + 1]] + byteToHex2[arr[offset + 2]] + byteToHex2[arr[offset + 3]] + "-" + byteToHex2[arr[offset + 4]] + byteToHex2[arr[offset + 5]] + "-" + byteToHex2[arr[offset + 6]] + byteToHex2[arr[offset + 7]] + "-" + byteToHex2[arr[offset + 8]] + byteToHex2[arr[offset + 9]] + "-" + byteToHex2[arr[offset + 10]] + byteToHex2[arr[offset + 11]] + byteToHex2[arr[offset + 12]] + byteToHex2[arr[offset + 13]] + byteToHex2[arr[offset + 14]] + byteToHex2[arr[offset + 15]]).toLowerCase();
-}
-
-// ../../node_modules/uuid/dist-node/v35.js
-function stringToBytes2(str) {
-  str = unescape(encodeURIComponent(str));
-  const bytes = new Uint8Array(str.length);
-  for (let i = 0;i < str.length; ++i) {
-    bytes[i] = str.charCodeAt(i);
-  }
-  return bytes;
-}
-var DNS2 = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
-var URL3 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
-function v352(version5, hash2, value, namespace, buf, offset) {
-  const valueBytes = typeof value === "string" ? stringToBytes2(value) : value;
-  const namespaceBytes = typeof namespace === "string" ? parse_default2(namespace) : namespace;
-  if (typeof namespace === "string") {
-    namespace = parse_default2(namespace);
-  }
-  if (namespace?.length !== 16) {
-    throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
-  }
-  let bytes = new Uint8Array(16 + valueBytes.length);
-  bytes.set(namespaceBytes);
-  bytes.set(valueBytes, namespaceBytes.length);
-  bytes = hash2(bytes);
-  bytes[6] = bytes[6] & 15 | version5;
-  bytes[8] = bytes[8] & 63 | 128;
-  if (buf) {
-    offset = offset || 0;
-    for (let i = 0;i < 16; ++i) {
-      buf[offset + i] = bytes[i];
+      return null;
     }
-    return buf;
-  }
-  return unsafeStringify2(bytes);
-}
-
-// ../../node_modules/uuid/dist-node/sha1.js
-import { createHash as createHash2 } from "node:crypto";
-function sha12(bytes) {
-  if (Array.isArray(bytes)) {
-    bytes = Buffer.from(bytes);
-  } else if (typeof bytes === "string") {
-    bytes = Buffer.from(bytes, "utf8");
-  }
-  return createHash2("sha1").update(bytes).digest();
-}
-var sha1_default2 = sha12;
-
-// ../../node_modules/uuid/dist-node/v5.js
-function v52(value, namespace, buf, offset) {
-  return v352(80, sha1_default2, value, namespace, buf, offset);
-}
-v52.DNS = DNS2;
-v52.URL = URL3;
-var v5_default2 = v52;
-// ../../packages/utils/src/git-utils.ts
-var execAsync = promisify(exec);
-var UNKNOWN_PROJECT = {
-  projectId: "unknown",
-  projectName: "unknown"
-};
-var PROJECT_ID_NAMESPACE = "e1f3b3c4-0b7a-4c1e-8a7b-9f3c0e1d2a3b";
-function generateProjectId(input) {
-  return v5_default2(input, PROJECT_ID_NAMESPACE);
-}
-function extractNameFromRemoteUrl(remoteUrl) {
-  const orgRepoMatch = remoteUrl.match(/[/:]([^/:.]+\/[^/]+?)(\.git)?$/);
-  if (orgRepoMatch?.[1]) {
-    return orgRepoMatch[1];
-  }
-  const repoMatch = remoteUrl.match(/\/([^/]+?)(\.git)?$/);
-  if (repoMatch?.[1]) {
-    return repoMatch[1];
-  }
-  return null;
-}
-function extractProjectName(workingDirectory) {
-  try {
-    try {
-      const remoteUrl = execSync("git config --get remote.origin.url", {
-        cwd: workingDirectory,
-        encoding: "utf-8",
-        stdio: ["pipe", "pipe", "pipe"],
-        timeout: 5000
-      }).trim();
-      if (remoteUrl) {
-        const name = extractNameFromRemoteUrl(remoteUrl);
-        if (name) {
-          return name;
+    if (!supabaseClient) {
+      supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: true
         }
-      }
-    } catch {}
-    try {
-      const repoRoot = execSync("git rev-parse --show-toplevel", {
-        cwd: workingDirectory,
-        encoding: "utf-8",
-        stdio: ["pipe", "pipe", "pipe"],
-        timeout: 5000
-      }).trim();
-      if (repoRoot) {
-        return path.basename(repoRoot);
-      }
-    } catch {}
-    return path.basename(workingDirectory);
-  } catch {
+      });
+      setupAuthStateListener();
+      await setClientSession(session);
+      logger.debug("Supabase singleton client created with auto-refresh enabled");
+    }
+    return supabaseClient;
+  } catch (error46) {
+    logger.error("Failed to get Supabase client", error46);
+    if (error46 instanceof Error) {
+      captureException(error46, SUPABASE_CLIENT_INIT_FAILED, "supabase/client", {
+        has_supabase_url: Boolean(SUPABASE_URL),
+        has_anon_key: Boolean(SUPABASE_ANON_KEY)
+      });
+    }
     return null;
   }
 }
-function isGitRepository(workingDirectory) {
+function setupAuthStateListener() {
+  if (!supabaseClient || authStateUnsubscribe) {
+    return;
+  }
+  const { data } = supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    logger.debug(`Auth state change: ${event}`);
+    if (event === "TOKEN_REFRESHED" && session) {
+      await persistRefreshedSession(session);
+    } else if (event === "SIGNED_OUT") {
+      logger.info("Received SIGNED_OUT event, clearing session");
+      await clearSession();
+    }
+  });
+  authStateUnsubscribe = data.subscription.unsubscribe;
+}
+async function persistRefreshedSession(supabaseSession) {
   try {
-    execSync("git rev-parse --is-inside-work-tree", {
-      cwd: workingDirectory,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-      timeout: 5000
+    await withFileLock(SESSION_FILE, async () => {
+      const currentSession = await loadSessionFile();
+      if (!currentSession) {
+        logger.warn("No current session found during refresh, skipping persistence");
+        return;
+      }
+      const updatedSession = {
+        ...currentSession,
+        accessToken: supabaseSession.access_token,
+        refreshToken: supabaseSession.refresh_token,
+        userId: supabaseSession.user.id,
+        email: supabaseSession.user.email || currentSession.email
+      };
+      await saveSession(updatedSession);
+      logger.info("Session persisted after TOKEN_REFRESHED event");
     });
-    return true;
-  } catch {
+  } catch (error46) {
+    logger.error("Failed to persist refreshed session", error46);
+    if (error46 instanceof Error) {
+      captureException(error46, SUPABASE_SESSION_REFRESH_PERSIST_FAILED, "supabase/client", {
+        session_file: SESSION_FILE
+      });
+    }
+  }
+}
+async function setClientSession(session) {
+  if (!supabaseClient) {
+    return;
+  }
+  const { error: error46 } = await supabaseClient.auth.setSession({
+    access_token: session.accessToken,
+    refresh_token: session.refreshToken
+  });
+  if (error46) {
+    logger.error(`Failed to set Supabase session: ${error46.message}`);
+    const isInvalidRefreshToken = error46.message.includes("Invalid Refresh Token") || error46.code === "refresh_token_not_found" || error46.code === "refresh_token_already_used" || error46.code === "session_not_found" || error46.code === "session_expired";
+    captureException(error46, SUPABASE_SESSION_SET_FAILED, "supabase/client", {
+      is_invalid_refresh_token: isInvalidRefreshToken,
+      error_code: error46.code,
+      error_status: error46.status
+    });
+    if (isInvalidRefreshToken) {
+      logger.warn("Invalid refresh token, clearing session");
+      await clearSession();
+    }
+    throw error46;
+  }
+  logger.debug("Supabase session set successfully");
+}
+async function destroySupabaseClient() {
+  if (authStateUnsubscribe) {
+    authStateUnsubscribe();
+    authStateUnsubscribe = null;
+  }
+  if (supabaseClient) {
+    try {
+      await supabaseClient.removeAllChannels();
+      logger.debug("Supabase client channels removed");
+    } catch (error46) {
+      logger.warn(`Error removing Supabase channels: ${error46.message}`);
+    }
+    supabaseClient = null;
+    logger.debug("Supabase singleton client destroyed");
+  }
+}
+
+// src/supabase/standup-queries.ts
+async function hasExistingStandup(userId, workspaceId) {
+  try {
+    const supabase = await getSupabaseClient();
+    if (!supabase) {
+      logger.debug("Supabase client not available");
+      return false;
+    }
+    const { data: existingStandup, error: error46 } = await supabase.from("chat_analysis_summaries").select("id").eq("user_id", userId).eq("workspace_id", workspaceId).eq("is_active", true).limit(1).maybeSingle();
+    if (error46) {
+      logger.warn("Failed to check for existing standup", error46);
+      return false;
+    }
+    return !!existingStandup;
+  } catch (error46) {
+    logger.error("Error checking for existing standup", error46);
     return false;
   }
 }
-function getProjectInfoSync(workingDirectory) {
+async function getWorkspaceSessionIds(userId, workspaceId) {
   try {
-    if (!isGitRepository(workingDirectory)) {
-      return UNKNOWN_PROJECT;
-    }
-    const projectName = extractProjectName(workingDirectory);
-    if (!projectName) {
-      return UNKNOWN_PROJECT;
-    }
-    const absolutePath = path.resolve(workingDirectory);
-    const projectId = generateProjectId(absolutePath);
-    return {
-      projectId,
-      projectName
-    };
-  } catch {
-    return UNKNOWN_PROJECT;
-  }
-}
-// src/supabase/events-uploader.ts
-var UNKNOWN_PROJECT2 = {
-  projectId: "unknown",
-  projectName: "unknown"
-};
-function parseFileUri(uri) {
-  if (uri.startsWith("file://")) {
-    try {
-      return fileURLToPath2(uri);
-    } catch {
-      return uri.replace(/^file:\/\//, "");
-    }
-  }
-  return uri;
-}
-function transformEventForUpload(event, userId, projectInfo) {
-  let normalizedPayload = event.payload;
-  if (event.payload && typeof event.payload === "object" && !Array.isArray(event.payload) && "session_id" in event.payload && typeof event.payload.session_id === "string") {
-    normalizedPayload = {
-      ...event.payload,
-      session_id: normalizeSessionId(event.payload.session_id)
-    };
-  }
-  return {
-    ...event,
-    session_id: event.session_id ? normalizeSessionId(event.session_id) : event.session_id,
-    event_type: "file.changed",
-    user_id: userId,
-    platform: PLATFORM,
-    source: SOURCE,
-    payload: normalizedPayload,
-    project_id: projectInfo.projectId !== "unknown" ? projectInfo.projectId : null
-  };
-}
-function deduplicateEvents(events) {
-  const eventMap = new Map;
-  for (const event of events) {
-    if (!event.id)
-      continue;
-    const existing = eventMap.get(event.id);
-    if (!existing) {
-      eventMap.set(event.id, event);
-      continue;
-    }
-    const existingTime = existing.timestamp ? new Date(existing.timestamp).getTime() : 0;
-    const currentTime = event.timestamp ? new Date(event.timestamp).getTime() : 0;
-    if (currentTime >= existingTime) {
-      eventMap.set(event.id, event);
-    }
-  }
-  return Array.from(eventMap.values());
-}
-async function uploadEvents(supabase) {
-  try {
-    const session = await getValidSession();
-    if (!session) {
-      logger.debug("Not authenticated, skipping events upload");
-      return { success: false, uploaded: 0 };
-    }
-    const queuedEvents = await readQueue(EVENTS_QUEUE_FILE);
-    if (queuedEvents.length === 0) {
-      logger.debug("No events to upload");
-      return { success: true, uploaded: 0 };
-    }
-    const uniqueEvents = deduplicateEvents(queuedEvents);
-    if (uniqueEvents.length < queuedEvents.length) {
-      logger.info(`Deduplicated events: ${queuedEvents.length} → ${uniqueEvents.length} (removed ${queuedEvents.length - uniqueEvents.length} duplicates)`);
-    }
-    logger.info(`Uploading ${uniqueEvents.length} code digest events`);
-    const projectInfoCache = new Map;
-    for (const event of uniqueEvents) {
-      if (!event.workspace_folder_uri) {
-        logger.debug("Event missing workspace_folder_uri, using unknown project");
-        continue;
-      }
-      const workingDirectory = parseFileUri(event.workspace_folder_uri);
-      if (!projectInfoCache.has(workingDirectory)) {
-        projectInfoCache.set(workingDirectory, getProjectInfoSync(workingDirectory));
-      }
-    }
-    const eventsToUpload = uniqueEvents.map((e) => {
-      const projectInfo = e.workspace_folder_uri ? projectInfoCache.get(parseFileUri(e.workspace_folder_uri)) ?? UNKNOWN_PROJECT2 : UNKNOWN_PROJECT2;
-      return transformEventForUpload(e, session.userId, projectInfo);
-    });
-    const batchSize = 100;
-    let uploadedCount = 0;
-    const successfullyUploadedIds = new Set;
-    for (let i = 0;i < eventsToUpload.length; i += batchSize) {
-      const batch = eventsToUpload.slice(i, i + batchSize);
-      const batchIds = batch.map((e) => e.id).filter((id) => !!id);
-      const { error: error46 } = await supabase.from("code_digest_events").upsert(batch, { onConflict: "id" });
-      if (error46) {
-        logger.error(`Failed to upload events batch ${i / batchSize + 1}`, error46);
-        captureException(new Error(error46.message), SYNC_EVENTS_UPLOAD_FAILED, "events-uploader", {
-          ...buildSyncProperties({
-            syncErrorType: "upload_failed",
-            eventsAttempted: eventsToUpload.length
-          }),
-          batch_number: i / batchSize + 1,
-          batch_size: batch.length,
-          uploaded_before_failure: uploadedCount
-        });
-        if (successfullyUploadedIds.size > 0) {
-          await atomicUpdateQueue(EVENTS_QUEUE_FILE, (currentEvents) => currentEvents.filter((e) => !e.id || !successfullyUploadedIds.has(e.id)));
-          logger.info(`Removed ${successfullyUploadedIds.size} successfully uploaded events from queue`);
-        }
-        return { success: false, uploaded: uploadedCount };
-      }
-      for (const id of batchIds) {
-        successfullyUploadedIds.add(id);
-      }
-      uploadedCount += batch.length;
-      logger.debug(`✓ Uploaded batch ${i / batchSize + 1} (${batch.length} events)`);
-    }
-    await atomicUpdateQueue(EVENTS_QUEUE_FILE, (currentEvents) => currentEvents.filter((e) => !e.id || !successfullyUploadedIds.has(e.id)));
-    logger.info(`✓ Events upload completed: ${uploadedCount} events`);
-    return { success: true, uploaded: uploadedCount };
-  } catch (error46) {
-    logger.error("Failed to upload events", error46);
-    return { success: false, uploaded: 0 };
-  }
-}
-async function uploadEventsWithRetry(supabase, maxRetries = 3, backoffMs = 5000) {
-  let lastError = null;
-  for (let attempt = 1;attempt <= maxRetries; attempt++) {
-    try {
-      const result = await uploadEvents(supabase);
-      if (result.success) {
-        return result;
-      }
-      return result;
-    } catch (error46) {
-      lastError = error46;
-      logger.warn(`Events upload attempt ${attempt}/${maxRetries} failed: ${lastError.message}`);
-      if (attempt < maxRetries) {
-        const delay = backoffMs * attempt;
-        logger.debug(`Retrying in ${delay}ms...`);
-        await new Promise((resolve2) => setTimeout(resolve2, delay));
-      }
-    }
-  }
-  logger.error(`Events upload failed after ${maxRetries} attempts`, lastError);
-  if (lastError) {
-    captureException(lastError, SYNC_EVENTS_RETRY_EXHAUSTED, "events-uploader", {
-      ...buildSyncProperties({ syncErrorType: "upload_failed", retryAttempt: maxRetries })
-    });
-  }
-  return { success: false, uploaded: 0 };
-}
-
-// src/supabase/sync.ts
-async function syncAllData() {
-  try {
-    const stats = await getQueueStats();
-    const hasData = stats.events > 0 || stats.sessions > 0 || stats.messages > 0;
-    if (!hasData) {
-      logger.debug("No data to sync");
-      return {
-        success: true,
-        uploaded: { events: 0, sessions: 0, messages: 0 }
-      };
-    }
-    logger.info(`Starting sync: ${stats.events} events, ${stats.sessions} sessions, ${stats.messages} messages`);
     const supabase = await getSupabaseClient();
     if (!supabase) {
-      logger.debug("Cannot sync: not authenticated or Supabase not configured");
-      captureException(new Error("Sync failed: not authenticated"), SYNC_NOT_AUTHENTICATED, "sync", {
-        ...buildSyncProperties({
-          syncErrorType: "not_authenticated",
-          eventsAttempted: stats.events,
-          sessionsAttempted: stats.sessions,
-          messagesAttempted: stats.messages
-        })
-      });
-      return {
-        success: false,
-        uploaded: { events: 0, sessions: 0, messages: 0 },
-        error: "Not authenticated",
-        errorType: "not_authenticated"
-      };
+      logger.debug("Supabase client not available");
+      return [];
     }
-    const eventsResult = await uploadEventsWithRetry(supabase);
-    if (!eventsResult.success) {
-      return {
-        success: false,
-        uploaded: { events: eventsResult.uploaded, sessions: 0, messages: 0 },
-        error: "Failed to upload events",
-        errorType: "upload_failed"
-      };
+    const { data: sessions, error: error46 } = await supabase.from("chat_sessions").select("id").eq("user_id", userId).eq("workspace_id", workspaceId);
+    if (error46) {
+      logger.warn("Failed to get sessions for workspace", error46);
+      return [];
     }
-    const chatResult = await uploadChatDataWithRetry(supabase);
-    if (!chatResult.success) {
-      return {
-        success: false,
-        uploaded: {
-          events: eventsResult.uploaded,
-          sessions: chatResult.uploaded.sessions,
-          messages: chatResult.uploaded.messages
-        },
-        error: "Failed to upload chat data",
-        errorType: "upload_failed"
-      };
+    if (!sessions || sessions.length === 0) {
+      return [];
     }
-    logger.info("✓ Sync completed successfully");
-    return {
-      success: true,
-      uploaded: {
-        events: eventsResult.uploaded,
-        sessions: chatResult.uploaded.sessions,
-        messages: chatResult.uploaded.messages
-      }
-    };
+    return sessions.map((s) => s.id);
   } catch (error46) {
-    logger.error("Sync failed with exception", error46);
-    let errorType = "upload_failed";
-    const errorMessage = error46 instanceof Error ? error46.message : "Unknown error";
-    const errorMessageLower = errorMessage.toLowerCase();
-    const isNetworkError = errorMessageLower.includes("network") || errorMessageLower.includes("timeout") || errorMessageLower.includes("fetch") || ["ENOTFOUND", "ECONNREFUSED", "ECONNRESET", "ETIMEDOUT", "ENETUNREACH"].includes(error46?.code || "") || error46 instanceof TypeError && errorMessageLower.includes("fetch");
-    if (isNetworkError) {
-      errorType = "network_error";
-      if (error46 instanceof Error) {
-        captureException(error46, SYNC_NETWORK_ERROR, "sync", {
-          ...buildSyncProperties({ syncErrorType: "network_error" }),
-          errno_code: error46?.code
-        });
-      }
-    }
-    return {
-      success: false,
-      uploaded: { events: 0, sessions: 0, messages: 0 },
-      error: errorMessage,
-      errorType
-    };
+    logger.error("Error getting workspace session IDs", error46);
+    return [];
   }
 }
-async function syncWithMessage() {
-  const result = await syncAllData();
-  if (result.success) {
-    await recordSyncMetric({
-      timestamp: Date.now(),
-      success: true,
-      uploaded: result.uploaded
-    }).catch((error46) => {
-      logger.error("Failed to record sync metric", error46);
-    });
-    await clearSyncError().catch((error46) => {
-      logger.error("Failed to clear sync error in status cache", error46);
-    });
-    const { events, sessions, messages } = result.uploaded;
-    const total = events + sessions + messages;
-    if (total === 0) {
-      return { success: true, message: "No data to sync" };
-    }
-    const parts = [];
-    if (events > 0)
-      parts.push(`${events} events`);
-    if (sessions > 0)
-      parts.push(`${sessions} sessions`);
-    if (messages > 0)
-      parts.push(`${messages} messages`);
-    return { success: true, message: `Synced ${parts.join(", ")}` };
-  }
-  const errorType = result.errorType || "upload_failed";
-  await recordSyncMetric({
-    timestamp: Date.now(),
-    success: false,
-    uploaded: result.uploaded,
-    errorType
-  }).catch((error46) => {
-    logger.error("Failed to record sync metric", error46);
-  });
-  let errorMessage;
-  if (errorType === "not_authenticated") {
-    errorMessage = "Auth required - run /zest:login.";
-  } else if (errorType === "network_error") {
-    errorMessage = "Network error.";
-  } else {
-    errorMessage = "Upload failed.";
-  }
-  await writeSyncStatus({
-    hasError: true,
-    errorType,
-    errorMessage,
-    lastErrorAt: Date.now(),
-    lastSuccessAt: null
-  }).catch((error46) => {
-    logger.error("Failed to write sync error to status cache", error46);
-  });
-  return {
-    success: false,
-    message: `Sync failed: ${result.error || "Unknown error"}`
-  };
-}
-
-// src/commands/sync-cli.ts
-async function main() {
+async function countMessagesForSessions(sessionIds) {
   try {
-    const session = await getValidSession();
-    if (!session) {
-      console.log("❌ Not authenticated - use /zest:login first");
-      return;
+    if (sessionIds.length === 0) {
+      return 0;
     }
-    const stats = await getQueueStats();
-    const totalQueued = stats.events + stats.sessions + stats.messages;
-    if (totalQueued === 0) {
-      console.log("✓ No data to sync");
-      return;
+    const supabase = await getSupabaseClient();
+    if (!supabase) {
+      logger.debug("Supabase client not available");
+      return 0;
     }
-    console.log("\uD83D\uDD04 Syncing data...");
-    const result = await syncWithMessage();
-    if (result.success) {
-      console.log(`✅ ${result.message}`);
-    } else {
-      console.error(`❌ ${result.message}`);
-      process.exit(1);
+    const { count, error: error46 } = await supabase.from("chat_messages").select("*", { count: "exact", head: true }).in("session_id", sessionIds);
+    if (error46) {
+      logger.warn("Failed to check message count", error46);
+      return 0;
     }
+    return count || 0;
   } catch (error46) {
-    logger.error("Sync failed with exception", error46);
-    await writeSyncStatus({
-      hasError: true,
-      errorType: "upload_failed",
-      errorMessage: "Upload failed.",
-      lastErrorAt: Date.now(),
-      lastSuccessAt: null
-    }).catch((cacheError) => {
-      logger.error("Failed to write sync error to status cache", cacheError);
-    });
-    console.error("❌ Sync failed: " + (error46 instanceof Error ? error46.message : "Unknown error"));
-    process.exit(1);
+    logger.error("Error counting messages for sessions", error46);
+    return 0;
   }
 }
-main();
+export {
+  hasExistingStandup,
+  getWorkspaceSessionIds,
+  countMessagesForSessions
+};
+
+//# debugId=F4CA905CC3C5316C64756E2164756E21

@@ -13136,12 +13136,13 @@ var SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed";
 var SYNC_NETWORK_ERROR = "sync_network_error";
 var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
 var FILE_LOCK_TIMEOUT = "file_lock_timeout";
+var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
 function getErrorCategory(errorType) {
   if (errorType.startsWith("auth_"))
     return "auth";
   if (errorType.startsWith("sync_"))
     return "sync";
-  if (errorType.startsWith("queue_") || errorType.startsWith("file_"))
+  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("extraction_"))
     return "filesystem";
   if (errorType.startsWith("daemon_"))
     return "daemon";
@@ -32748,6 +32749,13 @@ async function acquireFileLock(filePath) {
       const errCode = error46.code;
       if (errCode === "ENOENT" || errCode === "EACCES") {
         logger.error(`Failed to create lock file ${lockFile}:`, error46);
+        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
+          ...buildFileSystemProperties({
+            filePath: lockFile,
+            operation: "lock",
+            errnoCode: errCode
+          })
+        });
       }
       throw error46;
     }
@@ -33271,7 +33279,7 @@ function enrichMessagesForUpload(messages, userId) {
     session_id: normalizeSessionId(m.session_id),
     user_id: userId,
     code_diffs: null,
-    metadata: null
+    metadata: m.metadata ?? null
   }));
 }
 async function uploadSessionsToSupabase(supabase, sessions) {
@@ -33468,7 +33476,197 @@ async function getSupabaseClient() {
 }
 
 // src/supabase/events-uploader.ts
-function transformEventForUpload(event, userId) {
+import { fileURLToPath as fileURLToPath2 } from "node:url";
+
+// ../../packages/utils/src/git-utils.ts
+import { exec, execSync } from "node:child_process";
+import * as path from "node:path";
+import { promisify } from "node:util";
+
+// ../../node_modules/uuid/dist-node/regex.js
+var regex_default2 = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
+
+// ../../node_modules/uuid/dist-node/validate.js
+function validate2(uuid3) {
+  return typeof uuid3 === "string" && regex_default2.test(uuid3);
+}
+var validate_default2 = validate2;
+
+// ../../node_modules/uuid/dist-node/parse.js
+function parse6(uuid3) {
+  if (!validate_default2(uuid3)) {
+    throw TypeError("Invalid UUID");
+  }
+  let v;
+  return Uint8Array.of((v = parseInt(uuid3.slice(0, 8), 16)) >>> 24, v >>> 16 & 255, v >>> 8 & 255, v & 255, (v = parseInt(uuid3.slice(9, 13), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(14, 18), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(19, 23), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(24, 36), 16)) / 1099511627776 & 255, v / 4294967296 & 255, v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
+}
+var parse_default2 = parse6;
+
+// ../../node_modules/uuid/dist-node/stringify.js
+var byteToHex2 = [];
+for (let i = 0;i < 256; ++i) {
+  byteToHex2.push((i + 256).toString(16).slice(1));
+}
+function unsafeStringify2(arr, offset = 0) {
+  return (byteToHex2[arr[offset + 0]] + byteToHex2[arr[offset + 1]] + byteToHex2[arr[offset + 2]] + byteToHex2[arr[offset + 3]] + "-" + byteToHex2[arr[offset + 4]] + byteToHex2[arr[offset + 5]] + "-" + byteToHex2[arr[offset + 6]] + byteToHex2[arr[offset + 7]] + "-" + byteToHex2[arr[offset + 8]] + byteToHex2[arr[offset + 9]] + "-" + byteToHex2[arr[offset + 10]] + byteToHex2[arr[offset + 11]] + byteToHex2[arr[offset + 12]] + byteToHex2[arr[offset + 13]] + byteToHex2[arr[offset + 14]] + byteToHex2[arr[offset + 15]]).toLowerCase();
+}
+
+// ../../node_modules/uuid/dist-node/v35.js
+function stringToBytes2(str) {
+  str = unescape(encodeURIComponent(str));
+  const bytes = new Uint8Array(str.length);
+  for (let i = 0;i < str.length; ++i) {
+    bytes[i] = str.charCodeAt(i);
+  }
+  return bytes;
+}
+var DNS2 = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+var URL3 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
+function v352(version5, hash2, value, namespace, buf, offset) {
+  const valueBytes = typeof value === "string" ? stringToBytes2(value) : value;
+  const namespaceBytes = typeof namespace === "string" ? parse_default2(namespace) : namespace;
+  if (typeof namespace === "string") {
+    namespace = parse_default2(namespace);
+  }
+  if (namespace?.length !== 16) {
+    throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
+  }
+  let bytes = new Uint8Array(16 + valueBytes.length);
+  bytes.set(namespaceBytes);
+  bytes.set(valueBytes, namespaceBytes.length);
+  bytes = hash2(bytes);
+  bytes[6] = bytes[6] & 15 | version5;
+  bytes[8] = bytes[8] & 63 | 128;
+  if (buf) {
+    offset = offset || 0;
+    for (let i = 0;i < 16; ++i) {
+      buf[offset + i] = bytes[i];
+    }
+    return buf;
+  }
+  return unsafeStringify2(bytes);
+}
+
+// ../../node_modules/uuid/dist-node/sha1.js
+import { createHash as createHash2 } from "node:crypto";
+function sha12(bytes) {
+  if (Array.isArray(bytes)) {
+    bytes = Buffer.from(bytes);
+  } else if (typeof bytes === "string") {
+    bytes = Buffer.from(bytes, "utf8");
+  }
+  return createHash2("sha1").update(bytes).digest();
+}
+var sha1_default2 = sha12;
+
+// ../../node_modules/uuid/dist-node/v5.js
+function v52(value, namespace, buf, offset) {
+  return v352(80, sha1_default2, value, namespace, buf, offset);
+}
+v52.DNS = DNS2;
+v52.URL = URL3;
+var v5_default2 = v52;
+// ../../packages/utils/src/git-utils.ts
+var execAsync = promisify(exec);
+var UNKNOWN_PROJECT = {
+  projectId: "unknown",
+  projectName: "unknown"
+};
+var PROJECT_ID_NAMESPACE = "e1f3b3c4-0b7a-4c1e-8a7b-9f3c0e1d2a3b";
+function generateProjectId(input) {
+  return v5_default2(input, PROJECT_ID_NAMESPACE);
+}
+function extractNameFromRemoteUrl(remoteUrl) {
+  const orgRepoMatch = remoteUrl.match(/[/:]([^/:.]+\/[^/]+?)(\.git)?$/);
+  if (orgRepoMatch?.[1]) {
+    return orgRepoMatch[1];
+  }
+  const repoMatch = remoteUrl.match(/\/([^/]+?)(\.git)?$/);
+  if (repoMatch?.[1]) {
+    return repoMatch[1];
+  }
+  return null;
+}
+function extractProjectName(workingDirectory) {
+  try {
+    try {
+      const remoteUrl = execSync("git config --get remote.origin.url", {
+        cwd: workingDirectory,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 5000
+      }).trim();
+      if (remoteUrl) {
+        const name = extractNameFromRemoteUrl(remoteUrl);
+        if (name) {
+          return name;
+        }
+      }
+    } catch {}
+    try {
+      const repoRoot = execSync("git rev-parse --show-toplevel", {
+        cwd: workingDirectory,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 5000
+      }).trim();
+      if (repoRoot) {
+        return path.basename(repoRoot);
+      }
+    } catch {}
+    return path.basename(workingDirectory);
+  } catch {
+    return null;
+  }
+}
+function isGitRepository(workingDirectory) {
+  try {
+    execSync("git rev-parse --is-inside-work-tree", {
+      cwd: workingDirectory,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout: 5000
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+function getProjectInfoSync(workingDirectory) {
+  try {
+    if (!isGitRepository(workingDirectory)) {
+      return UNKNOWN_PROJECT;
+    }
+    const projectName = extractProjectName(workingDirectory);
+    if (!projectName) {
+      return UNKNOWN_PROJECT;
+    }
+    const absolutePath = path.resolve(workingDirectory);
+    const projectId = generateProjectId(absolutePath);
+    return {
+      projectId,
+      projectName
+    };
+  } catch {
+    return UNKNOWN_PROJECT;
+  }
+}
+// src/supabase/events-uploader.ts
+var UNKNOWN_PROJECT2 = {
+  projectId: "unknown",
+  projectName: "unknown"
+};
+function parseFileUri(uri) {
+  if (uri.startsWith("file://")) {
+    try {
+      return fileURLToPath2(uri);
+    } catch {
+      return uri.replace(/^file:\/\//, "");
+    }
+  }
+  return uri;
+}
+function transformEventForUpload(event, userId, projectInfo) {
   let normalizedPayload = event.payload;
   if (event.payload && typeof event.payload === "object" && !Array.isArray(event.payload) && "session_id" in event.payload && typeof event.payload.session_id === "string") {
     normalizedPayload = {
@@ -33483,7 +33681,8 @@ function transformEventForUpload(event, userId) {
     user_id: userId,
     platform: PLATFORM,
     source: SOURCE,
-    payload: normalizedPayload
+    payload: normalizedPayload,
+    project_id: projectInfo.projectId !== "unknown" ? projectInfo.projectId : null
   };
 }
 function deduplicateEvents(events) {
@@ -33521,7 +33720,21 @@ async function uploadEvents(supabase) {
       logger.info(`Deduplicated events: ${queuedEvents.length} → ${uniqueEvents.length} (removed ${queuedEvents.length - uniqueEvents.length} duplicates)`);
     }
     logger.info(`Uploading ${uniqueEvents.length} code digest events`);
-    const eventsToUpload = uniqueEvents.map((e) => transformEventForUpload(e, session.userId));
+    const projectInfoCache = new Map;
+    for (const event of uniqueEvents) {
+      if (!event.workspace_folder_uri) {
+        logger.debug("Event missing workspace_folder_uri, using unknown project");
+        continue;
+      }
+      const workingDirectory = parseFileUri(event.workspace_folder_uri);
+      if (!projectInfoCache.has(workingDirectory)) {
+        projectInfoCache.set(workingDirectory, getProjectInfoSync(workingDirectory));
+      }
+    }
+    const eventsToUpload = uniqueEvents.map((e) => {
+      const projectInfo = e.workspace_folder_uri ? projectInfoCache.get(parseFileUri(e.workspace_folder_uri)) ?? UNKNOWN_PROJECT2 : UNKNOWN_PROJECT2;
+      return transformEventForUpload(e, session.userId, projectInfo);
+    });
     const batchSize = 100;
     let uploadedCount = 0;
     const successfullyUploadedIds = new Set;
@@ -33575,7 +33788,7 @@ async function uploadEventsWithRetry(supabase, maxRetries = 3, backoffMs = 5000)
       if (attempt < maxRetries) {
         const delay = backoffMs * attempt;
         logger.debug(`Retrying in ${delay}ms...`);
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await new Promise((resolve2) => setTimeout(resolve2, delay));
       }
     }
   }

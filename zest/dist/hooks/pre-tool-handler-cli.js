@@ -48,6 +48,9 @@ var __require = /* @__PURE__ */ createRequire(import.meta.url);
 
 // src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
+function sanitizeForFilename(input) {
+  return input.replace(/[\\/:*?"<>|]/g, "_");
+}
 async function ensureDirectory(dirPath) {
   try {
     await stat(dirPath);
@@ -63,7 +66,7 @@ import { join } from "node:path";
 var CLAUDE_INSTALL_DIR, CLAUDE_DIR_SEPARATOR_PATTERN, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DEBOUNCE_WINDOW_MS = 500, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, STALE_SESSION_AGE_MS, SUPABASE_URL = "https://fnnlebrtmlxxjwdvngck.supabase.co", SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubmxlYnJ0bWx4eGp3ZHZuZ2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MzA3MjYsImV4cCI6MjA3MjMwNjcyNn0.0IE3HCY_DiyyALdewbRn1vkedwzDW27NQMQ28V6j4Dk", POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", EXCLUDED_COMMAND_PATTERNS, UPDATE_CHECK_CACHE_TTL_MS, DAEMON_INACTIVITY_TIMEOUT_MS, SYNC_METRICS_RETENTION_MS;
 var init_constants = __esm(() => {
   CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
-  CLAUDE_DIR_SEPARATOR_PATTERN = /[\/.\s]/g;
+  CLAUDE_DIR_SEPARATOR_PATTERN = /[\\/:.\s_]/g;
   CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
   CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
   CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
@@ -17421,12 +17424,14 @@ var AUTH_TOKEN_REFRESH_FAILED = "auth_token_refresh_failed";
 var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
 var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
 var FILE_LOCK_TIMEOUT = "file_lock_timeout";
+var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
+var EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found";
 function getErrorCategory(errorType) {
   if (errorType.startsWith("auth_"))
     return "auth";
   if (errorType.startsWith("sync_"))
     return "sync";
-  if (errorType.startsWith("queue_") || errorType.startsWith("file_"))
+  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("extraction_"))
     return "filesystem";
   if (errorType.startsWith("daemon_"))
     return "daemon";
@@ -36522,6 +36527,13 @@ async function acquireFileLock(filePath) {
       const errCode = error46.code;
       if (errCode === "ENOENT" || errCode === "EACCES") {
         logger.error(`Failed to create lock file ${lockFile}:`, error46);
+        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
+          ...buildFileSystemProperties({
+            filePath: lockFile,
+            operation: "lock",
+            errnoCode: errCode
+          })
+        });
       }
       throw error46;
     }
@@ -36572,7 +36584,7 @@ async function withFileLock(filePath, fn) {
 init_fs_utils();
 init_logger();
 async function shouldSkipDuplicate(hookType, sessionId) {
-  const debounceFile = join5(DEBOUNCE_DIR, `${hookType}-${sessionId}.json`);
+  const debounceFile = join5(DEBOUNCE_DIR, `${hookType}-${sanitizeForFilename(sessionId)}.json`);
   try {
     await ensureDirectory(DEBOUNCE_DIR);
     return await withFileLock(debounceFile, async () => {
@@ -36602,8 +36614,13 @@ async function shouldSkipDuplicate(hookType, sessionId) {
 init_deletion_cache();
 
 // src/utils/extraction-helpers.ts
-import { stat as stat4 } from "node:fs/promises";
+import { realpath, stat as stat4 } from "node:fs/promises";
 import { basename as basename2, join as join7 } from "node:path";
+// ../../packages/utils/src/git-utils.ts
+import { exec, execSync } from "node:child_process";
+import { promisify } from "node:util";
+var execAsync = promisify(exec);
+// src/utils/extraction-helpers.ts
 init_constants();
 
 // src/utils/command-filters.ts
@@ -37839,12 +37856,24 @@ async function cacheFilesForDeletion(filePaths, sessionId, projectDir) {
 }
 async function findConversationFile(projectDir) {
   try {
-    const claudeDirName = projectDir.replace(CLAUDE_DIR_SEPARATOR_PATTERN, "-");
-    const projectPath = join7(CLAUDE_PROJECTS_DIR, claudeDirName);
+    let resolvedDir;
+    try {
+      resolvedDir = await realpath(projectDir);
+    } catch {
+      resolvedDir = projectDir;
+    }
+    const claudeDirName = resolvedDir.replace(CLAUDE_DIR_SEPARATOR_PATTERN, "-");
+    let projectPath = join7(CLAUDE_PROJECTS_DIR, claudeDirName);
     logger.debug(`Looking for project directory: ${projectPath}`);
     try {
       await stat4(projectPath);
     } catch {
+      captureException(new Error(`Project directory not found: ${claudeDirName}`), EXTRACTION_PROJECT_DIR_NOT_FOUND, "extraction-helpers", {
+        computed_dir_name: claudeDirName,
+        resolved_project_dir: resolvedDir,
+        original_project_dir: projectDir,
+        os_platform: process.platform
+      });
       logger.warn(`Project directory not found: ${projectPath}`);
       return null;
     }

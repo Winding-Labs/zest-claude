@@ -1488,6 +1488,12 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
               const filterResult = applyMessageFilter(role, textContent, filteringState);
               filteringState = filterResult.newState;
               if (!filterResult.shouldFilter) {
+                const metadata = {};
+                if (entry.uuid)
+                  metadata.claude_uuid = entry.uuid;
+                if (role === "assistant" && entry.message.model) {
+                  metadata.modelName = entry.message.model;
+                }
                 messages.push({
                   id: entry.uuid,
                   session_id: sessionId,
@@ -1495,7 +1501,7 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
                   content: textContent,
                   created_at: entry.timestamp || new Date().toISOString(),
                   message_index: messageCounter,
-                  metadata: entry.uuid ? { claude_uuid: entry.uuid } : null
+                  metadata: Object.keys(metadata).length > 0 ? metadata : null
                 });
                 messageCounter++;
                 logger.debug(`Extracted ${role} message at line ${lineNumber + 1}: ${textContent.substring(0, 50)}...`);

@@ -48,6 +48,9 @@ var __require = /* @__PURE__ */ createRequire(import.meta.url);
 
 // src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
+function sanitizeForFilename(input) {
+  return input.replace(/[\\/:*?"<>|]/g, "_");
+}
 async function ensureDirectory(dirPath) {
   try {
     await stat(dirPath);
@@ -63,7 +66,7 @@ import { join } from "node:path";
 var CLAUDE_INSTALL_DIR, CLAUDE_DIR_SEPARATOR_PATTERN, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DEBOUNCE_WINDOW_MS = 500, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MAX_CONTENT_PREVIEW_LENGTH = 1000, STALE_SESSION_AGE_MS, SUPABASE_URL = "https://fnnlebrtmlxxjwdvngck.supabase.co", SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubmxlYnJ0bWx4eGp3ZHZuZ2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MzA3MjYsImV4cCI6MjA3MjMwNjcyNn0.0IE3HCY_DiyyALdewbRn1vkedwzDW27NQMQ28V6j4Dk", POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", EXCLUDED_COMMAND_PATTERNS, MARKETPLACE_PLUGIN_JSON_URL = "https://raw.githubusercontent.com/Winding-Labs/zest-claude/refs/heads/main/zest/.claude-plugin/plugin.json", VERSION_CHECK_TIMEOUT_MS = 5000, UPDATE_CHECK_CACHE_TTL_MS, DAEMON_FRESH_PID_THRESHOLD_MS = 2000, DAEMON_INACTIVITY_TIMEOUT_MS, SYNC_METRICS_RETENTION_MS;
 var init_constants = __esm(() => {
   CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
-  CLAUDE_DIR_SEPARATOR_PATTERN = /[\/.\s]/g;
+  CLAUDE_DIR_SEPARATOR_PATTERN = /[\\/:.\s_]/g;
   CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
   CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
   CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
@@ -18740,6 +18743,8 @@ var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
 var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
 var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
 var FILE_LOCK_TIMEOUT = "file_lock_timeout";
+var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
+var EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found";
 var DAEMON_START_FAILED = "daemon_start_failed";
 var DAEMON_RESTART_FAILED = "daemon_restart_failed";
 function getErrorCategory(errorType) {
@@ -18747,7 +18752,7 @@ function getErrorCategory(errorType) {
     return "auth";
   if (errorType.startsWith("sync_"))
     return "sync";
-  if (errorType.startsWith("queue_") || errorType.startsWith("file_"))
+  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("extraction_"))
     return "filesystem";
   if (errorType.startsWith("daemon_"))
     return "daemon";
@@ -38013,6 +38018,13 @@ async function acquireFileLock(filePath) {
       const errCode = error46.code;
       if (errCode === "ENOENT" || errCode === "EACCES") {
         logger.error(`Failed to create lock file ${lockFile}:`, error46);
+        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
+          ...buildFileSystemProperties({
+            filePath: lockFile,
+            operation: "lock",
+            errnoCode: errCode
+          })
+        });
       }
       throw error46;
     }
@@ -38256,7 +38268,7 @@ import { join as join5 } from "node:path";
 init_fs_utils();
 init_logger();
 async function shouldSkipDuplicate(hookType, sessionId) {
-  const debounceFile = join5(DEBOUNCE_DIR, `${hookType}-${sessionId}.json`);
+  const debounceFile = join5(DEBOUNCE_DIR, `${hookType}-${sanitizeForFilename(sessionId)}.json`);
   try {
     await ensureDirectory(DEBOUNCE_DIR);
     return await withFileLock(debounceFile, async () => {
@@ -38305,8 +38317,8 @@ async function cleanupDebounceFiles() {
 
 // src/utils/extraction-helpers.ts
 import { randomUUID } from "node:crypto";
-import { stat as stat7 } from "node:fs/promises";
-import { basename as basename2, join as join8 } from "node:path";
+import { realpath, stat as stat7 } from "node:fs/promises";
+import { basename as basename3, join as join8 } from "node:path";
 
 // ../../packages/utils/src/language-utils.ts
 var languageMap = {
@@ -38392,6 +38404,179 @@ var languageMap = {
 function getLanguageFromPath(filePath) {
   const ext = filePath.split(".").pop()?.toLowerCase();
   return languageMap[ext || ""] || "plaintext";
+}
+// ../../packages/utils/src/git-utils.ts
+import { exec as exec2, execSync } from "node:child_process";
+import * as path from "node:path";
+import { promisify as promisify2 } from "node:util";
+
+// ../../node_modules/uuid/dist-node/regex.js
+var regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
+
+// ../../node_modules/uuid/dist-node/validate.js
+function validate(uuid3) {
+  return typeof uuid3 === "string" && regex_default.test(uuid3);
+}
+var validate_default = validate;
+
+// ../../node_modules/uuid/dist-node/parse.js
+function parse5(uuid3) {
+  if (!validate_default(uuid3)) {
+    throw TypeError("Invalid UUID");
+  }
+  let v;
+  return Uint8Array.of((v = parseInt(uuid3.slice(0, 8), 16)) >>> 24, v >>> 16 & 255, v >>> 8 & 255, v & 255, (v = parseInt(uuid3.slice(9, 13), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(14, 18), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(19, 23), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(24, 36), 16)) / 1099511627776 & 255, v / 4294967296 & 255, v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
+}
+var parse_default = parse5;
+
+// ../../node_modules/uuid/dist-node/stringify.js
+var byteToHex = [];
+for (let i = 0;i < 256; ++i) {
+  byteToHex.push((i + 256).toString(16).slice(1));
+}
+function unsafeStringify(arr, offset = 0) {
+  return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
+}
+
+// ../../node_modules/uuid/dist-node/v35.js
+function stringToBytes(str) {
+  str = unescape(encodeURIComponent(str));
+  const bytes = new Uint8Array(str.length);
+  for (let i = 0;i < str.length; ++i) {
+    bytes[i] = str.charCodeAt(i);
+  }
+  return bytes;
+}
+var DNS = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+var URL2 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
+function v35(version5, hash2, value, namespace, buf, offset) {
+  const valueBytes = typeof value === "string" ? stringToBytes(value) : value;
+  const namespaceBytes = typeof namespace === "string" ? parse_default(namespace) : namespace;
+  if (typeof namespace === "string") {
+    namespace = parse_default(namespace);
+  }
+  if (namespace?.length !== 16) {
+    throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
+  }
+  let bytes = new Uint8Array(16 + valueBytes.length);
+  bytes.set(namespaceBytes);
+  bytes.set(valueBytes, namespaceBytes.length);
+  bytes = hash2(bytes);
+  bytes[6] = bytes[6] & 15 | version5;
+  bytes[8] = bytes[8] & 63 | 128;
+  if (buf) {
+    offset = offset || 0;
+    for (let i = 0;i < 16; ++i) {
+      buf[offset + i] = bytes[i];
+    }
+    return buf;
+  }
+  return unsafeStringify(bytes);
+}
+
+// ../../node_modules/uuid/dist-node/sha1.js
+import { createHash } from "node:crypto";
+function sha1(bytes) {
+  if (Array.isArray(bytes)) {
+    bytes = Buffer.from(bytes);
+  } else if (typeof bytes === "string") {
+    bytes = Buffer.from(bytes, "utf8");
+  }
+  return createHash("sha1").update(bytes).digest();
+}
+var sha1_default = sha1;
+
+// ../../node_modules/uuid/dist-node/v5.js
+function v5(value, namespace, buf, offset) {
+  return v35(80, sha1_default, value, namespace, buf, offset);
+}
+v5.DNS = DNS;
+v5.URL = URL2;
+var v5_default = v5;
+// ../../packages/utils/src/git-utils.ts
+var execAsync = promisify2(exec2);
+var UNKNOWN_PROJECT = {
+  projectId: "unknown",
+  projectName: "unknown"
+};
+var PROJECT_ID_NAMESPACE = "e1f3b3c4-0b7a-4c1e-8a7b-9f3c0e1d2a3b";
+function generateProjectId(input) {
+  return v5_default(input, PROJECT_ID_NAMESPACE);
+}
+function extractNameFromRemoteUrl(remoteUrl) {
+  const orgRepoMatch = remoteUrl.match(/[/:]([^/:.]+\/[^/]+?)(\.git)?$/);
+  if (orgRepoMatch?.[1]) {
+    return orgRepoMatch[1];
+  }
+  const repoMatch = remoteUrl.match(/\/([^/]+?)(\.git)?$/);
+  if (repoMatch?.[1]) {
+    return repoMatch[1];
+  }
+  return null;
+}
+function extractProjectName(workingDirectory) {
+  try {
+    try {
+      const remoteUrl = execSync("git config --get remote.origin.url", {
+        cwd: workingDirectory,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 5000
+      }).trim();
+      if (remoteUrl) {
+        const name = extractNameFromRemoteUrl(remoteUrl);
+        if (name) {
+          return name;
+        }
+      }
+    } catch {}
+    try {
+      const repoRoot = execSync("git rev-parse --show-toplevel", {
+        cwd: workingDirectory,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 5000
+      }).trim();
+      if (repoRoot) {
+        return path.basename(repoRoot);
+      }
+    } catch {}
+    return path.basename(workingDirectory);
+  } catch {
+    return null;
+  }
+}
+function isGitRepository(workingDirectory) {
+  try {
+    execSync("git rev-parse --is-inside-work-tree", {
+      cwd: workingDirectory,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout: 5000
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+function getProjectInfoSync(workingDirectory) {
+  try {
+    if (!isGitRepository(workingDirectory)) {
+      return UNKNOWN_PROJECT;
+    }
+    const projectName = extractProjectName(workingDirectory);
+    if (!projectName) {
+      return UNKNOWN_PROJECT;
+    }
+    const absolutePath = path.resolve(workingDirectory);
+    const projectId = generateProjectId(absolutePath);
+    return {
+      projectId,
+      projectName
+    };
+  } catch {
+    return UNKNOWN_PROJECT;
+  }
 }
 // src/utils/extraction-helpers.ts
 init_constants();
@@ -38512,16 +38697,16 @@ var Diff = function() {
       }
     }
   };
-  Diff2.prototype.addToPath = function(path, added, removed, oldPosInc, options) {
-    var last = path.lastComponent;
+  Diff2.prototype.addToPath = function(path2, added, removed, oldPosInc, options) {
+    var last = path2.lastComponent;
     if (last && !options.oneChangePerToken && last.added === added && last.removed === removed) {
       return {
-        oldPos: path.oldPos + oldPosInc,
+        oldPos: path2.oldPos + oldPosInc,
         lastComponent: { count: last.count + 1, added, removed, previousComponent: last.previousComponent }
       };
     } else {
       return {
-        oldPos: path.oldPos + oldPosInc,
+        oldPos: path2.oldPos + oldPosInc,
         lastComponent: { count: 1, added, removed, previousComponent: last }
       };
     }
@@ -39707,6 +39892,12 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
               const filterResult = applyMessageFilter(role, textContent, filteringState);
               filteringState = filterResult.newState;
               if (!filterResult.shouldFilter) {
+                const metadata = {};
+                if (entry.uuid)
+                  metadata.claude_uuid = entry.uuid;
+                if (role === "assistant" && entry.message.model) {
+                  metadata.modelName = entry.message.model;
+                }
                 messages.push({
                   id: entry.uuid,
                   session_id: sessionId,
@@ -39714,7 +39905,7 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
                   content: textContent,
                   created_at: entry.timestamp || new Date().toISOString(),
                   message_index: messageCounter,
-                  metadata: entry.uuid ? { claude_uuid: entry.uuid } : null
+                  metadata: Object.keys(metadata).length > 0 ? metadata : null
                 });
                 messageCounter++;
                 logger.debug(`Extracted ${role} message at line ${lineNumber + 1}: ${textContent.substring(0, 50)}...`);
@@ -39989,12 +40180,24 @@ async function ensurePrivacyInitialized(projectDir) {
 }
 async function findConversationFile(projectDir) {
   try {
-    const claudeDirName = projectDir.replace(CLAUDE_DIR_SEPARATOR_PATTERN, "-");
-    const projectPath = join8(CLAUDE_PROJECTS_DIR, claudeDirName);
+    let resolvedDir;
+    try {
+      resolvedDir = await realpath(projectDir);
+    } catch {
+      resolvedDir = projectDir;
+    }
+    const claudeDirName = resolvedDir.replace(CLAUDE_DIR_SEPARATOR_PATTERN, "-");
+    let projectPath = join8(CLAUDE_PROJECTS_DIR, claudeDirName);
     logger.debug(`Looking for project directory: ${projectPath}`);
     try {
       await stat7(projectPath);
     } catch {
+      captureException(new Error(`Project directory not found: ${claudeDirName}`), EXTRACTION_PROJECT_DIR_NOT_FOUND, "extraction-helpers", {
+        computed_dir_name: claudeDirName,
+        resolved_project_dir: resolvedDir,
+        original_project_dir: projectDir,
+        os_platform: process.platform
+      });
       logger.warn(`Project directory not found: ${projectPath}`);
       return null;
     }
@@ -40016,7 +40219,7 @@ async function findConversationFile(projectDir) {
       }
     }
     const conversationFile = join8(projectPath, mostRecentFile);
-    const sessionId = basename2(mostRecentFile, ".jsonl");
+    const sessionId = basename3(mostRecentFile, ".jsonl");
     const fileStats = await stat7(conversationFile);
     return { conversationFile, sessionId, fileStats };
   } catch (error46) {
@@ -40043,10 +40246,13 @@ async function extractNewSessionData(conversationFile, sessionId) {
 async function queueSessionData(sessionId, messages, toolUses, fileStats, projectDir, conversationFile, newLastReadLine, lastMessageIndex, isNewSession) {
   await ensurePrivacyInitialized(projectDir);
   if (isNewSession) {
+    const projectInfo = getProjectInfoSync(projectDir);
     const session = {
       id: sessionId,
       title: messages.length > 0 ? messages[0].content.substring(0, 100) : `Session ${sessionId}`,
-      created_at: fileStats.birthtime.toISOString()
+      created_at: fileStats.birthtime.toISOString(),
+      project_id: projectInfo.projectId !== "unknown" ? projectInfo.projectId : null,
+      project_name: projectInfo.projectName !== "unknown" ? projectInfo.projectName : null
     };
     await enqueueChatSession(session);
   }
@@ -40057,7 +40263,8 @@ async function queueSessionData(sessionId, messages, toolUses, fileStats, projec
       message_index: message.message_index,
       role: message.role,
       content: message.content,
-      created_at: message.created_at
+      created_at: message.created_at,
+      metadata: message.metadata
     };
     await enqueueChatMessage(extractedMessage);
   }
@@ -40099,12 +40306,12 @@ async function queueToolUseEvents(toolUses, sessionId, projectDir) {
 }
 
 // src/utils/folder-exclusion.ts
-import { normalize, resolve, sep as sep2 } from "node:path";
+import { normalize, resolve as resolve2, sep as sep2 } from "node:path";
 function isCaseInsensitiveFilesystem() {
   return process.platform === "win32" || process.platform === "darwin";
 }
-function normalizeForComparison(path) {
-  const normalized = normalize(resolve(path));
+function normalizeForComparison(path2) {
+  const normalized = normalize(resolve2(path2));
   return isCaseInsensitiveFilesystem() ? normalized.toLowerCase() : normalized;
 }
 function isFolderExcluded(folderPath, settings) {
@@ -40123,7 +40330,7 @@ init_logger();
 init_constants();
 init_fs_utils();
 init_logger();
-import { createHash } from "node:crypto";
+import { createHash as createHash2 } from "node:crypto";
 import { copyFile, readFile as readFile11, stat as stat8 } from "node:fs/promises";
 import { dirname as dirname7, join as join9 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
@@ -40235,7 +40442,7 @@ async function writeSyncStatus(status) {
 async function getFileHash(filePath) {
   try {
     const content = await readFile11(filePath);
-    return createHash("sha256").update(content).digest("hex");
+    return createHash2("sha256").update(content).digest("hex");
   } catch {
     return null;
   }

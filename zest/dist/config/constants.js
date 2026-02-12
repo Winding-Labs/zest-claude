@@ -2,7 +2,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
-var CLAUDE_DIR_SEPARATOR_PATTERN = /[\/.\s]/g;
+var CLAUDE_DIR_SEPARATOR_PATTERN = /[\\/:.\s_]/g;
 var CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
 var CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
 var CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");

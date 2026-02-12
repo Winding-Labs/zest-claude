@@ -13176,12 +13176,13 @@ var AUTH_TOKEN_REFRESH_FAILED = "auth_token_refresh_failed";
 var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
 var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
 var FILE_LOCK_TIMEOUT = "file_lock_timeout";
+var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
 function getErrorCategory(errorType) {
   if (errorType.startsWith("auth_"))
     return "auth";
   if (errorType.startsWith("sync_"))
     return "sync";
-  if (errorType.startsWith("queue_") || errorType.startsWith("file_"))
+  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("extraction_"))
     return "filesystem";
   if (errorType.startsWith("daemon_"))
     return "daemon";
@@ -31959,6 +31960,9 @@ function buildFileSystemProperties(options) {
 
 // src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
+function sanitizeForFilename(input) {
+  return input.replace(/[\\/:*?"<>|]/g, "_");
+}
 async function ensureDirectory(dirPath) {
   try {
     await stat(dirPath);
@@ -32373,6 +32377,13 @@ async function acquireFileLock(filePath) {
       const errCode = error46.code;
       if (errCode === "ENOENT" || errCode === "EACCES") {
         logger.error(`Failed to create lock file ${lockFile}:`, error46);
+        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
+          ...buildFileSystemProperties({
+            filePath: lockFile,
+            operation: "lock",
+            errnoCode: errCode
+          })
+        });
       }
       throw error46;
     }
@@ -32421,7 +32432,7 @@ async function withFileLock(filePath, fn) {
 
 // src/utils/debounce-manager.ts
 async function shouldSkipDuplicate(hookType, sessionId) {
-  const debounceFile = join5(DEBOUNCE_DIR, `${hookType}-${sessionId}.json`);
+  const debounceFile = join5(DEBOUNCE_DIR, `${hookType}-${sanitizeForFilename(sessionId)}.json`);
   try {
     await ensureDirectory(DEBOUNCE_DIR);
     return await withFileLock(debounceFile, async () => {
@@ -32447,7 +32458,7 @@ async function shouldSkipDuplicate(hookType, sessionId) {
   }
 }
 async function registerHookFired(hookType, sessionId) {
-  const debounceFile = join5(DEBOUNCE_DIR, `trailing-${hookType}-${sessionId}.json`);
+  const debounceFile = join5(DEBOUNCE_DIR, `trailing-${hookType}-${sanitizeForFilename(sessionId)}.json`);
   try {
     await ensureDirectory(DEBOUNCE_DIR);
     return await withFileLock(debounceFile, async () => {
@@ -32475,7 +32486,7 @@ async function registerHookFired(hookType, sessionId) {
   }
 }
 async function shouldProcessNow(hookType, sessionId) {
-  const debounceFile = join5(DEBOUNCE_DIR, `trailing-${hookType}-${sessionId}.json`);
+  const debounceFile = join5(DEBOUNCE_DIR, `trailing-${hookType}-${sanitizeForFilename(sessionId)}.json`);
   const now = Date.now();
   try {
     const content = await readFile3(debounceFile, "utf-8");
