@@ -32431,6 +32431,27 @@ async function fetchUserTeamAndProfile(userId, workspaceId) {
     return null;
   }
 }
+async function fetchAutoRefreshEligibility(workspaceId, userId) {
+  try {
+    const supabase = await getSupabaseClient();
+    if (!supabase) {
+      throw new Error("Failed to create Supabase client");
+    }
+    logger.debug("Fetching auto-refresh eligibility", { workspaceId, userId });
+    const { data, error: error46 } = await supabase.rpc("check_auto_refresh_eligibility", {
+      p_workspace_id: workspaceId,
+      p_user_id: userId
+    }).maybeSingle();
+    if (error46) {
+      logger.error("Failed to fetch auto-refresh eligibility", error46);
+      return null;
+    }
+    return data;
+  } catch (error46) {
+    logger.error("Error fetching auto-refresh eligibility", error46);
+    return null;
+  }
+}
 async function fetchDefaultStandupPromptId(workspaceId) {
   try {
     const supabase = await getSupabaseClient();
@@ -32478,6 +32499,14 @@ async function main() {
     if (!promptId) {
       console.log("❌ No standup prompt configured for this workspace");
       return;
+    }
+    const eligibility = await fetchAutoRefreshEligibility(workspaceId, userId);
+    if (eligibility) {
+      const totalNewData = eligibility.new_sessions_count + eligibility.new_messages_count + eligibility.new_events_count;
+      if (totalNewData === 0) {
+        console.log("ℹ️  No new coding sessions found for today — nothing to analyze");
+        return;
+      }
     }
     const { dateFrom, dateTo } = calculateTodayDateRange();
     const supabase = await getSupabaseClient();
