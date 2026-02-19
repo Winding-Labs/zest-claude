@@ -4985,6 +4985,8 @@ var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
 var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+var NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
+var STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
 var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
 
 // src/utils/daemon-manager.ts
@@ -19074,10 +19076,18 @@ var DEFAULT_SYNC_STATUS = {
 var DEFAULT_DEV_MODE_STATUS = {
   active: false
 };
+var DEFAULT_STANDUP_NOTIFICATION = {
+  message: null,
+  createdAt: null,
+  expiresAt: null,
+  firstDataReadyLastShownAt: null,
+  standupRefreshedLastShownAt: null
+};
 var DEFAULT_STATUS_CACHE = {
   versionCheck: DEFAULT_VERSION_CHECK,
   syncStatus: DEFAULT_SYNC_STATUS,
-  devMode: DEFAULT_DEV_MODE_STATUS
+  devMode: DEFAULT_DEV_MODE_STATUS,
+  standupNotification: DEFAULT_STANDUP_NOTIFICATION
 };
 function readStatusCache() {
   try {
@@ -19092,7 +19102,9 @@ function readStatusCache() {
           latestVersion: parsed.latestVersion ?? "unknown",
           checkedAt: parsed.checkedAt ?? 0
         },
-        syncStatus: DEFAULT_SYNC_STATUS
+        syncStatus: DEFAULT_SYNC_STATUS,
+        devMode: DEFAULT_DEV_MODE_STATUS,
+        standupNotification: DEFAULT_STANDUP_NOTIFICATION
       };
       return migrated;
     }
@@ -19108,6 +19120,10 @@ function readStatusCache() {
       devMode: {
         ...DEFAULT_DEV_MODE_STATUS,
         ...parsed.devMode
+      },
+      standupNotification: {
+        ...DEFAULT_STANDUP_NOTIFICATION,
+        ...parsed.standupNotification
       }
     };
   } catch (error46) {
@@ -19130,9 +19146,15 @@ function main() {
     const isUpdateCheckRecent = Date.now() - cache.versionCheck.checkedAt < UPDATE_CHECK_CACHE_TTL_MS;
     const hasUpdateAvailable = cache.versionCheck.updateAvailable && isUpdateCheckRecent;
     const isDevMode = cache.devMode?.active === true;
+    const now = Date.now();
+    const { message: standupMessage, expiresAt: standupExpiresAt } = cache.standupNotification;
+    const hasActiveStandupNotification = standupMessage !== null && standupExpiresAt !== null && standupExpiresAt > now;
     const messages = [];
     if (isDevMode) {
       messages.push("\x1B[1;36m\uD83D\uDD27 Zest running in dev mode\x1B[0m");
+    }
+    if (hasActiveStandupNotification && standupMessage) {
+      messages.push(standupMessage);
     }
     if (hasSyncError && cache.syncStatus.errorMessage) {
       messages.push(`\x1B[1;31m\uD83D\uDD34 Chat history not saving: ${cache.syncStatus.errorMessage}\x1B[0m`);

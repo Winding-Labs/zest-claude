@@ -13,6 +13,7 @@ var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
 var QUEUE_WRITE_FAILED = "queue_write_failed";
 var FILE_LOCK_TIMEOUT = "file_lock_timeout";
 var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
+var NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed";
 var EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found";
 var DAEMON_START_FAILED = "daemon_start_failed";
 var DAEMON_RESTART_FAILED = "daemon_restart_failed";
@@ -22,17 +23,22 @@ var API_PROFILE_UPDATE_FAILED = "api_profile_update_failed";
 var API_STANDUP_TEAM_FETCH_FAILED = "api_standup_team_fetch_failed";
 var API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed";
 var API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed";
+var SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed";
+var SUPABASE_SESSION_SET_FAILED = "supabase_session_set_failed";
+var SUPABASE_SESSION_REFRESH_PERSIST_FAILED = "supabase_session_refresh_persist_failed";
 function getErrorCategory(errorType) {
   if (errorType.startsWith("auth_"))
     return "auth";
   if (errorType.startsWith("sync_"))
     return "sync";
-  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("extraction_"))
+  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("notification_") || errorType.startsWith("extraction_"))
     return "filesystem";
   if (errorType.startsWith("daemon_"))
     return "daemon";
   if (errorType.startsWith("api_"))
     return "api";
+  if (errorType.startsWith("supabase_"))
+    return "supabase";
   return "api";
 }
 export {
@@ -42,8 +48,12 @@ export {
   SYNC_EVENTS_UPLOAD_FAILED,
   SYNC_EVENTS_RETRY_EXHAUSTED,
   SYNC_CHAT_UPLOAD_FAILED,
+  SUPABASE_SESSION_SET_FAILED,
+  SUPABASE_SESSION_REFRESH_PERSIST_FAILED,
+  SUPABASE_CLIENT_INIT_FAILED,
   QUEUE_WRITE_FAILED,
   QUEUE_READ_CORRUPTED,
+  NOTIFICATION_STATE_WRITE_FAILED,
   FILE_LOCK_TIMEOUT,
   FILE_LOCK_CREATE_FAILED,
   EXTRACTION_PROJECT_DIR_NOT_FOUND,
