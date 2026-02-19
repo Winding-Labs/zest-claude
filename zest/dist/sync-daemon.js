@@ -7501,8 +7501,8 @@ var require_RealtimeChannel = __commonJS((exports2) => {
     _trigger(type, payload, ref) {
       var _a, _b;
       const typeLower = type.toLocaleLowerCase();
-      const { close, error: error46, leave, join } = constants_1.CHANNEL_EVENTS;
-      const events = [close, error46, leave, join];
+      const { close, error: error46, leave, join: join5 } = constants_1.CHANNEL_EVENTS;
+      const events = [close, error46, leave, join5];
       if (ref && events.indexOf(typeLower) >= 0 && ref !== this._joinRef()) {
         return;
       }
@@ -7533,7 +7533,7 @@ var require_RealtimeChannel = __commonJS((exports2) => {
         }).map((bind) => {
           if (typeof handledPayload === "object" && "ids" in handledPayload) {
             const postgresChanges = handledPayload.data;
-            const { schema, table, commit_timestamp, type: type2, errors: errors3 } = postgresChanges;
+            const { schema, table, commit_timestamp, type: type2, errors: errors4 } = postgresChanges;
             const enrichedPayload = {
               schema,
               table,
@@ -7541,7 +7541,7 @@ var require_RealtimeChannel = __commonJS((exports2) => {
               eventType: type2,
               new: {},
               old: {},
-              errors: errors3
+              errors: errors4
             };
             handledPayload = Object.assign(Object.assign({}, enrichedPayload), this._getPayloadRecords(postgresChanges));
           }
@@ -12476,20 +12476,20 @@ var require_GoTrueClient = __commonJS((exports2) => {
         if (this.broadcastChannel && broadcast) {
           this.broadcastChannel.postMessage({ event, session });
         }
-        const errors3 = [];
+        const errors4 = [];
         const promises = Array.from(this.stateChangeEmitters.values()).map(async (x) => {
           try {
             await x.callback(event, session);
           } catch (e) {
-            errors3.push(e);
+            errors4.push(e);
           }
         });
         await Promise.all(promises);
-        if (errors3.length > 0) {
-          for (let i = 0;i < errors3.length; i += 1) {
-            console.error(errors3[i]);
+        if (errors4.length > 0) {
+          for (let i = 0;i < errors4.length; i += 1) {
+            console.error(errors4[i]);
           }
-          throw errors3[0];
+          throw errors4[0];
         }
       } finally {
         this._debug(debugName, "end");
@@ -13054,8 +13054,8 @@ var require_GoTrueClient = __commonJS((exports2) => {
         const publicKey = await crypto.subtle.importKey("jwk", signingKey, algorithm, true, [
           "verify"
         ]);
-        const isValid = await crypto.subtle.verify(algorithm, publicKey, signature, (0, base64url_1.stringToUint8Array)(`${rawHeader}.${rawPayload}`));
-        if (!isValid) {
+        const isValid2 = await crypto.subtle.verify(algorithm, publicKey, signature, (0, base64url_1.stringToUint8Array)(`${rawHeader}.${rawPayload}`));
+        if (!isValid2) {
           throw new errors_1.AuthInvalidJwtError("Invalid JWT signature");
         }
         return {
@@ -13131,7 +13131,6 @@ import { appendFile as appendFile3 } from "node:fs/promises";
 import { dirname as dirname8 } from "node:path";
 
 // src/analytics/events.ts
-var AUTH_TOKEN_REFRESH_FAILED = "auth_token_refresh_failed";
 var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
 var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
 var SYNC_NOT_AUTHENTICATED = "sync_not_authenticated";
@@ -13143,17 +13142,22 @@ var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
 var FILE_LOCK_TIMEOUT = "file_lock_timeout";
 var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
 var DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed";
+var SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed";
+var SUPABASE_SESSION_SET_FAILED = "supabase_session_set_failed";
+var SUPABASE_SESSION_REFRESH_PERSIST_FAILED = "supabase_session_refresh_persist_failed";
 function getErrorCategory(errorType) {
   if (errorType.startsWith("auth_"))
     return "auth";
   if (errorType.startsWith("sync_"))
     return "sync";
-  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("extraction_"))
+  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("notification_") || errorType.startsWith("extraction_"))
     return "filesystem";
   if (errorType.startsWith("daemon_"))
     return "daemon";
   if (errorType.startsWith("api_"))
     return "api";
+  if (errorType.startsWith("supabase_"))
+    return "supabase";
   return "api";
 }
 
@@ -29231,2690 +29235,8 @@ function createServerAnalytics(posthogApiKey) {
 import { readFile, unlink as unlink2, writeFile } from "node:fs/promises";
 import { dirname as dirname3 } from "node:path";
 
-// node_modules/@supabase/supabase-js/dist/index.mjs
-var exports_dist3 = {};
-__export(exports_dist3, {
-  createClient: () => createClient,
-  SupabaseClient: () => SupabaseClient,
-  PostgrestError: () => PostgrestError,
-  FunctionsRelayError: () => import_functions_js.FunctionsRelayError,
-  FunctionsHttpError: () => import_functions_js.FunctionsHttpError,
-  FunctionsFetchError: () => import_functions_js.FunctionsFetchError,
-  FunctionsError: () => import_functions_js.FunctionsError,
-  FunctionRegion: () => import_functions_js.FunctionRegion
-});
-var import_functions_js = __toESM(require_main2(), 1);
-
-// node_modules/@supabase/supabase-js/node_modules/@supabase/postgrest-js/dist/index.mjs
-var exports_dist = {};
-__export(exports_dist, {
-  default: () => src_default,
-  PostgrestTransformBuilder: () => PostgrestTransformBuilder,
-  PostgrestQueryBuilder: () => PostgrestQueryBuilder,
-  PostgrestFilterBuilder: () => PostgrestFilterBuilder,
-  PostgrestError: () => PostgrestError,
-  PostgrestClient: () => PostgrestClient,
-  PostgrestBuilder: () => PostgrestBuilder
-});
-var PostgrestError = class extends Error {
-  constructor(context) {
-    super(context.message);
-    this.name = "PostgrestError";
-    this.details = context.details;
-    this.hint = context.hint;
-    this.code = context.code;
-  }
-};
-var PostgrestBuilder = class {
-  constructor(builder) {
-    var _builder$shouldThrowO, _builder$isMaybeSingl;
-    this.shouldThrowOnError = false;
-    this.method = builder.method;
-    this.url = builder.url;
-    this.headers = new Headers(builder.headers);
-    this.schema = builder.schema;
-    this.body = builder.body;
-    this.shouldThrowOnError = (_builder$shouldThrowO = builder.shouldThrowOnError) !== null && _builder$shouldThrowO !== undefined ? _builder$shouldThrowO : false;
-    this.signal = builder.signal;
-    this.isMaybeSingle = (_builder$isMaybeSingl = builder.isMaybeSingle) !== null && _builder$isMaybeSingl !== undefined ? _builder$isMaybeSingl : false;
-    if (builder.fetch)
-      this.fetch = builder.fetch;
-    else
-      this.fetch = fetch;
-  }
-  throwOnError() {
-    this.shouldThrowOnError = true;
-    return this;
-  }
-  setHeader(name, value) {
-    this.headers = new Headers(this.headers);
-    this.headers.set(name, value);
-    return this;
-  }
-  then(onfulfilled, onrejected) {
-    var _this = this;
-    if (this.schema === undefined) {} else if (["GET", "HEAD"].includes(this.method))
-      this.headers.set("Accept-Profile", this.schema);
-    else
-      this.headers.set("Content-Profile", this.schema);
-    if (this.method !== "GET" && this.method !== "HEAD")
-      this.headers.set("Content-Type", "application/json");
-    const _fetch = this.fetch;
-    let res = _fetch(this.url.toString(), {
-      method: this.method,
-      headers: this.headers,
-      body: JSON.stringify(this.body),
-      signal: this.signal
-    }).then(async (res$1) => {
-      let error46 = null;
-      let data = null;
-      let count = null;
-      let status = res$1.status;
-      let statusText = res$1.statusText;
-      if (res$1.ok) {
-        var _this$headers$get2, _res$headers$get;
-        if (_this.method !== "HEAD") {
-          var _this$headers$get;
-          const body = await res$1.text();
-          if (body === "") {} else if (_this.headers.get("Accept") === "text/csv")
-            data = body;
-          else if (_this.headers.get("Accept") && ((_this$headers$get = _this.headers.get("Accept")) === null || _this$headers$get === undefined ? undefined : _this$headers$get.includes("application/vnd.pgrst.plan+text")))
-            data = body;
-          else
-            data = JSON.parse(body);
-        }
-        const countHeader = (_this$headers$get2 = _this.headers.get("Prefer")) === null || _this$headers$get2 === undefined ? undefined : _this$headers$get2.match(/count=(exact|planned|estimated)/);
-        const contentRange = (_res$headers$get = res$1.headers.get("content-range")) === null || _res$headers$get === undefined ? undefined : _res$headers$get.split("/");
-        if (countHeader && contentRange && contentRange.length > 1)
-          count = parseInt(contentRange[1]);
-        if (_this.isMaybeSingle && _this.method === "GET" && Array.isArray(data))
-          if (data.length > 1) {
-            error46 = {
-              code: "PGRST116",
-              details: `Results contain ${data.length} rows, application/vnd.pgrst.object+json requires 1 row`,
-              hint: null,
-              message: "JSON object requested, multiple (or no) rows returned"
-            };
-            data = null;
-            count = null;
-            status = 406;
-            statusText = "Not Acceptable";
-          } else if (data.length === 1)
-            data = data[0];
-          else
-            data = null;
-      } else {
-        var _error$details;
-        const body = await res$1.text();
-        try {
-          error46 = JSON.parse(body);
-          if (Array.isArray(error46) && res$1.status === 404) {
-            data = [];
-            error46 = null;
-            status = 200;
-            statusText = "OK";
-          }
-        } catch (_unused) {
-          if (res$1.status === 404 && body === "") {
-            status = 204;
-            statusText = "No Content";
-          } else
-            error46 = { message: body };
-        }
-        if (error46 && _this.isMaybeSingle && (error46 === null || error46 === undefined || (_error$details = error46.details) === null || _error$details === undefined ? undefined : _error$details.includes("0 rows"))) {
-          error46 = null;
-          status = 200;
-          statusText = "OK";
-        }
-        if (error46 && _this.shouldThrowOnError)
-          throw new PostgrestError(error46);
-      }
-      return {
-        error: error46,
-        data,
-        count,
-        status,
-        statusText
-      };
-    });
-    if (!this.shouldThrowOnError)
-      res = res.catch((fetchError) => {
-        var _fetchError$name2;
-        let errorDetails = "";
-        const cause = fetchError === null || fetchError === undefined ? undefined : fetchError.cause;
-        if (cause) {
-          var _cause$message, _cause$code, _fetchError$name, _cause$name;
-          const causeMessage = (_cause$message = cause === null || cause === undefined ? undefined : cause.message) !== null && _cause$message !== undefined ? _cause$message : "";
-          const causeCode = (_cause$code = cause === null || cause === undefined ? undefined : cause.code) !== null && _cause$code !== undefined ? _cause$code : "";
-          errorDetails = `${(_fetchError$name = fetchError === null || fetchError === undefined ? undefined : fetchError.name) !== null && _fetchError$name !== undefined ? _fetchError$name : "FetchError"}: ${fetchError === null || fetchError === undefined ? undefined : fetchError.message}`;
-          errorDetails += `
-
-Caused by: ${(_cause$name = cause === null || cause === undefined ? undefined : cause.name) !== null && _cause$name !== undefined ? _cause$name : "Error"}: ${causeMessage}`;
-          if (causeCode)
-            errorDetails += ` (${causeCode})`;
-          if (cause === null || cause === undefined ? undefined : cause.stack)
-            errorDetails += `
-${cause.stack}`;
-        } else {
-          var _fetchError$stack;
-          errorDetails = (_fetchError$stack = fetchError === null || fetchError === undefined ? undefined : fetchError.stack) !== null && _fetchError$stack !== undefined ? _fetchError$stack : "";
-        }
-        return {
-          error: {
-            message: `${(_fetchError$name2 = fetchError === null || fetchError === undefined ? undefined : fetchError.name) !== null && _fetchError$name2 !== undefined ? _fetchError$name2 : "FetchError"}: ${fetchError === null || fetchError === undefined ? undefined : fetchError.message}`,
-            details: errorDetails,
-            hint: "",
-            code: ""
-          },
-          data: null,
-          count: null,
-          status: 0,
-          statusText: ""
-        };
-      });
-    return res.then(onfulfilled, onrejected);
-  }
-  returns() {
-    return this;
-  }
-  overrideTypes() {
-    return this;
-  }
-};
-var PostgrestTransformBuilder = class extends PostgrestBuilder {
-  select(columns) {
-    let quoted = false;
-    const cleanedColumns = (columns !== null && columns !== undefined ? columns : "*").split("").map((c) => {
-      if (/\s/.test(c) && !quoted)
-        return "";
-      if (c === '"')
-        quoted = !quoted;
-      return c;
-    }).join("");
-    this.url.searchParams.set("select", cleanedColumns);
-    this.headers.append("Prefer", "return=representation");
-    return this;
-  }
-  order(column, { ascending = true, nullsFirst, foreignTable, referencedTable = foreignTable } = {}) {
-    const key = referencedTable ? `${referencedTable}.order` : "order";
-    const existingOrder = this.url.searchParams.get(key);
-    this.url.searchParams.set(key, `${existingOrder ? `${existingOrder},` : ""}${column}.${ascending ? "asc" : "desc"}${nullsFirst === undefined ? "" : nullsFirst ? ".nullsfirst" : ".nullslast"}`);
-    return this;
-  }
-  limit(count, { foreignTable, referencedTable = foreignTable } = {}) {
-    const key = typeof referencedTable === "undefined" ? "limit" : `${referencedTable}.limit`;
-    this.url.searchParams.set(key, `${count}`);
-    return this;
-  }
-  range(from, to, { foreignTable, referencedTable = foreignTable } = {}) {
-    const keyOffset = typeof referencedTable === "undefined" ? "offset" : `${referencedTable}.offset`;
-    const keyLimit = typeof referencedTable === "undefined" ? "limit" : `${referencedTable}.limit`;
-    this.url.searchParams.set(keyOffset, `${from}`);
-    this.url.searchParams.set(keyLimit, `${to - from + 1}`);
-    return this;
-  }
-  abortSignal(signal) {
-    this.signal = signal;
-    return this;
-  }
-  single() {
-    this.headers.set("Accept", "application/vnd.pgrst.object+json");
-    return this;
-  }
-  maybeSingle() {
-    if (this.method === "GET")
-      this.headers.set("Accept", "application/json");
-    else
-      this.headers.set("Accept", "application/vnd.pgrst.object+json");
-    this.isMaybeSingle = true;
-    return this;
-  }
-  csv() {
-    this.headers.set("Accept", "text/csv");
-    return this;
-  }
-  geojson() {
-    this.headers.set("Accept", "application/geo+json");
-    return this;
-  }
-  explain({ analyze = false, verbose = false, settings = false, buffers = false, wal = false, format = "text" } = {}) {
-    var _this$headers$get;
-    const options = [
-      analyze ? "analyze" : null,
-      verbose ? "verbose" : null,
-      settings ? "settings" : null,
-      buffers ? "buffers" : null,
-      wal ? "wal" : null
-    ].filter(Boolean).join("|");
-    const forMediatype = (_this$headers$get = this.headers.get("Accept")) !== null && _this$headers$get !== undefined ? _this$headers$get : "application/json";
-    this.headers.set("Accept", `application/vnd.pgrst.plan+${format}; for="${forMediatype}"; options=${options};`);
-    if (format === "json")
-      return this;
-    else
-      return this;
-  }
-  rollback() {
-    this.headers.append("Prefer", "tx=rollback");
-    return this;
-  }
-  returns() {
-    return this;
-  }
-  maxAffected(value) {
-    this.headers.append("Prefer", "handling=strict");
-    this.headers.append("Prefer", `max-affected=${value}`);
-    return this;
-  }
-};
-var PostgrestReservedCharsRegexp = /* @__PURE__ */ new RegExp("[,()]");
-var PostgrestFilterBuilder = class extends PostgrestTransformBuilder {
-  eq(column, value) {
-    this.url.searchParams.append(column, `eq.${value}`);
-    return this;
-  }
-  neq(column, value) {
-    this.url.searchParams.append(column, `neq.${value}`);
-    return this;
-  }
-  gt(column, value) {
-    this.url.searchParams.append(column, `gt.${value}`);
-    return this;
-  }
-  gte(column, value) {
-    this.url.searchParams.append(column, `gte.${value}`);
-    return this;
-  }
-  lt(column, value) {
-    this.url.searchParams.append(column, `lt.${value}`);
-    return this;
-  }
-  lte(column, value) {
-    this.url.searchParams.append(column, `lte.${value}`);
-    return this;
-  }
-  like(column, pattern) {
-    this.url.searchParams.append(column, `like.${pattern}`);
-    return this;
-  }
-  likeAllOf(column, patterns) {
-    this.url.searchParams.append(column, `like(all).{${patterns.join(",")}}`);
-    return this;
-  }
-  likeAnyOf(column, patterns) {
-    this.url.searchParams.append(column, `like(any).{${patterns.join(",")}}`);
-    return this;
-  }
-  ilike(column, pattern) {
-    this.url.searchParams.append(column, `ilike.${pattern}`);
-    return this;
-  }
-  ilikeAllOf(column, patterns) {
-    this.url.searchParams.append(column, `ilike(all).{${patterns.join(",")}}`);
-    return this;
-  }
-  ilikeAnyOf(column, patterns) {
-    this.url.searchParams.append(column, `ilike(any).{${patterns.join(",")}}`);
-    return this;
-  }
-  regexMatch(column, pattern) {
-    this.url.searchParams.append(column, `match.${pattern}`);
-    return this;
-  }
-  regexIMatch(column, pattern) {
-    this.url.searchParams.append(column, `imatch.${pattern}`);
-    return this;
-  }
-  is(column, value) {
-    this.url.searchParams.append(column, `is.${value}`);
-    return this;
-  }
-  isDistinct(column, value) {
-    this.url.searchParams.append(column, `isdistinct.${value}`);
-    return this;
-  }
-  in(column, values) {
-    const cleanedValues = Array.from(new Set(values)).map((s) => {
-      if (typeof s === "string" && PostgrestReservedCharsRegexp.test(s))
-        return `"${s}"`;
-      else
-        return `${s}`;
-    }).join(",");
-    this.url.searchParams.append(column, `in.(${cleanedValues})`);
-    return this;
-  }
-  notIn(column, values) {
-    const cleanedValues = Array.from(new Set(values)).map((s) => {
-      if (typeof s === "string" && PostgrestReservedCharsRegexp.test(s))
-        return `"${s}"`;
-      else
-        return `${s}`;
-    }).join(",");
-    this.url.searchParams.append(column, `not.in.(${cleanedValues})`);
-    return this;
-  }
-  contains(column, value) {
-    if (typeof value === "string")
-      this.url.searchParams.append(column, `cs.${value}`);
-    else if (Array.isArray(value))
-      this.url.searchParams.append(column, `cs.{${value.join(",")}}`);
-    else
-      this.url.searchParams.append(column, `cs.${JSON.stringify(value)}`);
-    return this;
-  }
-  containedBy(column, value) {
-    if (typeof value === "string")
-      this.url.searchParams.append(column, `cd.${value}`);
-    else if (Array.isArray(value))
-      this.url.searchParams.append(column, `cd.{${value.join(",")}}`);
-    else
-      this.url.searchParams.append(column, `cd.${JSON.stringify(value)}`);
-    return this;
-  }
-  rangeGt(column, range) {
-    this.url.searchParams.append(column, `sr.${range}`);
-    return this;
-  }
-  rangeGte(column, range) {
-    this.url.searchParams.append(column, `nxl.${range}`);
-    return this;
-  }
-  rangeLt(column, range) {
-    this.url.searchParams.append(column, `sl.${range}`);
-    return this;
-  }
-  rangeLte(column, range) {
-    this.url.searchParams.append(column, `nxr.${range}`);
-    return this;
-  }
-  rangeAdjacent(column, range) {
-    this.url.searchParams.append(column, `adj.${range}`);
-    return this;
-  }
-  overlaps(column, value) {
-    if (typeof value === "string")
-      this.url.searchParams.append(column, `ov.${value}`);
-    else
-      this.url.searchParams.append(column, `ov.{${value.join(",")}}`);
-    return this;
-  }
-  textSearch(column, query, { config: config2, type } = {}) {
-    let typePart = "";
-    if (type === "plain")
-      typePart = "pl";
-    else if (type === "phrase")
-      typePart = "ph";
-    else if (type === "websearch")
-      typePart = "w";
-    const configPart = config2 === undefined ? "" : `(${config2})`;
-    this.url.searchParams.append(column, `${typePart}fts${configPart}.${query}`);
-    return this;
-  }
-  match(query) {
-    Object.entries(query).forEach(([column, value]) => {
-      this.url.searchParams.append(column, `eq.${value}`);
-    });
-    return this;
-  }
-  not(column, operator, value) {
-    this.url.searchParams.append(column, `not.${operator}.${value}`);
-    return this;
-  }
-  or(filters, { foreignTable, referencedTable = foreignTable } = {}) {
-    const key = referencedTable ? `${referencedTable}.or` : "or";
-    this.url.searchParams.append(key, `(${filters})`);
-    return this;
-  }
-  filter(column, operator, value) {
-    this.url.searchParams.append(column, `${operator}.${value}`);
-    return this;
-  }
-};
-var PostgrestQueryBuilder = class {
-  constructor(url2, { headers = {}, schema, fetch: fetch$1 }) {
-    this.url = url2;
-    this.headers = new Headers(headers);
-    this.schema = schema;
-    this.fetch = fetch$1;
-  }
-  cloneRequestState() {
-    return {
-      url: new URL(this.url.toString()),
-      headers: new Headers(this.headers)
-    };
-  }
-  select(columns, options) {
-    const { head = false, count } = options !== null && options !== undefined ? options : {};
-    const method = head ? "HEAD" : "GET";
-    let quoted = false;
-    const cleanedColumns = (columns !== null && columns !== undefined ? columns : "*").split("").map((c) => {
-      if (/\s/.test(c) && !quoted)
-        return "";
-      if (c === '"')
-        quoted = !quoted;
-      return c;
-    }).join("");
-    const { url: url2, headers } = this.cloneRequestState();
-    url2.searchParams.set("select", cleanedColumns);
-    if (count)
-      headers.append("Prefer", `count=${count}`);
-    return new PostgrestFilterBuilder({
-      method,
-      url: url2,
-      headers,
-      schema: this.schema,
-      fetch: this.fetch
-    });
-  }
-  insert(values, { count, defaultToNull = true } = {}) {
-    var _this$fetch;
-    const method = "POST";
-    const { url: url2, headers } = this.cloneRequestState();
-    if (count)
-      headers.append("Prefer", `count=${count}`);
-    if (!defaultToNull)
-      headers.append("Prefer", `missing=default`);
-    if (Array.isArray(values)) {
-      const columns = values.reduce((acc, x) => acc.concat(Object.keys(x)), []);
-      if (columns.length > 0) {
-        const uniqueColumns = [...new Set(columns)].map((column) => `"${column}"`);
-        url2.searchParams.set("columns", uniqueColumns.join(","));
-      }
-    }
-    return new PostgrestFilterBuilder({
-      method,
-      url: url2,
-      headers,
-      schema: this.schema,
-      body: values,
-      fetch: (_this$fetch = this.fetch) !== null && _this$fetch !== undefined ? _this$fetch : fetch
-    });
-  }
-  upsert(values, { onConflict, ignoreDuplicates = false, count, defaultToNull = true } = {}) {
-    var _this$fetch2;
-    const method = "POST";
-    const { url: url2, headers } = this.cloneRequestState();
-    headers.append("Prefer", `resolution=${ignoreDuplicates ? "ignore" : "merge"}-duplicates`);
-    if (onConflict !== undefined)
-      url2.searchParams.set("on_conflict", onConflict);
-    if (count)
-      headers.append("Prefer", `count=${count}`);
-    if (!defaultToNull)
-      headers.append("Prefer", "missing=default");
-    if (Array.isArray(values)) {
-      const columns = values.reduce((acc, x) => acc.concat(Object.keys(x)), []);
-      if (columns.length > 0) {
-        const uniqueColumns = [...new Set(columns)].map((column) => `"${column}"`);
-        url2.searchParams.set("columns", uniqueColumns.join(","));
-      }
-    }
-    return new PostgrestFilterBuilder({
-      method,
-      url: url2,
-      headers,
-      schema: this.schema,
-      body: values,
-      fetch: (_this$fetch2 = this.fetch) !== null && _this$fetch2 !== undefined ? _this$fetch2 : fetch
-    });
-  }
-  update(values, { count } = {}) {
-    var _this$fetch3;
-    const method = "PATCH";
-    const { url: url2, headers } = this.cloneRequestState();
-    if (count)
-      headers.append("Prefer", `count=${count}`);
-    return new PostgrestFilterBuilder({
-      method,
-      url: url2,
-      headers,
-      schema: this.schema,
-      body: values,
-      fetch: (_this$fetch3 = this.fetch) !== null && _this$fetch3 !== undefined ? _this$fetch3 : fetch
-    });
-  }
-  delete({ count } = {}) {
-    var _this$fetch4;
-    const method = "DELETE";
-    const { url: url2, headers } = this.cloneRequestState();
-    if (count)
-      headers.append("Prefer", `count=${count}`);
-    return new PostgrestFilterBuilder({
-      method,
-      url: url2,
-      headers,
-      schema: this.schema,
-      fetch: (_this$fetch4 = this.fetch) !== null && _this$fetch4 !== undefined ? _this$fetch4 : fetch
-    });
-  }
-};
-var PostgrestClient = class PostgrestClient2 {
-  constructor(url2, { headers = {}, schema, fetch: fetch$1 } = {}) {
-    this.url = url2;
-    this.headers = new Headers(headers);
-    this.schemaName = schema;
-    this.fetch = fetch$1;
-  }
-  from(relation) {
-    if (!relation || typeof relation !== "string" || relation.trim() === "")
-      throw new Error("Invalid relation name: relation must be a non-empty string.");
-    return new PostgrestQueryBuilder(new URL(`${this.url}/${relation}`), {
-      headers: new Headers(this.headers),
-      schema: this.schemaName,
-      fetch: this.fetch
-    });
-  }
-  schema(schema) {
-    return new PostgrestClient2(this.url, {
-      headers: this.headers,
-      schema,
-      fetch: this.fetch
-    });
-  }
-  rpc(fn, args = {}, { head = false, get = false, count } = {}) {
-    var _this$fetch;
-    let method;
-    const url2 = new URL(`${this.url}/rpc/${fn}`);
-    let body;
-    const _isObject = (v) => v !== null && typeof v === "object" && (!Array.isArray(v) || v.some(_isObject));
-    const _hasObjectArg = head && Object.values(args).some(_isObject);
-    if (_hasObjectArg) {
-      method = "POST";
-      body = args;
-    } else if (head || get) {
-      method = head ? "HEAD" : "GET";
-      Object.entries(args).filter(([_, value]) => value !== undefined).map(([name, value]) => [name, Array.isArray(value) ? `{${value.join(",")}}` : `${value}`]).forEach(([name, value]) => {
-        url2.searchParams.append(name, value);
-      });
-    } else {
-      method = "POST";
-      body = args;
-    }
-    const headers = new Headers(this.headers);
-    if (_hasObjectArg)
-      headers.set("Prefer", count ? `count=${count},return=minimal` : "return=minimal");
-    else if (count)
-      headers.set("Prefer", `count=${count}`);
-    return new PostgrestFilterBuilder({
-      method,
-      url: url2,
-      headers,
-      schema: this.schemaName,
-      body,
-      fetch: (_this$fetch = this.fetch) !== null && _this$fetch !== undefined ? _this$fetch : fetch
-    });
-  }
-};
-var src_default = {
-  PostgrestClient,
-  PostgrestQueryBuilder,
-  PostgrestFilterBuilder,
-  PostgrestTransformBuilder,
-  PostgrestBuilder,
-  PostgrestError
-};
-
-// node_modules/@supabase/supabase-js/dist/index.mjs
-var import_realtime_js = __toESM(require_main3(), 1);
-
-// node_modules/@supabase/supabase-js/node_modules/@supabase/storage-js/dist/index.mjs
-var exports_dist2 = {};
-__export(exports_dist2, {
-  validateVectorDimension: () => validateVectorDimension,
-  resolveResponse: () => resolveResponse,
-  resolveFetch: () => resolveFetch,
-  normalizeToFloat32: () => normalizeToFloat32,
-  isStorageVectorsError: () => isStorageVectorsError,
-  isStorageError: () => isStorageError,
-  isPlainObject: () => isPlainObject3,
-  VectorIndexScope: () => VectorIndexScope,
-  VectorIndexApi: () => VectorIndexApi,
-  VectorDataApi: () => VectorDataApi,
-  VectorBucketScope: () => VectorBucketScope,
-  VectorBucketApi: () => VectorBucketApi,
-  StorageVectorsUnknownError: () => StorageVectorsUnknownError,
-  StorageVectorsErrorCode: () => StorageVectorsErrorCode,
-  StorageVectorsError: () => StorageVectorsError,
-  StorageVectorsClient: () => StorageVectorsClient,
-  StorageVectorsApiError: () => StorageVectorsApiError,
-  StorageUnknownError: () => StorageUnknownError,
-  StorageError: () => StorageError,
-  StorageClient: () => StorageClient,
-  StorageApiError: () => StorageApiError,
-  StorageAnalyticsClient: () => StorageAnalyticsClient
-});
-
-// ../../node_modules/iceberg-js/dist/index.mjs
-var IcebergError = class extends Error {
-  constructor(message, opts) {
-    super(message);
-    this.name = "IcebergError";
-    this.status = opts.status;
-    this.icebergType = opts.icebergType;
-    this.icebergCode = opts.icebergCode;
-    this.details = opts.details;
-    this.isCommitStateUnknown = opts.icebergType === "CommitStateUnknownException" || [500, 502, 504].includes(opts.status) && opts.icebergType?.includes("CommitState") === true;
-  }
-  isNotFound() {
-    return this.status === 404;
-  }
-  isConflict() {
-    return this.status === 409;
-  }
-  isAuthenticationTimeout() {
-    return this.status === 419;
-  }
-};
-function buildUrl(baseUrl, path, query) {
-  const url2 = new URL(path, baseUrl);
-  if (query) {
-    for (const [key, value] of Object.entries(query)) {
-      if (value !== undefined) {
-        url2.searchParams.set(key, value);
-      }
-    }
-  }
-  return url2.toString();
-}
-async function buildAuthHeaders(auth) {
-  if (!auth || auth.type === "none") {
-    return {};
-  }
-  if (auth.type === "bearer") {
-    return { Authorization: `Bearer ${auth.token}` };
-  }
-  if (auth.type === "header") {
-    return { [auth.name]: auth.value };
-  }
-  if (auth.type === "custom") {
-    return await auth.getHeaders();
-  }
-  return {};
-}
-function createFetchClient(options) {
-  const fetchFn = options.fetchImpl ?? globalThis.fetch;
-  return {
-    async request({
-      method,
-      path,
-      query,
-      body,
-      headers
-    }) {
-      const url2 = buildUrl(options.baseUrl, path, query);
-      const authHeaders = await buildAuthHeaders(options.auth);
-      const res = await fetchFn(url2, {
-        method,
-        headers: {
-          ...body ? { "Content-Type": "application/json" } : {},
-          ...authHeaders,
-          ...headers
-        },
-        body: body ? JSON.stringify(body) : undefined
-      });
-      const text = await res.text();
-      const isJson = (res.headers.get("content-type") || "").includes("application/json");
-      const data = isJson && text ? JSON.parse(text) : text;
-      if (!res.ok) {
-        const errBody = isJson ? data : undefined;
-        const errorDetail = errBody?.error;
-        throw new IcebergError(errorDetail?.message ?? `Request failed with status ${res.status}`, {
-          status: res.status,
-          icebergType: errorDetail?.type,
-          icebergCode: errorDetail?.code,
-          details: errBody
-        });
-      }
-      return { status: res.status, headers: res.headers, data };
-    }
-  };
-}
-function namespaceToPath(namespace) {
-  return namespace.join("\x1F");
-}
-var NamespaceOperations = class {
-  constructor(client, prefix = "") {
-    this.client = client;
-    this.prefix = prefix;
-  }
-  async listNamespaces(parent) {
-    const query = parent ? { parent: namespaceToPath(parent.namespace) } : undefined;
-    const response = await this.client.request({
-      method: "GET",
-      path: `${this.prefix}/namespaces`,
-      query
-    });
-    return response.data.namespaces.map((ns) => ({ namespace: ns }));
-  }
-  async createNamespace(id, metadata) {
-    const request = {
-      namespace: id.namespace,
-      properties: metadata?.properties
-    };
-    const response = await this.client.request({
-      method: "POST",
-      path: `${this.prefix}/namespaces`,
-      body: request
-    });
-    return response.data;
-  }
-  async dropNamespace(id) {
-    await this.client.request({
-      method: "DELETE",
-      path: `${this.prefix}/namespaces/${namespaceToPath(id.namespace)}`
-    });
-  }
-  async loadNamespaceMetadata(id) {
-    const response = await this.client.request({
-      method: "GET",
-      path: `${this.prefix}/namespaces/${namespaceToPath(id.namespace)}`
-    });
-    return {
-      properties: response.data.properties
-    };
-  }
-  async namespaceExists(id) {
-    try {
-      await this.client.request({
-        method: "HEAD",
-        path: `${this.prefix}/namespaces/${namespaceToPath(id.namespace)}`
-      });
-      return true;
-    } catch (error46) {
-      if (error46 instanceof IcebergError && error46.status === 404) {
-        return false;
-      }
-      throw error46;
-    }
-  }
-  async createNamespaceIfNotExists(id, metadata) {
-    try {
-      return await this.createNamespace(id, metadata);
-    } catch (error46) {
-      if (error46 instanceof IcebergError && error46.status === 409) {
-        return;
-      }
-      throw error46;
-    }
-  }
-};
-function namespaceToPath2(namespace) {
-  return namespace.join("\x1F");
-}
-var TableOperations = class {
-  constructor(client, prefix = "", accessDelegation) {
-    this.client = client;
-    this.prefix = prefix;
-    this.accessDelegation = accessDelegation;
-  }
-  async listTables(namespace) {
-    const response = await this.client.request({
-      method: "GET",
-      path: `${this.prefix}/namespaces/${namespaceToPath2(namespace.namespace)}/tables`
-    });
-    return response.data.identifiers;
-  }
-  async createTable(namespace, request) {
-    const headers = {};
-    if (this.accessDelegation) {
-      headers["X-Iceberg-Access-Delegation"] = this.accessDelegation;
-    }
-    const response = await this.client.request({
-      method: "POST",
-      path: `${this.prefix}/namespaces/${namespaceToPath2(namespace.namespace)}/tables`,
-      body: request,
-      headers
-    });
-    return response.data.metadata;
-  }
-  async updateTable(id, request) {
-    const response = await this.client.request({
-      method: "POST",
-      path: `${this.prefix}/namespaces/${namespaceToPath2(id.namespace)}/tables/${id.name}`,
-      body: request
-    });
-    return {
-      "metadata-location": response.data["metadata-location"],
-      metadata: response.data.metadata
-    };
-  }
-  async dropTable(id, options) {
-    await this.client.request({
-      method: "DELETE",
-      path: `${this.prefix}/namespaces/${namespaceToPath2(id.namespace)}/tables/${id.name}`,
-      query: { purgeRequested: String(options?.purge ?? false) }
-    });
-  }
-  async loadTable(id) {
-    const headers = {};
-    if (this.accessDelegation) {
-      headers["X-Iceberg-Access-Delegation"] = this.accessDelegation;
-    }
-    const response = await this.client.request({
-      method: "GET",
-      path: `${this.prefix}/namespaces/${namespaceToPath2(id.namespace)}/tables/${id.name}`,
-      headers
-    });
-    return response.data.metadata;
-  }
-  async tableExists(id) {
-    const headers = {};
-    if (this.accessDelegation) {
-      headers["X-Iceberg-Access-Delegation"] = this.accessDelegation;
-    }
-    try {
-      await this.client.request({
-        method: "HEAD",
-        path: `${this.prefix}/namespaces/${namespaceToPath2(id.namespace)}/tables/${id.name}`,
-        headers
-      });
-      return true;
-    } catch (error46) {
-      if (error46 instanceof IcebergError && error46.status === 404) {
-        return false;
-      }
-      throw error46;
-    }
-  }
-  async createTableIfNotExists(namespace, request) {
-    try {
-      return await this.createTable(namespace, request);
-    } catch (error46) {
-      if (error46 instanceof IcebergError && error46.status === 409) {
-        return await this.loadTable({ namespace: namespace.namespace, name: request.name });
-      }
-      throw error46;
-    }
-  }
-};
-var IcebergRestCatalog = class {
-  constructor(options) {
-    let prefix = "v1";
-    if (options.catalogName) {
-      prefix += `/${options.catalogName}`;
-    }
-    const baseUrl = options.baseUrl.endsWith("/") ? options.baseUrl : `${options.baseUrl}/`;
-    this.client = createFetchClient({
-      baseUrl,
-      auth: options.auth,
-      fetchImpl: options.fetch
-    });
-    this.accessDelegation = options.accessDelegation?.join(",");
-    this.namespaceOps = new NamespaceOperations(this.client, prefix);
-    this.tableOps = new TableOperations(this.client, prefix, this.accessDelegation);
-  }
-  async listNamespaces(parent) {
-    return this.namespaceOps.listNamespaces(parent);
-  }
-  async createNamespace(id, metadata) {
-    return this.namespaceOps.createNamespace(id, metadata);
-  }
-  async dropNamespace(id) {
-    await this.namespaceOps.dropNamespace(id);
-  }
-  async loadNamespaceMetadata(id) {
-    return this.namespaceOps.loadNamespaceMetadata(id);
-  }
-  async listTables(namespace) {
-    return this.tableOps.listTables(namespace);
-  }
-  async createTable(namespace, request) {
-    return this.tableOps.createTable(namespace, request);
-  }
-  async updateTable(id, request) {
-    return this.tableOps.updateTable(id, request);
-  }
-  async dropTable(id, options) {
-    await this.tableOps.dropTable(id, options);
-  }
-  async loadTable(id) {
-    return this.tableOps.loadTable(id);
-  }
-  async namespaceExists(id) {
-    return this.namespaceOps.namespaceExists(id);
-  }
-  async tableExists(id) {
-    return this.tableOps.tableExists(id);
-  }
-  async createNamespaceIfNotExists(id, metadata) {
-    return this.namespaceOps.createNamespaceIfNotExists(id, metadata);
-  }
-  async createTableIfNotExists(namespace, request) {
-    return this.tableOps.createTableIfNotExists(namespace, request);
-  }
-};
-
-// node_modules/@supabase/supabase-js/node_modules/@supabase/storage-js/dist/index.mjs
-var StorageError = class extends Error {
-  constructor(message) {
-    super(message);
-    this.__isStorageError = true;
-    this.name = "StorageError";
-  }
-};
-function isStorageError(error46) {
-  return typeof error46 === "object" && error46 !== null && "__isStorageError" in error46;
-}
-var StorageApiError = class extends StorageError {
-  constructor(message, status, statusCode) {
-    super(message);
-    this.name = "StorageApiError";
-    this.status = status;
-    this.statusCode = statusCode;
-  }
-  toJSON() {
-    return {
-      name: this.name,
-      message: this.message,
-      status: this.status,
-      statusCode: this.statusCode
-    };
-  }
-};
-var StorageUnknownError = class extends StorageError {
-  constructor(message, originalError) {
-    super(message);
-    this.name = "StorageUnknownError";
-    this.originalError = originalError;
-  }
-};
-var resolveFetch$1 = (customFetch) => {
-  if (customFetch)
-    return (...args) => customFetch(...args);
-  return (...args) => fetch(...args);
-};
-var resolveResponse$1 = () => {
-  return Response;
-};
-var recursiveToCamel = (item) => {
-  if (Array.isArray(item))
-    return item.map((el) => recursiveToCamel(el));
-  else if (typeof item === "function" || item !== Object(item))
-    return item;
-  const result = {};
-  Object.entries(item).forEach(([key, value]) => {
-    const newKey = key.replace(/([-_][a-z])/gi, (c) => c.toUpperCase().replace(/[-_]/g, ""));
-    result[newKey] = recursiveToCamel(value);
-  });
-  return result;
-};
-var isPlainObject$1 = (value) => {
-  if (typeof value !== "object" || value === null)
-    return false;
-  const prototype = Object.getPrototypeOf(value);
-  return (prototype === null || prototype === Object.prototype || Object.getPrototypeOf(prototype) === null) && !(Symbol.toStringTag in value) && !(Symbol.iterator in value);
-};
-var isValidBucketName = (bucketName) => {
-  if (!bucketName || typeof bucketName !== "string")
-    return false;
-  if (bucketName.length === 0 || bucketName.length > 100)
-    return false;
-  if (bucketName.trim() !== bucketName)
-    return false;
-  if (bucketName.includes("/") || bucketName.includes("\\"))
-    return false;
-  return /^[\w!.\*'() &$@=;:+,?-]+$/.test(bucketName);
-};
-function _typeof(o) {
-  "@babel/helpers - typeof";
-  return _typeof = typeof Symbol == "function" && typeof Symbol.iterator == "symbol" ? function(o$1) {
-    return typeof o$1;
-  } : function(o$1) {
-    return o$1 && typeof Symbol == "function" && o$1.constructor === Symbol && o$1 !== Symbol.prototype ? "symbol" : typeof o$1;
-  }, _typeof(o);
-}
-function toPrimitive(t, r) {
-  if (_typeof(t) != "object" || !t)
-    return t;
-  var e = t[Symbol.toPrimitive];
-  if (e !== undefined) {
-    var i = e.call(t, r || "default");
-    if (_typeof(i) != "object")
-      return i;
-    throw new TypeError("@@toPrimitive must return a primitive value.");
-  }
-  return (r === "string" ? String : Number)(t);
-}
-function toPropertyKey(t) {
-  var i = toPrimitive(t, "string");
-  return _typeof(i) == "symbol" ? i : i + "";
-}
-function _defineProperty(e, r, t) {
-  return (r = toPropertyKey(r)) in e ? Object.defineProperty(e, r, {
-    value: t,
-    enumerable: true,
-    configurable: true,
-    writable: true
-  }) : e[r] = t, e;
-}
-function ownKeys(e, r) {
-  var t = Object.keys(e);
-  if (Object.getOwnPropertySymbols) {
-    var o = Object.getOwnPropertySymbols(e);
-    r && (o = o.filter(function(r$1) {
-      return Object.getOwnPropertyDescriptor(e, r$1).enumerable;
-    })), t.push.apply(t, o);
-  }
-  return t;
-}
-function _objectSpread2(e) {
-  for (var r = 1;r < arguments.length; r++) {
-    var t = arguments[r] != null ? arguments[r] : {};
-    r % 2 ? ownKeys(Object(t), true).forEach(function(r$1) {
-      _defineProperty(e, r$1, t[r$1]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function(r$1) {
-      Object.defineProperty(e, r$1, Object.getOwnPropertyDescriptor(t, r$1));
-    });
-  }
-  return e;
-}
-var _getErrorMessage$1 = (err) => {
-  var _err$error;
-  return err.msg || err.message || err.error_description || (typeof err.error === "string" ? err.error : (_err$error = err.error) === null || _err$error === undefined ? undefined : _err$error.message) || JSON.stringify(err);
-};
-var handleError$1 = async (error46, reject, options) => {
-  if (error46 instanceof await resolveResponse$1() && !(options === null || options === undefined ? undefined : options.noResolveJson))
-    error46.json().then((err) => {
-      const status = error46.status || 500;
-      const statusCode = (err === null || err === undefined ? undefined : err.statusCode) || status + "";
-      reject(new StorageApiError(_getErrorMessage$1(err), status, statusCode));
-    }).catch((err) => {
-      reject(new StorageUnknownError(_getErrorMessage$1(err), err));
-    });
-  else
-    reject(new StorageUnknownError(_getErrorMessage$1(error46), error46));
-};
-var _getRequestParams$1 = (method, options, parameters, body) => {
-  const params = {
-    method,
-    headers: (options === null || options === undefined ? undefined : options.headers) || {}
-  };
-  if (method === "GET" || !body)
-    return params;
-  if (isPlainObject$1(body)) {
-    params.headers = _objectSpread2({ "Content-Type": "application/json" }, options === null || options === undefined ? undefined : options.headers);
-    params.body = JSON.stringify(body);
-  } else
-    params.body = body;
-  if (options === null || options === undefined ? undefined : options.duplex)
-    params.duplex = options.duplex;
-  return _objectSpread2(_objectSpread2({}, params), parameters);
-};
-async function _handleRequest$1(fetcher, method, url2, options, parameters, body) {
-  return new Promise((resolve, reject) => {
-    fetcher(url2, _getRequestParams$1(method, options, parameters, body)).then((result) => {
-      if (!result.ok)
-        throw result;
-      if (options === null || options === undefined ? undefined : options.noResolveJson)
-        return result;
-      return result.json();
-    }).then((data) => resolve(data)).catch((error46) => handleError$1(error46, reject, options));
-  });
-}
-async function get(fetcher, url2, options, parameters) {
-  return _handleRequest$1(fetcher, "GET", url2, options, parameters);
-}
-async function post$1(fetcher, url2, body, options, parameters) {
-  return _handleRequest$1(fetcher, "POST", url2, options, parameters, body);
-}
-async function put(fetcher, url2, body, options, parameters) {
-  return _handleRequest$1(fetcher, "PUT", url2, options, parameters, body);
-}
-async function head(fetcher, url2, options, parameters) {
-  return _handleRequest$1(fetcher, "HEAD", url2, _objectSpread2(_objectSpread2({}, options), {}, { noResolveJson: true }), parameters);
-}
-async function remove(fetcher, url2, body, options, parameters) {
-  return _handleRequest$1(fetcher, "DELETE", url2, options, parameters, body);
-}
-var StreamDownloadBuilder = class {
-  constructor(downloadFn, shouldThrowOnError) {
-    this.downloadFn = downloadFn;
-    this.shouldThrowOnError = shouldThrowOnError;
-  }
-  then(onfulfilled, onrejected) {
-    return this.execute().then(onfulfilled, onrejected);
-  }
-  async execute() {
-    var _this = this;
-    try {
-      return {
-        data: (await _this.downloadFn()).body,
-        error: null
-      };
-    } catch (error46) {
-      if (_this.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-};
-var _Symbol$toStringTag;
-_Symbol$toStringTag = Symbol.toStringTag;
-var BlobDownloadBuilder = class {
-  constructor(downloadFn, shouldThrowOnError) {
-    this.downloadFn = downloadFn;
-    this.shouldThrowOnError = shouldThrowOnError;
-    this[_Symbol$toStringTag] = "BlobDownloadBuilder";
-    this.promise = null;
-  }
-  asStream() {
-    return new StreamDownloadBuilder(this.downloadFn, this.shouldThrowOnError);
-  }
-  then(onfulfilled, onrejected) {
-    return this.getPromise().then(onfulfilled, onrejected);
-  }
-  catch(onrejected) {
-    return this.getPromise().catch(onrejected);
-  }
-  finally(onfinally) {
-    return this.getPromise().finally(onfinally);
-  }
-  getPromise() {
-    if (!this.promise)
-      this.promise = this.execute();
-    return this.promise;
-  }
-  async execute() {
-    var _this = this;
-    try {
-      return {
-        data: await (await _this.downloadFn()).blob(),
-        error: null
-      };
-    } catch (error46) {
-      if (_this.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-};
-var DEFAULT_SEARCH_OPTIONS = {
-  limit: 100,
-  offset: 0,
-  sortBy: {
-    column: "name",
-    order: "asc"
-  }
-};
-var DEFAULT_FILE_OPTIONS = {
-  cacheControl: "3600",
-  contentType: "text/plain;charset=UTF-8",
-  upsert: false
-};
-var StorageFileApi = class {
-  constructor(url2, headers = {}, bucketId, fetch$1) {
-    this.shouldThrowOnError = false;
-    this.url = url2;
-    this.headers = headers;
-    this.bucketId = bucketId;
-    this.fetch = resolveFetch$1(fetch$1);
-  }
-  throwOnError() {
-    this.shouldThrowOnError = true;
-    return this;
-  }
-  async uploadOrUpdate(method, path, fileBody, fileOptions) {
-    var _this = this;
-    try {
-      let body;
-      const options = _objectSpread2(_objectSpread2({}, DEFAULT_FILE_OPTIONS), fileOptions);
-      let headers = _objectSpread2(_objectSpread2({}, _this.headers), method === "POST" && { "x-upsert": String(options.upsert) });
-      const metadata = options.metadata;
-      if (typeof Blob !== "undefined" && fileBody instanceof Blob) {
-        body = new FormData;
-        body.append("cacheControl", options.cacheControl);
-        if (metadata)
-          body.append("metadata", _this.encodeMetadata(metadata));
-        body.append("", fileBody);
-      } else if (typeof FormData !== "undefined" && fileBody instanceof FormData) {
-        body = fileBody;
-        if (!body.has("cacheControl"))
-          body.append("cacheControl", options.cacheControl);
-        if (metadata && !body.has("metadata"))
-          body.append("metadata", _this.encodeMetadata(metadata));
-      } else {
-        body = fileBody;
-        headers["cache-control"] = `max-age=${options.cacheControl}`;
-        headers["content-type"] = options.contentType;
-        if (metadata)
-          headers["x-metadata"] = _this.toBase64(_this.encodeMetadata(metadata));
-        if ((typeof ReadableStream !== "undefined" && body instanceof ReadableStream || body && typeof body === "object" && ("pipe" in body) && typeof body.pipe === "function") && !options.duplex)
-          options.duplex = "half";
-      }
-      if (fileOptions === null || fileOptions === undefined ? undefined : fileOptions.headers)
-        headers = _objectSpread2(_objectSpread2({}, headers), fileOptions.headers);
-      const cleanPath = _this._removeEmptyFolders(path);
-      const _path = _this._getFinalPath(cleanPath);
-      const data = await (method == "PUT" ? put : post$1)(_this.fetch, `${_this.url}/object/${_path}`, body, _objectSpread2({ headers }, (options === null || options === undefined ? undefined : options.duplex) ? { duplex: options.duplex } : {}));
-      return {
-        data: {
-          path: cleanPath,
-          id: data.Id,
-          fullPath: data.Key
-        },
-        error: null
-      };
-    } catch (error46) {
-      if (_this.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async upload(path, fileBody, fileOptions) {
-    return this.uploadOrUpdate("POST", path, fileBody, fileOptions);
-  }
-  async uploadToSignedUrl(path, token, fileBody, fileOptions) {
-    var _this3 = this;
-    const cleanPath = _this3._removeEmptyFolders(path);
-    const _path = _this3._getFinalPath(cleanPath);
-    const url2 = new URL(_this3.url + `/object/upload/sign/${_path}`);
-    url2.searchParams.set("token", token);
-    try {
-      let body;
-      const options = _objectSpread2({ upsert: DEFAULT_FILE_OPTIONS.upsert }, fileOptions);
-      const headers = _objectSpread2(_objectSpread2({}, _this3.headers), { "x-upsert": String(options.upsert) });
-      if (typeof Blob !== "undefined" && fileBody instanceof Blob) {
-        body = new FormData;
-        body.append("cacheControl", options.cacheControl);
-        body.append("", fileBody);
-      } else if (typeof FormData !== "undefined" && fileBody instanceof FormData) {
-        body = fileBody;
-        body.append("cacheControl", options.cacheControl);
-      } else {
-        body = fileBody;
-        headers["cache-control"] = `max-age=${options.cacheControl}`;
-        headers["content-type"] = options.contentType;
-      }
-      return {
-        data: {
-          path: cleanPath,
-          fullPath: (await put(_this3.fetch, url2.toString(), body, { headers })).Key
-        },
-        error: null
-      };
-    } catch (error46) {
-      if (_this3.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async createSignedUploadUrl(path, options) {
-    var _this4 = this;
-    try {
-      let _path = _this4._getFinalPath(path);
-      const headers = _objectSpread2({}, _this4.headers);
-      if (options === null || options === undefined ? undefined : options.upsert)
-        headers["x-upsert"] = "true";
-      const data = await post$1(_this4.fetch, `${_this4.url}/object/upload/sign/${_path}`, {}, { headers });
-      const url2 = new URL(_this4.url + data.url);
-      const token = url2.searchParams.get("token");
-      if (!token)
-        throw new StorageError("No token returned by API");
-      return {
-        data: {
-          signedUrl: url2.toString(),
-          path,
-          token
-        },
-        error: null
-      };
-    } catch (error46) {
-      if (_this4.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async update(path, fileBody, fileOptions) {
-    return this.uploadOrUpdate("PUT", path, fileBody, fileOptions);
-  }
-  async move(fromPath, toPath, options) {
-    var _this6 = this;
-    try {
-      return {
-        data: await post$1(_this6.fetch, `${_this6.url}/object/move`, {
-          bucketId: _this6.bucketId,
-          sourceKey: fromPath,
-          destinationKey: toPath,
-          destinationBucket: options === null || options === undefined ? undefined : options.destinationBucket
-        }, { headers: _this6.headers }),
-        error: null
-      };
-    } catch (error46) {
-      if (_this6.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async copy(fromPath, toPath, options) {
-    var _this7 = this;
-    try {
-      return {
-        data: { path: (await post$1(_this7.fetch, `${_this7.url}/object/copy`, {
-          bucketId: _this7.bucketId,
-          sourceKey: fromPath,
-          destinationKey: toPath,
-          destinationBucket: options === null || options === undefined ? undefined : options.destinationBucket
-        }, { headers: _this7.headers })).Key },
-        error: null
-      };
-    } catch (error46) {
-      if (_this7.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async createSignedUrl(path, expiresIn, options) {
-    var _this8 = this;
-    try {
-      let _path = _this8._getFinalPath(path);
-      let data = await post$1(_this8.fetch, `${_this8.url}/object/sign/${_path}`, _objectSpread2({ expiresIn }, (options === null || options === undefined ? undefined : options.transform) ? { transform: options.transform } : {}), { headers: _this8.headers });
-      const downloadQueryParam = (options === null || options === undefined ? undefined : options.download) ? `&download=${options.download === true ? "" : options.download}` : "";
-      data = { signedUrl: encodeURI(`${_this8.url}${data.signedURL}${downloadQueryParam}`) };
-      return {
-        data,
-        error: null
-      };
-    } catch (error46) {
-      if (_this8.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async createSignedUrls(paths, expiresIn, options) {
-    var _this9 = this;
-    try {
-      const data = await post$1(_this9.fetch, `${_this9.url}/object/sign/${_this9.bucketId}`, {
-        expiresIn,
-        paths
-      }, { headers: _this9.headers });
-      const downloadQueryParam = (options === null || options === undefined ? undefined : options.download) ? `&download=${options.download === true ? "" : options.download}` : "";
-      return {
-        data: data.map((datum) => _objectSpread2(_objectSpread2({}, datum), {}, { signedUrl: datum.signedURL ? encodeURI(`${_this9.url}${datum.signedURL}${downloadQueryParam}`) : null })),
-        error: null
-      };
-    } catch (error46) {
-      if (_this9.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  download(path, options) {
-    const renderPath = typeof (options === null || options === undefined ? undefined : options.transform) !== "undefined" ? "render/image/authenticated" : "object";
-    const transformationQuery = this.transformOptsToQueryString((options === null || options === undefined ? undefined : options.transform) || {});
-    const queryString = transformationQuery ? `?${transformationQuery}` : "";
-    const _path = this._getFinalPath(path);
-    const downloadFn = () => get(this.fetch, `${this.url}/${renderPath}/${_path}${queryString}`, {
-      headers: this.headers,
-      noResolveJson: true
-    });
-    return new BlobDownloadBuilder(downloadFn, this.shouldThrowOnError);
-  }
-  async info(path) {
-    var _this10 = this;
-    const _path = _this10._getFinalPath(path);
-    try {
-      return {
-        data: recursiveToCamel(await get(_this10.fetch, `${_this10.url}/object/info/${_path}`, { headers: _this10.headers })),
-        error: null
-      };
-    } catch (error46) {
-      if (_this10.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async exists(path) {
-    var _this11 = this;
-    const _path = _this11._getFinalPath(path);
-    try {
-      await head(_this11.fetch, `${_this11.url}/object/${_path}`, { headers: _this11.headers });
-      return {
-        data: true,
-        error: null
-      };
-    } catch (error46) {
-      if (_this11.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46) && error46 instanceof StorageUnknownError) {
-        const originalError = error46.originalError;
-        if ([400, 404].includes(originalError === null || originalError === undefined ? undefined : originalError.status))
-          return {
-            data: false,
-            error: error46
-          };
-      }
-      throw error46;
-    }
-  }
-  getPublicUrl(path, options) {
-    const _path = this._getFinalPath(path);
-    const _queryString = [];
-    const downloadQueryParam = (options === null || options === undefined ? undefined : options.download) ? `download=${options.download === true ? "" : options.download}` : "";
-    if (downloadQueryParam !== "")
-      _queryString.push(downloadQueryParam);
-    const renderPath = typeof (options === null || options === undefined ? undefined : options.transform) !== "undefined" ? "render/image" : "object";
-    const transformationQuery = this.transformOptsToQueryString((options === null || options === undefined ? undefined : options.transform) || {});
-    if (transformationQuery !== "")
-      _queryString.push(transformationQuery);
-    let queryString = _queryString.join("&");
-    if (queryString !== "")
-      queryString = `?${queryString}`;
-    return { data: { publicUrl: encodeURI(`${this.url}/${renderPath}/public/${_path}${queryString}`) } };
-  }
-  async remove(paths) {
-    var _this12 = this;
-    try {
-      return {
-        data: await remove(_this12.fetch, `${_this12.url}/object/${_this12.bucketId}`, { prefixes: paths }, { headers: _this12.headers }),
-        error: null
-      };
-    } catch (error46) {
-      if (_this12.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async list(path, options, parameters) {
-    var _this13 = this;
-    try {
-      const body = _objectSpread2(_objectSpread2(_objectSpread2({}, DEFAULT_SEARCH_OPTIONS), options), {}, { prefix: path || "" });
-      return {
-        data: await post$1(_this13.fetch, `${_this13.url}/object/list/${_this13.bucketId}`, body, { headers: _this13.headers }, parameters),
-        error: null
-      };
-    } catch (error46) {
-      if (_this13.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async listV2(options, parameters) {
-    var _this14 = this;
-    try {
-      const body = _objectSpread2({}, options);
-      return {
-        data: await post$1(_this14.fetch, `${_this14.url}/object/list-v2/${_this14.bucketId}`, body, { headers: _this14.headers }, parameters),
-        error: null
-      };
-    } catch (error46) {
-      if (_this14.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  encodeMetadata(metadata) {
-    return JSON.stringify(metadata);
-  }
-  toBase64(data) {
-    if (typeof Buffer !== "undefined")
-      return Buffer.from(data).toString("base64");
-    return btoa(data);
-  }
-  _getFinalPath(path) {
-    return `${this.bucketId}/${path.replace(/^\/+/, "")}`;
-  }
-  _removeEmptyFolders(path) {
-    return path.replace(/^\/|\/$/g, "").replace(/\/+/g, "/");
-  }
-  transformOptsToQueryString(transform2) {
-    const params = [];
-    if (transform2.width)
-      params.push(`width=${transform2.width}`);
-    if (transform2.height)
-      params.push(`height=${transform2.height}`);
-    if (transform2.resize)
-      params.push(`resize=${transform2.resize}`);
-    if (transform2.format)
-      params.push(`format=${transform2.format}`);
-    if (transform2.quality)
-      params.push(`quality=${transform2.quality}`);
-    return params.join("&");
-  }
-};
-var version3 = "2.90.1";
-var DEFAULT_HEADERS$1 = { "X-Client-Info": `storage-js/${version3}` };
-var StorageBucketApi = class {
-  constructor(url2, headers = {}, fetch$1, opts) {
-    this.shouldThrowOnError = false;
-    const baseUrl = new URL(url2);
-    if (opts === null || opts === undefined ? undefined : opts.useNewHostname) {
-      if (/supabase\.(co|in|red)$/.test(baseUrl.hostname) && !baseUrl.hostname.includes("storage.supabase."))
-        baseUrl.hostname = baseUrl.hostname.replace("supabase.", "storage.supabase.");
-    }
-    this.url = baseUrl.href.replace(/\/$/, "");
-    this.headers = _objectSpread2(_objectSpread2({}, DEFAULT_HEADERS$1), headers);
-    this.fetch = resolveFetch$1(fetch$1);
-  }
-  throwOnError() {
-    this.shouldThrowOnError = true;
-    return this;
-  }
-  async listBuckets(options) {
-    var _this = this;
-    try {
-      const queryString = _this.listBucketOptionsToQueryString(options);
-      return {
-        data: await get(_this.fetch, `${_this.url}/bucket${queryString}`, { headers: _this.headers }),
-        error: null
-      };
-    } catch (error46) {
-      if (_this.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async getBucket(id) {
-    var _this2 = this;
-    try {
-      return {
-        data: await get(_this2.fetch, `${_this2.url}/bucket/${id}`, { headers: _this2.headers }),
-        error: null
-      };
-    } catch (error46) {
-      if (_this2.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async createBucket(id, options = { public: false }) {
-    var _this3 = this;
-    try {
-      return {
-        data: await post$1(_this3.fetch, `${_this3.url}/bucket`, {
-          id,
-          name: id,
-          type: options.type,
-          public: options.public,
-          file_size_limit: options.fileSizeLimit,
-          allowed_mime_types: options.allowedMimeTypes
-        }, { headers: _this3.headers }),
-        error: null
-      };
-    } catch (error46) {
-      if (_this3.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async updateBucket(id, options) {
-    var _this4 = this;
-    try {
-      return {
-        data: await put(_this4.fetch, `${_this4.url}/bucket/${id}`, {
-          id,
-          name: id,
-          public: options.public,
-          file_size_limit: options.fileSizeLimit,
-          allowed_mime_types: options.allowedMimeTypes
-        }, { headers: _this4.headers }),
-        error: null
-      };
-    } catch (error46) {
-      if (_this4.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async emptyBucket(id) {
-    var _this5 = this;
-    try {
-      return {
-        data: await post$1(_this5.fetch, `${_this5.url}/bucket/${id}/empty`, {}, { headers: _this5.headers }),
-        error: null
-      };
-    } catch (error46) {
-      if (_this5.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async deleteBucket(id) {
-    var _this6 = this;
-    try {
-      return {
-        data: await remove(_this6.fetch, `${_this6.url}/bucket/${id}`, {}, { headers: _this6.headers }),
-        error: null
-      };
-    } catch (error46) {
-      if (_this6.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  listBucketOptionsToQueryString(options) {
-    const params = {};
-    if (options) {
-      if ("limit" in options)
-        params.limit = String(options.limit);
-      if ("offset" in options)
-        params.offset = String(options.offset);
-      if (options.search)
-        params.search = options.search;
-      if (options.sortColumn)
-        params.sortColumn = options.sortColumn;
-      if (options.sortOrder)
-        params.sortOrder = options.sortOrder;
-    }
-    return Object.keys(params).length > 0 ? "?" + new URLSearchParams(params).toString() : "";
-  }
-};
-var StorageAnalyticsClient = class {
-  constructor(url2, headers = {}, fetch$1) {
-    this.shouldThrowOnError = false;
-    this.url = url2.replace(/\/$/, "");
-    this.headers = _objectSpread2(_objectSpread2({}, DEFAULT_HEADERS$1), headers);
-    this.fetch = resolveFetch$1(fetch$1);
-  }
-  throwOnError() {
-    this.shouldThrowOnError = true;
-    return this;
-  }
-  async createBucket(name) {
-    var _this = this;
-    try {
-      return {
-        data: await post$1(_this.fetch, `${_this.url}/bucket`, { name }, { headers: _this.headers }),
-        error: null
-      };
-    } catch (error46) {
-      if (_this.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async listBuckets(options) {
-    var _this2 = this;
-    try {
-      const queryParams = new URLSearchParams;
-      if ((options === null || options === undefined ? undefined : options.limit) !== undefined)
-        queryParams.set("limit", options.limit.toString());
-      if ((options === null || options === undefined ? undefined : options.offset) !== undefined)
-        queryParams.set("offset", options.offset.toString());
-      if (options === null || options === undefined ? undefined : options.sortColumn)
-        queryParams.set("sortColumn", options.sortColumn);
-      if (options === null || options === undefined ? undefined : options.sortOrder)
-        queryParams.set("sortOrder", options.sortOrder);
-      if (options === null || options === undefined ? undefined : options.search)
-        queryParams.set("search", options.search);
-      const queryString = queryParams.toString();
-      const url2 = queryString ? `${_this2.url}/bucket?${queryString}` : `${_this2.url}/bucket`;
-      return {
-        data: await get(_this2.fetch, url2, { headers: _this2.headers }),
-        error: null
-      };
-    } catch (error46) {
-      if (_this2.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async deleteBucket(bucketName) {
-    var _this3 = this;
-    try {
-      return {
-        data: await remove(_this3.fetch, `${_this3.url}/bucket/${bucketName}`, {}, { headers: _this3.headers }),
-        error: null
-      };
-    } catch (error46) {
-      if (_this3.shouldThrowOnError)
-        throw error46;
-      if (isStorageError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  from(bucketName) {
-    var _this4 = this;
-    if (!isValidBucketName(bucketName))
-      throw new StorageError("Invalid bucket name: File, folder, and bucket names must follow AWS object key naming guidelines and should avoid the use of any other characters.");
-    const catalog = new IcebergRestCatalog({
-      baseUrl: this.url,
-      catalogName: bucketName,
-      auth: {
-        type: "custom",
-        getHeaders: async () => _this4.headers
-      },
-      fetch: this.fetch
-    });
-    const shouldThrowOnError = this.shouldThrowOnError;
-    return new Proxy(catalog, { get(target, prop) {
-      const value = target[prop];
-      if (typeof value !== "function")
-        return value;
-      return async (...args) => {
-        try {
-          return {
-            data: await value.apply(target, args),
-            error: null
-          };
-        } catch (error46) {
-          if (shouldThrowOnError)
-            throw error46;
-          return {
-            data: null,
-            error: error46
-          };
-        }
-      };
-    } });
-  }
-};
-var DEFAULT_HEADERS = {
-  "X-Client-Info": `storage-js/${version3}`,
-  "Content-Type": "application/json"
-};
-var StorageVectorsError = class extends Error {
-  constructor(message) {
-    super(message);
-    this.__isStorageVectorsError = true;
-    this.name = "StorageVectorsError";
-  }
-};
-function isStorageVectorsError(error46) {
-  return typeof error46 === "object" && error46 !== null && "__isStorageVectorsError" in error46;
-}
-var StorageVectorsApiError = class extends StorageVectorsError {
-  constructor(message, status, statusCode) {
-    super(message);
-    this.name = "StorageVectorsApiError";
-    this.status = status;
-    this.statusCode = statusCode;
-  }
-  toJSON() {
-    return {
-      name: this.name,
-      message: this.message,
-      status: this.status,
-      statusCode: this.statusCode
-    };
-  }
-};
-var StorageVectorsUnknownError = class extends StorageVectorsError {
-  constructor(message, originalError) {
-    super(message);
-    this.name = "StorageVectorsUnknownError";
-    this.originalError = originalError;
-  }
-};
-var StorageVectorsErrorCode = /* @__PURE__ */ function(StorageVectorsErrorCode$1) {
-  StorageVectorsErrorCode$1["InternalError"] = "InternalError";
-  StorageVectorsErrorCode$1["S3VectorConflictException"] = "S3VectorConflictException";
-  StorageVectorsErrorCode$1["S3VectorNotFoundException"] = "S3VectorNotFoundException";
-  StorageVectorsErrorCode$1["S3VectorBucketNotEmpty"] = "S3VectorBucketNotEmpty";
-  StorageVectorsErrorCode$1["S3VectorMaxBucketsExceeded"] = "S3VectorMaxBucketsExceeded";
-  StorageVectorsErrorCode$1["S3VectorMaxIndexesExceeded"] = "S3VectorMaxIndexesExceeded";
-  return StorageVectorsErrorCode$1;
-}({});
-var resolveFetch = (customFetch) => {
-  if (customFetch)
-    return (...args) => customFetch(...args);
-  return (...args) => fetch(...args);
-};
-var resolveResponse = () => {
-  return Response;
-};
-var isPlainObject3 = (value) => {
-  if (typeof value !== "object" || value === null)
-    return false;
-  const prototype = Object.getPrototypeOf(value);
-  return (prototype === null || prototype === Object.prototype || Object.getPrototypeOf(prototype) === null) && !(Symbol.toStringTag in value) && !(Symbol.iterator in value);
-};
-var normalizeToFloat32 = (values) => {
-  return Array.from(new Float32Array(values));
-};
-var validateVectorDimension = (vector, expectedDimension) => {
-  if (expectedDimension !== undefined && vector.float32.length !== expectedDimension)
-    throw new Error(`Vector dimension mismatch: expected ${expectedDimension}, got ${vector.float32.length}`);
-};
-var _getErrorMessage = (err) => err.msg || err.message || err.error_description || err.error || JSON.stringify(err);
-var handleError = async (error46, reject, options) => {
-  if (error46 && typeof error46 === "object" && "status" in error46 && "ok" in error46 && typeof error46.status === "number" && !(options === null || options === undefined ? undefined : options.noResolveJson)) {
-    const status = error46.status || 500;
-    const responseError = error46;
-    if (typeof responseError.json === "function")
-      responseError.json().then((err) => {
-        const statusCode = (err === null || err === undefined ? undefined : err.statusCode) || (err === null || err === undefined ? undefined : err.code) || status + "";
-        reject(new StorageVectorsApiError(_getErrorMessage(err), status, statusCode));
-      }).catch(() => {
-        const statusCode = status + "";
-        reject(new StorageVectorsApiError(responseError.statusText || `HTTP ${status} error`, status, statusCode));
-      });
-    else {
-      const statusCode = status + "";
-      reject(new StorageVectorsApiError(responseError.statusText || `HTTP ${status} error`, status, statusCode));
-    }
-  } else
-    reject(new StorageVectorsUnknownError(_getErrorMessage(error46), error46));
-};
-var _getRequestParams = (method, options, parameters, body) => {
-  const params = {
-    method,
-    headers: (options === null || options === undefined ? undefined : options.headers) || {}
-  };
-  if (method === "GET" || !body)
-    return params;
-  if (isPlainObject3(body)) {
-    params.headers = _objectSpread2({ "Content-Type": "application/json" }, options === null || options === undefined ? undefined : options.headers);
-    params.body = JSON.stringify(body);
-  } else
-    params.body = body;
-  return _objectSpread2(_objectSpread2({}, params), parameters);
-};
-async function _handleRequest(fetcher, method, url2, options, parameters, body) {
-  return new Promise((resolve, reject) => {
-    fetcher(url2, _getRequestParams(method, options, parameters, body)).then((result) => {
-      if (!result.ok)
-        throw result;
-      if (options === null || options === undefined ? undefined : options.noResolveJson)
-        return result;
-      const contentType = result.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json"))
-        return {};
-      return result.json();
-    }).then((data) => resolve(data)).catch((error46) => handleError(error46, reject, options));
-  });
-}
-async function post(fetcher, url2, body, options, parameters) {
-  return _handleRequest(fetcher, "POST", url2, options, parameters, body);
-}
-var VectorIndexApi = class {
-  constructor(url2, headers = {}, fetch$1) {
-    this.shouldThrowOnError = false;
-    this.url = url2.replace(/\/$/, "");
-    this.headers = _objectSpread2(_objectSpread2({}, DEFAULT_HEADERS), headers);
-    this.fetch = resolveFetch(fetch$1);
-  }
-  throwOnError() {
-    this.shouldThrowOnError = true;
-    return this;
-  }
-  async createIndex(options) {
-    var _this = this;
-    try {
-      return {
-        data: await post(_this.fetch, `${_this.url}/CreateIndex`, options, { headers: _this.headers }) || {},
-        error: null
-      };
-    } catch (error46) {
-      if (_this.shouldThrowOnError)
-        throw error46;
-      if (isStorageVectorsError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async getIndex(vectorBucketName, indexName) {
-    var _this2 = this;
-    try {
-      return {
-        data: await post(_this2.fetch, `${_this2.url}/GetIndex`, {
-          vectorBucketName,
-          indexName
-        }, { headers: _this2.headers }),
-        error: null
-      };
-    } catch (error46) {
-      if (_this2.shouldThrowOnError)
-        throw error46;
-      if (isStorageVectorsError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async listIndexes(options) {
-    var _this3 = this;
-    try {
-      return {
-        data: await post(_this3.fetch, `${_this3.url}/ListIndexes`, options, { headers: _this3.headers }),
-        error: null
-      };
-    } catch (error46) {
-      if (_this3.shouldThrowOnError)
-        throw error46;
-      if (isStorageVectorsError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async deleteIndex(vectorBucketName, indexName) {
-    var _this4 = this;
-    try {
-      return {
-        data: await post(_this4.fetch, `${_this4.url}/DeleteIndex`, {
-          vectorBucketName,
-          indexName
-        }, { headers: _this4.headers }) || {},
-        error: null
-      };
-    } catch (error46) {
-      if (_this4.shouldThrowOnError)
-        throw error46;
-      if (isStorageVectorsError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-};
-var VectorDataApi = class {
-  constructor(url2, headers = {}, fetch$1) {
-    this.shouldThrowOnError = false;
-    this.url = url2.replace(/\/$/, "");
-    this.headers = _objectSpread2(_objectSpread2({}, DEFAULT_HEADERS), headers);
-    this.fetch = resolveFetch(fetch$1);
-  }
-  throwOnError() {
-    this.shouldThrowOnError = true;
-    return this;
-  }
-  async putVectors(options) {
-    var _this = this;
-    try {
-      if (options.vectors.length < 1 || options.vectors.length > 500)
-        throw new Error("Vector batch size must be between 1 and 500 items");
-      return {
-        data: await post(_this.fetch, `${_this.url}/PutVectors`, options, { headers: _this.headers }) || {},
-        error: null
-      };
-    } catch (error46) {
-      if (_this.shouldThrowOnError)
-        throw error46;
-      if (isStorageVectorsError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async getVectors(options) {
-    var _this2 = this;
-    try {
-      return {
-        data: await post(_this2.fetch, `${_this2.url}/GetVectors`, options, { headers: _this2.headers }),
-        error: null
-      };
-    } catch (error46) {
-      if (_this2.shouldThrowOnError)
-        throw error46;
-      if (isStorageVectorsError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async listVectors(options) {
-    var _this3 = this;
-    try {
-      if (options.segmentCount !== undefined) {
-        if (options.segmentCount < 1 || options.segmentCount > 16)
-          throw new Error("segmentCount must be between 1 and 16");
-        if (options.segmentIndex !== undefined) {
-          if (options.segmentIndex < 0 || options.segmentIndex >= options.segmentCount)
-            throw new Error(`segmentIndex must be between 0 and ${options.segmentCount - 1}`);
-        }
-      }
-      return {
-        data: await post(_this3.fetch, `${_this3.url}/ListVectors`, options, { headers: _this3.headers }),
-        error: null
-      };
-    } catch (error46) {
-      if (_this3.shouldThrowOnError)
-        throw error46;
-      if (isStorageVectorsError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async queryVectors(options) {
-    var _this4 = this;
-    try {
-      return {
-        data: await post(_this4.fetch, `${_this4.url}/QueryVectors`, options, { headers: _this4.headers }),
-        error: null
-      };
-    } catch (error46) {
-      if (_this4.shouldThrowOnError)
-        throw error46;
-      if (isStorageVectorsError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async deleteVectors(options) {
-    var _this5 = this;
-    try {
-      if (options.keys.length < 1 || options.keys.length > 500)
-        throw new Error("Keys batch size must be between 1 and 500 items");
-      return {
-        data: await post(_this5.fetch, `${_this5.url}/DeleteVectors`, options, { headers: _this5.headers }) || {},
-        error: null
-      };
-    } catch (error46) {
-      if (_this5.shouldThrowOnError)
-        throw error46;
-      if (isStorageVectorsError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-};
-var VectorBucketApi = class {
-  constructor(url2, headers = {}, fetch$1) {
-    this.shouldThrowOnError = false;
-    this.url = url2.replace(/\/$/, "");
-    this.headers = _objectSpread2(_objectSpread2({}, DEFAULT_HEADERS), headers);
-    this.fetch = resolveFetch(fetch$1);
-  }
-  throwOnError() {
-    this.shouldThrowOnError = true;
-    return this;
-  }
-  async createBucket(vectorBucketName) {
-    var _this = this;
-    try {
-      return {
-        data: await post(_this.fetch, `${_this.url}/CreateVectorBucket`, { vectorBucketName }, { headers: _this.headers }) || {},
-        error: null
-      };
-    } catch (error46) {
-      if (_this.shouldThrowOnError)
-        throw error46;
-      if (isStorageVectorsError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async getBucket(vectorBucketName) {
-    var _this2 = this;
-    try {
-      return {
-        data: await post(_this2.fetch, `${_this2.url}/GetVectorBucket`, { vectorBucketName }, { headers: _this2.headers }),
-        error: null
-      };
-    } catch (error46) {
-      if (_this2.shouldThrowOnError)
-        throw error46;
-      if (isStorageVectorsError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async listBuckets(options = {}) {
-    var _this3 = this;
-    try {
-      return {
-        data: await post(_this3.fetch, `${_this3.url}/ListVectorBuckets`, options, { headers: _this3.headers }),
-        error: null
-      };
-    } catch (error46) {
-      if (_this3.shouldThrowOnError)
-        throw error46;
-      if (isStorageVectorsError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-  async deleteBucket(vectorBucketName) {
-    var _this4 = this;
-    try {
-      return {
-        data: await post(_this4.fetch, `${_this4.url}/DeleteVectorBucket`, { vectorBucketName }, { headers: _this4.headers }) || {},
-        error: null
-      };
-    } catch (error46) {
-      if (_this4.shouldThrowOnError)
-        throw error46;
-      if (isStorageVectorsError(error46))
-        return {
-          data: null,
-          error: error46
-        };
-      throw error46;
-    }
-  }
-};
-var StorageVectorsClient = class extends VectorBucketApi {
-  constructor(url2, options = {}) {
-    super(url2, options.headers || {}, options.fetch);
-  }
-  from(vectorBucketName) {
-    return new VectorBucketScope(this.url, this.headers, vectorBucketName, this.fetch);
-  }
-  async createBucket(vectorBucketName) {
-    var _superprop_getCreateBucket = () => super.createBucket, _this = this;
-    return _superprop_getCreateBucket().call(_this, vectorBucketName);
-  }
-  async getBucket(vectorBucketName) {
-    var _superprop_getGetBucket = () => super.getBucket, _this2 = this;
-    return _superprop_getGetBucket().call(_this2, vectorBucketName);
-  }
-  async listBuckets(options = {}) {
-    var _superprop_getListBuckets = () => super.listBuckets, _this3 = this;
-    return _superprop_getListBuckets().call(_this3, options);
-  }
-  async deleteBucket(vectorBucketName) {
-    var _superprop_getDeleteBucket = () => super.deleteBucket, _this4 = this;
-    return _superprop_getDeleteBucket().call(_this4, vectorBucketName);
-  }
-};
-var VectorBucketScope = class extends VectorIndexApi {
-  constructor(url2, headers, vectorBucketName, fetch$1) {
-    super(url2, headers, fetch$1);
-    this.vectorBucketName = vectorBucketName;
-  }
-  async createIndex(options) {
-    var _superprop_getCreateIndex = () => super.createIndex, _this5 = this;
-    return _superprop_getCreateIndex().call(_this5, _objectSpread2(_objectSpread2({}, options), {}, { vectorBucketName: _this5.vectorBucketName }));
-  }
-  async listIndexes(options = {}) {
-    var _superprop_getListIndexes = () => super.listIndexes, _this6 = this;
-    return _superprop_getListIndexes().call(_this6, _objectSpread2(_objectSpread2({}, options), {}, { vectorBucketName: _this6.vectorBucketName }));
-  }
-  async getIndex(indexName) {
-    var _superprop_getGetIndex = () => super.getIndex, _this7 = this;
-    return _superprop_getGetIndex().call(_this7, _this7.vectorBucketName, indexName);
-  }
-  async deleteIndex(indexName) {
-    var _superprop_getDeleteIndex = () => super.deleteIndex, _this8 = this;
-    return _superprop_getDeleteIndex().call(_this8, _this8.vectorBucketName, indexName);
-  }
-  index(indexName) {
-    return new VectorIndexScope(this.url, this.headers, this.vectorBucketName, indexName, this.fetch);
-  }
-};
-var VectorIndexScope = class extends VectorDataApi {
-  constructor(url2, headers, vectorBucketName, indexName, fetch$1) {
-    super(url2, headers, fetch$1);
-    this.vectorBucketName = vectorBucketName;
-    this.indexName = indexName;
-  }
-  async putVectors(options) {
-    var _superprop_getPutVectors = () => super.putVectors, _this9 = this;
-    return _superprop_getPutVectors().call(_this9, _objectSpread2(_objectSpread2({}, options), {}, {
-      vectorBucketName: _this9.vectorBucketName,
-      indexName: _this9.indexName
-    }));
-  }
-  async getVectors(options) {
-    var _superprop_getGetVectors = () => super.getVectors, _this10 = this;
-    return _superprop_getGetVectors().call(_this10, _objectSpread2(_objectSpread2({}, options), {}, {
-      vectorBucketName: _this10.vectorBucketName,
-      indexName: _this10.indexName
-    }));
-  }
-  async listVectors(options = {}) {
-    var _superprop_getListVectors = () => super.listVectors, _this11 = this;
-    return _superprop_getListVectors().call(_this11, _objectSpread2(_objectSpread2({}, options), {}, {
-      vectorBucketName: _this11.vectorBucketName,
-      indexName: _this11.indexName
-    }));
-  }
-  async queryVectors(options) {
-    var _superprop_getQueryVectors = () => super.queryVectors, _this12 = this;
-    return _superprop_getQueryVectors().call(_this12, _objectSpread2(_objectSpread2({}, options), {}, {
-      vectorBucketName: _this12.vectorBucketName,
-      indexName: _this12.indexName
-    }));
-  }
-  async deleteVectors(options) {
-    var _superprop_getDeleteVectors = () => super.deleteVectors, _this13 = this;
-    return _superprop_getDeleteVectors().call(_this13, _objectSpread2(_objectSpread2({}, options), {}, {
-      vectorBucketName: _this13.vectorBucketName,
-      indexName: _this13.indexName
-    }));
-  }
-};
-var StorageClient = class extends StorageBucketApi {
-  constructor(url2, headers = {}, fetch$1, opts) {
-    super(url2, headers, fetch$1, opts);
-  }
-  from(id) {
-    return new StorageFileApi(this.url, this.headers, id, this.fetch);
-  }
-  get vectors() {
-    return new StorageVectorsClient(this.url + "/vector", {
-      headers: this.headers,
-      fetch: this.fetch
-    });
-  }
-  get analytics() {
-    return new StorageAnalyticsClient(this.url + "/iceberg", this.headers, this.fetch);
-  }
-};
-
-// node_modules/@supabase/supabase-js/dist/index.mjs
-var import_auth_js = __toESM(require_main4(), 1);
-__reExport(exports_dist3, __toESM(require_main3(), 1));
-__reExport(exports_dist3, __toESM(require_main4(), 1));
-var version4 = "2.90.1";
-var JS_ENV = "";
-if (typeof Deno !== "undefined")
-  JS_ENV = "deno";
-else if (typeof document !== "undefined")
-  JS_ENV = "web";
-else if (typeof navigator !== "undefined" && navigator.product === "ReactNative")
-  JS_ENV = "react-native";
-else
-  JS_ENV = "node";
-var DEFAULT_HEADERS2 = { "X-Client-Info": `supabase-js-${JS_ENV}/${version4}` };
-var DEFAULT_GLOBAL_OPTIONS = { headers: DEFAULT_HEADERS2 };
-var DEFAULT_DB_OPTIONS = { schema: "public" };
-var DEFAULT_AUTH_OPTIONS = {
-  autoRefreshToken: true,
-  persistSession: true,
-  detectSessionInUrl: true,
-  flowType: "implicit"
-};
-var DEFAULT_REALTIME_OPTIONS = {};
-function _typeof2(o) {
-  "@babel/helpers - typeof";
-  return _typeof2 = typeof Symbol == "function" && typeof Symbol.iterator == "symbol" ? function(o$1) {
-    return typeof o$1;
-  } : function(o$1) {
-    return o$1 && typeof Symbol == "function" && o$1.constructor === Symbol && o$1 !== Symbol.prototype ? "symbol" : typeof o$1;
-  }, _typeof2(o);
-}
-function toPrimitive2(t, r) {
-  if (_typeof2(t) != "object" || !t)
-    return t;
-  var e = t[Symbol.toPrimitive];
-  if (e !== undefined) {
-    var i = e.call(t, r || "default");
-    if (_typeof2(i) != "object")
-      return i;
-    throw new TypeError("@@toPrimitive must return a primitive value.");
-  }
-  return (r === "string" ? String : Number)(t);
-}
-function toPropertyKey2(t) {
-  var i = toPrimitive2(t, "string");
-  return _typeof2(i) == "symbol" ? i : i + "";
-}
-function _defineProperty2(e, r, t) {
-  return (r = toPropertyKey2(r)) in e ? Object.defineProperty(e, r, {
-    value: t,
-    enumerable: true,
-    configurable: true,
-    writable: true
-  }) : e[r] = t, e;
-}
-function ownKeys2(e, r) {
-  var t = Object.keys(e);
-  if (Object.getOwnPropertySymbols) {
-    var o = Object.getOwnPropertySymbols(e);
-    r && (o = o.filter(function(r$1) {
-      return Object.getOwnPropertyDescriptor(e, r$1).enumerable;
-    })), t.push.apply(t, o);
-  }
-  return t;
-}
-function _objectSpread22(e) {
-  for (var r = 1;r < arguments.length; r++) {
-    var t = arguments[r] != null ? arguments[r] : {};
-    r % 2 ? ownKeys2(Object(t), true).forEach(function(r$1) {
-      _defineProperty2(e, r$1, t[r$1]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys2(Object(t)).forEach(function(r$1) {
-      Object.defineProperty(e, r$1, Object.getOwnPropertyDescriptor(t, r$1));
-    });
-  }
-  return e;
-}
-var resolveFetch2 = (customFetch) => {
-  if (customFetch)
-    return (...args) => customFetch(...args);
-  return (...args) => fetch(...args);
-};
-var resolveHeadersConstructor = () => {
-  return Headers;
-};
-var fetchWithAuth = (supabaseKey, getAccessToken, customFetch) => {
-  const fetch$1 = resolveFetch2(customFetch);
-  const HeadersConstructor = resolveHeadersConstructor();
-  return async (input, init) => {
-    var _await$getAccessToken;
-    const accessToken = (_await$getAccessToken = await getAccessToken()) !== null && _await$getAccessToken !== undefined ? _await$getAccessToken : supabaseKey;
-    let headers = new HeadersConstructor(init === null || init === undefined ? undefined : init.headers);
-    if (!headers.has("apikey"))
-      headers.set("apikey", supabaseKey);
-    if (!headers.has("Authorization"))
-      headers.set("Authorization", `Bearer ${accessToken}`);
-    return fetch$1(input, _objectSpread22(_objectSpread22({}, init), {}, { headers }));
-  };
-};
-function ensureTrailingSlash(url2) {
-  return url2.endsWith("/") ? url2 : url2 + "/";
-}
-function applySettingDefaults(options, defaults) {
-  var _DEFAULT_GLOBAL_OPTIO, _globalOptions$header;
-  const { db: dbOptions, auth: authOptions, realtime: realtimeOptions, global: globalOptions } = options;
-  const { db: DEFAULT_DB_OPTIONS$1, auth: DEFAULT_AUTH_OPTIONS$1, realtime: DEFAULT_REALTIME_OPTIONS$1, global: DEFAULT_GLOBAL_OPTIONS$1 } = defaults;
-  const result = {
-    db: _objectSpread22(_objectSpread22({}, DEFAULT_DB_OPTIONS$1), dbOptions),
-    auth: _objectSpread22(_objectSpread22({}, DEFAULT_AUTH_OPTIONS$1), authOptions),
-    realtime: _objectSpread22(_objectSpread22({}, DEFAULT_REALTIME_OPTIONS$1), realtimeOptions),
-    storage: {},
-    global: _objectSpread22(_objectSpread22(_objectSpread22({}, DEFAULT_GLOBAL_OPTIONS$1), globalOptions), {}, { headers: _objectSpread22(_objectSpread22({}, (_DEFAULT_GLOBAL_OPTIO = DEFAULT_GLOBAL_OPTIONS$1 === null || DEFAULT_GLOBAL_OPTIONS$1 === undefined ? undefined : DEFAULT_GLOBAL_OPTIONS$1.headers) !== null && _DEFAULT_GLOBAL_OPTIO !== undefined ? _DEFAULT_GLOBAL_OPTIO : {}), (_globalOptions$header = globalOptions === null || globalOptions === undefined ? undefined : globalOptions.headers) !== null && _globalOptions$header !== undefined ? _globalOptions$header : {}) }),
-    accessToken: async () => ""
-  };
-  if (options.accessToken)
-    result.accessToken = options.accessToken;
-  else
-    delete result.accessToken;
-  return result;
-}
-function validateSupabaseUrl(supabaseUrl) {
-  const trimmedUrl = supabaseUrl === null || supabaseUrl === undefined ? undefined : supabaseUrl.trim();
-  if (!trimmedUrl)
-    throw new Error("supabaseUrl is required.");
-  if (!trimmedUrl.match(/^https?:\/\//i))
-    throw new Error("Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL.");
-  try {
-    return new URL(ensureTrailingSlash(trimmedUrl));
-  } catch (_unused) {
-    throw Error("Invalid supabaseUrl: Provided URL is malformed.");
-  }
-}
-var SupabaseAuthClient = class extends import_auth_js.AuthClient {
-  constructor(options) {
-    super(options);
-  }
-};
-var SupabaseClient = class {
-  constructor(supabaseUrl, supabaseKey, options) {
-    var _settings$auth$storag, _settings$global$head;
-    this.supabaseUrl = supabaseUrl;
-    this.supabaseKey = supabaseKey;
-    const baseUrl = validateSupabaseUrl(supabaseUrl);
-    if (!supabaseKey)
-      throw new Error("supabaseKey is required.");
-    this.realtimeUrl = new URL("realtime/v1", baseUrl);
-    this.realtimeUrl.protocol = this.realtimeUrl.protocol.replace("http", "ws");
-    this.authUrl = new URL("auth/v1", baseUrl);
-    this.storageUrl = new URL("storage/v1", baseUrl);
-    this.functionsUrl = new URL("functions/v1", baseUrl);
-    const defaultStorageKey = `sb-${baseUrl.hostname.split(".")[0]}-auth-token`;
-    const DEFAULTS = {
-      db: DEFAULT_DB_OPTIONS,
-      realtime: DEFAULT_REALTIME_OPTIONS,
-      auth: _objectSpread22(_objectSpread22({}, DEFAULT_AUTH_OPTIONS), {}, { storageKey: defaultStorageKey }),
-      global: DEFAULT_GLOBAL_OPTIONS
-    };
-    const settings = applySettingDefaults(options !== null && options !== undefined ? options : {}, DEFAULTS);
-    this.storageKey = (_settings$auth$storag = settings.auth.storageKey) !== null && _settings$auth$storag !== undefined ? _settings$auth$storag : "";
-    this.headers = (_settings$global$head = settings.global.headers) !== null && _settings$global$head !== undefined ? _settings$global$head : {};
-    if (!settings.accessToken) {
-      var _settings$auth;
-      this.auth = this._initSupabaseAuthClient((_settings$auth = settings.auth) !== null && _settings$auth !== undefined ? _settings$auth : {}, this.headers, settings.global.fetch);
-    } else {
-      this.accessToken = settings.accessToken;
-      this.auth = new Proxy({}, { get: (_, prop) => {
-        throw new Error(`@supabase/supabase-js: Supabase Client is configured with the accessToken option, accessing supabase.auth.${String(prop)} is not possible`);
-      } });
-    }
-    this.fetch = fetchWithAuth(supabaseKey, this._getAccessToken.bind(this), settings.global.fetch);
-    this.realtime = this._initRealtimeClient(_objectSpread22({
-      headers: this.headers,
-      accessToken: this._getAccessToken.bind(this)
-    }, settings.realtime));
-    if (this.accessToken)
-      this.accessToken().then((token) => this.realtime.setAuth(token)).catch((e) => console.warn("Failed to set initial Realtime auth token:", e));
-    this.rest = new PostgrestClient(new URL("rest/v1", baseUrl).href, {
-      headers: this.headers,
-      schema: settings.db.schema,
-      fetch: this.fetch
-    });
-    this.storage = new StorageClient(this.storageUrl.href, this.headers, this.fetch, options === null || options === undefined ? undefined : options.storage);
-    if (!settings.accessToken)
-      this._listenForAuthEvents();
-  }
-  get functions() {
-    return new import_functions_js.FunctionsClient(this.functionsUrl.href, {
-      headers: this.headers,
-      customFetch: this.fetch
-    });
-  }
-  from(relation) {
-    return this.rest.from(relation);
-  }
-  schema(schema) {
-    return this.rest.schema(schema);
-  }
-  rpc(fn, args = {}, options = {
-    head: false,
-    get: false,
-    count: undefined
-  }) {
-    return this.rest.rpc(fn, args, options);
-  }
-  channel(name, opts = { config: {} }) {
-    return this.realtime.channel(name, opts);
-  }
-  getChannels() {
-    return this.realtime.getChannels();
-  }
-  removeChannel(channel) {
-    return this.realtime.removeChannel(channel);
-  }
-  removeAllChannels() {
-    return this.realtime.removeAllChannels();
-  }
-  async _getAccessToken() {
-    var _this = this;
-    var _data$session$access_, _data$session;
-    if (_this.accessToken)
-      return await _this.accessToken();
-    const { data } = await _this.auth.getSession();
-    return (_data$session$access_ = (_data$session = data.session) === null || _data$session === undefined ? undefined : _data$session.access_token) !== null && _data$session$access_ !== undefined ? _data$session$access_ : _this.supabaseKey;
-  }
-  _initSupabaseAuthClient({ autoRefreshToken, persistSession, detectSessionInUrl, storage, userStorage, storageKey, flowType, lock, debug, throwOnError }, headers, fetch$1) {
-    const authHeaders = {
-      Authorization: `Bearer ${this.supabaseKey}`,
-      apikey: `${this.supabaseKey}`
-    };
-    return new SupabaseAuthClient({
-      url: this.authUrl.href,
-      headers: _objectSpread22(_objectSpread22({}, authHeaders), headers),
-      storageKey,
-      autoRefreshToken,
-      persistSession,
-      detectSessionInUrl,
-      storage,
-      userStorage,
-      flowType,
-      lock,
-      debug,
-      throwOnError,
-      fetch: fetch$1,
-      hasCustomAuthorizationHeader: Object.keys(this.headers).some((key) => key.toLowerCase() === "authorization")
-    });
-  }
-  _initRealtimeClient(options) {
-    return new import_realtime_js.RealtimeClient(this.realtimeUrl.href, _objectSpread22(_objectSpread22({}, options), {}, { params: _objectSpread22(_objectSpread22({}, { apikey: this.supabaseKey }), options === null || options === undefined ? undefined : options.params) }));
-  }
-  _listenForAuthEvents() {
-    return this.auth.onAuthStateChange((event, session) => {
-      this._handleTokenChanged(event, "CLIENT", session === null || session === undefined ? undefined : session.access_token);
-    });
-  }
-  _handleTokenChanged(event, source, token) {
-    if ((event === "TOKEN_REFRESHED" || event === "SIGNED_IN") && this.changedAccessToken !== token) {
-      this.changedAccessToken = token;
-      this.realtime.setAuth(token);
-    } else if (event === "SIGNED_OUT") {
-      this.realtime.setAuth();
-      if (source == "STORAGE")
-        this.auth.signOut();
-      this.changedAccessToken = undefined;
-    }
-  }
-};
-var createClient = (supabaseUrl, supabaseKey, options) => {
-  return new SupabaseClient(supabaseUrl, supabaseKey, options);
-};
-function shouldShowDeprecationWarning() {
-  if (typeof window !== "undefined")
-    return false;
-  const _process = globalThis["process"];
-  if (!_process)
-    return false;
-  const processVersion = _process["version"];
-  if (processVersion === undefined || processVersion === null)
-    return false;
-  const versionMatch = processVersion.match(/^v(\d+)\./);
-  if (!versionMatch)
-    return false;
-  return parseInt(versionMatch[1], 10) <= 18;
-}
-if (shouldShowDeprecationWarning())
-  console.warn("⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217");
-
 // src/analytics/properties.ts
 import { basename } from "node:path";
-function buildAuthProperties(options) {
-  return {
-    auth_method: options.authMethod,
-    ...options.responseStatus !== undefined && { response_status: options.responseStatus },
-    ...options.timeUntilExpiry !== undefined && { time_until_expiry: options.timeUntilExpiry }
-  };
-}
 function buildSyncProperties(options) {
   return {
     ...options.syncErrorType && { sync_error_type: options.syncErrorType },
@@ -31982,6 +29304,9 @@ var POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ";
 var ZEST_SESSION_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341";
 var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
 var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+var NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
+var FIRST_DATA_THRESHOLD_MESSAGES = 5;
+var STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
 var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
 
 // src/utils/fs-utils.ts
@@ -32107,37 +29432,21 @@ class Logger {
 var logger = new Logger;
 
 // src/auth/session-manager.ts
-async function loadSession() {
+async function loadSessionFile() {
   try {
     const content = await readFile(SESSION_FILE, "utf-8");
     const session = JSON.parse(content);
-    if (!session.accessToken || !session.refreshToken || !session.expiresAt || !session.userId || !session.email) {
+    if (!session.accessToken || !session.refreshToken || !session.userId || !session.email) {
       logger.warn("Invalid session structure, clearing session");
       await clearSession();
       return null;
-    }
-    const now = Date.now();
-    if (session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < now) {
-      logger.warn("Refresh token expired, user must re-authenticate");
-      await clearSession();
-      return null;
-    }
-    if (session.expiresAt < now) {
-      logger.debug("Access token expired, attempting refresh");
-      try {
-        return await refreshSession(session);
-      } catch (error46) {
-        logger.warn("Failed to refresh session", error46);
-        await clearSession();
-        return null;
-      }
     }
     return session;
   } catch (error46) {
     if (error46.code === "ENOENT") {
       return null;
     }
-    logger.error("Failed to load session", error46);
+    logger.error("Failed to load session file", error46);
     if (error46 instanceof Error) {
       captureException(error46, AUTH_SESSION_LOAD_FAILED, "session-manager", {
         ...buildFileSystemProperties({
@@ -32149,6 +29458,9 @@ async function loadSession() {
     }
     return null;
   }
+}
+async function loadSession() {
+  return loadSessionFile();
 }
 async function saveSession(session) {
   try {
@@ -32184,119 +29496,16 @@ async function clearSession() {
     throw error46;
   }
 }
-async function refreshSession(session) {
-  try {
-    const now = Date.now();
-    const timeUntilExpiration = session.expiresAt - now;
-    logger.debug("=== Starting Token Refresh ===");
-    logger.debug(`Current access token expires at: ${new Date(session.expiresAt).toISOString()}`);
-    logger.debug(`Time until expiration: ${Math.round(timeUntilExpiration / 1000)}s`);
-    logger.debug(`Token is ${timeUntilExpiration < 0 ? "EXPIRED" : "still valid"}`);
-    if (session.refreshTokenExpiresAt) {
-      const timeUntilRefreshExpiration = session.refreshTokenExpiresAt - now;
-      logger.debug(`Refresh token expires at: ${new Date(session.refreshTokenExpiresAt).toISOString()}`);
-      logger.debug(`Refresh token time remaining: ${Math.round(timeUntilRefreshExpiration / 1000)}s`);
-    } else {
-      logger.debug("Refresh token: Never expires");
-    }
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      throw new Error("Supabase configuration missing (URL or anon key)");
-    }
-    logger.debug("Using Supabase JS client to refresh session");
-    logger.debug(`Supabase URL: ${SUPABASE_URL}`);
-    logger.debug(`Refresh token length: ${session.refreshToken.length} characters`);
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false
-      }
-    });
-    const { data, error: error46 } = await supabase.auth.refreshSession({
-      refresh_token: session.refreshToken
-    });
-    if (error46) {
-      logger.error(`Supabase refresh error: ${error46.message}`, error46);
-      throw new Error(`Token refresh failed: ${error46.message}`);
-    }
-    if (!data.session) {
-      throw new Error("Token refresh failed: No session returned from Supabase");
-    }
-    logger.debug("Refresh response received successfully from Supabase");
-    logger.debug(`New access token length: ${data.session.access_token.length} characters`);
-    logger.debug(`New refresh token length: ${data.session.refresh_token.length} characters`);
-    logger.debug(`Access token expires in: ${data.session.expires_in || "unknown"} seconds`);
-    let expiresAt;
-    if (data.session.expires_at) {
-      expiresAt = data.session.expires_at * 1000;
-    } else if (data.session.expires_in) {
-      expiresAt = now + data.session.expires_in * 1000;
-    } else {
-      expiresAt = now + 3600 * 1000;
-      logger.warn("No expiration info from Supabase, assuming 1 hour");
-    }
-    const refreshTokenExpiresAt = session.refreshTokenExpiresAt;
-    const accessTokenChanged = session.accessToken !== data.session.access_token;
-    const refreshTokenChanged = session.refreshToken !== data.session.refresh_token;
-    logger.debug(`Access token changed: ${accessTokenChanged}`);
-    logger.debug(`Refresh token changed: ${refreshTokenChanged}`);
-    if (!accessTokenChanged) {
-      logger.warn("⚠️  Access token did not change after refresh - this might indicate an issue");
-    }
-    if (!refreshTokenChanged) {
-      logger.debug("Refresh token did not change (this is normal for Supabase)");
-    }
-    const newSession = {
-      ...session,
-      accessToken: data.session.access_token,
-      refreshToken: data.session.refresh_token,
-      expiresAt,
-      refreshTokenExpiresAt,
-      userId: data.session.user.id,
-      email: data.session.user.email || session.email
-    };
-    logger.debug(`New access token will expire at: ${new Date(expiresAt).toISOString()}`);
-    logger.debug(`New expiration is ${Math.round((expiresAt - session.expiresAt) / 1000)}s from old expiration`);
-    if (refreshTokenExpiresAt) {
-      logger.debug(`Refresh token will expire at: ${new Date(refreshTokenExpiresAt).toISOString()}`);
-    } else {
-      logger.debug("Refresh token does not expire");
-    }
-    logger.debug("Saving new session to file...");
-    await saveSession(newSession);
-    logger.info("✅ Session refreshed and saved successfully");
-    logger.debug("=== Token Refresh Complete ===");
-    return newSession;
-  } catch (error46) {
-    logger.error("❌ Failed to refresh session", error46);
-    if (error46 instanceof Error) {
-      logger.debug(`Error type: ${error46.constructor.name}`);
-      logger.debug(`Error message: ${error46.message}`);
-      if (error46.stack) {
-        logger.debug(`Error stack: ${error46.stack}`);
-      }
-      const timeUntilExpiry = session.expiresAt - Date.now();
-      captureException(error46, AUTH_TOKEN_REFRESH_FAILED, "session-manager", buildAuthProperties({
-        authMethod: "token_refresh",
-        timeUntilExpiry: Math.round(timeUntilExpiry / 1000)
-      }));
-    }
-    throw error46;
-  }
-}
 async function getValidSession() {
-  const session = await loadSession();
+  const session = await loadSessionFile();
   if (!session) {
     logger.debug("getValidSession: No session found");
     return null;
   }
-  if (session.expiresAt < Date.now() + PROACTIVE_REFRESH_THRESHOLD_MS) {
-    try {
-      const refreshedSession = await refreshSession(session);
-      return refreshedSession;
-    } catch (error46) {
-      logger.warn("getValidSession: Failed to refresh session", error46);
-      return null;
-    }
+  if (session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now()) {
+    logger.warn("getValidSession: Refresh token expired, user must re-authenticate");
+    await clearSession();
+    return null;
   }
   return session;
 }
@@ -33371,11 +30580,11 @@ function datetimeRegex(args) {
   regex = `${regex}(${opts.join("|")})`;
   return new RegExp(`^${regex}$`);
 }
-function isValidIP(ip, version5) {
-  if ((version5 === "v4" || !version5) && ipv4Regex.test(ip)) {
+function isValidIP(ip, version3) {
+  if ((version3 === "v4" || !version3) && ipv4Regex.test(ip)) {
     return true;
   }
-  if ((version5 === "v6" || !version5) && ipv6Regex.test(ip)) {
+  if ((version3 === "v6" || !version3) && ipv6Regex.test(ip)) {
     return true;
   }
   return false;
@@ -33402,11 +30611,11 @@ function isValidJWT2(jwt2, alg) {
     return false;
   }
 }
-function isValidCidr(ip, version5) {
-  if ((version5 === "v4" || !version5) && ipv4CidrRegex.test(ip)) {
+function isValidCidr(ip, version3) {
+  if ((version3 === "v4" || !version3) && ipv4CidrRegex.test(ip)) {
     return true;
   }
-  if ((version5 === "v6" || !version5) && ipv6CidrRegex.test(ip)) {
+  if ((version3 === "v6" || !version3) && ipv6CidrRegex.test(ip)) {
     return true;
   }
   return false;
@@ -36419,8 +33628,3425 @@ async function loadSettings() {
   }
 }
 
+// src/supabase/standup-queries.ts
+async function hasExistingStandup(supabase, userId, workspaceId) {
+  try {
+    const { data: existingStandup, error: error46 } = await supabase.from("chat_analysis_summaries").select("id").eq("user_id", userId).eq("workspace_id", workspaceId).eq("is_active", true).limit(1).maybeSingle();
+    if (error46) {
+      logger.warn("Failed to check for existing standup", error46);
+      return false;
+    }
+    return !!existingStandup;
+  } catch (error46) {
+    logger.error("Error checking for existing standup", error46);
+    return false;
+  }
+}
+async function getWorkspaceSessionIds(supabase, userId, workspaceId) {
+  try {
+    const { data: sessions, error: error46 } = await supabase.from("chat_sessions").select("id").eq("user_id", userId).eq("workspace_id", workspaceId);
+    if (error46) {
+      logger.warn("Failed to get sessions for workspace", error46);
+      return [];
+    }
+    if (!sessions || sessions.length === 0) {
+      return [];
+    }
+    return sessions.map((s) => s.id);
+  } catch (error46) {
+    logger.error("Error getting workspace session IDs", error46);
+    return [];
+  }
+}
+async function countMessagesForSessions(supabase, sessionIds) {
+  try {
+    if (sessionIds.length === 0) {
+      return 0;
+    }
+    const { count, error: error46 } = await supabase.from("chat_messages").select("*", { count: "exact", head: true }).in("session_id", sessionIds);
+    if (error46) {
+      logger.warn("Failed to check message count", error46);
+      return 0;
+    }
+    return count || 0;
+  } catch (error46) {
+    logger.error("Error counting messages for sessions", error46);
+    return 0;
+  }
+}
+
+// src/utils/status-cache-manager.ts
+import { readFileSync as readFileSync2, writeFileSync } from "node:fs";
+
+// src/utils/file-lock.ts
+import { unlinkSync } from "node:fs";
+import { readdir as readdir2, readFile as readFile5, unlink as unlink5, writeFile as writeFile5 } from "node:fs/promises";
+import { dirname as dirname5 } from "node:path";
+
+// src/utils/daemon-manager.ts
+import { readFile as readFile4, stat as stat2, unlink as unlink4, writeFile as writeFile4 } from "node:fs/promises";
+import { dirname as dirname4, join as join4 } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// src/utils/claude-instances.ts
+import { readFile as readFile3, rename, unlink as unlink3, writeFile as writeFile3 } from "node:fs/promises";
+async function getTrackedPids() {
+  try {
+    const data = await readFile3(CLAUDE_INSTANCES_FILE, "utf-8");
+    const registry2 = JSON.parse(data);
+    if (!Array.isArray(registry2.pids)) {
+      logger.warn("Claude instances file has invalid format, treating as empty");
+      return [];
+    }
+    return registry2.pids;
+  } catch (error46) {
+    if (error46 instanceof Error && "code" in error46) {
+      const code = error46.code;
+      if (code === "ENOENT") {
+        return [];
+      }
+    }
+    logger.warn("Failed to read Claude instances file, treating as empty:", error46);
+    return [];
+  }
+}
+async function writeTrackedPids(pids) {
+  const registry2 = { pids };
+  const content = JSON.stringify(registry2, null, 2);
+  const tempFile = `${CLAUDE_INSTANCES_FILE}.tmp`;
+  try {
+    await writeFile3(tempFile, content, "utf-8");
+    await rename(tempFile, CLAUDE_INSTANCES_FILE);
+  } catch (error46) {
+    logger.error("Failed to write Claude instances file:", error46);
+    try {
+      await unlink3(tempFile);
+    } catch {}
+    throw error46;
+  }
+}
+async function getAlivePidsAndPrune() {
+  try {
+    return await withFileLock(CLAUDE_INSTANCES_FILE, async () => {
+      const pids = await getTrackedPids();
+      const alivePids = pids.filter((pid) => isProcessRunning(pid));
+      if (alivePids.length !== pids.length) {
+        await writeTrackedPids(alivePids);
+        const removedCount = pids.length - alivePids.length;
+        logger.debug(`Pruned ${removedCount} dead Claude instance PID(s)`);
+      }
+      return alivePids;
+    });
+  } catch (error46) {
+    logger.error("Failed to prune dead PIDs:", error46);
+    return [];
+  }
+}
+
+// src/utils/daemon-manager.ts
+var DAEMON_RESTART_LOCK = join4(CLAUDE_ZEST_DIR, "daemon-restart.lock");
+var __filename2 = fileURLToPath(import.meta.url);
+var __dirname2 = dirname4(__filename2);
+function isProcessRunning(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function writePidFile(pid) {
+  try {
+    await ensureDirectory(dirname4(DAEMON_PID_FILE));
+    await writeFile4(DAEMON_PID_FILE, pid.toString(), "utf-8");
+    logger.debug(`Wrote PID ${pid} to daemon.pid`);
+  } catch (error46) {
+    logger.error("Failed to write PID file:", error46);
+  }
+}
+var shutdownTimerId = null;
+function cancelShutdownTimer() {
+  if (shutdownTimerId !== null) {
+    clearTimeout(shutdownTimerId);
+    shutdownTimerId = null;
+    logger.info("Claude Code reopened; cancelling daemon shutdown timer");
+  }
+}
+function startShutdownTimer() {
+  if (shutdownTimerId !== null) {
+    return;
+  }
+  logger.info(`All Claude Code instances closed; daemon will shut down in ${DAEMON_INACTIVITY_TIMEOUT_MS / 1000 / 60} minutes unless reopened`);
+  shutdownTimerId = setTimeout(async () => {
+    logger.info(`All Claude Code instances have been closed for ${DAEMON_INACTIVITY_TIMEOUT_MS / 1000 / 60} minutes; shutting down daemon`);
+    await shutdownAnalytics();
+    process.exit(0);
+  }, DAEMON_INACTIVITY_TIMEOUT_MS);
+}
+async function checkClaudeInstancesAndManageShutdown() {
+  const trackedPids = await getTrackedPids();
+  const alivePids = await getAlivePidsAndPrune();
+  const deadPids = trackedPids.filter((pid) => !alivePids.includes(pid));
+  const anyClaudeRunning = alivePids.length > 0;
+  logger.debug(`Claude instances check: tracked=${JSON.stringify(trackedPids)}, alive=${JSON.stringify(alivePids)}, dead=${JSON.stringify(deadPids)}, shutdownTimerActive=${shutdownTimerId !== null}`);
+  if (anyClaudeRunning) {
+    cancelShutdownTimer();
+  } else {
+    startShutdownTimer();
+  }
+}
+
+// src/utils/file-lock.ts
+var activeLockFiles = new Set;
+function isLockStale(lockInfo) {
+  return !isProcessRunning(lockInfo.pid);
+}
+async function acquireFileLock(filePath) {
+  const lockFile = `${filePath}.lock`;
+  const lockInfo = {
+    pid: process.pid,
+    timestamp: Date.now()
+  };
+  try {
+    await ensureDirectory(dirname5(lockFile));
+    await writeFile5(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
+    activeLockFiles.add(lockFile);
+    return true;
+  } catch (error46) {
+    if (error46.code !== "EEXIST") {
+      const errCode = error46.code;
+      if (errCode === "ENOENT" || errCode === "EACCES") {
+        logger.error(`Failed to create lock file ${lockFile}:`, error46);
+        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
+          ...buildFileSystemProperties({
+            filePath: lockFile,
+            operation: "lock",
+            errnoCode: errCode
+          })
+        });
+      }
+      throw error46;
+    }
+    try {
+      const content = await readFile5(lockFile, "utf8");
+      const existingLock = JSON.parse(content);
+      if (isLockStale(existingLock)) {
+        logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
+        await unlink5(lockFile).catch(() => {});
+        return acquireFileLock(filePath);
+      }
+    } catch {
+      logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
+      await unlink5(lockFile).catch(() => {});
+      return acquireFileLock(filePath);
+    }
+    return false;
+  }
+}
+async function releaseFileLock(filePath) {
+  const lockFile = `${filePath}.lock`;
+  activeLockFiles.delete(lockFile);
+  await unlink5(lockFile).catch(() => {});
+}
+function cleanupLockFiles() {
+  for (const lockFile of activeLockFiles) {
+    try {
+      unlinkSync(lockFile);
+    } catch {}
+  }
+  activeLockFiles.clear();
+}
+var cleanupRegistered = false;
+function setupLockCleanup() {
+  if (cleanupRegistered)
+    return;
+  cleanupRegistered = true;
+  process.on("exit", cleanupLockFiles);
+  process.on("SIGINT", () => {
+    cleanupLockFiles();
+    process.exit(0);
+  });
+  process.on("SIGTERM", () => {
+    cleanupLockFiles();
+    process.exit(0);
+  });
+  logger.debug("Lock cleanup handlers registered");
+}
+async function withFileLock(filePath, fn) {
+  let retries = 0;
+  while (!await acquireFileLock(filePath)) {
+    if (++retries >= LOCK_MAX_RETRIES) {
+      const error46 = new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
+      captureException(error46, FILE_LOCK_TIMEOUT, "file-lock", {
+        ...buildFileSystemProperties({ filePath, operation: "lock" }),
+        retries,
+        max_retries: LOCK_MAX_RETRIES,
+        retry_delay_ms: LOCK_RETRY_MS
+      });
+      throw error46;
+    }
+    await new Promise((resolve) => setTimeout(resolve, LOCK_RETRY_MS));
+  }
+  try {
+    return await fn();
+  } finally {
+    await releaseFileLock(filePath);
+  }
+}
+
+// src/utils/status-cache-manager.ts
+var DEFAULT_VERSION_CHECK = {
+  updateAvailable: false,
+  currentVersion: "unknown",
+  latestVersion: "unknown",
+  checkedAt: 0
+};
+var DEFAULT_SYNC_STATUS = {
+  hasError: false,
+  errorType: null,
+  errorMessage: null,
+  lastErrorAt: null,
+  lastSuccessAt: null
+};
+var DEFAULT_DEV_MODE_STATUS = {
+  active: false
+};
+var DEFAULT_STANDUP_NOTIFICATION = {
+  message: null,
+  createdAt: null,
+  expiresAt: null,
+  firstDataReadyLastShownAt: null,
+  standupRefreshedLastShownAt: null
+};
+var DEFAULT_STATUS_CACHE = {
+  versionCheck: DEFAULT_VERSION_CHECK,
+  syncStatus: DEFAULT_SYNC_STATUS,
+  devMode: DEFAULT_DEV_MODE_STATUS,
+  standupNotification: DEFAULT_STANDUP_NOTIFICATION
+};
+function readStatusCache() {
+  try {
+    const data = readFileSync2(STATUS_CACHE_FILE, "utf-8");
+    const parsed = JSON.parse(data);
+    if (parsed.updateAvailable !== undefined && !parsed.versionCheck) {
+      logger.info("Migrating old update-check.json format to new status-cache.json format");
+      const migrated = {
+        versionCheck: {
+          updateAvailable: parsed.updateAvailable ?? false,
+          currentVersion: parsed.currentVersion ?? "unknown",
+          latestVersion: parsed.latestVersion ?? "unknown",
+          checkedAt: parsed.checkedAt ?? 0
+        },
+        syncStatus: DEFAULT_SYNC_STATUS,
+        devMode: DEFAULT_DEV_MODE_STATUS,
+        standupNotification: DEFAULT_STANDUP_NOTIFICATION
+      };
+      return migrated;
+    }
+    return {
+      versionCheck: {
+        ...DEFAULT_VERSION_CHECK,
+        ...parsed.versionCheck
+      },
+      syncStatus: {
+        ...DEFAULT_SYNC_STATUS,
+        ...parsed.syncStatus
+      },
+      devMode: {
+        ...DEFAULT_DEV_MODE_STATUS,
+        ...parsed.devMode
+      },
+      standupNotification: {
+        ...DEFAULT_STANDUP_NOTIFICATION,
+        ...parsed.standupNotification
+      }
+    };
+  } catch (error46) {
+    if (error46.code === "ENOENT") {
+      logger.debug("Status cache file does not exist, using defaults");
+    } else {
+      logger.warn("Failed to read status cache file, using defaults", error46);
+    }
+    return DEFAULT_STATUS_CACHE;
+  }
+}
+async function writeSyncStatus(status) {
+  try {
+    await withFileLock(STATUS_CACHE_FILE, async () => {
+      const currentCache = readStatusCache();
+      const updatedCache = {
+        ...currentCache,
+        syncStatus: status
+      };
+      writeFileSync(STATUS_CACHE_FILE, JSON.stringify(updatedCache, null, 2), "utf-8");
+      logger.debug("Wrote sync status to status cache", {
+        hasError: status.hasError,
+        errorType: status.errorType
+      });
+    });
+  } catch (error46) {
+    logger.error("Failed to write sync status to status cache", error46);
+  }
+}
+async function clearSyncError() {
+  try {
+    await withFileLock(STATUS_CACHE_FILE, async () => {
+      const currentCache = readStatusCache();
+      const clearedStatus = {
+        hasError: false,
+        errorType: null,
+        errorMessage: null,
+        lastErrorAt: currentCache.syncStatus.lastErrorAt,
+        lastSuccessAt: Date.now()
+      };
+      const updatedCache = {
+        ...currentCache,
+        syncStatus: clearedStatus
+      };
+      writeFileSync(STATUS_CACHE_FILE, JSON.stringify(updatedCache, null, 2), "utf-8");
+      logger.debug("Cleared sync error in status cache");
+    });
+  } catch (error46) {
+    logger.error("Failed to clear sync error in status cache", error46);
+  }
+}
+async function writeStandupNotification(message, options) {
+  try {
+    await withFileLock(STATUS_CACHE_FILE, async () => {
+      const currentCache = readStatusCache();
+      const now = Date.now();
+      const updatedNotification = {
+        ...currentCache.standupNotification,
+        message,
+        createdAt: now,
+        expiresAt: now + NOTIFICATION_DURATION_MS,
+        ...options?.updateFirstDataReadyThrottle && { firstDataReadyLastShownAt: now },
+        ...options?.updateRefreshedThrottle && { standupRefreshedLastShownAt: now }
+      };
+      const updatedCache = {
+        ...currentCache,
+        standupNotification: updatedNotification
+      };
+      writeFileSync(STATUS_CACHE_FILE, JSON.stringify(updatedCache, null, 2), "utf-8");
+      logger.debug("Wrote standup notification to status cache", { message });
+    });
+  } catch (error46) {
+    logger.error("Failed to write standup notification to status cache", error46);
+  }
+}
+function hasActiveStandupNotification() {
+  try {
+    const cache = readStatusCache();
+    const { message, expiresAt } = cache.standupNotification;
+    return message !== null && expiresAt !== null && expiresAt > Date.now();
+  } catch (error46) {
+    logger.warn("Failed to check for active standup notification", error46);
+    return false;
+  }
+}
+function shouldShowFirstDataReady() {
+  try {
+    const cache = readStatusCache();
+    const { firstDataReadyLastShownAt } = cache.standupNotification;
+    if (!firstDataReadyLastShownAt)
+      return true;
+    return Date.now() - firstDataReadyLastShownAt >= STANDUP_NOTIFICATION_THROTTLE_MS;
+  } catch (error46) {
+    logger.warn("Failed to check first data ready throttle", error46);
+    return true;
+  }
+}
+function shouldShowStandupRefreshed() {
+  try {
+    const cache = readStatusCache();
+    const { standupRefreshedLastShownAt } = cache.standupNotification;
+    if (!standupRefreshedLastShownAt)
+      return true;
+    return Date.now() - standupRefreshedLastShownAt >= STANDUP_NOTIFICATION_THROTTLE_MS;
+  } catch (error46) {
+    logger.warn("Failed to check standup refreshed throttle", error46);
+    return true;
+  }
+}
+
+// src/notifications/standup-notifications.ts
+async function checkFirstDataReadyNotification(supabase, session) {
+  try {
+    if (hasActiveStandupNotification()) {
+      logger.debug("Standup notification already active, skipping first data ready check");
+      return;
+    }
+    if (!shouldShowFirstDataReady()) {
+      logger.debug("First data ready notification throttled (2-hour cooldown)");
+      return;
+    }
+    const workspaceId = session.workspaceId;
+    if (!workspaceId) {
+      logger.debug("No workspace ID in session, skipping first data ready check");
+      return;
+    }
+    const existingStandup = await hasExistingStandup(supabase, session.userId, workspaceId);
+    if (existingStandup) {
+      logger.debug("User already has standup, skipping first data ready notification");
+      return;
+    }
+    const sessionIds = await getWorkspaceSessionIds(supabase, session.userId, workspaceId);
+    if (sessionIds.length === 0) {
+      logger.debug("No sessions synced yet, skipping first data ready notification");
+      return;
+    }
+    const messageCount = await countMessagesForSessions(supabase, sessionIds);
+    if (messageCount < FIRST_DATA_THRESHOLD_MESSAGES) {
+      logger.debug(`Not enough messages (${messageCount}/${FIRST_DATA_THRESHOLD_MESSAGES}), skipping first data ready notification`);
+      return;
+    }
+    logger.info("Showing first data ready notification");
+    await writeStandupNotification("\x1B[1;32m✨ Zest got your first code! You're ready to generate your first standup!\x1B[0m", {
+      updateFirstDataReadyThrottle: true
+    });
+  } catch (error46) {
+    logger.error("Failed to check first data ready notification", error46);
+  }
+}
+
+class StandupRealtimeManager {
+  channel;
+  subscribedUserId;
+  supabaseClient;
+  async subscribe(userId, supabase) {
+    await this.unsubscribe();
+    this.supabaseClient = supabase;
+    const channelName = `standup_notifications_${userId}`;
+    logger.debug(`Standup realtime: initiating subscription for channel ${channelName}`);
+    this.channel = supabase.channel(channelName).on("postgres_changes", {
+      event: "UPDATE",
+      schema: "public",
+      table: "chat_analysis_summaries",
+      filter: `user_id=eq.${userId}`
+    }, (payload) => {
+      this.handleUpdateEvent(payload);
+    }).subscribe((status, err) => {
+      if (err) {
+        logger.error(`Standup realtime: subscription error - ${err.message}`);
+      } else {
+        logger.debug(`Standup realtime: subscription status changed to ${status}`);
+      }
+    });
+    this.subscribedUserId = userId;
+  }
+  async unsubscribe() {
+    if (!this.channel) {
+      return;
+    }
+    if (this.supabaseClient) {
+      try {
+        await this.supabaseClient.removeChannel(this.channel);
+        logger.info("Standup realtime: channel removed");
+      } catch (error46) {
+        logger.warn(`Standup realtime: error removing channel: ${error46.message}`);
+      }
+    }
+    this.channel = undefined;
+    this.subscribedUserId = undefined;
+    this.supabaseClient = undefined;
+    logger.debug("Standup realtime: unsubscribed");
+  }
+  isSubscribed(userId) {
+    if (!this.channel || !this.subscribedUserId) {
+      return false;
+    }
+    if (userId) {
+      return this.subscribedUserId === userId;
+    }
+    return true;
+  }
+  async syncWithSession(session, supabase) {
+    if (!session) {
+      if (this.isSubscribed()) {
+        await this.unsubscribe();
+        logger.info("Standup realtime: unsubscribed (no session)");
+        return true;
+      }
+      return false;
+    }
+    if (this.isSubscribed(session.userId)) {
+      return false;
+    }
+    await this.subscribe(session.userId, supabase);
+    logger.info("Standup realtime subscription active");
+    return true;
+  }
+  async handleUpdateEvent(payload) {
+    logger.debug("Standup realtime: Received UPDATE event");
+    const typed = payload;
+    const newRow = typed?.new;
+    if (!newRow || typeof newRow.status !== "string" || typeof newRow.is_active !== "boolean" || typeof newRow.version !== "number") {
+      logger.warn("Standup realtime: unexpected payload shape, skipping", {
+        has_new: !!newRow
+      });
+      return;
+    }
+    logger.debug("Standup realtime: Event details", {
+      has_user_id: !!newRow.user_id,
+      is_active: newRow.is_active,
+      version: newRow.version,
+      status: newRow.status,
+      is_user_edit: newRow.is_user_edit,
+      has_team_id: !!newRow.team_id,
+      has_workspace_id: !!newRow.workspace_id
+    });
+    if (newRow.status !== "completed") {
+      logger.debug(`Standup realtime: event filtered (status=${newRow.status})`);
+      return;
+    }
+    if (newRow.is_active !== true) {
+      logger.debug(`Standup realtime: event filtered (is_active=${newRow.is_active})`);
+      return;
+    }
+    if (newRow.is_user_edit === true) {
+      logger.debug("Standup realtime: event filtered (is_user_edit=true)");
+      return;
+    }
+    const isFirstStandup = newRow.version === 1;
+    if (!isFirstStandup && !shouldShowStandupRefreshed()) {
+      logger.debug("Standup realtime: refreshed notification throttled (2-hour cooldown)");
+      return;
+    }
+    try {
+      const message = isFirstStandup ? "\x1B[1;32m\uD83C\uDF89 Your standup is ready & will keep updating as you code.\x1B[0m" : "\x1B[1;32m\uD83D\uDD04 Your standup has been refreshed & will keep updating as you code.\x1B[0m";
+      await writeStandupNotification(message, {
+        updateRefreshedThrottle: !isFirstStandup
+      });
+      logger.info(`Standup realtime: notification shown (${isFirstStandup ? "first" : "refresh"})`);
+    } catch (error46) {
+      logger.warn(`Standup realtime: error showing notification: ${error46.message}`);
+    }
+  }
+}
+var instance = null;
+function getStandupRealtimeManager() {
+  if (!instance) {
+    instance = new StandupRealtimeManager;
+  }
+  return instance;
+}
+
+// node_modules/@supabase/supabase-js/dist/index.mjs
+var exports_dist3 = {};
+__export(exports_dist3, {
+  createClient: () => createClient,
+  SupabaseClient: () => SupabaseClient,
+  PostgrestError: () => PostgrestError,
+  FunctionsRelayError: () => import_functions_js.FunctionsRelayError,
+  FunctionsHttpError: () => import_functions_js.FunctionsHttpError,
+  FunctionsFetchError: () => import_functions_js.FunctionsFetchError,
+  FunctionsError: () => import_functions_js.FunctionsError,
+  FunctionRegion: () => import_functions_js.FunctionRegion
+});
+var import_functions_js = __toESM(require_main2(), 1);
+
+// node_modules/@supabase/supabase-js/node_modules/@supabase/postgrest-js/dist/index.mjs
+var exports_dist = {};
+__export(exports_dist, {
+  default: () => src_default,
+  PostgrestTransformBuilder: () => PostgrestTransformBuilder,
+  PostgrestQueryBuilder: () => PostgrestQueryBuilder,
+  PostgrestFilterBuilder: () => PostgrestFilterBuilder,
+  PostgrestError: () => PostgrestError,
+  PostgrestClient: () => PostgrestClient,
+  PostgrestBuilder: () => PostgrestBuilder
+});
+var PostgrestError = class extends Error {
+  constructor(context) {
+    super(context.message);
+    this.name = "PostgrestError";
+    this.details = context.details;
+    this.hint = context.hint;
+    this.code = context.code;
+  }
+};
+var PostgrestBuilder = class {
+  constructor(builder) {
+    var _builder$shouldThrowO, _builder$isMaybeSingl;
+    this.shouldThrowOnError = false;
+    this.method = builder.method;
+    this.url = builder.url;
+    this.headers = new Headers(builder.headers);
+    this.schema = builder.schema;
+    this.body = builder.body;
+    this.shouldThrowOnError = (_builder$shouldThrowO = builder.shouldThrowOnError) !== null && _builder$shouldThrowO !== undefined ? _builder$shouldThrowO : false;
+    this.signal = builder.signal;
+    this.isMaybeSingle = (_builder$isMaybeSingl = builder.isMaybeSingle) !== null && _builder$isMaybeSingl !== undefined ? _builder$isMaybeSingl : false;
+    if (builder.fetch)
+      this.fetch = builder.fetch;
+    else
+      this.fetch = fetch;
+  }
+  throwOnError() {
+    this.shouldThrowOnError = true;
+    return this;
+  }
+  setHeader(name, value) {
+    this.headers = new Headers(this.headers);
+    this.headers.set(name, value);
+    return this;
+  }
+  then(onfulfilled, onrejected) {
+    var _this = this;
+    if (this.schema === undefined) {} else if (["GET", "HEAD"].includes(this.method))
+      this.headers.set("Accept-Profile", this.schema);
+    else
+      this.headers.set("Content-Profile", this.schema);
+    if (this.method !== "GET" && this.method !== "HEAD")
+      this.headers.set("Content-Type", "application/json");
+    const _fetch = this.fetch;
+    let res = _fetch(this.url.toString(), {
+      method: this.method,
+      headers: this.headers,
+      body: JSON.stringify(this.body),
+      signal: this.signal
+    }).then(async (res$1) => {
+      let error46 = null;
+      let data = null;
+      let count = null;
+      let status = res$1.status;
+      let statusText = res$1.statusText;
+      if (res$1.ok) {
+        var _this$headers$get2, _res$headers$get;
+        if (_this.method !== "HEAD") {
+          var _this$headers$get;
+          const body = await res$1.text();
+          if (body === "") {} else if (_this.headers.get("Accept") === "text/csv")
+            data = body;
+          else if (_this.headers.get("Accept") && ((_this$headers$get = _this.headers.get("Accept")) === null || _this$headers$get === undefined ? undefined : _this$headers$get.includes("application/vnd.pgrst.plan+text")))
+            data = body;
+          else
+            data = JSON.parse(body);
+        }
+        const countHeader = (_this$headers$get2 = _this.headers.get("Prefer")) === null || _this$headers$get2 === undefined ? undefined : _this$headers$get2.match(/count=(exact|planned|estimated)/);
+        const contentRange = (_res$headers$get = res$1.headers.get("content-range")) === null || _res$headers$get === undefined ? undefined : _res$headers$get.split("/");
+        if (countHeader && contentRange && contentRange.length > 1)
+          count = parseInt(contentRange[1]);
+        if (_this.isMaybeSingle && _this.method === "GET" && Array.isArray(data))
+          if (data.length > 1) {
+            error46 = {
+              code: "PGRST116",
+              details: `Results contain ${data.length} rows, application/vnd.pgrst.object+json requires 1 row`,
+              hint: null,
+              message: "JSON object requested, multiple (or no) rows returned"
+            };
+            data = null;
+            count = null;
+            status = 406;
+            statusText = "Not Acceptable";
+          } else if (data.length === 1)
+            data = data[0];
+          else
+            data = null;
+      } else {
+        var _error$details;
+        const body = await res$1.text();
+        try {
+          error46 = JSON.parse(body);
+          if (Array.isArray(error46) && res$1.status === 404) {
+            data = [];
+            error46 = null;
+            status = 200;
+            statusText = "OK";
+          }
+        } catch (_unused) {
+          if (res$1.status === 404 && body === "") {
+            status = 204;
+            statusText = "No Content";
+          } else
+            error46 = { message: body };
+        }
+        if (error46 && _this.isMaybeSingle && (error46 === null || error46 === undefined || (_error$details = error46.details) === null || _error$details === undefined ? undefined : _error$details.includes("0 rows"))) {
+          error46 = null;
+          status = 200;
+          statusText = "OK";
+        }
+        if (error46 && _this.shouldThrowOnError)
+          throw new PostgrestError(error46);
+      }
+      return {
+        error: error46,
+        data,
+        count,
+        status,
+        statusText
+      };
+    });
+    if (!this.shouldThrowOnError)
+      res = res.catch((fetchError) => {
+        var _fetchError$name2;
+        let errorDetails = "";
+        const cause = fetchError === null || fetchError === undefined ? undefined : fetchError.cause;
+        if (cause) {
+          var _cause$message, _cause$code, _fetchError$name, _cause$name;
+          const causeMessage = (_cause$message = cause === null || cause === undefined ? undefined : cause.message) !== null && _cause$message !== undefined ? _cause$message : "";
+          const causeCode = (_cause$code = cause === null || cause === undefined ? undefined : cause.code) !== null && _cause$code !== undefined ? _cause$code : "";
+          errorDetails = `${(_fetchError$name = fetchError === null || fetchError === undefined ? undefined : fetchError.name) !== null && _fetchError$name !== undefined ? _fetchError$name : "FetchError"}: ${fetchError === null || fetchError === undefined ? undefined : fetchError.message}`;
+          errorDetails += `
+
+Caused by: ${(_cause$name = cause === null || cause === undefined ? undefined : cause.name) !== null && _cause$name !== undefined ? _cause$name : "Error"}: ${causeMessage}`;
+          if (causeCode)
+            errorDetails += ` (${causeCode})`;
+          if (cause === null || cause === undefined ? undefined : cause.stack)
+            errorDetails += `
+${cause.stack}`;
+        } else {
+          var _fetchError$stack;
+          errorDetails = (_fetchError$stack = fetchError === null || fetchError === undefined ? undefined : fetchError.stack) !== null && _fetchError$stack !== undefined ? _fetchError$stack : "";
+        }
+        return {
+          error: {
+            message: `${(_fetchError$name2 = fetchError === null || fetchError === undefined ? undefined : fetchError.name) !== null && _fetchError$name2 !== undefined ? _fetchError$name2 : "FetchError"}: ${fetchError === null || fetchError === undefined ? undefined : fetchError.message}`,
+            details: errorDetails,
+            hint: "",
+            code: ""
+          },
+          data: null,
+          count: null,
+          status: 0,
+          statusText: ""
+        };
+      });
+    return res.then(onfulfilled, onrejected);
+  }
+  returns() {
+    return this;
+  }
+  overrideTypes() {
+    return this;
+  }
+};
+var PostgrestTransformBuilder = class extends PostgrestBuilder {
+  select(columns) {
+    let quoted = false;
+    const cleanedColumns = (columns !== null && columns !== undefined ? columns : "*").split("").map((c) => {
+      if (/\s/.test(c) && !quoted)
+        return "";
+      if (c === '"')
+        quoted = !quoted;
+      return c;
+    }).join("");
+    this.url.searchParams.set("select", cleanedColumns);
+    this.headers.append("Prefer", "return=representation");
+    return this;
+  }
+  order(column, { ascending = true, nullsFirst, foreignTable, referencedTable = foreignTable } = {}) {
+    const key = referencedTable ? `${referencedTable}.order` : "order";
+    const existingOrder = this.url.searchParams.get(key);
+    this.url.searchParams.set(key, `${existingOrder ? `${existingOrder},` : ""}${column}.${ascending ? "asc" : "desc"}${nullsFirst === undefined ? "" : nullsFirst ? ".nullsfirst" : ".nullslast"}`);
+    return this;
+  }
+  limit(count, { foreignTable, referencedTable = foreignTable } = {}) {
+    const key = typeof referencedTable === "undefined" ? "limit" : `${referencedTable}.limit`;
+    this.url.searchParams.set(key, `${count}`);
+    return this;
+  }
+  range(from, to, { foreignTable, referencedTable = foreignTable } = {}) {
+    const keyOffset = typeof referencedTable === "undefined" ? "offset" : `${referencedTable}.offset`;
+    const keyLimit = typeof referencedTable === "undefined" ? "limit" : `${referencedTable}.limit`;
+    this.url.searchParams.set(keyOffset, `${from}`);
+    this.url.searchParams.set(keyLimit, `${to - from + 1}`);
+    return this;
+  }
+  abortSignal(signal) {
+    this.signal = signal;
+    return this;
+  }
+  single() {
+    this.headers.set("Accept", "application/vnd.pgrst.object+json");
+    return this;
+  }
+  maybeSingle() {
+    if (this.method === "GET")
+      this.headers.set("Accept", "application/json");
+    else
+      this.headers.set("Accept", "application/vnd.pgrst.object+json");
+    this.isMaybeSingle = true;
+    return this;
+  }
+  csv() {
+    this.headers.set("Accept", "text/csv");
+    return this;
+  }
+  geojson() {
+    this.headers.set("Accept", "application/geo+json");
+    return this;
+  }
+  explain({ analyze = false, verbose = false, settings = false, buffers = false, wal = false, format = "text" } = {}) {
+    var _this$headers$get;
+    const options = [
+      analyze ? "analyze" : null,
+      verbose ? "verbose" : null,
+      settings ? "settings" : null,
+      buffers ? "buffers" : null,
+      wal ? "wal" : null
+    ].filter(Boolean).join("|");
+    const forMediatype = (_this$headers$get = this.headers.get("Accept")) !== null && _this$headers$get !== undefined ? _this$headers$get : "application/json";
+    this.headers.set("Accept", `application/vnd.pgrst.plan+${format}; for="${forMediatype}"; options=${options};`);
+    if (format === "json")
+      return this;
+    else
+      return this;
+  }
+  rollback() {
+    this.headers.append("Prefer", "tx=rollback");
+    return this;
+  }
+  returns() {
+    return this;
+  }
+  maxAffected(value) {
+    this.headers.append("Prefer", "handling=strict");
+    this.headers.append("Prefer", `max-affected=${value}`);
+    return this;
+  }
+};
+var PostgrestReservedCharsRegexp = /* @__PURE__ */ new RegExp("[,()]");
+var PostgrestFilterBuilder = class extends PostgrestTransformBuilder {
+  eq(column, value) {
+    this.url.searchParams.append(column, `eq.${value}`);
+    return this;
+  }
+  neq(column, value) {
+    this.url.searchParams.append(column, `neq.${value}`);
+    return this;
+  }
+  gt(column, value) {
+    this.url.searchParams.append(column, `gt.${value}`);
+    return this;
+  }
+  gte(column, value) {
+    this.url.searchParams.append(column, `gte.${value}`);
+    return this;
+  }
+  lt(column, value) {
+    this.url.searchParams.append(column, `lt.${value}`);
+    return this;
+  }
+  lte(column, value) {
+    this.url.searchParams.append(column, `lte.${value}`);
+    return this;
+  }
+  like(column, pattern) {
+    this.url.searchParams.append(column, `like.${pattern}`);
+    return this;
+  }
+  likeAllOf(column, patterns) {
+    this.url.searchParams.append(column, `like(all).{${patterns.join(",")}}`);
+    return this;
+  }
+  likeAnyOf(column, patterns) {
+    this.url.searchParams.append(column, `like(any).{${patterns.join(",")}}`);
+    return this;
+  }
+  ilike(column, pattern) {
+    this.url.searchParams.append(column, `ilike.${pattern}`);
+    return this;
+  }
+  ilikeAllOf(column, patterns) {
+    this.url.searchParams.append(column, `ilike(all).{${patterns.join(",")}}`);
+    return this;
+  }
+  ilikeAnyOf(column, patterns) {
+    this.url.searchParams.append(column, `ilike(any).{${patterns.join(",")}}`);
+    return this;
+  }
+  regexMatch(column, pattern) {
+    this.url.searchParams.append(column, `match.${pattern}`);
+    return this;
+  }
+  regexIMatch(column, pattern) {
+    this.url.searchParams.append(column, `imatch.${pattern}`);
+    return this;
+  }
+  is(column, value) {
+    this.url.searchParams.append(column, `is.${value}`);
+    return this;
+  }
+  isDistinct(column, value) {
+    this.url.searchParams.append(column, `isdistinct.${value}`);
+    return this;
+  }
+  in(column, values) {
+    const cleanedValues = Array.from(new Set(values)).map((s) => {
+      if (typeof s === "string" && PostgrestReservedCharsRegexp.test(s))
+        return `"${s}"`;
+      else
+        return `${s}`;
+    }).join(",");
+    this.url.searchParams.append(column, `in.(${cleanedValues})`);
+    return this;
+  }
+  notIn(column, values) {
+    const cleanedValues = Array.from(new Set(values)).map((s) => {
+      if (typeof s === "string" && PostgrestReservedCharsRegexp.test(s))
+        return `"${s}"`;
+      else
+        return `${s}`;
+    }).join(",");
+    this.url.searchParams.append(column, `not.in.(${cleanedValues})`);
+    return this;
+  }
+  contains(column, value) {
+    if (typeof value === "string")
+      this.url.searchParams.append(column, `cs.${value}`);
+    else if (Array.isArray(value))
+      this.url.searchParams.append(column, `cs.{${value.join(",")}}`);
+    else
+      this.url.searchParams.append(column, `cs.${JSON.stringify(value)}`);
+    return this;
+  }
+  containedBy(column, value) {
+    if (typeof value === "string")
+      this.url.searchParams.append(column, `cd.${value}`);
+    else if (Array.isArray(value))
+      this.url.searchParams.append(column, `cd.{${value.join(",")}}`);
+    else
+      this.url.searchParams.append(column, `cd.${JSON.stringify(value)}`);
+    return this;
+  }
+  rangeGt(column, range) {
+    this.url.searchParams.append(column, `sr.${range}`);
+    return this;
+  }
+  rangeGte(column, range) {
+    this.url.searchParams.append(column, `nxl.${range}`);
+    return this;
+  }
+  rangeLt(column, range) {
+    this.url.searchParams.append(column, `sl.${range}`);
+    return this;
+  }
+  rangeLte(column, range) {
+    this.url.searchParams.append(column, `nxr.${range}`);
+    return this;
+  }
+  rangeAdjacent(column, range) {
+    this.url.searchParams.append(column, `adj.${range}`);
+    return this;
+  }
+  overlaps(column, value) {
+    if (typeof value === "string")
+      this.url.searchParams.append(column, `ov.${value}`);
+    else
+      this.url.searchParams.append(column, `ov.{${value.join(",")}}`);
+    return this;
+  }
+  textSearch(column, query, { config: config2, type } = {}) {
+    let typePart = "";
+    if (type === "plain")
+      typePart = "pl";
+    else if (type === "phrase")
+      typePart = "ph";
+    else if (type === "websearch")
+      typePart = "w";
+    const configPart = config2 === undefined ? "" : `(${config2})`;
+    this.url.searchParams.append(column, `${typePart}fts${configPart}.${query}`);
+    return this;
+  }
+  match(query) {
+    Object.entries(query).forEach(([column, value]) => {
+      this.url.searchParams.append(column, `eq.${value}`);
+    });
+    return this;
+  }
+  not(column, operator, value) {
+    this.url.searchParams.append(column, `not.${operator}.${value}`);
+    return this;
+  }
+  or(filters, { foreignTable, referencedTable = foreignTable } = {}) {
+    const key = referencedTable ? `${referencedTable}.or` : "or";
+    this.url.searchParams.append(key, `(${filters})`);
+    return this;
+  }
+  filter(column, operator, value) {
+    this.url.searchParams.append(column, `${operator}.${value}`);
+    return this;
+  }
+};
+var PostgrestQueryBuilder = class {
+  constructor(url2, { headers = {}, schema, fetch: fetch$1 }) {
+    this.url = url2;
+    this.headers = new Headers(headers);
+    this.schema = schema;
+    this.fetch = fetch$1;
+  }
+  cloneRequestState() {
+    return {
+      url: new URL(this.url.toString()),
+      headers: new Headers(this.headers)
+    };
+  }
+  select(columns, options) {
+    const { head = false, count } = options !== null && options !== undefined ? options : {};
+    const method = head ? "HEAD" : "GET";
+    let quoted = false;
+    const cleanedColumns = (columns !== null && columns !== undefined ? columns : "*").split("").map((c) => {
+      if (/\s/.test(c) && !quoted)
+        return "";
+      if (c === '"')
+        quoted = !quoted;
+      return c;
+    }).join("");
+    const { url: url2, headers } = this.cloneRequestState();
+    url2.searchParams.set("select", cleanedColumns);
+    if (count)
+      headers.append("Prefer", `count=${count}`);
+    return new PostgrestFilterBuilder({
+      method,
+      url: url2,
+      headers,
+      schema: this.schema,
+      fetch: this.fetch
+    });
+  }
+  insert(values, { count, defaultToNull = true } = {}) {
+    var _this$fetch;
+    const method = "POST";
+    const { url: url2, headers } = this.cloneRequestState();
+    if (count)
+      headers.append("Prefer", `count=${count}`);
+    if (!defaultToNull)
+      headers.append("Prefer", `missing=default`);
+    if (Array.isArray(values)) {
+      const columns = values.reduce((acc, x) => acc.concat(Object.keys(x)), []);
+      if (columns.length > 0) {
+        const uniqueColumns = [...new Set(columns)].map((column) => `"${column}"`);
+        url2.searchParams.set("columns", uniqueColumns.join(","));
+      }
+    }
+    return new PostgrestFilterBuilder({
+      method,
+      url: url2,
+      headers,
+      schema: this.schema,
+      body: values,
+      fetch: (_this$fetch = this.fetch) !== null && _this$fetch !== undefined ? _this$fetch : fetch
+    });
+  }
+  upsert(values, { onConflict, ignoreDuplicates = false, count, defaultToNull = true } = {}) {
+    var _this$fetch2;
+    const method = "POST";
+    const { url: url2, headers } = this.cloneRequestState();
+    headers.append("Prefer", `resolution=${ignoreDuplicates ? "ignore" : "merge"}-duplicates`);
+    if (onConflict !== undefined)
+      url2.searchParams.set("on_conflict", onConflict);
+    if (count)
+      headers.append("Prefer", `count=${count}`);
+    if (!defaultToNull)
+      headers.append("Prefer", "missing=default");
+    if (Array.isArray(values)) {
+      const columns = values.reduce((acc, x) => acc.concat(Object.keys(x)), []);
+      if (columns.length > 0) {
+        const uniqueColumns = [...new Set(columns)].map((column) => `"${column}"`);
+        url2.searchParams.set("columns", uniqueColumns.join(","));
+      }
+    }
+    return new PostgrestFilterBuilder({
+      method,
+      url: url2,
+      headers,
+      schema: this.schema,
+      body: values,
+      fetch: (_this$fetch2 = this.fetch) !== null && _this$fetch2 !== undefined ? _this$fetch2 : fetch
+    });
+  }
+  update(values, { count } = {}) {
+    var _this$fetch3;
+    const method = "PATCH";
+    const { url: url2, headers } = this.cloneRequestState();
+    if (count)
+      headers.append("Prefer", `count=${count}`);
+    return new PostgrestFilterBuilder({
+      method,
+      url: url2,
+      headers,
+      schema: this.schema,
+      body: values,
+      fetch: (_this$fetch3 = this.fetch) !== null && _this$fetch3 !== undefined ? _this$fetch3 : fetch
+    });
+  }
+  delete({ count } = {}) {
+    var _this$fetch4;
+    const method = "DELETE";
+    const { url: url2, headers } = this.cloneRequestState();
+    if (count)
+      headers.append("Prefer", `count=${count}`);
+    return new PostgrestFilterBuilder({
+      method,
+      url: url2,
+      headers,
+      schema: this.schema,
+      fetch: (_this$fetch4 = this.fetch) !== null && _this$fetch4 !== undefined ? _this$fetch4 : fetch
+    });
+  }
+};
+var PostgrestClient = class PostgrestClient2 {
+  constructor(url2, { headers = {}, schema, fetch: fetch$1 } = {}) {
+    this.url = url2;
+    this.headers = new Headers(headers);
+    this.schemaName = schema;
+    this.fetch = fetch$1;
+  }
+  from(relation) {
+    if (!relation || typeof relation !== "string" || relation.trim() === "")
+      throw new Error("Invalid relation name: relation must be a non-empty string.");
+    return new PostgrestQueryBuilder(new URL(`${this.url}/${relation}`), {
+      headers: new Headers(this.headers),
+      schema: this.schemaName,
+      fetch: this.fetch
+    });
+  }
+  schema(schema) {
+    return new PostgrestClient2(this.url, {
+      headers: this.headers,
+      schema,
+      fetch: this.fetch
+    });
+  }
+  rpc(fn, args = {}, { head = false, get = false, count } = {}) {
+    var _this$fetch;
+    let method;
+    const url2 = new URL(`${this.url}/rpc/${fn}`);
+    let body;
+    const _isObject = (v) => v !== null && typeof v === "object" && (!Array.isArray(v) || v.some(_isObject));
+    const _hasObjectArg = head && Object.values(args).some(_isObject);
+    if (_hasObjectArg) {
+      method = "POST";
+      body = args;
+    } else if (head || get) {
+      method = head ? "HEAD" : "GET";
+      Object.entries(args).filter(([_, value]) => value !== undefined).map(([name, value]) => [name, Array.isArray(value) ? `{${value.join(",")}}` : `${value}`]).forEach(([name, value]) => {
+        url2.searchParams.append(name, value);
+      });
+    } else {
+      method = "POST";
+      body = args;
+    }
+    const headers = new Headers(this.headers);
+    if (_hasObjectArg)
+      headers.set("Prefer", count ? `count=${count},return=minimal` : "return=minimal");
+    else if (count)
+      headers.set("Prefer", `count=${count}`);
+    return new PostgrestFilterBuilder({
+      method,
+      url: url2,
+      headers,
+      schema: this.schemaName,
+      body,
+      fetch: (_this$fetch = this.fetch) !== null && _this$fetch !== undefined ? _this$fetch : fetch
+    });
+  }
+};
+var src_default = {
+  PostgrestClient,
+  PostgrestQueryBuilder,
+  PostgrestFilterBuilder,
+  PostgrestTransformBuilder,
+  PostgrestBuilder,
+  PostgrestError
+};
+
+// node_modules/@supabase/supabase-js/dist/index.mjs
+var import_realtime_js = __toESM(require_main3(), 1);
+
+// node_modules/@supabase/supabase-js/node_modules/@supabase/storage-js/dist/index.mjs
+var exports_dist2 = {};
+__export(exports_dist2, {
+  validateVectorDimension: () => validateVectorDimension,
+  resolveResponse: () => resolveResponse,
+  resolveFetch: () => resolveFetch,
+  normalizeToFloat32: () => normalizeToFloat32,
+  isStorageVectorsError: () => isStorageVectorsError,
+  isStorageError: () => isStorageError,
+  isPlainObject: () => isPlainObject3,
+  VectorIndexScope: () => VectorIndexScope,
+  VectorIndexApi: () => VectorIndexApi,
+  VectorDataApi: () => VectorDataApi,
+  VectorBucketScope: () => VectorBucketScope,
+  VectorBucketApi: () => VectorBucketApi,
+  StorageVectorsUnknownError: () => StorageVectorsUnknownError,
+  StorageVectorsErrorCode: () => StorageVectorsErrorCode,
+  StorageVectorsError: () => StorageVectorsError,
+  StorageVectorsClient: () => StorageVectorsClient,
+  StorageVectorsApiError: () => StorageVectorsApiError,
+  StorageUnknownError: () => StorageUnknownError,
+  StorageError: () => StorageError,
+  StorageClient: () => StorageClient,
+  StorageApiError: () => StorageApiError,
+  StorageAnalyticsClient: () => StorageAnalyticsClient
+});
+
+// ../../node_modules/iceberg-js/dist/index.mjs
+var IcebergError = class extends Error {
+  constructor(message, opts) {
+    super(message);
+    this.name = "IcebergError";
+    this.status = opts.status;
+    this.icebergType = opts.icebergType;
+    this.icebergCode = opts.icebergCode;
+    this.details = opts.details;
+    this.isCommitStateUnknown = opts.icebergType === "CommitStateUnknownException" || [500, 502, 504].includes(opts.status) && opts.icebergType?.includes("CommitState") === true;
+  }
+  isNotFound() {
+    return this.status === 404;
+  }
+  isConflict() {
+    return this.status === 409;
+  }
+  isAuthenticationTimeout() {
+    return this.status === 419;
+  }
+};
+function buildUrl(baseUrl, path, query) {
+  const url2 = new URL(path, baseUrl);
+  if (query) {
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined) {
+        url2.searchParams.set(key, value);
+      }
+    }
+  }
+  return url2.toString();
+}
+async function buildAuthHeaders(auth) {
+  if (!auth || auth.type === "none") {
+    return {};
+  }
+  if (auth.type === "bearer") {
+    return { Authorization: `Bearer ${auth.token}` };
+  }
+  if (auth.type === "header") {
+    return { [auth.name]: auth.value };
+  }
+  if (auth.type === "custom") {
+    return await auth.getHeaders();
+  }
+  return {};
+}
+function createFetchClient(options) {
+  const fetchFn = options.fetchImpl ?? globalThis.fetch;
+  return {
+    async request({
+      method,
+      path,
+      query,
+      body,
+      headers
+    }) {
+      const url2 = buildUrl(options.baseUrl, path, query);
+      const authHeaders = await buildAuthHeaders(options.auth);
+      const res = await fetchFn(url2, {
+        method,
+        headers: {
+          ...body ? { "Content-Type": "application/json" } : {},
+          ...authHeaders,
+          ...headers
+        },
+        body: body ? JSON.stringify(body) : undefined
+      });
+      const text = await res.text();
+      const isJson = (res.headers.get("content-type") || "").includes("application/json");
+      const data = isJson && text ? JSON.parse(text) : text;
+      if (!res.ok) {
+        const errBody = isJson ? data : undefined;
+        const errorDetail = errBody?.error;
+        throw new IcebergError(errorDetail?.message ?? `Request failed with status ${res.status}`, {
+          status: res.status,
+          icebergType: errorDetail?.type,
+          icebergCode: errorDetail?.code,
+          details: errBody
+        });
+      }
+      return { status: res.status, headers: res.headers, data };
+    }
+  };
+}
+function namespaceToPath(namespace) {
+  return namespace.join("\x1F");
+}
+var NamespaceOperations = class {
+  constructor(client, prefix = "") {
+    this.client = client;
+    this.prefix = prefix;
+  }
+  async listNamespaces(parent) {
+    const query = parent ? { parent: namespaceToPath(parent.namespace) } : undefined;
+    const response = await this.client.request({
+      method: "GET",
+      path: `${this.prefix}/namespaces`,
+      query
+    });
+    return response.data.namespaces.map((ns) => ({ namespace: ns }));
+  }
+  async createNamespace(id, metadata) {
+    const request = {
+      namespace: id.namespace,
+      properties: metadata?.properties
+    };
+    const response = await this.client.request({
+      method: "POST",
+      path: `${this.prefix}/namespaces`,
+      body: request
+    });
+    return response.data;
+  }
+  async dropNamespace(id) {
+    await this.client.request({
+      method: "DELETE",
+      path: `${this.prefix}/namespaces/${namespaceToPath(id.namespace)}`
+    });
+  }
+  async loadNamespaceMetadata(id) {
+    const response = await this.client.request({
+      method: "GET",
+      path: `${this.prefix}/namespaces/${namespaceToPath(id.namespace)}`
+    });
+    return {
+      properties: response.data.properties
+    };
+  }
+  async namespaceExists(id) {
+    try {
+      await this.client.request({
+        method: "HEAD",
+        path: `${this.prefix}/namespaces/${namespaceToPath(id.namespace)}`
+      });
+      return true;
+    } catch (error46) {
+      if (error46 instanceof IcebergError && error46.status === 404) {
+        return false;
+      }
+      throw error46;
+    }
+  }
+  async createNamespaceIfNotExists(id, metadata) {
+    try {
+      return await this.createNamespace(id, metadata);
+    } catch (error46) {
+      if (error46 instanceof IcebergError && error46.status === 409) {
+        return;
+      }
+      throw error46;
+    }
+  }
+};
+function namespaceToPath2(namespace) {
+  return namespace.join("\x1F");
+}
+var TableOperations = class {
+  constructor(client, prefix = "", accessDelegation) {
+    this.client = client;
+    this.prefix = prefix;
+    this.accessDelegation = accessDelegation;
+  }
+  async listTables(namespace) {
+    const response = await this.client.request({
+      method: "GET",
+      path: `${this.prefix}/namespaces/${namespaceToPath2(namespace.namespace)}/tables`
+    });
+    return response.data.identifiers;
+  }
+  async createTable(namespace, request) {
+    const headers = {};
+    if (this.accessDelegation) {
+      headers["X-Iceberg-Access-Delegation"] = this.accessDelegation;
+    }
+    const response = await this.client.request({
+      method: "POST",
+      path: `${this.prefix}/namespaces/${namespaceToPath2(namespace.namespace)}/tables`,
+      body: request,
+      headers
+    });
+    return response.data.metadata;
+  }
+  async updateTable(id, request) {
+    const response = await this.client.request({
+      method: "POST",
+      path: `${this.prefix}/namespaces/${namespaceToPath2(id.namespace)}/tables/${id.name}`,
+      body: request
+    });
+    return {
+      "metadata-location": response.data["metadata-location"],
+      metadata: response.data.metadata
+    };
+  }
+  async dropTable(id, options) {
+    await this.client.request({
+      method: "DELETE",
+      path: `${this.prefix}/namespaces/${namespaceToPath2(id.namespace)}/tables/${id.name}`,
+      query: { purgeRequested: String(options?.purge ?? false) }
+    });
+  }
+  async loadTable(id) {
+    const headers = {};
+    if (this.accessDelegation) {
+      headers["X-Iceberg-Access-Delegation"] = this.accessDelegation;
+    }
+    const response = await this.client.request({
+      method: "GET",
+      path: `${this.prefix}/namespaces/${namespaceToPath2(id.namespace)}/tables/${id.name}`,
+      headers
+    });
+    return response.data.metadata;
+  }
+  async tableExists(id) {
+    const headers = {};
+    if (this.accessDelegation) {
+      headers["X-Iceberg-Access-Delegation"] = this.accessDelegation;
+    }
+    try {
+      await this.client.request({
+        method: "HEAD",
+        path: `${this.prefix}/namespaces/${namespaceToPath2(id.namespace)}/tables/${id.name}`,
+        headers
+      });
+      return true;
+    } catch (error46) {
+      if (error46 instanceof IcebergError && error46.status === 404) {
+        return false;
+      }
+      throw error46;
+    }
+  }
+  async createTableIfNotExists(namespace, request) {
+    try {
+      return await this.createTable(namespace, request);
+    } catch (error46) {
+      if (error46 instanceof IcebergError && error46.status === 409) {
+        return await this.loadTable({ namespace: namespace.namespace, name: request.name });
+      }
+      throw error46;
+    }
+  }
+};
+var IcebergRestCatalog = class {
+  constructor(options) {
+    let prefix = "v1";
+    if (options.catalogName) {
+      prefix += `/${options.catalogName}`;
+    }
+    const baseUrl = options.baseUrl.endsWith("/") ? options.baseUrl : `${options.baseUrl}/`;
+    this.client = createFetchClient({
+      baseUrl,
+      auth: options.auth,
+      fetchImpl: options.fetch
+    });
+    this.accessDelegation = options.accessDelegation?.join(",");
+    this.namespaceOps = new NamespaceOperations(this.client, prefix);
+    this.tableOps = new TableOperations(this.client, prefix, this.accessDelegation);
+  }
+  async listNamespaces(parent) {
+    return this.namespaceOps.listNamespaces(parent);
+  }
+  async createNamespace(id, metadata) {
+    return this.namespaceOps.createNamespace(id, metadata);
+  }
+  async dropNamespace(id) {
+    await this.namespaceOps.dropNamespace(id);
+  }
+  async loadNamespaceMetadata(id) {
+    return this.namespaceOps.loadNamespaceMetadata(id);
+  }
+  async listTables(namespace) {
+    return this.tableOps.listTables(namespace);
+  }
+  async createTable(namespace, request) {
+    return this.tableOps.createTable(namespace, request);
+  }
+  async updateTable(id, request) {
+    return this.tableOps.updateTable(id, request);
+  }
+  async dropTable(id, options) {
+    await this.tableOps.dropTable(id, options);
+  }
+  async loadTable(id) {
+    return this.tableOps.loadTable(id);
+  }
+  async namespaceExists(id) {
+    return this.namespaceOps.namespaceExists(id);
+  }
+  async tableExists(id) {
+    return this.tableOps.tableExists(id);
+  }
+  async createNamespaceIfNotExists(id, metadata) {
+    return this.namespaceOps.createNamespaceIfNotExists(id, metadata);
+  }
+  async createTableIfNotExists(namespace, request) {
+    return this.tableOps.createTableIfNotExists(namespace, request);
+  }
+};
+
+// node_modules/@supabase/supabase-js/node_modules/@supabase/storage-js/dist/index.mjs
+var StorageError = class extends Error {
+  constructor(message) {
+    super(message);
+    this.__isStorageError = true;
+    this.name = "StorageError";
+  }
+};
+function isStorageError(error46) {
+  return typeof error46 === "object" && error46 !== null && "__isStorageError" in error46;
+}
+var StorageApiError = class extends StorageError {
+  constructor(message, status, statusCode) {
+    super(message);
+    this.name = "StorageApiError";
+    this.status = status;
+    this.statusCode = statusCode;
+  }
+  toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+      status: this.status,
+      statusCode: this.statusCode
+    };
+  }
+};
+var StorageUnknownError = class extends StorageError {
+  constructor(message, originalError) {
+    super(message);
+    this.name = "StorageUnknownError";
+    this.originalError = originalError;
+  }
+};
+var resolveFetch$1 = (customFetch) => {
+  if (customFetch)
+    return (...args) => customFetch(...args);
+  return (...args) => fetch(...args);
+};
+var resolveResponse$1 = () => {
+  return Response;
+};
+var recursiveToCamel = (item) => {
+  if (Array.isArray(item))
+    return item.map((el) => recursiveToCamel(el));
+  else if (typeof item === "function" || item !== Object(item))
+    return item;
+  const result = {};
+  Object.entries(item).forEach(([key, value]) => {
+    const newKey = key.replace(/([-_][a-z])/gi, (c) => c.toUpperCase().replace(/[-_]/g, ""));
+    result[newKey] = recursiveToCamel(value);
+  });
+  return result;
+};
+var isPlainObject$1 = (value) => {
+  if (typeof value !== "object" || value === null)
+    return false;
+  const prototype = Object.getPrototypeOf(value);
+  return (prototype === null || prototype === Object.prototype || Object.getPrototypeOf(prototype) === null) && !(Symbol.toStringTag in value) && !(Symbol.iterator in value);
+};
+var isValidBucketName = (bucketName) => {
+  if (!bucketName || typeof bucketName !== "string")
+    return false;
+  if (bucketName.length === 0 || bucketName.length > 100)
+    return false;
+  if (bucketName.trim() !== bucketName)
+    return false;
+  if (bucketName.includes("/") || bucketName.includes("\\"))
+    return false;
+  return /^[\w!.\*'() &$@=;:+,?-]+$/.test(bucketName);
+};
+function _typeof(o) {
+  "@babel/helpers - typeof";
+  return _typeof = typeof Symbol == "function" && typeof Symbol.iterator == "symbol" ? function(o$1) {
+    return typeof o$1;
+  } : function(o$1) {
+    return o$1 && typeof Symbol == "function" && o$1.constructor === Symbol && o$1 !== Symbol.prototype ? "symbol" : typeof o$1;
+  }, _typeof(o);
+}
+function toPrimitive(t, r) {
+  if (_typeof(t) != "object" || !t)
+    return t;
+  var e = t[Symbol.toPrimitive];
+  if (e !== undefined) {
+    var i = e.call(t, r || "default");
+    if (_typeof(i) != "object")
+      return i;
+    throw new TypeError("@@toPrimitive must return a primitive value.");
+  }
+  return (r === "string" ? String : Number)(t);
+}
+function toPropertyKey(t) {
+  var i = toPrimitive(t, "string");
+  return _typeof(i) == "symbol" ? i : i + "";
+}
+function _defineProperty(e, r, t) {
+  return (r = toPropertyKey(r)) in e ? Object.defineProperty(e, r, {
+    value: t,
+    enumerable: true,
+    configurable: true,
+    writable: true
+  }) : e[r] = t, e;
+}
+function ownKeys(e, r) {
+  var t = Object.keys(e);
+  if (Object.getOwnPropertySymbols) {
+    var o = Object.getOwnPropertySymbols(e);
+    r && (o = o.filter(function(r$1) {
+      return Object.getOwnPropertyDescriptor(e, r$1).enumerable;
+    })), t.push.apply(t, o);
+  }
+  return t;
+}
+function _objectSpread2(e) {
+  for (var r = 1;r < arguments.length; r++) {
+    var t = arguments[r] != null ? arguments[r] : {};
+    r % 2 ? ownKeys(Object(t), true).forEach(function(r$1) {
+      _defineProperty(e, r$1, t[r$1]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function(r$1) {
+      Object.defineProperty(e, r$1, Object.getOwnPropertyDescriptor(t, r$1));
+    });
+  }
+  return e;
+}
+var _getErrorMessage$1 = (err) => {
+  var _err$error;
+  return err.msg || err.message || err.error_description || (typeof err.error === "string" ? err.error : (_err$error = err.error) === null || _err$error === undefined ? undefined : _err$error.message) || JSON.stringify(err);
+};
+var handleError$1 = async (error46, reject, options) => {
+  if (error46 instanceof await resolveResponse$1() && !(options === null || options === undefined ? undefined : options.noResolveJson))
+    error46.json().then((err) => {
+      const status = error46.status || 500;
+      const statusCode = (err === null || err === undefined ? undefined : err.statusCode) || status + "";
+      reject(new StorageApiError(_getErrorMessage$1(err), status, statusCode));
+    }).catch((err) => {
+      reject(new StorageUnknownError(_getErrorMessage$1(err), err));
+    });
+  else
+    reject(new StorageUnknownError(_getErrorMessage$1(error46), error46));
+};
+var _getRequestParams$1 = (method, options, parameters, body) => {
+  const params = {
+    method,
+    headers: (options === null || options === undefined ? undefined : options.headers) || {}
+  };
+  if (method === "GET" || !body)
+    return params;
+  if (isPlainObject$1(body)) {
+    params.headers = _objectSpread2({ "Content-Type": "application/json" }, options === null || options === undefined ? undefined : options.headers);
+    params.body = JSON.stringify(body);
+  } else
+    params.body = body;
+  if (options === null || options === undefined ? undefined : options.duplex)
+    params.duplex = options.duplex;
+  return _objectSpread2(_objectSpread2({}, params), parameters);
+};
+async function _handleRequest$1(fetcher, method, url2, options, parameters, body) {
+  return new Promise((resolve, reject) => {
+    fetcher(url2, _getRequestParams$1(method, options, parameters, body)).then((result) => {
+      if (!result.ok)
+        throw result;
+      if (options === null || options === undefined ? undefined : options.noResolveJson)
+        return result;
+      return result.json();
+    }).then((data) => resolve(data)).catch((error46) => handleError$1(error46, reject, options));
+  });
+}
+async function get(fetcher, url2, options, parameters) {
+  return _handleRequest$1(fetcher, "GET", url2, options, parameters);
+}
+async function post$1(fetcher, url2, body, options, parameters) {
+  return _handleRequest$1(fetcher, "POST", url2, options, parameters, body);
+}
+async function put(fetcher, url2, body, options, parameters) {
+  return _handleRequest$1(fetcher, "PUT", url2, options, parameters, body);
+}
+async function head(fetcher, url2, options, parameters) {
+  return _handleRequest$1(fetcher, "HEAD", url2, _objectSpread2(_objectSpread2({}, options), {}, { noResolveJson: true }), parameters);
+}
+async function remove(fetcher, url2, body, options, parameters) {
+  return _handleRequest$1(fetcher, "DELETE", url2, options, parameters, body);
+}
+var StreamDownloadBuilder = class {
+  constructor(downloadFn, shouldThrowOnError) {
+    this.downloadFn = downloadFn;
+    this.shouldThrowOnError = shouldThrowOnError;
+  }
+  then(onfulfilled, onrejected) {
+    return this.execute().then(onfulfilled, onrejected);
+  }
+  async execute() {
+    var _this = this;
+    try {
+      return {
+        data: (await _this.downloadFn()).body,
+        error: null
+      };
+    } catch (error46) {
+      if (_this.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+};
+var _Symbol$toStringTag;
+_Symbol$toStringTag = Symbol.toStringTag;
+var BlobDownloadBuilder = class {
+  constructor(downloadFn, shouldThrowOnError) {
+    this.downloadFn = downloadFn;
+    this.shouldThrowOnError = shouldThrowOnError;
+    this[_Symbol$toStringTag] = "BlobDownloadBuilder";
+    this.promise = null;
+  }
+  asStream() {
+    return new StreamDownloadBuilder(this.downloadFn, this.shouldThrowOnError);
+  }
+  then(onfulfilled, onrejected) {
+    return this.getPromise().then(onfulfilled, onrejected);
+  }
+  catch(onrejected) {
+    return this.getPromise().catch(onrejected);
+  }
+  finally(onfinally) {
+    return this.getPromise().finally(onfinally);
+  }
+  getPromise() {
+    if (!this.promise)
+      this.promise = this.execute();
+    return this.promise;
+  }
+  async execute() {
+    var _this = this;
+    try {
+      return {
+        data: await (await _this.downloadFn()).blob(),
+        error: null
+      };
+    } catch (error46) {
+      if (_this.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+};
+var DEFAULT_SEARCH_OPTIONS = {
+  limit: 100,
+  offset: 0,
+  sortBy: {
+    column: "name",
+    order: "asc"
+  }
+};
+var DEFAULT_FILE_OPTIONS = {
+  cacheControl: "3600",
+  contentType: "text/plain;charset=UTF-8",
+  upsert: false
+};
+var StorageFileApi = class {
+  constructor(url2, headers = {}, bucketId, fetch$1) {
+    this.shouldThrowOnError = false;
+    this.url = url2;
+    this.headers = headers;
+    this.bucketId = bucketId;
+    this.fetch = resolveFetch$1(fetch$1);
+  }
+  throwOnError() {
+    this.shouldThrowOnError = true;
+    return this;
+  }
+  async uploadOrUpdate(method, path, fileBody, fileOptions) {
+    var _this = this;
+    try {
+      let body;
+      const options = _objectSpread2(_objectSpread2({}, DEFAULT_FILE_OPTIONS), fileOptions);
+      let headers = _objectSpread2(_objectSpread2({}, _this.headers), method === "POST" && { "x-upsert": String(options.upsert) });
+      const metadata = options.metadata;
+      if (typeof Blob !== "undefined" && fileBody instanceof Blob) {
+        body = new FormData;
+        body.append("cacheControl", options.cacheControl);
+        if (metadata)
+          body.append("metadata", _this.encodeMetadata(metadata));
+        body.append("", fileBody);
+      } else if (typeof FormData !== "undefined" && fileBody instanceof FormData) {
+        body = fileBody;
+        if (!body.has("cacheControl"))
+          body.append("cacheControl", options.cacheControl);
+        if (metadata && !body.has("metadata"))
+          body.append("metadata", _this.encodeMetadata(metadata));
+      } else {
+        body = fileBody;
+        headers["cache-control"] = `max-age=${options.cacheControl}`;
+        headers["content-type"] = options.contentType;
+        if (metadata)
+          headers["x-metadata"] = _this.toBase64(_this.encodeMetadata(metadata));
+        if ((typeof ReadableStream !== "undefined" && body instanceof ReadableStream || body && typeof body === "object" && ("pipe" in body) && typeof body.pipe === "function") && !options.duplex)
+          options.duplex = "half";
+      }
+      if (fileOptions === null || fileOptions === undefined ? undefined : fileOptions.headers)
+        headers = _objectSpread2(_objectSpread2({}, headers), fileOptions.headers);
+      const cleanPath = _this._removeEmptyFolders(path);
+      const _path = _this._getFinalPath(cleanPath);
+      const data = await (method == "PUT" ? put : post$1)(_this.fetch, `${_this.url}/object/${_path}`, body, _objectSpread2({ headers }, (options === null || options === undefined ? undefined : options.duplex) ? { duplex: options.duplex } : {}));
+      return {
+        data: {
+          path: cleanPath,
+          id: data.Id,
+          fullPath: data.Key
+        },
+        error: null
+      };
+    } catch (error46) {
+      if (_this.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async upload(path, fileBody, fileOptions) {
+    return this.uploadOrUpdate("POST", path, fileBody, fileOptions);
+  }
+  async uploadToSignedUrl(path, token, fileBody, fileOptions) {
+    var _this3 = this;
+    const cleanPath = _this3._removeEmptyFolders(path);
+    const _path = _this3._getFinalPath(cleanPath);
+    const url2 = new URL(_this3.url + `/object/upload/sign/${_path}`);
+    url2.searchParams.set("token", token);
+    try {
+      let body;
+      const options = _objectSpread2({ upsert: DEFAULT_FILE_OPTIONS.upsert }, fileOptions);
+      const headers = _objectSpread2(_objectSpread2({}, _this3.headers), { "x-upsert": String(options.upsert) });
+      if (typeof Blob !== "undefined" && fileBody instanceof Blob) {
+        body = new FormData;
+        body.append("cacheControl", options.cacheControl);
+        body.append("", fileBody);
+      } else if (typeof FormData !== "undefined" && fileBody instanceof FormData) {
+        body = fileBody;
+        body.append("cacheControl", options.cacheControl);
+      } else {
+        body = fileBody;
+        headers["cache-control"] = `max-age=${options.cacheControl}`;
+        headers["content-type"] = options.contentType;
+      }
+      return {
+        data: {
+          path: cleanPath,
+          fullPath: (await put(_this3.fetch, url2.toString(), body, { headers })).Key
+        },
+        error: null
+      };
+    } catch (error46) {
+      if (_this3.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async createSignedUploadUrl(path, options) {
+    var _this4 = this;
+    try {
+      let _path = _this4._getFinalPath(path);
+      const headers = _objectSpread2({}, _this4.headers);
+      if (options === null || options === undefined ? undefined : options.upsert)
+        headers["x-upsert"] = "true";
+      const data = await post$1(_this4.fetch, `${_this4.url}/object/upload/sign/${_path}`, {}, { headers });
+      const url2 = new URL(_this4.url + data.url);
+      const token = url2.searchParams.get("token");
+      if (!token)
+        throw new StorageError("No token returned by API");
+      return {
+        data: {
+          signedUrl: url2.toString(),
+          path,
+          token
+        },
+        error: null
+      };
+    } catch (error46) {
+      if (_this4.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async update(path, fileBody, fileOptions) {
+    return this.uploadOrUpdate("PUT", path, fileBody, fileOptions);
+  }
+  async move(fromPath, toPath, options) {
+    var _this6 = this;
+    try {
+      return {
+        data: await post$1(_this6.fetch, `${_this6.url}/object/move`, {
+          bucketId: _this6.bucketId,
+          sourceKey: fromPath,
+          destinationKey: toPath,
+          destinationBucket: options === null || options === undefined ? undefined : options.destinationBucket
+        }, { headers: _this6.headers }),
+        error: null
+      };
+    } catch (error46) {
+      if (_this6.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async copy(fromPath, toPath, options) {
+    var _this7 = this;
+    try {
+      return {
+        data: { path: (await post$1(_this7.fetch, `${_this7.url}/object/copy`, {
+          bucketId: _this7.bucketId,
+          sourceKey: fromPath,
+          destinationKey: toPath,
+          destinationBucket: options === null || options === undefined ? undefined : options.destinationBucket
+        }, { headers: _this7.headers })).Key },
+        error: null
+      };
+    } catch (error46) {
+      if (_this7.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async createSignedUrl(path, expiresIn, options) {
+    var _this8 = this;
+    try {
+      let _path = _this8._getFinalPath(path);
+      let data = await post$1(_this8.fetch, `${_this8.url}/object/sign/${_path}`, _objectSpread2({ expiresIn }, (options === null || options === undefined ? undefined : options.transform) ? { transform: options.transform } : {}), { headers: _this8.headers });
+      const downloadQueryParam = (options === null || options === undefined ? undefined : options.download) ? `&download=${options.download === true ? "" : options.download}` : "";
+      data = { signedUrl: encodeURI(`${_this8.url}${data.signedURL}${downloadQueryParam}`) };
+      return {
+        data,
+        error: null
+      };
+    } catch (error46) {
+      if (_this8.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async createSignedUrls(paths, expiresIn, options) {
+    var _this9 = this;
+    try {
+      const data = await post$1(_this9.fetch, `${_this9.url}/object/sign/${_this9.bucketId}`, {
+        expiresIn,
+        paths
+      }, { headers: _this9.headers });
+      const downloadQueryParam = (options === null || options === undefined ? undefined : options.download) ? `&download=${options.download === true ? "" : options.download}` : "";
+      return {
+        data: data.map((datum) => _objectSpread2(_objectSpread2({}, datum), {}, { signedUrl: datum.signedURL ? encodeURI(`${_this9.url}${datum.signedURL}${downloadQueryParam}`) : null })),
+        error: null
+      };
+    } catch (error46) {
+      if (_this9.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  download(path, options) {
+    const renderPath = typeof (options === null || options === undefined ? undefined : options.transform) !== "undefined" ? "render/image/authenticated" : "object";
+    const transformationQuery = this.transformOptsToQueryString((options === null || options === undefined ? undefined : options.transform) || {});
+    const queryString = transformationQuery ? `?${transformationQuery}` : "";
+    const _path = this._getFinalPath(path);
+    const downloadFn = () => get(this.fetch, `${this.url}/${renderPath}/${_path}${queryString}`, {
+      headers: this.headers,
+      noResolveJson: true
+    });
+    return new BlobDownloadBuilder(downloadFn, this.shouldThrowOnError);
+  }
+  async info(path) {
+    var _this10 = this;
+    const _path = _this10._getFinalPath(path);
+    try {
+      return {
+        data: recursiveToCamel(await get(_this10.fetch, `${_this10.url}/object/info/${_path}`, { headers: _this10.headers })),
+        error: null
+      };
+    } catch (error46) {
+      if (_this10.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async exists(path) {
+    var _this11 = this;
+    const _path = _this11._getFinalPath(path);
+    try {
+      await head(_this11.fetch, `${_this11.url}/object/${_path}`, { headers: _this11.headers });
+      return {
+        data: true,
+        error: null
+      };
+    } catch (error46) {
+      if (_this11.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46) && error46 instanceof StorageUnknownError) {
+        const originalError = error46.originalError;
+        if ([400, 404].includes(originalError === null || originalError === undefined ? undefined : originalError.status))
+          return {
+            data: false,
+            error: error46
+          };
+      }
+      throw error46;
+    }
+  }
+  getPublicUrl(path, options) {
+    const _path = this._getFinalPath(path);
+    const _queryString = [];
+    const downloadQueryParam = (options === null || options === undefined ? undefined : options.download) ? `download=${options.download === true ? "" : options.download}` : "";
+    if (downloadQueryParam !== "")
+      _queryString.push(downloadQueryParam);
+    const renderPath = typeof (options === null || options === undefined ? undefined : options.transform) !== "undefined" ? "render/image" : "object";
+    const transformationQuery = this.transformOptsToQueryString((options === null || options === undefined ? undefined : options.transform) || {});
+    if (transformationQuery !== "")
+      _queryString.push(transformationQuery);
+    let queryString = _queryString.join("&");
+    if (queryString !== "")
+      queryString = `?${queryString}`;
+    return { data: { publicUrl: encodeURI(`${this.url}/${renderPath}/public/${_path}${queryString}`) } };
+  }
+  async remove(paths) {
+    var _this12 = this;
+    try {
+      return {
+        data: await remove(_this12.fetch, `${_this12.url}/object/${_this12.bucketId}`, { prefixes: paths }, { headers: _this12.headers }),
+        error: null
+      };
+    } catch (error46) {
+      if (_this12.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async list(path, options, parameters) {
+    var _this13 = this;
+    try {
+      const body = _objectSpread2(_objectSpread2(_objectSpread2({}, DEFAULT_SEARCH_OPTIONS), options), {}, { prefix: path || "" });
+      return {
+        data: await post$1(_this13.fetch, `${_this13.url}/object/list/${_this13.bucketId}`, body, { headers: _this13.headers }, parameters),
+        error: null
+      };
+    } catch (error46) {
+      if (_this13.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async listV2(options, parameters) {
+    var _this14 = this;
+    try {
+      const body = _objectSpread2({}, options);
+      return {
+        data: await post$1(_this14.fetch, `${_this14.url}/object/list-v2/${_this14.bucketId}`, body, { headers: _this14.headers }, parameters),
+        error: null
+      };
+    } catch (error46) {
+      if (_this14.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  encodeMetadata(metadata) {
+    return JSON.stringify(metadata);
+  }
+  toBase64(data) {
+    if (typeof Buffer !== "undefined")
+      return Buffer.from(data).toString("base64");
+    return btoa(data);
+  }
+  _getFinalPath(path) {
+    return `${this.bucketId}/${path.replace(/^\/+/, "")}`;
+  }
+  _removeEmptyFolders(path) {
+    return path.replace(/^\/|\/$/g, "").replace(/\/+/g, "/");
+  }
+  transformOptsToQueryString(transform2) {
+    const params = [];
+    if (transform2.width)
+      params.push(`width=${transform2.width}`);
+    if (transform2.height)
+      params.push(`height=${transform2.height}`);
+    if (transform2.resize)
+      params.push(`resize=${transform2.resize}`);
+    if (transform2.format)
+      params.push(`format=${transform2.format}`);
+    if (transform2.quality)
+      params.push(`quality=${transform2.quality}`);
+    return params.join("&");
+  }
+};
+var version3 = "2.90.1";
+var DEFAULT_HEADERS$1 = { "X-Client-Info": `storage-js/${version3}` };
+var StorageBucketApi = class {
+  constructor(url2, headers = {}, fetch$1, opts) {
+    this.shouldThrowOnError = false;
+    const baseUrl = new URL(url2);
+    if (opts === null || opts === undefined ? undefined : opts.useNewHostname) {
+      if (/supabase\.(co|in|red)$/.test(baseUrl.hostname) && !baseUrl.hostname.includes("storage.supabase."))
+        baseUrl.hostname = baseUrl.hostname.replace("supabase.", "storage.supabase.");
+    }
+    this.url = baseUrl.href.replace(/\/$/, "");
+    this.headers = _objectSpread2(_objectSpread2({}, DEFAULT_HEADERS$1), headers);
+    this.fetch = resolveFetch$1(fetch$1);
+  }
+  throwOnError() {
+    this.shouldThrowOnError = true;
+    return this;
+  }
+  async listBuckets(options) {
+    var _this = this;
+    try {
+      const queryString = _this.listBucketOptionsToQueryString(options);
+      return {
+        data: await get(_this.fetch, `${_this.url}/bucket${queryString}`, { headers: _this.headers }),
+        error: null
+      };
+    } catch (error46) {
+      if (_this.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async getBucket(id) {
+    var _this2 = this;
+    try {
+      return {
+        data: await get(_this2.fetch, `${_this2.url}/bucket/${id}`, { headers: _this2.headers }),
+        error: null
+      };
+    } catch (error46) {
+      if (_this2.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async createBucket(id, options = { public: false }) {
+    var _this3 = this;
+    try {
+      return {
+        data: await post$1(_this3.fetch, `${_this3.url}/bucket`, {
+          id,
+          name: id,
+          type: options.type,
+          public: options.public,
+          file_size_limit: options.fileSizeLimit,
+          allowed_mime_types: options.allowedMimeTypes
+        }, { headers: _this3.headers }),
+        error: null
+      };
+    } catch (error46) {
+      if (_this3.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async updateBucket(id, options) {
+    var _this4 = this;
+    try {
+      return {
+        data: await put(_this4.fetch, `${_this4.url}/bucket/${id}`, {
+          id,
+          name: id,
+          public: options.public,
+          file_size_limit: options.fileSizeLimit,
+          allowed_mime_types: options.allowedMimeTypes
+        }, { headers: _this4.headers }),
+        error: null
+      };
+    } catch (error46) {
+      if (_this4.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async emptyBucket(id) {
+    var _this5 = this;
+    try {
+      return {
+        data: await post$1(_this5.fetch, `${_this5.url}/bucket/${id}/empty`, {}, { headers: _this5.headers }),
+        error: null
+      };
+    } catch (error46) {
+      if (_this5.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async deleteBucket(id) {
+    var _this6 = this;
+    try {
+      return {
+        data: await remove(_this6.fetch, `${_this6.url}/bucket/${id}`, {}, { headers: _this6.headers }),
+        error: null
+      };
+    } catch (error46) {
+      if (_this6.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  listBucketOptionsToQueryString(options) {
+    const params = {};
+    if (options) {
+      if ("limit" in options)
+        params.limit = String(options.limit);
+      if ("offset" in options)
+        params.offset = String(options.offset);
+      if (options.search)
+        params.search = options.search;
+      if (options.sortColumn)
+        params.sortColumn = options.sortColumn;
+      if (options.sortOrder)
+        params.sortOrder = options.sortOrder;
+    }
+    return Object.keys(params).length > 0 ? "?" + new URLSearchParams(params).toString() : "";
+  }
+};
+var StorageAnalyticsClient = class {
+  constructor(url2, headers = {}, fetch$1) {
+    this.shouldThrowOnError = false;
+    this.url = url2.replace(/\/$/, "");
+    this.headers = _objectSpread2(_objectSpread2({}, DEFAULT_HEADERS$1), headers);
+    this.fetch = resolveFetch$1(fetch$1);
+  }
+  throwOnError() {
+    this.shouldThrowOnError = true;
+    return this;
+  }
+  async createBucket(name) {
+    var _this = this;
+    try {
+      return {
+        data: await post$1(_this.fetch, `${_this.url}/bucket`, { name }, { headers: _this.headers }),
+        error: null
+      };
+    } catch (error46) {
+      if (_this.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async listBuckets(options) {
+    var _this2 = this;
+    try {
+      const queryParams = new URLSearchParams;
+      if ((options === null || options === undefined ? undefined : options.limit) !== undefined)
+        queryParams.set("limit", options.limit.toString());
+      if ((options === null || options === undefined ? undefined : options.offset) !== undefined)
+        queryParams.set("offset", options.offset.toString());
+      if (options === null || options === undefined ? undefined : options.sortColumn)
+        queryParams.set("sortColumn", options.sortColumn);
+      if (options === null || options === undefined ? undefined : options.sortOrder)
+        queryParams.set("sortOrder", options.sortOrder);
+      if (options === null || options === undefined ? undefined : options.search)
+        queryParams.set("search", options.search);
+      const queryString = queryParams.toString();
+      const url2 = queryString ? `${_this2.url}/bucket?${queryString}` : `${_this2.url}/bucket`;
+      return {
+        data: await get(_this2.fetch, url2, { headers: _this2.headers }),
+        error: null
+      };
+    } catch (error46) {
+      if (_this2.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async deleteBucket(bucketName) {
+    var _this3 = this;
+    try {
+      return {
+        data: await remove(_this3.fetch, `${_this3.url}/bucket/${bucketName}`, {}, { headers: _this3.headers }),
+        error: null
+      };
+    } catch (error46) {
+      if (_this3.shouldThrowOnError)
+        throw error46;
+      if (isStorageError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  from(bucketName) {
+    var _this4 = this;
+    if (!isValidBucketName(bucketName))
+      throw new StorageError("Invalid bucket name: File, folder, and bucket names must follow AWS object key naming guidelines and should avoid the use of any other characters.");
+    const catalog = new IcebergRestCatalog({
+      baseUrl: this.url,
+      catalogName: bucketName,
+      auth: {
+        type: "custom",
+        getHeaders: async () => _this4.headers
+      },
+      fetch: this.fetch
+    });
+    const shouldThrowOnError = this.shouldThrowOnError;
+    return new Proxy(catalog, { get(target, prop) {
+      const value = target[prop];
+      if (typeof value !== "function")
+        return value;
+      return async (...args) => {
+        try {
+          return {
+            data: await value.apply(target, args),
+            error: null
+          };
+        } catch (error46) {
+          if (shouldThrowOnError)
+            throw error46;
+          return {
+            data: null,
+            error: error46
+          };
+        }
+      };
+    } });
+  }
+};
+var DEFAULT_HEADERS = {
+  "X-Client-Info": `storage-js/${version3}`,
+  "Content-Type": "application/json"
+};
+var StorageVectorsError = class extends Error {
+  constructor(message) {
+    super(message);
+    this.__isStorageVectorsError = true;
+    this.name = "StorageVectorsError";
+  }
+};
+function isStorageVectorsError(error46) {
+  return typeof error46 === "object" && error46 !== null && "__isStorageVectorsError" in error46;
+}
+var StorageVectorsApiError = class extends StorageVectorsError {
+  constructor(message, status, statusCode) {
+    super(message);
+    this.name = "StorageVectorsApiError";
+    this.status = status;
+    this.statusCode = statusCode;
+  }
+  toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+      status: this.status,
+      statusCode: this.statusCode
+    };
+  }
+};
+var StorageVectorsUnknownError = class extends StorageVectorsError {
+  constructor(message, originalError) {
+    super(message);
+    this.name = "StorageVectorsUnknownError";
+    this.originalError = originalError;
+  }
+};
+var StorageVectorsErrorCode = /* @__PURE__ */ function(StorageVectorsErrorCode$1) {
+  StorageVectorsErrorCode$1["InternalError"] = "InternalError";
+  StorageVectorsErrorCode$1["S3VectorConflictException"] = "S3VectorConflictException";
+  StorageVectorsErrorCode$1["S3VectorNotFoundException"] = "S3VectorNotFoundException";
+  StorageVectorsErrorCode$1["S3VectorBucketNotEmpty"] = "S3VectorBucketNotEmpty";
+  StorageVectorsErrorCode$1["S3VectorMaxBucketsExceeded"] = "S3VectorMaxBucketsExceeded";
+  StorageVectorsErrorCode$1["S3VectorMaxIndexesExceeded"] = "S3VectorMaxIndexesExceeded";
+  return StorageVectorsErrorCode$1;
+}({});
+var resolveFetch = (customFetch) => {
+  if (customFetch)
+    return (...args) => customFetch(...args);
+  return (...args) => fetch(...args);
+};
+var resolveResponse = () => {
+  return Response;
+};
+var isPlainObject3 = (value) => {
+  if (typeof value !== "object" || value === null)
+    return false;
+  const prototype = Object.getPrototypeOf(value);
+  return (prototype === null || prototype === Object.prototype || Object.getPrototypeOf(prototype) === null) && !(Symbol.toStringTag in value) && !(Symbol.iterator in value);
+};
+var normalizeToFloat32 = (values) => {
+  return Array.from(new Float32Array(values));
+};
+var validateVectorDimension = (vector, expectedDimension) => {
+  if (expectedDimension !== undefined && vector.float32.length !== expectedDimension)
+    throw new Error(`Vector dimension mismatch: expected ${expectedDimension}, got ${vector.float32.length}`);
+};
+var _getErrorMessage = (err) => err.msg || err.message || err.error_description || err.error || JSON.stringify(err);
+var handleError = async (error46, reject, options) => {
+  if (error46 && typeof error46 === "object" && "status" in error46 && "ok" in error46 && typeof error46.status === "number" && !(options === null || options === undefined ? undefined : options.noResolveJson)) {
+    const status = error46.status || 500;
+    const responseError = error46;
+    if (typeof responseError.json === "function")
+      responseError.json().then((err) => {
+        const statusCode = (err === null || err === undefined ? undefined : err.statusCode) || (err === null || err === undefined ? undefined : err.code) || status + "";
+        reject(new StorageVectorsApiError(_getErrorMessage(err), status, statusCode));
+      }).catch(() => {
+        const statusCode = status + "";
+        reject(new StorageVectorsApiError(responseError.statusText || `HTTP ${status} error`, status, statusCode));
+      });
+    else {
+      const statusCode = status + "";
+      reject(new StorageVectorsApiError(responseError.statusText || `HTTP ${status} error`, status, statusCode));
+    }
+  } else
+    reject(new StorageVectorsUnknownError(_getErrorMessage(error46), error46));
+};
+var _getRequestParams = (method, options, parameters, body) => {
+  const params = {
+    method,
+    headers: (options === null || options === undefined ? undefined : options.headers) || {}
+  };
+  if (method === "GET" || !body)
+    return params;
+  if (isPlainObject3(body)) {
+    params.headers = _objectSpread2({ "Content-Type": "application/json" }, options === null || options === undefined ? undefined : options.headers);
+    params.body = JSON.stringify(body);
+  } else
+    params.body = body;
+  return _objectSpread2(_objectSpread2({}, params), parameters);
+};
+async function _handleRequest(fetcher, method, url2, options, parameters, body) {
+  return new Promise((resolve, reject) => {
+    fetcher(url2, _getRequestParams(method, options, parameters, body)).then((result) => {
+      if (!result.ok)
+        throw result;
+      if (options === null || options === undefined ? undefined : options.noResolveJson)
+        return result;
+      const contentType = result.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json"))
+        return {};
+      return result.json();
+    }).then((data) => resolve(data)).catch((error46) => handleError(error46, reject, options));
+  });
+}
+async function post(fetcher, url2, body, options, parameters) {
+  return _handleRequest(fetcher, "POST", url2, options, parameters, body);
+}
+var VectorIndexApi = class {
+  constructor(url2, headers = {}, fetch$1) {
+    this.shouldThrowOnError = false;
+    this.url = url2.replace(/\/$/, "");
+    this.headers = _objectSpread2(_objectSpread2({}, DEFAULT_HEADERS), headers);
+    this.fetch = resolveFetch(fetch$1);
+  }
+  throwOnError() {
+    this.shouldThrowOnError = true;
+    return this;
+  }
+  async createIndex(options) {
+    var _this = this;
+    try {
+      return {
+        data: await post(_this.fetch, `${_this.url}/CreateIndex`, options, { headers: _this.headers }) || {},
+        error: null
+      };
+    } catch (error46) {
+      if (_this.shouldThrowOnError)
+        throw error46;
+      if (isStorageVectorsError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async getIndex(vectorBucketName, indexName) {
+    var _this2 = this;
+    try {
+      return {
+        data: await post(_this2.fetch, `${_this2.url}/GetIndex`, {
+          vectorBucketName,
+          indexName
+        }, { headers: _this2.headers }),
+        error: null
+      };
+    } catch (error46) {
+      if (_this2.shouldThrowOnError)
+        throw error46;
+      if (isStorageVectorsError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async listIndexes(options) {
+    var _this3 = this;
+    try {
+      return {
+        data: await post(_this3.fetch, `${_this3.url}/ListIndexes`, options, { headers: _this3.headers }),
+        error: null
+      };
+    } catch (error46) {
+      if (_this3.shouldThrowOnError)
+        throw error46;
+      if (isStorageVectorsError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async deleteIndex(vectorBucketName, indexName) {
+    var _this4 = this;
+    try {
+      return {
+        data: await post(_this4.fetch, `${_this4.url}/DeleteIndex`, {
+          vectorBucketName,
+          indexName
+        }, { headers: _this4.headers }) || {},
+        error: null
+      };
+    } catch (error46) {
+      if (_this4.shouldThrowOnError)
+        throw error46;
+      if (isStorageVectorsError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+};
+var VectorDataApi = class {
+  constructor(url2, headers = {}, fetch$1) {
+    this.shouldThrowOnError = false;
+    this.url = url2.replace(/\/$/, "");
+    this.headers = _objectSpread2(_objectSpread2({}, DEFAULT_HEADERS), headers);
+    this.fetch = resolveFetch(fetch$1);
+  }
+  throwOnError() {
+    this.shouldThrowOnError = true;
+    return this;
+  }
+  async putVectors(options) {
+    var _this = this;
+    try {
+      if (options.vectors.length < 1 || options.vectors.length > 500)
+        throw new Error("Vector batch size must be between 1 and 500 items");
+      return {
+        data: await post(_this.fetch, `${_this.url}/PutVectors`, options, { headers: _this.headers }) || {},
+        error: null
+      };
+    } catch (error46) {
+      if (_this.shouldThrowOnError)
+        throw error46;
+      if (isStorageVectorsError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async getVectors(options) {
+    var _this2 = this;
+    try {
+      return {
+        data: await post(_this2.fetch, `${_this2.url}/GetVectors`, options, { headers: _this2.headers }),
+        error: null
+      };
+    } catch (error46) {
+      if (_this2.shouldThrowOnError)
+        throw error46;
+      if (isStorageVectorsError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async listVectors(options) {
+    var _this3 = this;
+    try {
+      if (options.segmentCount !== undefined) {
+        if (options.segmentCount < 1 || options.segmentCount > 16)
+          throw new Error("segmentCount must be between 1 and 16");
+        if (options.segmentIndex !== undefined) {
+          if (options.segmentIndex < 0 || options.segmentIndex >= options.segmentCount)
+            throw new Error(`segmentIndex must be between 0 and ${options.segmentCount - 1}`);
+        }
+      }
+      return {
+        data: await post(_this3.fetch, `${_this3.url}/ListVectors`, options, { headers: _this3.headers }),
+        error: null
+      };
+    } catch (error46) {
+      if (_this3.shouldThrowOnError)
+        throw error46;
+      if (isStorageVectorsError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async queryVectors(options) {
+    var _this4 = this;
+    try {
+      return {
+        data: await post(_this4.fetch, `${_this4.url}/QueryVectors`, options, { headers: _this4.headers }),
+        error: null
+      };
+    } catch (error46) {
+      if (_this4.shouldThrowOnError)
+        throw error46;
+      if (isStorageVectorsError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async deleteVectors(options) {
+    var _this5 = this;
+    try {
+      if (options.keys.length < 1 || options.keys.length > 500)
+        throw new Error("Keys batch size must be between 1 and 500 items");
+      return {
+        data: await post(_this5.fetch, `${_this5.url}/DeleteVectors`, options, { headers: _this5.headers }) || {},
+        error: null
+      };
+    } catch (error46) {
+      if (_this5.shouldThrowOnError)
+        throw error46;
+      if (isStorageVectorsError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+};
+var VectorBucketApi = class {
+  constructor(url2, headers = {}, fetch$1) {
+    this.shouldThrowOnError = false;
+    this.url = url2.replace(/\/$/, "");
+    this.headers = _objectSpread2(_objectSpread2({}, DEFAULT_HEADERS), headers);
+    this.fetch = resolveFetch(fetch$1);
+  }
+  throwOnError() {
+    this.shouldThrowOnError = true;
+    return this;
+  }
+  async createBucket(vectorBucketName) {
+    var _this = this;
+    try {
+      return {
+        data: await post(_this.fetch, `${_this.url}/CreateVectorBucket`, { vectorBucketName }, { headers: _this.headers }) || {},
+        error: null
+      };
+    } catch (error46) {
+      if (_this.shouldThrowOnError)
+        throw error46;
+      if (isStorageVectorsError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async getBucket(vectorBucketName) {
+    var _this2 = this;
+    try {
+      return {
+        data: await post(_this2.fetch, `${_this2.url}/GetVectorBucket`, { vectorBucketName }, { headers: _this2.headers }),
+        error: null
+      };
+    } catch (error46) {
+      if (_this2.shouldThrowOnError)
+        throw error46;
+      if (isStorageVectorsError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async listBuckets(options = {}) {
+    var _this3 = this;
+    try {
+      return {
+        data: await post(_this3.fetch, `${_this3.url}/ListVectorBuckets`, options, { headers: _this3.headers }),
+        error: null
+      };
+    } catch (error46) {
+      if (_this3.shouldThrowOnError)
+        throw error46;
+      if (isStorageVectorsError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+  async deleteBucket(vectorBucketName) {
+    var _this4 = this;
+    try {
+      return {
+        data: await post(_this4.fetch, `${_this4.url}/DeleteVectorBucket`, { vectorBucketName }, { headers: _this4.headers }) || {},
+        error: null
+      };
+    } catch (error46) {
+      if (_this4.shouldThrowOnError)
+        throw error46;
+      if (isStorageVectorsError(error46))
+        return {
+          data: null,
+          error: error46
+        };
+      throw error46;
+    }
+  }
+};
+var StorageVectorsClient = class extends VectorBucketApi {
+  constructor(url2, options = {}) {
+    super(url2, options.headers || {}, options.fetch);
+  }
+  from(vectorBucketName) {
+    return new VectorBucketScope(this.url, this.headers, vectorBucketName, this.fetch);
+  }
+  async createBucket(vectorBucketName) {
+    var _superprop_getCreateBucket = () => super.createBucket, _this = this;
+    return _superprop_getCreateBucket().call(_this, vectorBucketName);
+  }
+  async getBucket(vectorBucketName) {
+    var _superprop_getGetBucket = () => super.getBucket, _this2 = this;
+    return _superprop_getGetBucket().call(_this2, vectorBucketName);
+  }
+  async listBuckets(options = {}) {
+    var _superprop_getListBuckets = () => super.listBuckets, _this3 = this;
+    return _superprop_getListBuckets().call(_this3, options);
+  }
+  async deleteBucket(vectorBucketName) {
+    var _superprop_getDeleteBucket = () => super.deleteBucket, _this4 = this;
+    return _superprop_getDeleteBucket().call(_this4, vectorBucketName);
+  }
+};
+var VectorBucketScope = class extends VectorIndexApi {
+  constructor(url2, headers, vectorBucketName, fetch$1) {
+    super(url2, headers, fetch$1);
+    this.vectorBucketName = vectorBucketName;
+  }
+  async createIndex(options) {
+    var _superprop_getCreateIndex = () => super.createIndex, _this5 = this;
+    return _superprop_getCreateIndex().call(_this5, _objectSpread2(_objectSpread2({}, options), {}, { vectorBucketName: _this5.vectorBucketName }));
+  }
+  async listIndexes(options = {}) {
+    var _superprop_getListIndexes = () => super.listIndexes, _this6 = this;
+    return _superprop_getListIndexes().call(_this6, _objectSpread2(_objectSpread2({}, options), {}, { vectorBucketName: _this6.vectorBucketName }));
+  }
+  async getIndex(indexName) {
+    var _superprop_getGetIndex = () => super.getIndex, _this7 = this;
+    return _superprop_getGetIndex().call(_this7, _this7.vectorBucketName, indexName);
+  }
+  async deleteIndex(indexName) {
+    var _superprop_getDeleteIndex = () => super.deleteIndex, _this8 = this;
+    return _superprop_getDeleteIndex().call(_this8, _this8.vectorBucketName, indexName);
+  }
+  index(indexName) {
+    return new VectorIndexScope(this.url, this.headers, this.vectorBucketName, indexName, this.fetch);
+  }
+};
+var VectorIndexScope = class extends VectorDataApi {
+  constructor(url2, headers, vectorBucketName, indexName, fetch$1) {
+    super(url2, headers, fetch$1);
+    this.vectorBucketName = vectorBucketName;
+    this.indexName = indexName;
+  }
+  async putVectors(options) {
+    var _superprop_getPutVectors = () => super.putVectors, _this9 = this;
+    return _superprop_getPutVectors().call(_this9, _objectSpread2(_objectSpread2({}, options), {}, {
+      vectorBucketName: _this9.vectorBucketName,
+      indexName: _this9.indexName
+    }));
+  }
+  async getVectors(options) {
+    var _superprop_getGetVectors = () => super.getVectors, _this10 = this;
+    return _superprop_getGetVectors().call(_this10, _objectSpread2(_objectSpread2({}, options), {}, {
+      vectorBucketName: _this10.vectorBucketName,
+      indexName: _this10.indexName
+    }));
+  }
+  async listVectors(options = {}) {
+    var _superprop_getListVectors = () => super.listVectors, _this11 = this;
+    return _superprop_getListVectors().call(_this11, _objectSpread2(_objectSpread2({}, options), {}, {
+      vectorBucketName: _this11.vectorBucketName,
+      indexName: _this11.indexName
+    }));
+  }
+  async queryVectors(options) {
+    var _superprop_getQueryVectors = () => super.queryVectors, _this12 = this;
+    return _superprop_getQueryVectors().call(_this12, _objectSpread2(_objectSpread2({}, options), {}, {
+      vectorBucketName: _this12.vectorBucketName,
+      indexName: _this12.indexName
+    }));
+  }
+  async deleteVectors(options) {
+    var _superprop_getDeleteVectors = () => super.deleteVectors, _this13 = this;
+    return _superprop_getDeleteVectors().call(_this13, _objectSpread2(_objectSpread2({}, options), {}, {
+      vectorBucketName: _this13.vectorBucketName,
+      indexName: _this13.indexName
+    }));
+  }
+};
+var StorageClient = class extends StorageBucketApi {
+  constructor(url2, headers = {}, fetch$1, opts) {
+    super(url2, headers, fetch$1, opts);
+  }
+  from(id) {
+    return new StorageFileApi(this.url, this.headers, id, this.fetch);
+  }
+  get vectors() {
+    return new StorageVectorsClient(this.url + "/vector", {
+      headers: this.headers,
+      fetch: this.fetch
+    });
+  }
+  get analytics() {
+    return new StorageAnalyticsClient(this.url + "/iceberg", this.headers, this.fetch);
+  }
+};
+
+// node_modules/@supabase/supabase-js/dist/index.mjs
+var import_auth_js = __toESM(require_main4(), 1);
+__reExport(exports_dist3, __toESM(require_main3(), 1));
+__reExport(exports_dist3, __toESM(require_main4(), 1));
+var version4 = "2.90.1";
+var JS_ENV = "";
+if (typeof Deno !== "undefined")
+  JS_ENV = "deno";
+else if (typeof document !== "undefined")
+  JS_ENV = "web";
+else if (typeof navigator !== "undefined" && navigator.product === "ReactNative")
+  JS_ENV = "react-native";
+else
+  JS_ENV = "node";
+var DEFAULT_HEADERS2 = { "X-Client-Info": `supabase-js-${JS_ENV}/${version4}` };
+var DEFAULT_GLOBAL_OPTIONS = { headers: DEFAULT_HEADERS2 };
+var DEFAULT_DB_OPTIONS = { schema: "public" };
+var DEFAULT_AUTH_OPTIONS = {
+  autoRefreshToken: true,
+  persistSession: true,
+  detectSessionInUrl: true,
+  flowType: "implicit"
+};
+var DEFAULT_REALTIME_OPTIONS = {};
+function _typeof2(o) {
+  "@babel/helpers - typeof";
+  return _typeof2 = typeof Symbol == "function" && typeof Symbol.iterator == "symbol" ? function(o$1) {
+    return typeof o$1;
+  } : function(o$1) {
+    return o$1 && typeof Symbol == "function" && o$1.constructor === Symbol && o$1 !== Symbol.prototype ? "symbol" : typeof o$1;
+  }, _typeof2(o);
+}
+function toPrimitive2(t, r) {
+  if (_typeof2(t) != "object" || !t)
+    return t;
+  var e = t[Symbol.toPrimitive];
+  if (e !== undefined) {
+    var i = e.call(t, r || "default");
+    if (_typeof2(i) != "object")
+      return i;
+    throw new TypeError("@@toPrimitive must return a primitive value.");
+  }
+  return (r === "string" ? String : Number)(t);
+}
+function toPropertyKey2(t) {
+  var i = toPrimitive2(t, "string");
+  return _typeof2(i) == "symbol" ? i : i + "";
+}
+function _defineProperty2(e, r, t) {
+  return (r = toPropertyKey2(r)) in e ? Object.defineProperty(e, r, {
+    value: t,
+    enumerable: true,
+    configurable: true,
+    writable: true
+  }) : e[r] = t, e;
+}
+function ownKeys2(e, r) {
+  var t = Object.keys(e);
+  if (Object.getOwnPropertySymbols) {
+    var o = Object.getOwnPropertySymbols(e);
+    r && (o = o.filter(function(r$1) {
+      return Object.getOwnPropertyDescriptor(e, r$1).enumerable;
+    })), t.push.apply(t, o);
+  }
+  return t;
+}
+function _objectSpread22(e) {
+  for (var r = 1;r < arguments.length; r++) {
+    var t = arguments[r] != null ? arguments[r] : {};
+    r % 2 ? ownKeys2(Object(t), true).forEach(function(r$1) {
+      _defineProperty2(e, r$1, t[r$1]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys2(Object(t)).forEach(function(r$1) {
+      Object.defineProperty(e, r$1, Object.getOwnPropertyDescriptor(t, r$1));
+    });
+  }
+  return e;
+}
+var resolveFetch2 = (customFetch) => {
+  if (customFetch)
+    return (...args) => customFetch(...args);
+  return (...args) => fetch(...args);
+};
+var resolveHeadersConstructor = () => {
+  return Headers;
+};
+var fetchWithAuth = (supabaseKey, getAccessToken, customFetch) => {
+  const fetch$1 = resolveFetch2(customFetch);
+  const HeadersConstructor = resolveHeadersConstructor();
+  return async (input, init) => {
+    var _await$getAccessToken;
+    const accessToken = (_await$getAccessToken = await getAccessToken()) !== null && _await$getAccessToken !== undefined ? _await$getAccessToken : supabaseKey;
+    let headers = new HeadersConstructor(init === null || init === undefined ? undefined : init.headers);
+    if (!headers.has("apikey"))
+      headers.set("apikey", supabaseKey);
+    if (!headers.has("Authorization"))
+      headers.set("Authorization", `Bearer ${accessToken}`);
+    return fetch$1(input, _objectSpread22(_objectSpread22({}, init), {}, { headers }));
+  };
+};
+function ensureTrailingSlash(url2) {
+  return url2.endsWith("/") ? url2 : url2 + "/";
+}
+function applySettingDefaults(options, defaults) {
+  var _DEFAULT_GLOBAL_OPTIO, _globalOptions$header;
+  const { db: dbOptions, auth: authOptions, realtime: realtimeOptions, global: globalOptions } = options;
+  const { db: DEFAULT_DB_OPTIONS$1, auth: DEFAULT_AUTH_OPTIONS$1, realtime: DEFAULT_REALTIME_OPTIONS$1, global: DEFAULT_GLOBAL_OPTIONS$1 } = defaults;
+  const result = {
+    db: _objectSpread22(_objectSpread22({}, DEFAULT_DB_OPTIONS$1), dbOptions),
+    auth: _objectSpread22(_objectSpread22({}, DEFAULT_AUTH_OPTIONS$1), authOptions),
+    realtime: _objectSpread22(_objectSpread22({}, DEFAULT_REALTIME_OPTIONS$1), realtimeOptions),
+    storage: {},
+    global: _objectSpread22(_objectSpread22(_objectSpread22({}, DEFAULT_GLOBAL_OPTIONS$1), globalOptions), {}, { headers: _objectSpread22(_objectSpread22({}, (_DEFAULT_GLOBAL_OPTIO = DEFAULT_GLOBAL_OPTIONS$1 === null || DEFAULT_GLOBAL_OPTIONS$1 === undefined ? undefined : DEFAULT_GLOBAL_OPTIONS$1.headers) !== null && _DEFAULT_GLOBAL_OPTIO !== undefined ? _DEFAULT_GLOBAL_OPTIO : {}), (_globalOptions$header = globalOptions === null || globalOptions === undefined ? undefined : globalOptions.headers) !== null && _globalOptions$header !== undefined ? _globalOptions$header : {}) }),
+    accessToken: async () => ""
+  };
+  if (options.accessToken)
+    result.accessToken = options.accessToken;
+  else
+    delete result.accessToken;
+  return result;
+}
+function validateSupabaseUrl(supabaseUrl) {
+  const trimmedUrl = supabaseUrl === null || supabaseUrl === undefined ? undefined : supabaseUrl.trim();
+  if (!trimmedUrl)
+    throw new Error("supabaseUrl is required.");
+  if (!trimmedUrl.match(/^https?:\/\//i))
+    throw new Error("Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL.");
+  try {
+    return new URL(ensureTrailingSlash(trimmedUrl));
+  } catch (_unused) {
+    throw Error("Invalid supabaseUrl: Provided URL is malformed.");
+  }
+}
+var SupabaseAuthClient = class extends import_auth_js.AuthClient {
+  constructor(options) {
+    super(options);
+  }
+};
+var SupabaseClient = class {
+  constructor(supabaseUrl, supabaseKey, options) {
+    var _settings$auth$storag, _settings$global$head;
+    this.supabaseUrl = supabaseUrl;
+    this.supabaseKey = supabaseKey;
+    const baseUrl = validateSupabaseUrl(supabaseUrl);
+    if (!supabaseKey)
+      throw new Error("supabaseKey is required.");
+    this.realtimeUrl = new URL("realtime/v1", baseUrl);
+    this.realtimeUrl.protocol = this.realtimeUrl.protocol.replace("http", "ws");
+    this.authUrl = new URL("auth/v1", baseUrl);
+    this.storageUrl = new URL("storage/v1", baseUrl);
+    this.functionsUrl = new URL("functions/v1", baseUrl);
+    const defaultStorageKey = `sb-${baseUrl.hostname.split(".")[0]}-auth-token`;
+    const DEFAULTS = {
+      db: DEFAULT_DB_OPTIONS,
+      realtime: DEFAULT_REALTIME_OPTIONS,
+      auth: _objectSpread22(_objectSpread22({}, DEFAULT_AUTH_OPTIONS), {}, { storageKey: defaultStorageKey }),
+      global: DEFAULT_GLOBAL_OPTIONS
+    };
+    const settings = applySettingDefaults(options !== null && options !== undefined ? options : {}, DEFAULTS);
+    this.storageKey = (_settings$auth$storag = settings.auth.storageKey) !== null && _settings$auth$storag !== undefined ? _settings$auth$storag : "";
+    this.headers = (_settings$global$head = settings.global.headers) !== null && _settings$global$head !== undefined ? _settings$global$head : {};
+    if (!settings.accessToken) {
+      var _settings$auth;
+      this.auth = this._initSupabaseAuthClient((_settings$auth = settings.auth) !== null && _settings$auth !== undefined ? _settings$auth : {}, this.headers, settings.global.fetch);
+    } else {
+      this.accessToken = settings.accessToken;
+      this.auth = new Proxy({}, { get: (_, prop) => {
+        throw new Error(`@supabase/supabase-js: Supabase Client is configured with the accessToken option, accessing supabase.auth.${String(prop)} is not possible`);
+      } });
+    }
+    this.fetch = fetchWithAuth(supabaseKey, this._getAccessToken.bind(this), settings.global.fetch);
+    this.realtime = this._initRealtimeClient(_objectSpread22({
+      headers: this.headers,
+      accessToken: this._getAccessToken.bind(this)
+    }, settings.realtime));
+    if (this.accessToken)
+      this.accessToken().then((token) => this.realtime.setAuth(token)).catch((e) => console.warn("Failed to set initial Realtime auth token:", e));
+    this.rest = new PostgrestClient(new URL("rest/v1", baseUrl).href, {
+      headers: this.headers,
+      schema: settings.db.schema,
+      fetch: this.fetch
+    });
+    this.storage = new StorageClient(this.storageUrl.href, this.headers, this.fetch, options === null || options === undefined ? undefined : options.storage);
+    if (!settings.accessToken)
+      this._listenForAuthEvents();
+  }
+  get functions() {
+    return new import_functions_js.FunctionsClient(this.functionsUrl.href, {
+      headers: this.headers,
+      customFetch: this.fetch
+    });
+  }
+  from(relation) {
+    return this.rest.from(relation);
+  }
+  schema(schema) {
+    return this.rest.schema(schema);
+  }
+  rpc(fn, args = {}, options = {
+    head: false,
+    get: false,
+    count: undefined
+  }) {
+    return this.rest.rpc(fn, args, options);
+  }
+  channel(name, opts = { config: {} }) {
+    return this.realtime.channel(name, opts);
+  }
+  getChannels() {
+    return this.realtime.getChannels();
+  }
+  removeChannel(channel) {
+    return this.realtime.removeChannel(channel);
+  }
+  removeAllChannels() {
+    return this.realtime.removeAllChannels();
+  }
+  async _getAccessToken() {
+    var _this = this;
+    var _data$session$access_, _data$session;
+    if (_this.accessToken)
+      return await _this.accessToken();
+    const { data } = await _this.auth.getSession();
+    return (_data$session$access_ = (_data$session = data.session) === null || _data$session === undefined ? undefined : _data$session.access_token) !== null && _data$session$access_ !== undefined ? _data$session$access_ : _this.supabaseKey;
+  }
+  _initSupabaseAuthClient({ autoRefreshToken, persistSession, detectSessionInUrl, storage, userStorage, storageKey, flowType, lock, debug, throwOnError }, headers, fetch$1) {
+    const authHeaders = {
+      Authorization: `Bearer ${this.supabaseKey}`,
+      apikey: `${this.supabaseKey}`
+    };
+    return new SupabaseAuthClient({
+      url: this.authUrl.href,
+      headers: _objectSpread22(_objectSpread22({}, authHeaders), headers),
+      storageKey,
+      autoRefreshToken,
+      persistSession,
+      detectSessionInUrl,
+      storage,
+      userStorage,
+      flowType,
+      lock,
+      debug,
+      throwOnError,
+      fetch: fetch$1,
+      hasCustomAuthorizationHeader: Object.keys(this.headers).some((key) => key.toLowerCase() === "authorization")
+    });
+  }
+  _initRealtimeClient(options) {
+    return new import_realtime_js.RealtimeClient(this.realtimeUrl.href, _objectSpread22(_objectSpread22({}, options), {}, { params: _objectSpread22(_objectSpread22({}, { apikey: this.supabaseKey }), options === null || options === undefined ? undefined : options.params) }));
+  }
+  _listenForAuthEvents() {
+    return this.auth.onAuthStateChange((event, session) => {
+      this._handleTokenChanged(event, "CLIENT", session === null || session === undefined ? undefined : session.access_token);
+    });
+  }
+  _handleTokenChanged(event, source, token) {
+    if ((event === "TOKEN_REFRESHED" || event === "SIGNED_IN") && this.changedAccessToken !== token) {
+      this.changedAccessToken = token;
+      this.realtime.setAuth(token);
+    } else if (event === "SIGNED_OUT") {
+      this.realtime.setAuth();
+      if (source == "STORAGE")
+        this.auth.signOut();
+      this.changedAccessToken = undefined;
+    }
+  }
+};
+var createClient = (supabaseUrl, supabaseKey, options) => {
+  return new SupabaseClient(supabaseUrl, supabaseKey, options);
+};
+function shouldShowDeprecationWarning() {
+  if (typeof window !== "undefined")
+    return false;
+  const _process = globalThis["process"];
+  if (!_process)
+    return false;
+  const processVersion = _process["version"];
+  if (processVersion === undefined || processVersion === null)
+    return false;
+  const versionMatch = processVersion.match(/^v(\d+)\./);
+  if (!versionMatch)
+    return false;
+  return parseInt(versionMatch[1], 10) <= 18;
+}
+if (shouldShowDeprecationWarning())
+  console.warn("⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217");
+
+// src/supabase/client.ts
+function createSupabaseClientInstance() {
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: true
+    }
+  });
+}
+async function persistRefreshedSession(supabaseSession) {
+  try {
+    await withFileLock(SESSION_FILE, async () => {
+      const currentSession = await loadSessionFile();
+      if (!currentSession) {
+        logger.warn("No current session found during refresh, skipping persistence");
+        return;
+      }
+      const updatedSession = {
+        ...currentSession,
+        accessToken: supabaseSession.access_token,
+        refreshToken: supabaseSession.refresh_token,
+        userId: supabaseSession.user.id,
+        email: supabaseSession.user.email || currentSession.email
+      };
+      await saveSession(updatedSession);
+      logger.info("Session persisted after TOKEN_REFRESHED event");
+    });
+  } catch (error46) {
+    logger.error("Failed to persist refreshed session", error46);
+    if (error46 instanceof Error) {
+      captureException(error46, SUPABASE_SESSION_REFRESH_PERSIST_FAILED, "supabase/client", {
+        session_file: SESSION_FILE
+      });
+    }
+  }
+}
+async function setClientSession(client, session) {
+  const { error: error46 } = await client.auth.setSession({
+    access_token: session.accessToken,
+    refresh_token: session.refreshToken
+  });
+  if (error46) {
+    logger.error(`Failed to set Supabase session: ${error46.message}`);
+    const isInvalidRefreshToken = error46.message.includes("Invalid Refresh Token") || error46.code === "refresh_token_not_found" || error46.code === "refresh_token_already_used" || error46.code === "session_not_found" || error46.code === "session_expired";
+    captureException(error46, SUPABASE_SESSION_SET_FAILED, "supabase/client", {
+      is_invalid_refresh_token: isInvalidRefreshToken,
+      error_code: error46.code,
+      error_status: error46.status
+    });
+    if (isInvalidRefreshToken) {
+      logger.warn("Invalid refresh token, clearing session");
+      await clearSession();
+    }
+    throw error46;
+  }
+  logger.debug("Supabase session set successfully");
+}
+async function loadValidSession() {
+  const session = await loadSessionFile();
+  if (!session) {
+    logger.debug("No session available, skipping Supabase client creation");
+    return null;
+  }
+  if (session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now()) {
+    logger.warn("Refresh token expired, user must re-authenticate");
+    await clearSession();
+    return null;
+  }
+  return session;
+}
+var daemonClient = null;
+var daemonAuthUnsubscribe = null;
+var daemonDestroying = false;
+async function getDaemonClient() {
+  try {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      logger.warn("Supabase configuration missing (URL or anon key)");
+      return null;
+    }
+    const session = await loadValidSession();
+    if (!session) {
+      if (daemonClient) {
+        await destroyDaemonClient();
+      }
+      return null;
+    }
+    if (!daemonClient) {
+      daemonClient = createSupabaseClientInstance();
+      await setClientSession(daemonClient, session);
+      const { data } = daemonClient.auth.onAuthStateChange(async (event, supabaseSession) => {
+        logger.debug(`Daemon auth state change: ${event}`);
+        if (event === "TOKEN_REFRESHED" && supabaseSession) {
+          await persistRefreshedSession(supabaseSession);
+        } else if (event === "SIGNED_OUT") {
+          logger.warn("Received SIGNED_OUT event from Supabase, destroying daemon client");
+          await destroyDaemonClient();
+        }
+      });
+      daemonAuthUnsubscribe = data.subscription.unsubscribe;
+      logger.debug("Daemon Supabase singleton client created with auto-refresh enabled");
+    }
+    return daemonClient;
+  } catch (error46) {
+    await destroyDaemonClient();
+    logger.error("Failed to get daemon Supabase client", error46);
+    if (error46 instanceof Error) {
+      captureException(error46, SUPABASE_CLIENT_INIT_FAILED, "supabase/client", {
+        has_supabase_url: Boolean(SUPABASE_URL),
+        has_anon_key: Boolean(SUPABASE_ANON_KEY),
+        client_type: "daemon"
+      });
+    }
+    return null;
+  }
+}
+async function destroyDaemonClient() {
+  if (daemonDestroying)
+    return;
+  daemonDestroying = true;
+  try {
+    if (daemonAuthUnsubscribe) {
+      daemonAuthUnsubscribe();
+      daemonAuthUnsubscribe = null;
+    }
+    if (daemonClient) {
+      try {
+        await daemonClient.removeAllChannels();
+        logger.debug("Daemon Supabase client channels removed");
+      } catch (error46) {
+        logger.warn(`Error removing daemon Supabase channels: ${error46.message}`);
+      }
+      daemonClient = null;
+      logger.debug("Daemon Supabase singleton client destroyed");
+    }
+  } finally {
+    daemonDestroying = false;
+  }
+}
+
 // src/utils/queue-manager.ts
-import { appendFile as appendFile2, readFile as readFile5, unlink as unlink5, writeFile as writeFile5 } from "node:fs/promises";
+import { appendFile as appendFile2, readFile as readFile6, unlink as unlink6, writeFile as writeFile6 } from "node:fs/promises";
 import { dirname as dirname6 } from "node:path";
 
 // ../../packages/privacy-redaction/src/config/defaults.ts
@@ -36760,138 +37386,10 @@ var ALL_BUILT_IN_RULES = [
   ...LOCK_FILE_RULES,
   ...BINARY_MEDIA_RULES
 ];
-// src/utils/file-lock.ts
-import { unlinkSync } from "node:fs";
-import { readdir as readdir2, readFile as readFile4, unlink as unlink4, writeFile as writeFile4 } from "node:fs/promises";
-import { dirname as dirname5 } from "node:path";
-
-// src/utils/daemon-manager.ts
-import { readFile as readFile3, stat as stat2, unlink as unlink3, writeFile as writeFile3 } from "node:fs/promises";
-import { dirname as dirname4, join as join4 } from "node:path";
-import { fileURLToPath } from "node:url";
-var DAEMON_RESTART_LOCK = join4(CLAUDE_ZEST_DIR, "daemon-restart.lock");
-var __filename2 = fileURLToPath(import.meta.url);
-var __dirname2 = dirname4(__filename2);
-function isProcessRunning(pid) {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-async function writePidFile(pid) {
-  try {
-    await ensureDirectory(dirname4(DAEMON_PID_FILE));
-    await writeFile3(DAEMON_PID_FILE, pid.toString(), "utf-8");
-    logger.debug(`Wrote PID ${pid} to daemon.pid`);
-  } catch (error46) {
-    logger.error("Failed to write PID file:", error46);
-  }
-}
-
-// src/utils/file-lock.ts
-var activeLockFiles = new Set;
-function isLockStale(lockInfo) {
-  return !isProcessRunning(lockInfo.pid);
-}
-async function acquireFileLock(filePath) {
-  const lockFile = `${filePath}.lock`;
-  const lockInfo = {
-    pid: process.pid,
-    timestamp: Date.now()
-  };
-  try {
-    await ensureDirectory(dirname5(lockFile));
-    await writeFile4(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
-    activeLockFiles.add(lockFile);
-    return true;
-  } catch (error46) {
-    if (error46.code !== "EEXIST") {
-      const errCode = error46.code;
-      if (errCode === "ENOENT" || errCode === "EACCES") {
-        logger.error(`Failed to create lock file ${lockFile}:`, error46);
-        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
-          ...buildFileSystemProperties({
-            filePath: lockFile,
-            operation: "lock",
-            errnoCode: errCode
-          })
-        });
-      }
-      throw error46;
-    }
-    try {
-      const content = await readFile4(lockFile, "utf8");
-      const existingLock = JSON.parse(content);
-      if (isLockStale(existingLock)) {
-        logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
-        await unlink4(lockFile).catch(() => {});
-        return acquireFileLock(filePath);
-      }
-    } catch {
-      logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
-      await unlink4(lockFile).catch(() => {});
-      return acquireFileLock(filePath);
-    }
-    return false;
-  }
-}
-async function releaseFileLock(filePath) {
-  const lockFile = `${filePath}.lock`;
-  activeLockFiles.delete(lockFile);
-  await unlink4(lockFile).catch(() => {});
-}
-function cleanupLockFiles() {
-  for (const lockFile of activeLockFiles) {
-    try {
-      unlinkSync(lockFile);
-    } catch {}
-  }
-  activeLockFiles.clear();
-}
-var cleanupRegistered = false;
-function setupLockCleanup() {
-  if (cleanupRegistered)
-    return;
-  cleanupRegistered = true;
-  process.on("exit", cleanupLockFiles);
-  process.on("SIGINT", () => {
-    cleanupLockFiles();
-    process.exit(0);
-  });
-  process.on("SIGTERM", () => {
-    cleanupLockFiles();
-    process.exit(0);
-  });
-  logger.debug("Lock cleanup handlers registered");
-}
-async function withFileLock(filePath, fn) {
-  let retries = 0;
-  while (!await acquireFileLock(filePath)) {
-    if (++retries >= LOCK_MAX_RETRIES) {
-      const error46 = new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
-      captureException(error46, FILE_LOCK_TIMEOUT, "file-lock", {
-        ...buildFileSystemProperties({ filePath, operation: "lock" }),
-        retries,
-        max_retries: LOCK_MAX_RETRIES,
-        retry_delay_ms: LOCK_RETRY_MS
-      });
-      throw error46;
-    }
-    await new Promise((resolve) => setTimeout(resolve, LOCK_RETRY_MS));
-  }
-  try {
-    return await fn();
-  } finally {
-    await releaseFileLock(filePath);
-  }
-}
-
 // src/utils/queue-manager.ts
 async function readJsonl(filePath) {
   try {
-    const content = await readFile5(filePath, "utf8");
+    const content = await readFile6(filePath, "utf8");
     const lines = content.trim().split(`
 `).filter(Boolean);
     const results = [];
@@ -36921,7 +37419,7 @@ async function readJsonl(filePath) {
 }
 async function countLines(filePath) {
   try {
-    const content = await readFile5(filePath, "utf8");
+    const content = await readFile6(filePath, "utf8");
     const lines = content.trim().split(`
 `).filter(Boolean);
     return lines.length;
@@ -36949,7 +37447,7 @@ async function atomicUpdateQueue(queueFile, transform2) {
       const content = newItems.map((item) => JSON.stringify(item)).join(`
 `) + (newItems.length > 0 ? `
 ` : "");
-      await writeFile5(queueFile, content, "utf8");
+      await writeFile6(queueFile, content, "utf8");
       logger.debug(`Atomically updated queue file: ${queueFile} (${currentItems.length} → ${newItems.length} items)`);
     });
   } catch (error46) {
@@ -36981,116 +37479,12 @@ async function initializeQueue() {
   }
 }
 
-// src/utils/status-cache-manager.ts
-import { readFileSync as readFileSync2, writeFileSync } from "node:fs";
-var DEFAULT_VERSION_CHECK = {
-  updateAvailable: false,
-  currentVersion: "unknown",
-  latestVersion: "unknown",
-  checkedAt: 0
-};
-var DEFAULT_SYNC_STATUS = {
-  hasError: false,
-  errorType: null,
-  errorMessage: null,
-  lastErrorAt: null,
-  lastSuccessAt: null
-};
-var DEFAULT_DEV_MODE_STATUS = {
-  active: false
-};
-var DEFAULT_STATUS_CACHE = {
-  versionCheck: DEFAULT_VERSION_CHECK,
-  syncStatus: DEFAULT_SYNC_STATUS,
-  devMode: DEFAULT_DEV_MODE_STATUS
-};
-function readStatusCache() {
-  try {
-    const data = readFileSync2(STATUS_CACHE_FILE, "utf-8");
-    const parsed = JSON.parse(data);
-    if (parsed.updateAvailable !== undefined && !parsed.versionCheck) {
-      logger.info("Migrating old update-check.json format to new status-cache.json format");
-      const migrated = {
-        versionCheck: {
-          updateAvailable: parsed.updateAvailable ?? false,
-          currentVersion: parsed.currentVersion ?? "unknown",
-          latestVersion: parsed.latestVersion ?? "unknown",
-          checkedAt: parsed.checkedAt ?? 0
-        },
-        syncStatus: DEFAULT_SYNC_STATUS
-      };
-      return migrated;
-    }
-    return {
-      versionCheck: {
-        ...DEFAULT_VERSION_CHECK,
-        ...parsed.versionCheck
-      },
-      syncStatus: {
-        ...DEFAULT_SYNC_STATUS,
-        ...parsed.syncStatus
-      },
-      devMode: {
-        ...DEFAULT_DEV_MODE_STATUS,
-        ...parsed.devMode
-      }
-    };
-  } catch (error46) {
-    if (error46.code === "ENOENT") {
-      logger.debug("Status cache file does not exist, using defaults");
-    } else {
-      logger.warn("Failed to read status cache file, using defaults", error46);
-    }
-    return DEFAULT_STATUS_CACHE;
-  }
-}
-async function writeSyncStatus(status) {
-  try {
-    await withFileLock(STATUS_CACHE_FILE, async () => {
-      const currentCache = readStatusCache();
-      const updatedCache = {
-        ...currentCache,
-        syncStatus: status
-      };
-      writeFileSync(STATUS_CACHE_FILE, JSON.stringify(updatedCache, null, 2), "utf-8");
-      logger.debug("Wrote sync status to status cache", {
-        hasError: status.hasError,
-        errorType: status.errorType
-      });
-    });
-  } catch (error46) {
-    logger.error("Failed to write sync status to status cache", error46);
-  }
-}
-async function clearSyncError() {
-  try {
-    await withFileLock(STATUS_CACHE_FILE, async () => {
-      const currentCache = readStatusCache();
-      const clearedStatus = {
-        hasError: false,
-        errorType: null,
-        errorMessage: null,
-        lastErrorAt: currentCache.syncStatus.lastErrorAt,
-        lastSuccessAt: Date.now()
-      };
-      const updatedCache = {
-        ...currentCache,
-        syncStatus: clearedStatus
-      };
-      writeFileSync(STATUS_CACHE_FILE, JSON.stringify(updatedCache, null, 2), "utf-8");
-      logger.debug("Cleared sync error in status cache");
-    });
-  } catch (error46) {
-    logger.error("Failed to clear sync error in status cache", error46);
-  }
-}
-
 // src/utils/sync-metrics-manager.ts
-import { readFile as readFile6, writeFile as writeFile6 } from "node:fs/promises";
+import { readFile as readFile7, writeFile as writeFile7 } from "node:fs/promises";
 import { dirname as dirname7 } from "node:path";
 async function readMetrics() {
   try {
-    const content = await readFile6(SYNC_METRICS_FILE, "utf8");
+    const content = await readFile7(SYNC_METRICS_FILE, "utf8");
     const lines = content.trim().split(`
 `).filter(Boolean);
     const results = [];
@@ -37114,7 +37508,7 @@ async function writeMetrics(entries) {
   const content = entries.map((entry) => JSON.stringify(entry)).join(`
 `) + (entries.length > 0 ? `
 ` : "");
-  await writeFile6(SYNC_METRICS_FILE, content, "utf8");
+  await writeFile7(SYNC_METRICS_FILE, content, "utf8");
 }
 async function recordSyncMetric(entry) {
   try {
@@ -37540,36 +37934,6 @@ async function uploadChatDataWithRetry(supabase, maxRetries = 3, backoffMs = 500
   return { success: false, uploaded: { sessions: 0, messages: 0 } };
 }
 
-// src/supabase/client.ts
-async function getSupabaseClient() {
-  try {
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      logger.warn("Supabase configuration missing (URL or anon key)");
-      return null;
-    }
-    const session = await getValidSession();
-    if (!session) {
-      logger.debug("No valid session available, skipping Supabase client creation");
-      return null;
-    }
-    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        persistSession: false
-      },
-      global: {
-        headers: {
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      }
-    });
-    logger.debug("Supabase client created successfully");
-    return client;
-  } catch (error46) {
-    logger.error("Failed to create Supabase client", error46);
-    return null;
-  }
-}
-
 // src/supabase/events-uploader.ts
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 
@@ -37897,7 +38261,7 @@ async function uploadEventsWithRetry(supabase, maxRetries = 3, backoffMs = 5000)
 }
 
 // src/supabase/sync.ts
-async function syncAllData() {
+async function syncAllData(supabase) {
   try {
     const stats = await getQueueStats();
     const hasData = stats.events > 0 || stats.sessions > 0 || stats.messages > 0;
@@ -37909,24 +38273,6 @@ async function syncAllData() {
       };
     }
     logger.info(`Starting sync: ${stats.events} events, ${stats.sessions} sessions, ${stats.messages} messages`);
-    const supabase = await getSupabaseClient();
-    if (!supabase) {
-      logger.debug("Cannot sync: not authenticated or Supabase not configured");
-      captureException(new Error("Sync failed: not authenticated"), SYNC_NOT_AUTHENTICATED, "sync", {
-        ...buildSyncProperties({
-          syncErrorType: "not_authenticated",
-          eventsAttempted: stats.events,
-          sessionsAttempted: stats.sessions,
-          messagesAttempted: stats.messages
-        })
-      });
-      return {
-        success: false,
-        uploaded: { events: 0, sessions: 0, messages: 0 },
-        error: "Not authenticated",
-        errorType: "not_authenticated"
-      };
-    }
     const eventsResult = await uploadEventsWithRetry(supabase);
     if (!eventsResult.success) {
       return {
@@ -37982,63 +38328,6 @@ async function syncAllData() {
   }
 }
 
-// src/utils/claude-instances.ts
-import { readFile as readFile7, rename, unlink as unlink6, writeFile as writeFile7 } from "node:fs/promises";
-async function getTrackedPids() {
-  try {
-    const data = await readFile7(CLAUDE_INSTANCES_FILE, "utf-8");
-    const registry2 = JSON.parse(data);
-    if (!Array.isArray(registry2.pids)) {
-      logger.warn("Claude instances file has invalid format, treating as empty");
-      return [];
-    }
-    return registry2.pids;
-  } catch (error46) {
-    if (error46 instanceof Error && "code" in error46) {
-      const code = error46.code;
-      if (code === "ENOENT") {
-        return [];
-      }
-    }
-    logger.warn("Failed to read Claude instances file, treating as empty:", error46);
-    return [];
-  }
-}
-async function writeTrackedPids(pids) {
-  const registry2 = { pids };
-  const content = JSON.stringify(registry2, null, 2);
-  const tempFile = `${CLAUDE_INSTANCES_FILE}.tmp`;
-  try {
-    await writeFile7(tempFile, content, "utf-8");
-    await rename(tempFile, CLAUDE_INSTANCES_FILE);
-  } catch (error46) {
-    logger.error("Failed to write Claude instances file:", error46);
-    try {
-      await unlink6(tempFile);
-    } catch {}
-    throw error46;
-  }
-}
-async function getAlivePidsAndPrune() {
-  try {
-    const pids = await getTrackedPids();
-    const alivePids = pids.filter((pid) => isProcessRunning(pid));
-    if (alivePids.length !== pids.length) {
-      await writeTrackedPids(alivePids);
-      const removedCount = pids.length - alivePids.length;
-      logger.debug(`Pruned ${removedCount} dead Claude instance PID(s)`);
-    }
-    return alivePids;
-  } catch (error46) {
-    logger.error("Failed to prune dead PIDs:", error46);
-    return [];
-  }
-}
-async function isAnyClaudeRunning() {
-  const alivePids = await getAlivePidsAndPrune();
-  return alivePids.length > 0;
-}
-
 // src/sync-daemon.ts
 class SyncLogger {
   logPrefix = "sync";
@@ -38071,7 +38360,6 @@ class SyncLogger {
   }
 }
 var syncLogger = new SyncLogger;
-var noClaudeSince = null;
 async function runDaemon() {
   syncLogger.info("=== Sync daemon started ===");
   syncLogger.info(`PID: ${process.pid}`);
@@ -38079,7 +38367,19 @@ async function runDaemon() {
   await syncLogger.cleanupOldLogs();
   await initializeQueue();
   await writePidFile(process.pid);
+  try {
+    const session = await getValidSession();
+    if (session) {
+      const client = await getDaemonClient();
+      if (client) {
+        await getStandupRealtimeManager().syncWithSession(session, client);
+      }
+    }
+  } catch (error46) {
+    syncLogger.error("Failed to subscribe to standup realtime", error46);
+  }
   while (true) {
+    await checkClaudeInstancesAndManageShutdown();
     try {
       await syncCycle();
     } catch (error46) {
@@ -38088,22 +38388,6 @@ async function runDaemon() {
         captureException(error46, DAEMON_SYNC_CYCLE_FAILED, "sync-daemon", {
           ...buildDaemonProperties({ operation: "sync_cycle", pid: process.pid })
         });
-      }
-    }
-    const anyClaudeRunning = await isAnyClaudeRunning();
-    if (anyClaudeRunning) {
-      if (noClaudeSince !== null) {
-        syncLogger.info("Claude Code reopened; cancelling daemon shutdown timer");
-      }
-      noClaudeSince = null;
-    } else {
-      if (noClaudeSince === null) {
-        noClaudeSince = Date.now();
-        syncLogger.info(`All Claude Code instances closed; daemon will shut down in ${DAEMON_INACTIVITY_TIMEOUT_MS / 1000} minutes unless reopened`);
-      } else if (Date.now() - noClaudeSince > DAEMON_INACTIVITY_TIMEOUT_MS) {
-        syncLogger.info(`All Claude Code instances have been closed for ${DAEMON_INACTIVITY_TIMEOUT_MS / 1000} minutes; shutting down daemon`);
-        await shutdownAnalytics();
-        process.exit(0);
       }
     }
     await sleep(SYNC_INTERVAL_MS);
@@ -38123,14 +38407,45 @@ async function syncCycle() {
       return;
     }
     syncLogger.info(`Starting sync: ${stats.events} events, ${stats.sessions} sessions, ${stats.messages} messages`);
+    const session = await getValidSession();
+    const supabase = await getDaemonClient();
+    if (!supabase) {
+      syncLogger.debug("Cannot sync: not authenticated or Supabase not configured");
+      captureException(new Error("Sync failed: not authenticated"), SYNC_NOT_AUTHENTICATED, "sync-daemon", {
+        ...buildDaemonProperties({ operation: "sync_cycle", pid: process.pid })
+      });
+      await recordSyncMetric({
+        timestamp: Date.now(),
+        success: false,
+        uploaded: { events: 0, sessions: 0, messages: 0 },
+        errorType: "not_authenticated"
+      });
+      await writeSyncStatus({
+        hasError: true,
+        errorType: "not_authenticated",
+        errorMessage: "Auth required - run /zest:login.",
+        lastErrorAt: Date.now(),
+        lastSuccessAt: null
+      }).catch((error46) => {
+        syncLogger.error("Failed to write sync error to status cache", error46);
+      });
+      return;
+    }
+    try {
+      if (session) {
+        await getStandupRealtimeManager().syncWithSession(session, supabase);
+      }
+    } catch (error46) {
+      syncLogger.error("Failed to sync realtime subscription", error46);
+    }
     const startTime = Date.now();
-    const result = await syncAllData();
+    const result = await syncAllData(supabase);
     const duration3 = Date.now() - startTime;
     if (result.success) {
       const { events, sessions, messages } = result.uploaded;
       const totalUploaded = events + sessions + messages;
       if (totalUploaded > 0) {
-        syncLogger.info(`✓ Sync successful in ${duration3}ms: ${events} events, ${sessions} sessions, ${messages} messages`);
+        syncLogger.info(`Sync successful in ${duration3}ms: ${events} events, ${sessions} sessions, ${messages} messages`);
       } else {
         syncLogger.debug(`No data uploaded in ${duration3}ms (may have been uploaded already)`);
       }
@@ -38142,8 +38457,15 @@ async function syncCycle() {
       await clearSyncError().catch((error46) => {
         syncLogger.error("Failed to clear sync error in status cache", error46);
       });
+      if (session) {
+        try {
+          await checkFirstDataReadyNotification(supabase, session);
+        } catch (error46) {
+          syncLogger.error("Failed to check notification thresholds", error46);
+        }
+      }
     } else {
-      syncLogger.error(`✗ Sync failed in ${duration3}ms: ${result.error}`);
+      syncLogger.error(`Sync failed in ${duration3}ms: ${result.error}`);
       const errorType = result.errorType || "upload_failed";
       await recordSyncMetric({
         timestamp: Date.now(),
@@ -38180,6 +38502,20 @@ function sleep(ms) {
 function setupShutdownHandlers() {
   const shutdown = async () => {
     syncLogger.info("=== Daemon shutting down ===");
+    cancelShutdownTimer();
+    try {
+      const realtimeManager = getStandupRealtimeManager();
+      await realtimeManager.unsubscribe();
+      syncLogger.info("Standup realtime unsubscribed");
+    } catch (error46) {
+      syncLogger.error("Failed to unsubscribe from standup realtime", error46);
+    }
+    try {
+      await destroyDaemonClient();
+      syncLogger.info("Supabase client destroyed");
+    } catch (error46) {
+      syncLogger.error("Failed to destroy Supabase client", error46);
+    }
     await shutdownAnalytics();
     process.exit(0);
   };

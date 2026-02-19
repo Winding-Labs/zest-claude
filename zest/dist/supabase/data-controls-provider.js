@@ -9,10 +9,6 @@ var __export = (target, all) => {
     });
 };
 
-// src/config/settings.ts
-import { readFile, writeFile } from "node:fs/promises";
-import { dirname as dirname2 } from "node:path";
-
 // ../../node_modules/.bun/zod@3.25.76/node_modules/zod/v3/external.js
 var exports_external = {};
 __export(exports_external, {
@@ -3986,6 +3982,116 @@ var coerce = {
   date: (arg) => ZodDate.create({ ...arg, coerce: true })
 };
 var NEVER = INVALID;
+// ../../packages/types/data-controls.ts
+var RETENTION_PERIODS = ["7d", "30d", "90d", "1y", "forever"];
+var RETENTION_PERIOD_ORDER = {
+  "7d": 0,
+  "30d": 1,
+  "90d": 2,
+  "1y": 3,
+  forever: 4
+};
+var collectionSettingsSchema = exports_external.object({
+  user_messages: exports_external.boolean(),
+  assistant_messages: exports_external.boolean(),
+  code_diffs: exports_external.boolean()
+});
+var retentionSettingsSchema = exports_external.object({
+  user_messages: exports_external.enum(RETENTION_PERIODS),
+  assistant_messages: exports_external.enum(RETENTION_PERIODS),
+  code_diffs: exports_external.enum(RETENTION_PERIODS)
+});
+var WORKSPACE_COLLECTION_DEFAULTS = {
+  user_messages: true,
+  assistant_messages: true,
+  code_diffs: true
+};
+var WORKSPACE_RETENTION_DEFAULTS = {
+  user_messages: "90d",
+  assistant_messages: "90d",
+  code_diffs: "7d"
+};
+function shorterRetentionPeriod(a, b) {
+  return RETENTION_PERIOD_ORDER[a] <= RETENTION_PERIOD_ORDER[b] ? a : b;
+}
+function getEffectiveCollection(workspace, user) {
+  if (!user)
+    return workspace;
+  return {
+    user_messages: workspace.user_messages && user.user_messages,
+    assistant_messages: workspace.assistant_messages && user.assistant_messages,
+    code_diffs: workspace.code_diffs && user.code_diffs
+  };
+}
+function getEffectiveRetention(workspace, user) {
+  if (!user)
+    return workspace;
+  return {
+    user_messages: shorterRetentionPeriod(workspace.user_messages, user.user_messages),
+    assistant_messages: shorterRetentionPeriod(workspace.assistant_messages, user.assistant_messages),
+    code_diffs: shorterRetentionPeriod(workspace.code_diffs, user.code_diffs)
+  };
+}
+// ../../packages/types/prompt-tags.ts
+var PromptTagSchema = exports_external.object({
+  id: exports_external.string(),
+  displayName: exports_external.string(),
+  description: exports_external.string().optional(),
+  category: exports_external.string().optional()
+});
+var PROMPT_TAGS = {
+  TOP_5: {
+    id: "top-5",
+    displayName: "\uD83D\uDD79️ Top 5",
+    description: "Essential cheatcodes for maximum productivity",
+    category: "cheatcodes"
+  },
+  ANALYZE_PROMPTS: {
+    id: "analyze-prompts",
+    displayName: "\uD83D\uDCC8 Analyze my prompts",
+    description: "Analyze your AI usage patterns and prompt effectiveness",
+    category: "cheatcodes"
+  },
+  CHECKLISTS: {
+    id: "checklists",
+    displayName: "✅ Checklists",
+    description: "Comprehensive checklists for common development tasks",
+    category: "cheatcodes"
+  },
+  PROMPT_HACKS: {
+    id: "prompt-hacks",
+    displayName: "\uD83D\uDCAC Prompt Hacks",
+    description: "Advanced techniques for better AI interactions",
+    category: "cheatcodes"
+  },
+  AI_CODING_STACK: {
+    id: "ai-coding-stack",
+    displayName: "\uD83E\uDD16 AI Coding Stack",
+    description: "Tools and configurations for AI-assisted development",
+    category: "cheatcodes"
+  }
+};
+var AVAILABLE_PROMPT_TAGS = Object.values(PROMPT_TAGS);
+var tagIds = AVAILABLE_PROMPT_TAGS.map((tag) => tag.id);
+var VALID_TAG_IDS = tagIds;
+var TagIdSchema = exports_external.enum(VALID_TAG_IDS);
+// ../../packages/types/index.ts
+var MetricDefinitionSchema = exports_external.object({
+  metric_name: exports_external.string(),
+  type: exports_external.enum(["number", "percentage", "duration"]),
+  unit: exports_external.enum(["count", "hours", "percentage", "minutes"]),
+  description: exports_external.string().optional(),
+  long_description: exports_external.string().optional()
+});
+var CustomPromptMetadataSchema = exports_external.object({
+  metrics: exports_external.array(MetricDefinitionSchema).optional(),
+  tags: exports_external.array(exports_external.string()).optional()
+});
+
+// src/utils/logger.ts
+import { appendFile } from "node:fs/promises";
+import { dirname } from "node:path";
+
 // src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
 async function ensureDirectory(dirPath) {
@@ -3995,10 +4101,6 @@ async function ensureDirectory(dirPath) {
     await mkdir(dirPath, { recursive: true, mode: 448 });
   }
 }
-
-// src/utils/logger.ts
-import { appendFile } from "node:fs/promises";
-import { dirname } from "node:path";
 
 // src/utils/log-rotation.ts
 import { readdir, unlink } from "node:fs/promises";
@@ -4139,62 +4241,92 @@ class Logger {
 }
 var logger = new Logger;
 
-// src/config/settings.ts
-var PrivacySettingsSchema = exports_external.object({
-  approach: exports_external.enum(["detection", "encryption", "hybrid"]).default("detection"),
-  aggressiveMode: exports_external.boolean().default(false),
-  enableGitignore: exports_external.boolean().default(true),
-  enableZestRules: exports_external.boolean().default(true),
-  customExclusionPatterns: exports_external.array(exports_external.string()).default([])
-});
-var UserSettingsSchema = exports_external.object({
-  enableRemotePersistence: exports_external.boolean(),
-  excludePatterns: exports_external.array(exports_external.string()),
-  respectGitignore: exports_external.boolean(),
-  logLevel: exports_external.enum(["debug", "info", "warn", "error"]),
-  excludedFolders: exports_external.array(exports_external.string()).default([]),
-  privacy: PrivacySettingsSchema.optional()
-});
-var DEFAULT_PRIVACY_SETTINGS = {
-  approach: "detection",
-  aggressiveMode: false,
-  enableGitignore: true,
-  enableZestRules: true,
-  customExclusionPatterns: []
-};
-var DEFAULT_SETTINGS = {
-  enableRemotePersistence: true,
-  excludePatterns: [],
-  respectGitignore: true,
-  logLevel: "info",
-  excludedFolders: [],
-  privacy: DEFAULT_PRIVACY_SETTINGS
-};
-async function loadSettings() {
-  try {
-    const content = await readFile(SETTINGS_FILE, "utf-8");
-    const rawSettings = JSON.parse(content);
-    const validated = UserSettingsSchema.parse(rawSettings);
-    return { ...DEFAULT_SETTINGS, ...validated };
-  } catch (error) {
-    if (error instanceof exports_external.ZodError) {
-      logger.warn("Invalid settings format, using defaults:", error.issues);
-    } else if (error.code !== "ENOENT") {
-      logger.warn("Failed to load settings, using defaults:", error);
+// src/supabase/data-controls-provider.ts
+var CACHE_TTL_MS = 5 * 60 * 1000;
+
+class DataControlsProvider {
+  effectiveCollection = null;
+  effectiveRetention = null;
+  lastFetchedAt = null;
+  ready = false;
+  async refresh(supabase, workspaceId, userId) {
+    try {
+      const [workspaceResult, userResult] = await Promise.all([
+        supabase.from("workspace_data_controls").select("collection, retention").eq("workspace_id", workspaceId).maybeSingle(),
+        supabase.from("user_data_controls").select("collection, retention").eq("user_id", userId).maybeSingle()
+      ]);
+      if (workspaceResult.error) {
+        logger.error("DataControlsProvider: failed to fetch workspace data controls", new Error(workspaceResult.error.message));
+        return false;
+      }
+      if (userResult.error) {
+        logger.error("DataControlsProvider: failed to fetch user data controls", new Error(userResult.error.message));
+        return false;
+      }
+      const wsCollectionParse = collectionSettingsSchema.safeParse(workspaceResult.data?.collection);
+      const wsRetentionParse = retentionSettingsSchema.safeParse(workspaceResult.data?.retention);
+      const wsCollection = wsCollectionParse.success ? wsCollectionParse.data : WORKSPACE_COLLECTION_DEFAULTS;
+      const wsRetention = wsRetentionParse.success ? wsRetentionParse.data : WORKSPACE_RETENTION_DEFAULTS;
+      const userCollectionParse = collectionSettingsSchema.safeParse(userResult.data?.collection);
+      const userRetentionParse = retentionSettingsSchema.safeParse(userResult.data?.retention);
+      const userCollection = userCollectionParse.success ? userCollectionParse.data : null;
+      const userRetention = userRetentionParse.success ? userRetentionParse.data : null;
+      this.effectiveCollection = getEffectiveCollection(wsCollection, userCollection);
+      this.effectiveRetention = getEffectiveRetention(wsRetention, userRetention);
+      this.lastFetchedAt = Date.now();
+      this.ready = true;
+      logger.debug("DataControlsProvider: refreshed", {
+        effectiveCollection: this.effectiveCollection,
+        effectiveRetention: this.effectiveRetention
+      });
+      return true;
+    } catch (error) {
+      logger.error("DataControlsProvider: unexpected error during refresh", error instanceof Error ? error : new Error(String(error)));
+      return false;
     }
-    return DEFAULT_SETTINGS;
   }
-}
-async function saveSettings(settings) {
-  const result = UserSettingsSchema.safeParse(settings);
-  if (!result.success) {
-    throw new Error(`Invalid settings data (this should not happen): ${JSON.stringify(result.error.issues)}`);
+  isReady() {
+    return this.ready;
   }
-  await ensureDirectory(dirname2(SETTINGS_FILE));
-  await writeFile(SETTINGS_FILE, JSON.stringify(result.data, null, 2), "utf-8");
+  isStale() {
+    if (!this.lastFetchedAt) {
+      return true;
+    }
+    return Date.now() - this.lastFetchedAt > CACHE_TTL_MS;
+  }
+  invalidate() {
+    this.effectiveCollection = null;
+    this.effectiveRetention = null;
+    this.lastFetchedAt = null;
+    this.ready = false;
+  }
+  shouldUploadUserMessages() {
+    if (!this.effectiveCollection) {
+      return false;
+    }
+    return this.effectiveCollection.user_messages;
+  }
+  shouldUploadAssistantMessages() {
+    if (!this.effectiveCollection) {
+      return false;
+    }
+    return this.effectiveCollection.assistant_messages;
+  }
+  shouldUploadCodeDiffs() {
+    if (!this.effectiveCollection) {
+      return false;
+    }
+    return this.effectiveCollection.code_diffs;
+  }
+  getCollection() {
+    return this.effectiveCollection;
+  }
+  getRetention() {
+    return this.effectiveRetention;
+  }
 }
 export {
-  saveSettings,
-  loadSettings,
-  DEFAULT_PRIVACY_SETTINGS
+  DataControlsProvider
 };
+
+//# debugId=342637B796F2D65664756E2164756E21

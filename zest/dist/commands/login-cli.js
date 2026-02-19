@@ -4974,6 +4974,109 @@ var require_main = __commonJS((exports) => {
   exports.COPY_AUTOCAPTURE_EVENT = ne, exports.Compression = oe, exports.DisplaySurveyType = Bn, exports.PostHog = jo, exports.SurveyEventName = zn, exports.SurveyEventProperties = Hn, exports.SurveyEventType = Mn, exports.SurveyPosition = An, exports.SurveyQuestionBranchingType = Nn, exports.SurveyQuestionType = Ln, exports.SurveySchedule = Un, exports.SurveyTabPosition = Dn, exports.SurveyType = jn, exports.SurveyWidgetType = On, exports.default = No, exports.posthog = No, exports.severityLevels = ["fatal", "error", "warning", "log", "info", "debug"];
 });
 
+// src/config/constants.ts
+var exports_constants = {};
+__export(exports_constants, {
+  ZEST_SESSION_NAMESPACE: () => ZEST_SESSION_NAMESPACE,
+  WEB_APP_URL: () => WEB_APP_URL,
+  VERSION_CHECK_TIMEOUT_MS: () => VERSION_CHECK_TIMEOUT_MS,
+  UPDATE_CHECK_CACHE_TTL_MS: () => UPDATE_CHECK_CACHE_TTL_MS,
+  SYNC_METRICS_RETENTION_MS: () => SYNC_METRICS_RETENTION_MS,
+  SYNC_METRICS_FILE: () => SYNC_METRICS_FILE,
+  SYNC_INTERVAL_MS: () => SYNC_INTERVAL_MS,
+  SUPABASE_URL: () => SUPABASE_URL,
+  SUPABASE_ANON_KEY: () => SUPABASE_ANON_KEY,
+  STATUS_CACHE_FILE: () => STATUS_CACHE_FILE,
+  STATUSLINE_SCRIPT_PATH: () => STATUSLINE_SCRIPT_PATH,
+  STATE_DIR: () => STATE_DIR,
+  STANDUP_NOTIFICATION_THROTTLE_MS: () => STANDUP_NOTIFICATION_THROTTLE_MS,
+  STALE_SESSION_AGE_MS: () => STALE_SESSION_AGE_MS,
+  SOURCE: () => SOURCE,
+  SETTINGS_FILE: () => SETTINGS_FILE,
+  SESSION_FILE: () => SESSION_FILE,
+  SESSIONS_QUEUE_FILE: () => SESSIONS_QUEUE_FILE,
+  RETRY_BACKOFF_MS: () => RETRY_BACKOFF_MS,
+  QUEUE_DIR: () => QUEUE_DIR,
+  PROACTIVE_REFRESH_THRESHOLD_MS: () => PROACTIVE_REFRESH_THRESHOLD_MS,
+  POSTHOG_API_KEY: () => POSTHOG_API_KEY,
+  PLATFORM: () => PLATFORM,
+  NOTIFICATION_DURATION_MS: () => NOTIFICATION_DURATION_MS,
+  MIN_SESSION_TITLE_LENGTH: () => MIN_SESSION_TITLE_LENGTH,
+  MIN_MESSAGES_PER_SESSION: () => MIN_MESSAGES_PER_SESSION,
+  MESSAGES_QUEUE_FILE: () => MESSAGES_QUEUE_FILE,
+  MAX_SESSION_TITLE_LENGTH: () => MAX_SESSION_TITLE_LENGTH,
+  MAX_RETRY_ATTEMPTS: () => MAX_RETRY_ATTEMPTS,
+  MAX_DIFF_SIZE_BYTES: () => MAX_DIFF_SIZE_BYTES,
+  MAX_CONTENT_PREVIEW_LENGTH: () => MAX_CONTENT_PREVIEW_LENGTH,
+  MARKETPLACE_PLUGIN_JSON_URL: () => MARKETPLACE_PLUGIN_JSON_URL,
+  LOG_RETENTION_DAYS: () => LOG_RETENTION_DAYS,
+  LOGS_DIR: () => LOGS_DIR,
+  LOCK_RETRY_MS: () => LOCK_RETRY_MS,
+  LOCK_MAX_RETRIES: () => LOCK_MAX_RETRIES,
+  FIRST_DATA_THRESHOLD_MESSAGES: () => FIRST_DATA_THRESHOLD_MESSAGES,
+  EXCLUDED_COMMAND_PATTERNS: () => EXCLUDED_COMMAND_PATTERNS,
+  EVENTS_QUEUE_FILE: () => EVENTS_QUEUE_FILE,
+  DELETION_CACHE_TTL_MS: () => DELETION_CACHE_TTL_MS,
+  DELETION_CACHE_DIR: () => DELETION_CACHE_DIR,
+  DELAYED_EXTRACTION_MAX_WAIT_MS: () => DELAYED_EXTRACTION_MAX_WAIT_MS,
+  DELAYED_EXTRACTION_INITIAL_DELAY_MS: () => DELAYED_EXTRACTION_INITIAL_DELAY_MS,
+  DELAYED_EXTRACTION_CHECK_INTERVAL_MS: () => DELAYED_EXTRACTION_CHECK_INTERVAL_MS,
+  DEFAULT_STANDUP_MODEL: () => DEFAULT_STANDUP_MODEL,
+  DEBOUNCE_WINDOW_MS: () => DEBOUNCE_WINDOW_MS,
+  DEBOUNCE_TRAILING_MS: () => DEBOUNCE_TRAILING_MS,
+  DEBOUNCE_DIR: () => DEBOUNCE_DIR,
+  DAEMON_PID_FILE: () => DAEMON_PID_FILE,
+  DAEMON_INACTIVITY_TIMEOUT_MS: () => DAEMON_INACTIVITY_TIMEOUT_MS,
+  DAEMON_FRESH_PID_THRESHOLD_MS: () => DAEMON_FRESH_PID_THRESHOLD_MS,
+  CLIENT_ID: () => CLIENT_ID,
+  CLAUDE_ZEST_DIR: () => CLAUDE_ZEST_DIR,
+  CLAUDE_SETTINGS_FILE: () => CLAUDE_SETTINGS_FILE,
+  CLAUDE_PROJECTS_DIR: () => CLAUDE_PROJECTS_DIR,
+  CLAUDE_INSTANCES_FILE: () => CLAUDE_INSTANCES_FILE,
+  CLAUDE_INSTALL_DIR: () => CLAUDE_INSTALL_DIR,
+  CLAUDE_DIR_SEPARATOR_PATTERN: () => CLAUDE_DIR_SEPARATOR_PATTERN
+});
+import { homedir } from "node:os";
+import { join } from "node:path";
+var CLAUDE_INSTALL_DIR, CLAUDE_DIR_SEPARATOR_PATTERN, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, PLATFORM = "terminal", SOURCE = "claude-code", CLIENT_ID = "claude-cli", SYNC_INTERVAL_MS = 60000, MAX_RETRY_ATTEMPTS = 3, RETRY_BACKOFF_MS = 5000, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DEBOUNCE_WINDOW_MS = 500, DEBOUNCE_TRAILING_MS = 300, DELAYED_EXTRACTION_INITIAL_DELAY_MS = 500, DELAYED_EXTRACTION_MAX_WAIT_MS = 1e4, DELAYED_EXTRACTION_CHECK_INTERVAL_MS = 300, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MAX_CONTENT_PREVIEW_LENGTH = 1000, MAX_SESSION_TITLE_LENGTH = 100, MIN_SESSION_TITLE_LENGTH = 3, MIN_MESSAGES_PER_SESSION = 3, STALE_SESSION_AGE_MS, WEB_APP_URL = "https://app.meetzest.com", SUPABASE_URL = "https://fnnlebrtmlxxjwdvngck.supabase.co", SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubmxlYnJ0bWx4eGp3ZHZuZ2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MzA3MjYsImV4cCI6MjA3MjMwNjcyNn0.0IE3HCY_DiyyALdewbRn1vkedwzDW27NQMQ28V6j4Dk", POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", EXCLUDED_COMMAND_PATTERNS, ZEST_SESSION_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341", MARKETPLACE_PLUGIN_JSON_URL = "https://raw.githubusercontent.com/Winding-Labs/zest-claude/refs/heads/main/zest/.claude-plugin/plugin.json", VERSION_CHECK_TIMEOUT_MS = 5000, UPDATE_CHECK_CACHE_TTL_MS, DAEMON_FRESH_PID_THRESHOLD_MS = 2000, DAEMON_INACTIVITY_TIMEOUT_MS, NOTIFICATION_DURATION_MS, FIRST_DATA_THRESHOLD_MESSAGES = 5, STANDUP_NOTIFICATION_THROTTLE_MS, SYNC_METRICS_RETENTION_MS, DEFAULT_STANDUP_MODEL = "anthropic/claude-opus-4-5";
+var init_constants = __esm(() => {
+  CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
+  CLAUDE_DIR_SEPARATOR_PATTERN = /[\\/:.\s_]/g;
+  CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
+  CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
+  CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
+  QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
+  LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
+  STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
+  DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
+  SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
+  SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
+  DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
+  CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
+  STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
+  STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
+  SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
+  EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
+  SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
+  MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
+  DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
+  DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
+  PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+  MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
+  STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+  EXCLUDED_COMMAND_PATTERNS = [
+    /^\/(add-dir|agents|bashes|bug|clear|compact|config|context|cost|doctor|exit|export|help|hooks|ide|init|install-github-app|login|logout|mcp|memory|model|output-style|permissions|plugin|pr-comments|privacy-settings|release-notes|resume|review|rewind|sandbox|security-review|stats|status|statusline|terminal-setup|todos|usage|vim)\b/i,
+    /^\/zest[^:\s]*:/i,
+    /<command-name>\/zest[^<]*<\/command-name>/i,
+    /node\s+.*\/dist\/commands\/.*-cli\.js/i
+  ];
+  UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
+  DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+  NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
+  STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
+  SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
+});
+
 // node_modules/@supabase/supabase-js/node_modules/@supabase/functions-js/node_modules/tslib/tslib.js
 var require_tslib = __commonJS((exports2, module) => {
   var __extends;
@@ -5536,13 +5639,13 @@ var require_tslib = __commonJS((exports2, module) => {
       }
       return next();
     };
-    __rewriteRelativeImportExtension = function(path, preserveJsx) {
-      if (typeof path === "string" && /^\.\.?\//.test(path)) {
-        return path.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
+    __rewriteRelativeImportExtension = function(path2, preserveJsx) {
+      if (typeof path2 === "string" && /^\.\.?\//.test(path2)) {
+        return path2.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
           return tsx ? preserveJsx ? ".jsx" : ".js" : d && (!ext || !cm) ? m : d + ext + "." + cm.toLowerCase() + "js";
         });
       }
-      return path;
+      return path2;
     };
     exporter("__extends", __extends);
     exporter("__assign", __assign);
@@ -6347,13 +6450,13 @@ var require_tslib2 = __commonJS((exports2, module) => {
       }
       return next();
     };
-    __rewriteRelativeImportExtension = function(path, preserveJsx) {
-      if (typeof path === "string" && /^\.\.?\//.test(path)) {
-        return path.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
+    __rewriteRelativeImportExtension = function(path2, preserveJsx) {
+      if (typeof path2 === "string" && /^\.\.?\//.test(path2)) {
+        return path2.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
           return tsx ? preserveJsx ? ".jsx" : ".js" : d && (!ext || !cm) ? m : d + ext + "." + cm.toLowerCase() + "js";
         });
       }
-      return path;
+      return path2;
     };
     exporter("__extends", __extends);
     exporter("__assign", __assign);
@@ -7502,8 +7605,8 @@ var require_RealtimeChannel = __commonJS((exports2) => {
     _trigger(type, payload, ref) {
       var _a, _b;
       const typeLower = type.toLocaleLowerCase();
-      const { close, error: error46, leave, join } = constants_1.CHANNEL_EVENTS;
-      const events = [close, error46, leave, join];
+      const { close, error: error46, leave, join: join4 } = constants_1.CHANNEL_EVENTS;
+      const events = [close, error46, leave, join4];
       if (ref && events.indexOf(typeLower) >= 0 && ref !== this._joinRef()) {
         return;
       }
@@ -8811,13 +8914,13 @@ var require_tslib3 = __commonJS((exports2, module) => {
       }
       return next();
     };
-    __rewriteRelativeImportExtension = function(path, preserveJsx) {
-      if (typeof path === "string" && /^\.\.?\//.test(path)) {
-        return path.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
+    __rewriteRelativeImportExtension = function(path2, preserveJsx) {
+      if (typeof path2 === "string" && /^\.\.?\//.test(path2)) {
+        return path2.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
           return tsx ? preserveJsx ? ".jsx" : ".js" : d && (!ext || !cm) ? m : d + ext + "." + cm.toLowerCase() + "js";
         });
       }
-      return path;
+      return path2;
     };
     exporter("__extends", __extends);
     exporter("__assign", __assign);
@@ -13125,103 +13228,6 @@ var require_main4 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "processLock", { enumerable: true, get: function() {
     return locks_1.processLock;
   } });
-});
-
-// src/config/constants.ts
-var exports_constants = {};
-__export(exports_constants, {
-  ZEST_SESSION_NAMESPACE: () => ZEST_SESSION_NAMESPACE,
-  WEB_APP_URL: () => WEB_APP_URL,
-  VERSION_CHECK_TIMEOUT_MS: () => VERSION_CHECK_TIMEOUT_MS,
-  UPDATE_CHECK_CACHE_TTL_MS: () => UPDATE_CHECK_CACHE_TTL_MS,
-  SYNC_METRICS_RETENTION_MS: () => SYNC_METRICS_RETENTION_MS,
-  SYNC_METRICS_FILE: () => SYNC_METRICS_FILE,
-  SYNC_INTERVAL_MS: () => SYNC_INTERVAL_MS,
-  SUPABASE_URL: () => SUPABASE_URL,
-  SUPABASE_ANON_KEY: () => SUPABASE_ANON_KEY,
-  STATUS_CACHE_FILE: () => STATUS_CACHE_FILE,
-  STATUSLINE_SCRIPT_PATH: () => STATUSLINE_SCRIPT_PATH,
-  STATE_DIR: () => STATE_DIR,
-  STALE_SESSION_AGE_MS: () => STALE_SESSION_AGE_MS,
-  SOURCE: () => SOURCE,
-  SETTINGS_FILE: () => SETTINGS_FILE,
-  SESSION_FILE: () => SESSION_FILE,
-  SESSIONS_QUEUE_FILE: () => SESSIONS_QUEUE_FILE,
-  RETRY_BACKOFF_MS: () => RETRY_BACKOFF_MS,
-  QUEUE_DIR: () => QUEUE_DIR,
-  PROACTIVE_REFRESH_THRESHOLD_MS: () => PROACTIVE_REFRESH_THRESHOLD_MS,
-  POSTHOG_API_KEY: () => POSTHOG_API_KEY,
-  PLATFORM: () => PLATFORM,
-  MIN_SESSION_TITLE_LENGTH: () => MIN_SESSION_TITLE_LENGTH,
-  MIN_MESSAGES_PER_SESSION: () => MIN_MESSAGES_PER_SESSION,
-  MESSAGES_QUEUE_FILE: () => MESSAGES_QUEUE_FILE,
-  MAX_SESSION_TITLE_LENGTH: () => MAX_SESSION_TITLE_LENGTH,
-  MAX_RETRY_ATTEMPTS: () => MAX_RETRY_ATTEMPTS,
-  MAX_DIFF_SIZE_BYTES: () => MAX_DIFF_SIZE_BYTES,
-  MAX_CONTENT_PREVIEW_LENGTH: () => MAX_CONTENT_PREVIEW_LENGTH,
-  MARKETPLACE_PLUGIN_JSON_URL: () => MARKETPLACE_PLUGIN_JSON_URL,
-  LOG_RETENTION_DAYS: () => LOG_RETENTION_DAYS,
-  LOGS_DIR: () => LOGS_DIR,
-  LOCK_RETRY_MS: () => LOCK_RETRY_MS,
-  LOCK_MAX_RETRIES: () => LOCK_MAX_RETRIES,
-  EXCLUDED_COMMAND_PATTERNS: () => EXCLUDED_COMMAND_PATTERNS,
-  EVENTS_QUEUE_FILE: () => EVENTS_QUEUE_FILE,
-  DELETION_CACHE_TTL_MS: () => DELETION_CACHE_TTL_MS,
-  DELETION_CACHE_DIR: () => DELETION_CACHE_DIR,
-  DELAYED_EXTRACTION_MAX_WAIT_MS: () => DELAYED_EXTRACTION_MAX_WAIT_MS,
-  DELAYED_EXTRACTION_INITIAL_DELAY_MS: () => DELAYED_EXTRACTION_INITIAL_DELAY_MS,
-  DELAYED_EXTRACTION_CHECK_INTERVAL_MS: () => DELAYED_EXTRACTION_CHECK_INTERVAL_MS,
-  DEBOUNCE_WINDOW_MS: () => DEBOUNCE_WINDOW_MS,
-  DEBOUNCE_TRAILING_MS: () => DEBOUNCE_TRAILING_MS,
-  DEBOUNCE_DIR: () => DEBOUNCE_DIR,
-  DAEMON_PID_FILE: () => DAEMON_PID_FILE,
-  DAEMON_INACTIVITY_TIMEOUT_MS: () => DAEMON_INACTIVITY_TIMEOUT_MS,
-  DAEMON_FRESH_PID_THRESHOLD_MS: () => DAEMON_FRESH_PID_THRESHOLD_MS,
-  CLIENT_ID: () => CLIENT_ID,
-  CLAUDE_ZEST_DIR: () => CLAUDE_ZEST_DIR,
-  CLAUDE_SETTINGS_FILE: () => CLAUDE_SETTINGS_FILE,
-  CLAUDE_PROJECTS_DIR: () => CLAUDE_PROJECTS_DIR,
-  CLAUDE_INSTANCES_FILE: () => CLAUDE_INSTANCES_FILE,
-  CLAUDE_INSTALL_DIR: () => CLAUDE_INSTALL_DIR,
-  CLAUDE_DIR_SEPARATOR_PATTERN: () => CLAUDE_DIR_SEPARATOR_PATTERN
-});
-import { homedir } from "node:os";
-import { join } from "node:path";
-var CLAUDE_INSTALL_DIR, CLAUDE_DIR_SEPARATOR_PATTERN, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, PLATFORM = "terminal", SOURCE = "claude-code", CLIENT_ID = "claude-cli", SYNC_INTERVAL_MS = 60000, MAX_RETRY_ATTEMPTS = 3, RETRY_BACKOFF_MS = 5000, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DEBOUNCE_WINDOW_MS = 500, DEBOUNCE_TRAILING_MS = 300, DELAYED_EXTRACTION_INITIAL_DELAY_MS = 500, DELAYED_EXTRACTION_MAX_WAIT_MS = 1e4, DELAYED_EXTRACTION_CHECK_INTERVAL_MS = 300, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MAX_CONTENT_PREVIEW_LENGTH = 1000, MAX_SESSION_TITLE_LENGTH = 100, MIN_SESSION_TITLE_LENGTH = 3, MIN_MESSAGES_PER_SESSION = 3, STALE_SESSION_AGE_MS, WEB_APP_URL = "https://app.meetzest.com", SUPABASE_URL = "https://fnnlebrtmlxxjwdvngck.supabase.co", SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubmxlYnJ0bWx4eGp3ZHZuZ2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MzA3MjYsImV4cCI6MjA3MjMwNjcyNn0.0IE3HCY_DiyyALdewbRn1vkedwzDW27NQMQ28V6j4Dk", POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", EXCLUDED_COMMAND_PATTERNS, ZEST_SESSION_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341", MARKETPLACE_PLUGIN_JSON_URL = "https://raw.githubusercontent.com/Winding-Labs/zest-claude/refs/heads/main/zest/.claude-plugin/plugin.json", VERSION_CHECK_TIMEOUT_MS = 5000, UPDATE_CHECK_CACHE_TTL_MS, DAEMON_FRESH_PID_THRESHOLD_MS = 2000, DAEMON_INACTIVITY_TIMEOUT_MS, SYNC_METRICS_RETENTION_MS;
-var init_constants = __esm(() => {
-  CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
-  CLAUDE_DIR_SEPARATOR_PATTERN = /[\\/:.\s_]/g;
-  CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
-  CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
-  CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
-  QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
-  LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
-  STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
-  DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-  SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
-  SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
-  DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
-  CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
-  STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
-  STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
-  SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
-  EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
-  SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
-  MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
-  DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
-  DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
-  PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
-  MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
-  STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-  EXCLUDED_COMMAND_PATTERNS = [
-    /^\/(add-dir|agents|bashes|bug|clear|compact|config|context|cost|doctor|exit|export|help|hooks|ide|init|install-github-app|login|logout|mcp|memory|model|output-style|permissions|plugin|pr-comments|privacy-settings|release-notes|resume|review|rewind|sandbox|security-review|stats|status|statusline|terminal-setup|todos|usage|vim)\b/i,
-    /^\/zest[^:\s]*:/i,
-    /<command-name>\/zest[^<]*<\/command-name>/i,
-    /node\s+.*\/dist\/commands\/.*-cli\.js/i
-  ];
-  UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
-  DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
-  SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
 });
 
 // src/analytics/index.ts
@@ -29298,6 +29304,912 @@ function createServerAnalytics(posthogApiKey) {
 import { readFile, unlink as unlink2, writeFile } from "node:fs/promises";
 import { dirname as dirname3 } from "node:path";
 
+// src/analytics/events.ts
+var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed";
+var AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed";
+var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
+var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
+var SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed";
+var SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted";
+var SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed";
+var SYNC_NETWORK_ERROR = "sync_network_error";
+var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
+var FILE_LOCK_TIMEOUT = "file_lock_timeout";
+var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
+var API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed";
+var API_PROFILE_UPDATE_FAILED = "api_profile_update_failed";
+var SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed";
+var SUPABASE_SESSION_SET_FAILED = "supabase_session_set_failed";
+var SUPABASE_SESSION_REFRESH_PERSIST_FAILED = "supabase_session_refresh_persist_failed";
+function getErrorCategory(errorType) {
+  if (errorType.startsWith("auth_"))
+    return "auth";
+  if (errorType.startsWith("sync_"))
+    return "sync";
+  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("notification_") || errorType.startsWith("extraction_"))
+    return "filesystem";
+  if (errorType.startsWith("daemon_"))
+    return "daemon";
+  if (errorType.startsWith("api_"))
+    return "api";
+  if (errorType.startsWith("supabase_"))
+    return "supabase";
+  return "api";
+}
+
+// src/analytics/properties.ts
+import { basename } from "node:path";
+function buildAuthProperties(options) {
+  return {
+    auth_method: options.authMethod,
+    ...options.responseStatus !== undefined && { response_status: options.responseStatus },
+    ...options.timeUntilExpiry !== undefined && { time_until_expiry: options.timeUntilExpiry }
+  };
+}
+function buildSyncProperties(options) {
+  return {
+    ...options.syncErrorType && { sync_error_type: options.syncErrorType },
+    ...options.eventsAttempted !== undefined && { events_attempted: options.eventsAttempted },
+    ...options.sessionsAttempted !== undefined && {
+      sessions_attempted: options.sessionsAttempted
+    },
+    ...options.messagesAttempted !== undefined && {
+      messages_attempted: options.messagesAttempted
+    },
+    ...options.retryAttempt !== undefined && { retry_attempt: options.retryAttempt }
+  };
+}
+function buildFileSystemProperties(options) {
+  const anonymizedPath = options.filePath ? basename(options.filePath) : undefined;
+  return {
+    ...anonymizedPath && { file_name: anonymizedPath },
+    operation: options.operation,
+    ...options.errnoCode && { errno_code: options.errnoCode }
+  };
+}
+function buildApiProperties(options) {
+  return {
+    ...options.endpoint && { api_endpoint: options.endpoint },
+    ...options.responseStatus !== undefined && { response_status: options.responseStatus },
+    ...options.responseMessage && { response_message: options.responseMessage }
+  };
+}
+
+// src/auth/session-manager.ts
+init_constants();
+
+// src/utils/fs-utils.ts
+import { mkdir, stat } from "node:fs/promises";
+async function ensureDirectory(dirPath) {
+  try {
+    await stat(dirPath);
+  } catch {
+    await mkdir(dirPath, { recursive: true, mode: 448 });
+  }
+}
+
+// src/utils/logger.ts
+import { appendFile } from "node:fs/promises";
+import { dirname as dirname2 } from "node:path";
+
+// src/utils/log-rotation.ts
+init_constants();
+import { readdir, unlink } from "node:fs/promises";
+import { join as join2 } from "node:path";
+var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
+var lastCleanupTime = {};
+function getDateString() {
+  return new Date().toISOString().split("T")[0];
+}
+function getDatedLogPath(logPrefix) {
+  const dateStr = getDateString();
+  return join2(LOGS_DIR, `${logPrefix}-${dateStr}.log`);
+}
+function parseDateFromFilename(filename, logPrefix) {
+  const pattern = new RegExp(`^${logPrefix}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
+  const match = filename.match(pattern);
+  if (!match) {
+    return null;
+  }
+  const date5 = new Date(match[1] + "T00:00:00Z");
+  return Number.isNaN(date5.getTime()) ? null : date5;
+}
+async function cleanupStaleLogs(logPrefix) {
+  const now = Date.now();
+  const lastCleanup = lastCleanupTime[logPrefix] || 0;
+  if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
+    return;
+  }
+  lastCleanupTime[logPrefix] = now;
+  try {
+    await ensureDirectory(LOGS_DIR);
+    const files = await readdir(LOGS_DIR);
+    const cutoffDate = new Date(now - LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    for (const file2 of files) {
+      const fileDate = parseDateFromFilename(file2, logPrefix);
+      if (fileDate && fileDate < cutoffDate) {
+        const filePath = join2(LOGS_DIR, file2);
+        try {
+          await unlink(filePath);
+        } catch (error46) {
+          logger.error(`Failed to delete old log file ${file2}`, error46);
+        }
+      }
+    }
+  } catch (error46) {
+    logger.error("Failed to cleanup old logs", error46);
+  }
+}
+
+// src/utils/logger.ts
+class Logger {
+  minLevel = "info";
+  logPrefix;
+  levels = {
+    debug: 0,
+    info: 1,
+    warn: 2,
+    error: 3
+  };
+  constructor(logPrefix = "plugin") {
+    this.logPrefix = logPrefix;
+  }
+  setLevel(level) {
+    this.minLevel = level;
+  }
+  async writeToFile(message) {
+    try {
+      const logFilePath = getDatedLogPath(this.logPrefix);
+      await ensureDirectory(dirname2(logFilePath));
+      const timestamp = new Date().toISOString();
+      await appendFile(logFilePath, `[${timestamp}] ${message}
+`, "utf-8");
+      cleanupStaleLogs(this.logPrefix);
+    } catch (error46) {
+      console.error("Failed to write to log file:", error46);
+    }
+  }
+  shouldLog(level) {
+    return this.levels[level] >= this.levels[this.minLevel];
+  }
+  debug(message, ...args) {
+    if (this.shouldLog("debug")) {
+      this.writeToFile(`DEBUG: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  info(message, ...args) {
+    if (this.shouldLog("info")) {
+      this.writeToFile(`INFO: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  warn(message, ...args) {
+    if (this.shouldLog("warn")) {
+      console.warn(`[Zest:Warn] ${message}`, ...args);
+      this.writeToFile(`WARN: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  error(message, error46) {
+    if (this.shouldLog("error")) {
+      console.error(`[Zest:Error] ${message}`, error46);
+      this.writeToFile(`ERROR: ${message} ${error46 instanceof Error ? error46.stack : JSON.stringify(error46)}`);
+    }
+  }
+}
+var logger = new Logger;
+
+// src/auth/session-manager.ts
+async function loadSessionFile() {
+  try {
+    const content = await readFile(SESSION_FILE, "utf-8");
+    const session = JSON.parse(content);
+    if (!session.accessToken || !session.refreshToken || !session.userId || !session.email) {
+      logger.warn("Invalid session structure, clearing session");
+      await clearSession();
+      return null;
+    }
+    return session;
+  } catch (error46) {
+    if (error46.code === "ENOENT") {
+      return null;
+    }
+    logger.error("Failed to load session file", error46);
+    if (error46 instanceof Error) {
+      captureException(error46, AUTH_SESSION_LOAD_FAILED, "session-manager", {
+        ...buildFileSystemProperties({
+          filePath: SESSION_FILE,
+          operation: "read",
+          errnoCode: error46.code
+        })
+      });
+    }
+    return null;
+  }
+}
+async function loadSession() {
+  return loadSessionFile();
+}
+async function saveSession(session) {
+  try {
+    await ensureDirectory(dirname3(SESSION_FILE));
+    await writeFile(SESSION_FILE, JSON.stringify(session, null, 2), {
+      encoding: "utf-8",
+      mode: 384
+    });
+    logger.info("Session saved successfully");
+  } catch (error46) {
+    logger.error("Failed to save session", error46);
+    if (error46 instanceof Error) {
+      captureException(error46, AUTH_SESSION_SAVE_FAILED, "session-manager", {
+        ...buildFileSystemProperties({
+          filePath: SESSION_FILE,
+          operation: "write",
+          errnoCode: error46.code
+        })
+      });
+    }
+    throw error46;
+  }
+}
+async function clearSession() {
+  try {
+    await unlink2(SESSION_FILE);
+    logger.info("Session cleared successfully");
+  } catch (error46) {
+    if (error46.code === "ENOENT") {
+      return;
+    }
+    logger.error("Failed to clear session", error46);
+    throw error46;
+  }
+}
+async function getValidSession() {
+  const session = await loadSessionFile();
+  if (!session) {
+    logger.debug("getValidSession: No session found");
+    return null;
+  }
+  if (session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now()) {
+    logger.warn("getValidSession: Refresh token expired, user must re-authenticate");
+    await clearSession();
+    return null;
+  }
+  return session;
+}
+
+// src/analytics/index.ts
+init_constants();
+
+// src/utils/claude-version.ts
+import { execSync } from "node:child_process";
+var cachedVersion;
+function getClaudeCodeVersion() {
+  if (cachedVersion !== undefined) {
+    return cachedVersion;
+  }
+  try {
+    const output = execSync("claude --version", {
+      timeout: 2000,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"]
+    });
+    const version3 = output.trim().split(" ")[0];
+    cachedVersion = version3 || undefined;
+    logger.debug("Detected Claude Code version", { version: cachedVersion });
+  } catch (error46) {
+    logger.debug("Could not detect Claude Code version", error46);
+    cachedVersion = undefined;
+  }
+  return cachedVersion;
+}
+
+// src/utils/plugin-version.ts
+init_constants();
+import { readFileSync } from "node:fs";
+import { join as join3 } from "node:path";
+function getPluginVersion() {
+  try {
+    const marketplacePluginPath = join3(CLAUDE_INSTALL_DIR, "plugins", "marketplaces", "zest-marketplace", "zest", ".claude-plugin", "plugin.json");
+    const pluginJson = JSON.parse(readFileSync(marketplacePluginPath, "utf-8"));
+    if (pluginJson.version && typeof pluginJson.version === "string") {
+      logger.debug("Read plugin version from marketplace plugin.json", {
+        version: pluginJson.version
+      });
+      return pluginJson.version;
+    }
+    logger.warn("Version field not found in marketplace plugin.json");
+    return "unknown";
+  } catch (error46) {
+    logger.warn("Failed to read plugin version from marketplace plugin.json", error46);
+    return "unknown";
+  }
+}
+
+// src/analytics/index.ts
+var analyticsClient = null;
+var cachedSession = null;
+async function getAnalyticsClient() {
+  if (!POSTHOG_API_KEY) {
+    return null;
+  }
+  if (!analyticsClient) {
+    analyticsClient = createServerAnalytics(POSTHOG_API_KEY);
+    try {
+      const session = await loadSession();
+      if (session) {
+        cachedSession = session;
+      }
+    } catch (error46) {
+      logger.debug("Could not load session for analytics context", error46);
+    }
+  }
+  return analyticsClient;
+}
+function buildStandardProperties() {
+  return {
+    plugin_version: getPluginVersion(),
+    node_version: process.version,
+    os_platform: process.platform,
+    os_version: release()
+  };
+}
+function buildUserProperties() {
+  if (!cachedSession) {
+    return {};
+  }
+  return {
+    user_id: cachedSession.userId,
+    email: cachedSession.email,
+    workspace_id: cachedSession.workspaceId,
+    workspace_name: cachedSession.workspaceName
+  };
+}
+async function captureException(error46, errorType, errorSource, additionalProperties) {
+  try {
+    const client = await getAnalyticsClient();
+    if (!client) {
+      return;
+    }
+    const context = {
+      error_type: errorType,
+      error_category: getErrorCategory(errorType),
+      error_source: `claude-cli-plugin/${errorSource}`,
+      ...buildStandardProperties(),
+      ...buildUserProperties(),
+      ...additionalProperties
+    };
+    client.captureException(error46, cachedSession?.userId, context);
+    logger.debug("Exception captured in PostHog", {
+      error_type: errorType,
+      error_message: error46.message
+    });
+  } catch (captureError) {
+    logger.debug("Failed to capture exception in PostHog", captureError);
+  }
+}
+async function trackCliSignedIn(userId) {
+  try {
+    const client = await getAnalyticsClient();
+    if (!client) {
+      return;
+    }
+    const claudeVersion = getClaudeCodeVersion();
+    client.track({
+      distinctId: userId,
+      event: "cliSignedIn",
+      properties: {
+        plugin_version: getPluginVersion(),
+        claude_code_version: claudeVersion,
+        node_version: process.version,
+        os_platform: process.platform,
+        os_version: release()
+      }
+    });
+    await shutdownAnalytics();
+    logger.debug("CLI sign-in tracked", { userId });
+  } catch (error46) {
+    logger.debug("Failed to track CLI sign-in", error46);
+  }
+}
+async function shutdownAnalytics() {
+  try {
+    if (analyticsClient) {
+      await analyticsClient.dispose();
+      analyticsClient = null;
+      logger.debug("Analytics client shut down successfully");
+    }
+  } catch (error46) {
+    logger.debug("Error shutting down analytics client", error46);
+  }
+}
+
+// ../../node_modules/.bun/open@10.2.0/node_modules/open/index.js
+import process7 from "node:process";
+import { Buffer as Buffer2 } from "node:buffer";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { promisify as promisify5 } from "node:util";
+import childProcess from "node:child_process";
+import fs5, { constants as fsConstants2 } from "node:fs/promises";
+
+// ../../node_modules/.bun/wsl-utils@0.1.0/node_modules/wsl-utils/index.js
+import process3 from "node:process";
+import fs4, { constants as fsConstants } from "node:fs/promises";
+
+// ../../node_modules/.bun/is-wsl@3.1.0/node_modules/is-wsl/index.js
+import process2 from "node:process";
+import os from "node:os";
+import fs3 from "node:fs";
+
+// ../../node_modules/.bun/is-inside-container@1.0.0/node_modules/is-inside-container/index.js
+import fs2 from "node:fs";
+
+// ../../node_modules/.bun/is-docker@3.0.0/node_modules/is-docker/index.js
+import fs from "node:fs";
+var isDockerCached;
+function hasDockerEnv() {
+  try {
+    fs.statSync("/.dockerenv");
+    return true;
+  } catch {
+    return false;
+  }
+}
+function hasDockerCGroup() {
+  try {
+    return fs.readFileSync("/proc/self/cgroup", "utf8").includes("docker");
+  } catch {
+    return false;
+  }
+}
+function isDocker() {
+  if (isDockerCached === undefined) {
+    isDockerCached = hasDockerEnv() || hasDockerCGroup();
+  }
+  return isDockerCached;
+}
+
+// ../../node_modules/.bun/is-inside-container@1.0.0/node_modules/is-inside-container/index.js
+var cachedResult;
+var hasContainerEnv = () => {
+  try {
+    fs2.statSync("/run/.containerenv");
+    return true;
+  } catch {
+    return false;
+  }
+};
+function isInsideContainer() {
+  if (cachedResult === undefined) {
+    cachedResult = hasContainerEnv() || isDocker();
+  }
+  return cachedResult;
+}
+
+// ../../node_modules/.bun/is-wsl@3.1.0/node_modules/is-wsl/index.js
+var isWsl = () => {
+  if (process2.platform !== "linux") {
+    return false;
+  }
+  if (os.release().toLowerCase().includes("microsoft")) {
+    if (isInsideContainer()) {
+      return false;
+    }
+    return true;
+  }
+  try {
+    return fs3.readFileSync("/proc/version", "utf8").toLowerCase().includes("microsoft") ? !isInsideContainer() : false;
+  } catch {
+    return false;
+  }
+};
+var is_wsl_default = process2.env.__IS_WSL_TEST__ ? isWsl : isWsl();
+
+// ../../node_modules/.bun/wsl-utils@0.1.0/node_modules/wsl-utils/index.js
+var wslDrivesMountPoint = (() => {
+  const defaultMountPoint = "/mnt/";
+  let mountPoint;
+  return async function() {
+    if (mountPoint) {
+      return mountPoint;
+    }
+    const configFilePath = "/etc/wsl.conf";
+    let isConfigFileExists = false;
+    try {
+      await fs4.access(configFilePath, fsConstants.F_OK);
+      isConfigFileExists = true;
+    } catch {}
+    if (!isConfigFileExists) {
+      return defaultMountPoint;
+    }
+    const configContent = await fs4.readFile(configFilePath, { encoding: "utf8" });
+    const configMountPoint = /(?<!#.*)root\s*=\s*(?<mountPoint>.*)/g.exec(configContent);
+    if (!configMountPoint) {
+      return defaultMountPoint;
+    }
+    mountPoint = configMountPoint.groups.mountPoint.trim();
+    mountPoint = mountPoint.endsWith("/") ? mountPoint : `${mountPoint}/`;
+    return mountPoint;
+  };
+})();
+var powerShellPathFromWsl = async () => {
+  const mountPoint = await wslDrivesMountPoint();
+  return `${mountPoint}c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe`;
+};
+var powerShellPath = async () => {
+  if (is_wsl_default) {
+    return powerShellPathFromWsl();
+  }
+  return `${process3.env.SYSTEMROOT || process3.env.windir || String.raw`C:\Windows`}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe`;
+};
+
+// ../../node_modules/.bun/define-lazy-prop@3.0.0/node_modules/define-lazy-prop/index.js
+function defineLazyProperty(object2, propertyName, valueGetter) {
+  const define2 = (value) => Object.defineProperty(object2, propertyName, { value, enumerable: true, writable: true });
+  Object.defineProperty(object2, propertyName, {
+    configurable: true,
+    enumerable: true,
+    get() {
+      const result = valueGetter();
+      define2(result);
+      return result;
+    },
+    set(value) {
+      define2(value);
+    }
+  });
+  return object2;
+}
+
+// ../../node_modules/.bun/default-browser@5.2.1/node_modules/default-browser/index.js
+import { promisify as promisify4 } from "node:util";
+import process6 from "node:process";
+import { execFile as execFile4 } from "node:child_process";
+
+// ../../node_modules/.bun/default-browser-id@5.0.0/node_modules/default-browser-id/index.js
+import { promisify } from "node:util";
+import process4 from "node:process";
+import { execFile } from "node:child_process";
+var execFileAsync = promisify(execFile);
+async function defaultBrowserId() {
+  if (process4.platform !== "darwin") {
+    throw new Error("macOS only");
+  }
+  const { stdout } = await execFileAsync("defaults", ["read", "com.apple.LaunchServices/com.apple.launchservices.secure", "LSHandlers"]);
+  const match = /LSHandlerRoleAll = "(?!-)(?<id>[^"]+?)";\s+?LSHandlerURLScheme = (?:http|https);/.exec(stdout);
+  return match?.groups.id ?? "com.apple.Safari";
+}
+
+// ../../node_modules/.bun/run-applescript@7.1.0/node_modules/run-applescript/index.js
+import process5 from "node:process";
+import { promisify as promisify2 } from "node:util";
+import { execFile as execFile2, execFileSync } from "node:child_process";
+var execFileAsync2 = promisify2(execFile2);
+async function runAppleScript(script, { humanReadableOutput = true, signal } = {}) {
+  if (process5.platform !== "darwin") {
+    throw new Error("macOS only");
+  }
+  const outputArguments = humanReadableOutput ? [] : ["-ss"];
+  const execOptions = {};
+  if (signal) {
+    execOptions.signal = signal;
+  }
+  const { stdout } = await execFileAsync2("osascript", ["-e", script, outputArguments], execOptions);
+  return stdout.trim();
+}
+
+// ../../node_modules/.bun/bundle-name@4.1.0/node_modules/bundle-name/index.js
+async function bundleName(bundleId) {
+  return runAppleScript(`tell application "Finder" to set app_path to application file id "${bundleId}" as string
+tell application "System Events" to get value of property list item "CFBundleName" of property list file (app_path & ":Contents:Info.plist")`);
+}
+
+// ../../node_modules/.bun/default-browser@5.2.1/node_modules/default-browser/windows.js
+import { promisify as promisify3 } from "node:util";
+import { execFile as execFile3 } from "node:child_process";
+var execFileAsync3 = promisify3(execFile3);
+var windowsBrowserProgIds = {
+  AppXq0fevzme2pys62n3e0fbqa7peapykr8v: { name: "Edge", id: "com.microsoft.edge.old" },
+  MSEdgeDHTML: { name: "Edge", id: "com.microsoft.edge" },
+  MSEdgeHTM: { name: "Edge", id: "com.microsoft.edge" },
+  "IE.HTTP": { name: "Internet Explorer", id: "com.microsoft.ie" },
+  FirefoxURL: { name: "Firefox", id: "org.mozilla.firefox" },
+  ChromeHTML: { name: "Chrome", id: "com.google.chrome" },
+  BraveHTML: { name: "Brave", id: "com.brave.Browser" },
+  BraveBHTML: { name: "Brave Beta", id: "com.brave.Browser.beta" },
+  BraveSSHTM: { name: "Brave Nightly", id: "com.brave.Browser.nightly" }
+};
+
+class UnknownBrowserError extends Error {
+}
+async function defaultBrowser(_execFileAsync = execFileAsync3) {
+  const { stdout } = await _execFileAsync("reg", [
+    "QUERY",
+    " HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\Shell\\Associations\\UrlAssociations\\http\\UserChoice",
+    "/v",
+    "ProgId"
+  ]);
+  const match = /ProgId\s*REG_SZ\s*(?<id>\S+)/.exec(stdout);
+  if (!match) {
+    throw new UnknownBrowserError(`Cannot find Windows browser in stdout: ${JSON.stringify(stdout)}`);
+  }
+  const { id } = match.groups;
+  const browser = windowsBrowserProgIds[id];
+  if (!browser) {
+    throw new UnknownBrowserError(`Unknown browser ID: ${id}`);
+  }
+  return browser;
+}
+
+// ../../node_modules/.bun/default-browser@5.2.1/node_modules/default-browser/index.js
+var execFileAsync4 = promisify4(execFile4);
+var titleize = (string4) => string4.toLowerCase().replaceAll(/(?:^|\s|-)\S/g, (x) => x.toUpperCase());
+async function defaultBrowser2() {
+  if (process6.platform === "darwin") {
+    const id = await defaultBrowserId();
+    const name = await bundleName(id);
+    return { name, id };
+  }
+  if (process6.platform === "linux") {
+    const { stdout } = await execFileAsync4("xdg-mime", ["query", "default", "x-scheme-handler/http"]);
+    const id = stdout.trim();
+    const name = titleize(id.replace(/.desktop$/, "").replace("-", " "));
+    return { name, id };
+  }
+  if (process6.platform === "win32") {
+    return defaultBrowser();
+  }
+  throw new Error("Only macOS, Linux, and Windows are supported");
+}
+
+// ../../node_modules/.bun/open@10.2.0/node_modules/open/index.js
+var execFile5 = promisify5(childProcess.execFile);
+var __dirname2 = path.dirname(fileURLToPath(import.meta.url));
+var localXdgOpenPath = path.join(__dirname2, "xdg-open");
+var { platform, arch } = process7;
+async function getWindowsDefaultBrowserFromWsl() {
+  const powershellPath = await powerShellPath();
+  const rawCommand = String.raw`(Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice").ProgId`;
+  const encodedCommand = Buffer2.from(rawCommand, "utf16le").toString("base64");
+  const { stdout } = await execFile5(powershellPath, [
+    "-NoProfile",
+    "-NonInteractive",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-EncodedCommand",
+    encodedCommand
+  ], { encoding: "utf8" });
+  const progId = stdout.trim();
+  const browserMap = {
+    ChromeHTML: "com.google.chrome",
+    BraveHTML: "com.brave.Browser",
+    MSEdgeHTM: "com.microsoft.edge",
+    FirefoxURL: "org.mozilla.firefox"
+  };
+  return browserMap[progId] ? { id: browserMap[progId] } : {};
+}
+var pTryEach = async (array2, mapper) => {
+  let latestError;
+  for (const item of array2) {
+    try {
+      return await mapper(item);
+    } catch (error46) {
+      latestError = error46;
+    }
+  }
+  throw latestError;
+};
+var baseOpen = async (options) => {
+  options = {
+    wait: false,
+    background: false,
+    newInstance: false,
+    allowNonzeroExitCode: false,
+    ...options
+  };
+  if (Array.isArray(options.app)) {
+    return pTryEach(options.app, (singleApp) => baseOpen({
+      ...options,
+      app: singleApp
+    }));
+  }
+  let { name: app, arguments: appArguments = [] } = options.app ?? {};
+  appArguments = [...appArguments];
+  if (Array.isArray(app)) {
+    return pTryEach(app, (appName) => baseOpen({
+      ...options,
+      app: {
+        name: appName,
+        arguments: appArguments
+      }
+    }));
+  }
+  if (app === "browser" || app === "browserPrivate") {
+    const ids = {
+      "com.google.chrome": "chrome",
+      "google-chrome.desktop": "chrome",
+      "com.brave.Browser": "brave",
+      "org.mozilla.firefox": "firefox",
+      "firefox.desktop": "firefox",
+      "com.microsoft.msedge": "edge",
+      "com.microsoft.edge": "edge",
+      "com.microsoft.edgemac": "edge",
+      "microsoft-edge.desktop": "edge"
+    };
+    const flags = {
+      chrome: "--incognito",
+      brave: "--incognito",
+      firefox: "--private-window",
+      edge: "--inPrivate"
+    };
+    const browser = is_wsl_default ? await getWindowsDefaultBrowserFromWsl() : await defaultBrowser2();
+    if (browser.id in ids) {
+      const browserName = ids[browser.id];
+      if (app === "browserPrivate") {
+        appArguments.push(flags[browserName]);
+      }
+      return baseOpen({
+        ...options,
+        app: {
+          name: apps[browserName],
+          arguments: appArguments
+        }
+      });
+    }
+    throw new Error(`${browser.name} is not supported as a default browser`);
+  }
+  let command;
+  const cliArguments = [];
+  const childProcessOptions = {};
+  if (platform === "darwin") {
+    command = "open";
+    if (options.wait) {
+      cliArguments.push("--wait-apps");
+    }
+    if (options.background) {
+      cliArguments.push("--background");
+    }
+    if (options.newInstance) {
+      cliArguments.push("--new");
+    }
+    if (app) {
+      cliArguments.push("-a", app);
+    }
+  } else if (platform === "win32" || is_wsl_default && !isInsideContainer() && !app) {
+    command = await powerShellPath();
+    cliArguments.push("-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand");
+    if (!is_wsl_default) {
+      childProcessOptions.windowsVerbatimArguments = true;
+    }
+    const encodedArguments = ["Start"];
+    if (options.wait) {
+      encodedArguments.push("-Wait");
+    }
+    if (app) {
+      encodedArguments.push(`"\`"${app}\`""`);
+      if (options.target) {
+        appArguments.push(options.target);
+      }
+    } else if (options.target) {
+      encodedArguments.push(`"${options.target}"`);
+    }
+    if (appArguments.length > 0) {
+      appArguments = appArguments.map((argument) => `"\`"${argument}\`""`);
+      encodedArguments.push("-ArgumentList", appArguments.join(","));
+    }
+    options.target = Buffer2.from(encodedArguments.join(" "), "utf16le").toString("base64");
+  } else {
+    if (app) {
+      command = app;
+    } else {
+      const isBundled = !__dirname2 || __dirname2 === "/";
+      let exeLocalXdgOpen = false;
+      try {
+        await fs5.access(localXdgOpenPath, fsConstants2.X_OK);
+        exeLocalXdgOpen = true;
+      } catch {}
+      const useSystemXdgOpen = process7.versions.electron ?? (platform === "android" || isBundled || !exeLocalXdgOpen);
+      command = useSystemXdgOpen ? "xdg-open" : localXdgOpenPath;
+    }
+    if (appArguments.length > 0) {
+      cliArguments.push(...appArguments);
+    }
+    if (!options.wait) {
+      childProcessOptions.stdio = "ignore";
+      childProcessOptions.detached = true;
+    }
+  }
+  if (platform === "darwin" && appArguments.length > 0) {
+    cliArguments.push("--args", ...appArguments);
+  }
+  if (options.target) {
+    cliArguments.push(options.target);
+  }
+  const subprocess = childProcess.spawn(command, cliArguments, childProcessOptions);
+  if (options.wait) {
+    return new Promise((resolve, reject) => {
+      subprocess.once("error", reject);
+      subprocess.once("close", (exitCode) => {
+        if (!options.allowNonzeroExitCode && exitCode > 0) {
+          reject(new Error(`Exited with code ${exitCode}`));
+          return;
+        }
+        resolve(subprocess);
+      });
+    });
+  }
+  subprocess.unref();
+  return subprocess;
+};
+var open = (target, options) => {
+  if (typeof target !== "string") {
+    throw new TypeError("Expected a `target`");
+  }
+  return baseOpen({
+    ...options,
+    target
+  });
+};
+function detectArchBinary(binary) {
+  if (typeof binary === "string" || Array.isArray(binary)) {
+    return binary;
+  }
+  const { [arch]: archBinary } = binary;
+  if (!archBinary) {
+    throw new Error(`${arch} is not supported`);
+  }
+  return archBinary;
+}
+function detectPlatformBinary({ [platform]: platformBinary }, { wsl }) {
+  if (wsl && is_wsl_default) {
+    return detectArchBinary(wsl);
+  }
+  if (!platformBinary) {
+    throw new Error(`${platform} is not supported`);
+  }
+  return detectArchBinary(platformBinary);
+}
+var apps = {};
+defineLazyProperty(apps, "chrome", () => detectPlatformBinary({
+  darwin: "google chrome",
+  win32: "chrome",
+  linux: ["google-chrome", "google-chrome-stable", "chromium"]
+}, {
+  wsl: {
+    ia32: "/mnt/c/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+    x64: ["/mnt/c/Program Files/Google/Chrome/Application/chrome.exe", "/mnt/c/Program Files (x86)/Google/Chrome/Application/chrome.exe"]
+  }
+}));
+defineLazyProperty(apps, "brave", () => detectPlatformBinary({
+  darwin: "brave browser",
+  win32: "brave",
+  linux: ["brave-browser", "brave"]
+}, {
+  wsl: {
+    ia32: "/mnt/c/Program Files (x86)/BraveSoftware/Brave-Browser/Application/brave.exe",
+    x64: ["/mnt/c/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe", "/mnt/c/Program Files (x86)/BraveSoftware/Brave-Browser/Application/brave.exe"]
+  }
+}));
+defineLazyProperty(apps, "firefox", () => detectPlatformBinary({
+  darwin: "firefox",
+  win32: String.raw`C:\Program Files\Mozilla Firefox\firefox.exe`,
+  linux: "firefox"
+}, {
+  wsl: "/mnt/c/Program Files/Mozilla Firefox/firefox.exe"
+}));
+defineLazyProperty(apps, "edge", () => detectPlatformBinary({
+  darwin: "microsoft edge",
+  win32: "msedge",
+  linux: ["microsoft-edge", "microsoft-edge-dev"]
+}, {
+  wsl: "/mnt/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
+}));
+defineLazyProperty(apps, "browser", () => "browser");
+defineLazyProperty(apps, "browserPrivate", () => "browserPrivate");
+var open_default = open;
+
+// src/auth/authentication.ts
+init_constants();
+
 // node_modules/@supabase/supabase-js/dist/index.mjs
 var exports_dist3 = {};
 __export(exports_dist3, {
@@ -29970,8 +30882,8 @@ var IcebergError = class extends Error {
     return this.status === 419;
   }
 };
-function buildUrl(baseUrl, path, query) {
-  const url2 = new URL(path, baseUrl);
+function buildUrl(baseUrl, path2, query) {
+  const url2 = new URL(path2, baseUrl);
   if (query) {
     for (const [key, value] of Object.entries(query)) {
       if (value !== undefined) {
@@ -30001,12 +30913,12 @@ function createFetchClient(options) {
   return {
     async request({
       method,
-      path,
+      path: path2,
       query,
       body,
       headers
     }) {
-      const url2 = buildUrl(options.baseUrl, path, query);
+      const url2 = buildUrl(options.baseUrl, path2, query);
       const authHeaders = await buildAuthHeaders(options.auth);
       const res = await fetchFn(url2, {
         method,
@@ -30528,7 +31440,7 @@ var StorageFileApi = class {
     this.shouldThrowOnError = true;
     return this;
   }
-  async uploadOrUpdate(method, path, fileBody, fileOptions) {
+  async uploadOrUpdate(method, path2, fileBody, fileOptions) {
     var _this = this;
     try {
       let body;
@@ -30558,7 +31470,7 @@ var StorageFileApi = class {
       }
       if (fileOptions === null || fileOptions === undefined ? undefined : fileOptions.headers)
         headers = _objectSpread2(_objectSpread2({}, headers), fileOptions.headers);
-      const cleanPath = _this._removeEmptyFolders(path);
+      const cleanPath = _this._removeEmptyFolders(path2);
       const _path = _this._getFinalPath(cleanPath);
       const data = await (method == "PUT" ? put : post$1)(_this.fetch, `${_this.url}/object/${_path}`, body, _objectSpread2({ headers }, (options === null || options === undefined ? undefined : options.duplex) ? { duplex: options.duplex } : {}));
       return {
@@ -30580,12 +31492,12 @@ var StorageFileApi = class {
       throw error46;
     }
   }
-  async upload(path, fileBody, fileOptions) {
-    return this.uploadOrUpdate("POST", path, fileBody, fileOptions);
+  async upload(path2, fileBody, fileOptions) {
+    return this.uploadOrUpdate("POST", path2, fileBody, fileOptions);
   }
-  async uploadToSignedUrl(path, token, fileBody, fileOptions) {
+  async uploadToSignedUrl(path2, token, fileBody, fileOptions) {
     var _this3 = this;
-    const cleanPath = _this3._removeEmptyFolders(path);
+    const cleanPath = _this3._removeEmptyFolders(path2);
     const _path = _this3._getFinalPath(cleanPath);
     const url2 = new URL(_this3.url + `/object/upload/sign/${_path}`);
     url2.searchParams.set("token", token);
@@ -30623,10 +31535,10 @@ var StorageFileApi = class {
       throw error46;
     }
   }
-  async createSignedUploadUrl(path, options) {
+  async createSignedUploadUrl(path2, options) {
     var _this4 = this;
     try {
-      let _path = _this4._getFinalPath(path);
+      let _path = _this4._getFinalPath(path2);
       const headers = _objectSpread2({}, _this4.headers);
       if (options === null || options === undefined ? undefined : options.upsert)
         headers["x-upsert"] = "true";
@@ -30638,7 +31550,7 @@ var StorageFileApi = class {
       return {
         data: {
           signedUrl: url2.toString(),
-          path,
+          path: path2,
           token
         },
         error: null
@@ -30654,8 +31566,8 @@ var StorageFileApi = class {
       throw error46;
     }
   }
-  async update(path, fileBody, fileOptions) {
-    return this.uploadOrUpdate("PUT", path, fileBody, fileOptions);
+  async update(path2, fileBody, fileOptions) {
+    return this.uploadOrUpdate("PUT", path2, fileBody, fileOptions);
   }
   async move(fromPath, toPath, options) {
     var _this6 = this;
@@ -30703,10 +31615,10 @@ var StorageFileApi = class {
       throw error46;
     }
   }
-  async createSignedUrl(path, expiresIn, options) {
+  async createSignedUrl(path2, expiresIn, options) {
     var _this8 = this;
     try {
-      let _path = _this8._getFinalPath(path);
+      let _path = _this8._getFinalPath(path2);
       let data = await post$1(_this8.fetch, `${_this8.url}/object/sign/${_path}`, _objectSpread2({ expiresIn }, (options === null || options === undefined ? undefined : options.transform) ? { transform: options.transform } : {}), { headers: _this8.headers });
       const downloadQueryParam = (options === null || options === undefined ? undefined : options.download) ? `&download=${options.download === true ? "" : options.download}` : "";
       data = { signedUrl: encodeURI(`${_this8.url}${data.signedURL}${downloadQueryParam}`) };
@@ -30748,20 +31660,20 @@ var StorageFileApi = class {
       throw error46;
     }
   }
-  download(path, options) {
+  download(path2, options) {
     const renderPath = typeof (options === null || options === undefined ? undefined : options.transform) !== "undefined" ? "render/image/authenticated" : "object";
     const transformationQuery = this.transformOptsToQueryString((options === null || options === undefined ? undefined : options.transform) || {});
     const queryString = transformationQuery ? `?${transformationQuery}` : "";
-    const _path = this._getFinalPath(path);
+    const _path = this._getFinalPath(path2);
     const downloadFn = () => get(this.fetch, `${this.url}/${renderPath}/${_path}${queryString}`, {
       headers: this.headers,
       noResolveJson: true
     });
     return new BlobDownloadBuilder(downloadFn, this.shouldThrowOnError);
   }
-  async info(path) {
+  async info(path2) {
     var _this10 = this;
-    const _path = _this10._getFinalPath(path);
+    const _path = _this10._getFinalPath(path2);
     try {
       return {
         data: recursiveToCamel(await get(_this10.fetch, `${_this10.url}/object/info/${_path}`, { headers: _this10.headers })),
@@ -30778,9 +31690,9 @@ var StorageFileApi = class {
       throw error46;
     }
   }
-  async exists(path) {
+  async exists(path2) {
     var _this11 = this;
-    const _path = _this11._getFinalPath(path);
+    const _path = _this11._getFinalPath(path2);
     try {
       await head(_this11.fetch, `${_this11.url}/object/${_path}`, { headers: _this11.headers });
       return {
@@ -30801,8 +31713,8 @@ var StorageFileApi = class {
       throw error46;
     }
   }
-  getPublicUrl(path, options) {
-    const _path = this._getFinalPath(path);
+  getPublicUrl(path2, options) {
+    const _path = this._getFinalPath(path2);
     const _queryString = [];
     const downloadQueryParam = (options === null || options === undefined ? undefined : options.download) ? `download=${options.download === true ? "" : options.download}` : "";
     if (downloadQueryParam !== "")
@@ -30834,10 +31746,10 @@ var StorageFileApi = class {
       throw error46;
     }
   }
-  async list(path, options, parameters) {
+  async list(path2, options, parameters) {
     var _this13 = this;
     try {
-      const body = _objectSpread2(_objectSpread2(_objectSpread2({}, DEFAULT_SEARCH_OPTIONS), options), {}, { prefix: path || "" });
+      const body = _objectSpread2(_objectSpread2(_objectSpread2({}, DEFAULT_SEARCH_OPTIONS), options), {}, { prefix: path2 || "" });
       return {
         data: await post$1(_this13.fetch, `${_this13.url}/object/list/${_this13.bucketId}`, body, { headers: _this13.headers }, parameters),
         error: null
@@ -30880,11 +31792,11 @@ var StorageFileApi = class {
       return Buffer.from(data).toString("base64");
     return btoa(data);
   }
-  _getFinalPath(path) {
-    return `${this.bucketId}/${path.replace(/^\/+/, "")}`;
+  _getFinalPath(path2) {
+    return `${this.bucketId}/${path2.replace(/^\/+/, "")}`;
   }
-  _removeEmptyFolders(path) {
-    return path.replace(/^\/|\/$/g, "").replace(/\/+/g, "/");
+  _removeEmptyFolders(path2) {
+    return path2.replace(/^\/|\/$/g, "").replace(/\/+/g, "/");
   }
   transformOptsToQueryString(transform2) {
     const params = [];
@@ -31973,1064 +32885,228 @@ function shouldShowDeprecationWarning() {
 if (shouldShowDeprecationWarning())
   console.warn("⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217");
 
-// src/analytics/events.ts
-var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed";
-var AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed";
-var AUTH_TOKEN_REFRESH_FAILED = "auth_token_refresh_failed";
-var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
-var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
-var SYNC_NOT_AUTHENTICATED = "sync_not_authenticated";
-var SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed";
-var SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted";
-var SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed";
-var SYNC_NETWORK_ERROR = "sync_network_error";
-var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
-var FILE_LOCK_TIMEOUT = "file_lock_timeout";
-var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
-var API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed";
-var API_PROFILE_UPDATE_FAILED = "api_profile_update_failed";
-function getErrorCategory(errorType) {
-  if (errorType.startsWith("auth_"))
-    return "auth";
-  if (errorType.startsWith("sync_"))
-    return "sync";
-  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("extraction_"))
-    return "filesystem";
-  if (errorType.startsWith("daemon_"))
-    return "daemon";
-  if (errorType.startsWith("api_"))
-    return "api";
-  return "api";
-}
-
-// src/analytics/properties.ts
-import { basename } from "node:path";
-function buildAuthProperties(options) {
-  return {
-    auth_method: options.authMethod,
-    ...options.responseStatus !== undefined && { response_status: options.responseStatus },
-    ...options.timeUntilExpiry !== undefined && { time_until_expiry: options.timeUntilExpiry }
-  };
-}
-function buildSyncProperties(options) {
-  return {
-    ...options.syncErrorType && { sync_error_type: options.syncErrorType },
-    ...options.eventsAttempted !== undefined && { events_attempted: options.eventsAttempted },
-    ...options.sessionsAttempted !== undefined && {
-      sessions_attempted: options.sessionsAttempted
-    },
-    ...options.messagesAttempted !== undefined && {
-      messages_attempted: options.messagesAttempted
-    },
-    ...options.retryAttempt !== undefined && { retry_attempt: options.retryAttempt }
-  };
-}
-function buildFileSystemProperties(options) {
-  const anonymizedPath = options.filePath ? basename(options.filePath) : undefined;
-  return {
-    ...anonymizedPath && { file_name: anonymizedPath },
-    operation: options.operation,
-    ...options.errnoCode && { errno_code: options.errnoCode }
-  };
-}
-function buildApiProperties(options) {
-  return {
-    ...options.endpoint && { api_endpoint: options.endpoint },
-    ...options.responseStatus !== undefined && { response_status: options.responseStatus },
-    ...options.responseMessage && { response_message: options.responseMessage }
-  };
-}
-
-// src/auth/session-manager.ts
+// src/supabase/client.ts
 init_constants();
 
-// src/utils/fs-utils.ts
-import { mkdir, stat } from "node:fs/promises";
-async function ensureDirectory(dirPath) {
+// src/utils/file-lock.ts
+import { readdir as readdir2, readFile as readFile2, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
+import { dirname as dirname5 } from "node:path";
+init_constants();
+
+// src/utils/daemon-manager.ts
+import { dirname as dirname4, join as join4 } from "node:path";
+import { fileURLToPath as fileURLToPath2 } from "node:url";
+init_constants();
+
+// src/utils/claude-instances.ts
+init_constants();
+
+// src/utils/daemon-manager.ts
+var DAEMON_RESTART_LOCK = join4(CLAUDE_ZEST_DIR, "daemon-restart.lock");
+var __filename2 = fileURLToPath2(import.meta.url);
+var __dirname3 = dirname4(__filename2);
+function isProcessRunning(pid) {
   try {
-    await stat(dirPath);
+    process.kill(pid, 0);
+    return true;
   } catch {
-    await mkdir(dirPath, { recursive: true, mode: 448 });
+    return false;
   }
 }
 
-// src/utils/logger.ts
-import { appendFile } from "node:fs/promises";
-import { dirname as dirname2 } from "node:path";
-
-// src/utils/log-rotation.ts
-init_constants();
-import { readdir, unlink } from "node:fs/promises";
-import { join as join2 } from "node:path";
-var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
-var lastCleanupTime = {};
-function getDateString() {
-  return new Date().toISOString().split("T")[0];
+// src/utils/file-lock.ts
+var activeLockFiles = new Set;
+function isLockStale(lockInfo) {
+  return !isProcessRunning(lockInfo.pid);
 }
-function getDatedLogPath(logPrefix) {
-  const dateStr = getDateString();
-  return join2(LOGS_DIR, `${logPrefix}-${dateStr}.log`);
-}
-function parseDateFromFilename(filename, logPrefix) {
-  const pattern = new RegExp(`^${logPrefix}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
-  const match = filename.match(pattern);
-  if (!match) {
-    return null;
-  }
-  const date5 = new Date(match[1] + "T00:00:00Z");
-  return Number.isNaN(date5.getTime()) ? null : date5;
-}
-async function cleanupStaleLogs(logPrefix) {
-  const now = Date.now();
-  const lastCleanup = lastCleanupTime[logPrefix] || 0;
-  if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
-    return;
-  }
-  lastCleanupTime[logPrefix] = now;
-  try {
-    await ensureDirectory(LOGS_DIR);
-    const files = await readdir(LOGS_DIR);
-    const cutoffDate = new Date(now - LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000);
-    for (const file2 of files) {
-      const fileDate = parseDateFromFilename(file2, logPrefix);
-      if (fileDate && fileDate < cutoffDate) {
-        const filePath = join2(LOGS_DIR, file2);
-        try {
-          await unlink(filePath);
-        } catch (error46) {
-          logger.error(`Failed to delete old log file ${file2}`, error46);
-        }
-      }
-    }
-  } catch (error46) {
-    logger.error("Failed to cleanup old logs", error46);
-  }
-}
-
-// src/utils/logger.ts
-class Logger {
-  minLevel = "info";
-  logPrefix;
-  levels = {
-    debug: 0,
-    info: 1,
-    warn: 2,
-    error: 3
+async function acquireFileLock(filePath) {
+  const lockFile = `${filePath}.lock`;
+  const lockInfo = {
+    pid: process.pid,
+    timestamp: Date.now()
   };
-  constructor(logPrefix = "plugin") {
-    this.logPrefix = logPrefix;
-  }
-  setLevel(level) {
-    this.minLevel = level;
-  }
-  async writeToFile(message) {
+  try {
+    await ensureDirectory(dirname5(lockFile));
+    await writeFile2(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
+    activeLockFiles.add(lockFile);
+    return true;
+  } catch (error46) {
+    if (error46.code !== "EEXIST") {
+      const errCode = error46.code;
+      if (errCode === "ENOENT" || errCode === "EACCES") {
+        logger.error(`Failed to create lock file ${lockFile}:`, error46);
+        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
+          ...buildFileSystemProperties({
+            filePath: lockFile,
+            operation: "lock",
+            errnoCode: errCode
+          })
+        });
+      }
+      throw error46;
+    }
     try {
-      const logFilePath = getDatedLogPath(this.logPrefix);
-      await ensureDirectory(dirname2(logFilePath));
-      const timestamp = new Date().toISOString();
-      await appendFile(logFilePath, `[${timestamp}] ${message}
-`, "utf-8");
-      cleanupStaleLogs(this.logPrefix);
-    } catch (error46) {
-      console.error("Failed to write to log file:", error46);
+      const content = await readFile2(lockFile, "utf8");
+      const existingLock = JSON.parse(content);
+      if (isLockStale(existingLock)) {
+        logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
+        await unlink3(lockFile).catch(() => {});
+        return acquireFileLock(filePath);
+      }
+    } catch {
+      logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
+      await unlink3(lockFile).catch(() => {});
+      return acquireFileLock(filePath);
     }
-  }
-  shouldLog(level) {
-    return this.levels[level] >= this.levels[this.minLevel];
-  }
-  debug(message, ...args) {
-    if (this.shouldLog("debug")) {
-      this.writeToFile(`DEBUG: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  info(message, ...args) {
-    if (this.shouldLog("info")) {
-      this.writeToFile(`INFO: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  warn(message, ...args) {
-    if (this.shouldLog("warn")) {
-      console.warn(`[Zest:Warn] ${message}`, ...args);
-      this.writeToFile(`WARN: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  error(message, error46) {
-    if (this.shouldLog("error")) {
-      console.error(`[Zest:Error] ${message}`, error46);
-      this.writeToFile(`ERROR: ${message} ${error46 instanceof Error ? error46.stack : JSON.stringify(error46)}`);
-    }
+    return false;
   }
 }
-var logger = new Logger;
+async function releaseFileLock(filePath) {
+  const lockFile = `${filePath}.lock`;
+  activeLockFiles.delete(lockFile);
+  await unlink3(lockFile).catch(() => {});
+}
+async function withFileLock(filePath, fn) {
+  let retries = 0;
+  while (!await acquireFileLock(filePath)) {
+    if (++retries >= LOCK_MAX_RETRIES) {
+      const error46 = new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
+      captureException(error46, FILE_LOCK_TIMEOUT, "file-lock", {
+        ...buildFileSystemProperties({ filePath, operation: "lock" }),
+        retries,
+        max_retries: LOCK_MAX_RETRIES,
+        retry_delay_ms: LOCK_RETRY_MS
+      });
+      throw error46;
+    }
+    await new Promise((resolve) => setTimeout(resolve, LOCK_RETRY_MS));
+  }
+  try {
+    return await fn();
+  } finally {
+    await releaseFileLock(filePath);
+  }
+}
 
-// src/auth/session-manager.ts
-async function loadSession() {
+// src/supabase/client.ts
+function createSupabaseClientInstance() {
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: true
+    }
+  });
+}
+async function persistRefreshedSession(supabaseSession) {
   try {
-    const content = await readFile(SESSION_FILE, "utf-8");
-    const session = JSON.parse(content);
-    if (!session.accessToken || !session.refreshToken || !session.expiresAt || !session.userId || !session.email) {
-      logger.warn("Invalid session structure, clearing session");
-      await clearSession();
-      return null;
-    }
-    const now = Date.now();
-    if (session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < now) {
-      logger.warn("Refresh token expired, user must re-authenticate");
-      await clearSession();
-      return null;
-    }
-    if (session.expiresAt < now) {
-      logger.debug("Access token expired, attempting refresh");
-      try {
-        return await refreshSession(session);
-      } catch (error46) {
-        logger.warn("Failed to refresh session", error46);
-        await clearSession();
-        return null;
+    await withFileLock(SESSION_FILE, async () => {
+      const currentSession = await loadSessionFile();
+      if (!currentSession) {
+        logger.warn("No current session found during refresh, skipping persistence");
+        return;
       }
-    }
-    return session;
+      const updatedSession = {
+        ...currentSession,
+        accessToken: supabaseSession.access_token,
+        refreshToken: supabaseSession.refresh_token,
+        userId: supabaseSession.user.id,
+        email: supabaseSession.user.email || currentSession.email
+      };
+      await saveSession(updatedSession);
+      logger.info("Session persisted after TOKEN_REFRESHED event");
+    });
   } catch (error46) {
-    if (error46.code === "ENOENT") {
-      return null;
-    }
-    logger.error("Failed to load session", error46);
+    logger.error("Failed to persist refreshed session", error46);
     if (error46 instanceof Error) {
-      captureException(error46, AUTH_SESSION_LOAD_FAILED, "session-manager", {
-        ...buildFileSystemProperties({
-          filePath: SESSION_FILE,
-          operation: "read",
-          errnoCode: error46.code
-        })
+      captureException(error46, SUPABASE_SESSION_REFRESH_PERSIST_FAILED, "supabase/client", {
+        session_file: SESSION_FILE
       });
     }
-    return null;
   }
 }
-async function saveSession(session) {
-  try {
-    await ensureDirectory(dirname3(SESSION_FILE));
-    await writeFile(SESSION_FILE, JSON.stringify(session, null, 2), {
-      encoding: "utf-8",
-      mode: 384
+async function setClientSession(client, session) {
+  const { error: error46 } = await client.auth.setSession({
+    access_token: session.accessToken,
+    refresh_token: session.refreshToken
+  });
+  if (error46) {
+    logger.error(`Failed to set Supabase session: ${error46.message}`);
+    const isInvalidRefreshToken = error46.message.includes("Invalid Refresh Token") || error46.code === "refresh_token_not_found" || error46.code === "refresh_token_already_used" || error46.code === "session_not_found" || error46.code === "session_expired";
+    captureException(error46, SUPABASE_SESSION_SET_FAILED, "supabase/client", {
+      is_invalid_refresh_token: isInvalidRefreshToken,
+      error_code: error46.code,
+      error_status: error46.status
     });
-    logger.info("Session saved successfully");
-  } catch (error46) {
-    logger.error("Failed to save session", error46);
-    if (error46 instanceof Error) {
-      captureException(error46, AUTH_SESSION_SAVE_FAILED, "session-manager", {
-        ...buildFileSystemProperties({
-          filePath: SESSION_FILE,
-          operation: "write",
-          errnoCode: error46.code
-        })
-      });
+    if (isInvalidRefreshToken) {
+      logger.warn("Invalid refresh token, clearing session");
+      await clearSession();
     }
     throw error46;
   }
+  logger.debug("Supabase session set successfully");
 }
-async function clearSession() {
-  try {
-    await unlink2(SESSION_FILE);
-    logger.info("Session cleared successfully");
-  } catch (error46) {
-    if (error46.code === "ENOENT") {
-      return;
-    }
-    logger.error("Failed to clear session", error46);
-    throw error46;
-  }
-}
-async function refreshSession(session) {
-  try {
-    const now = Date.now();
-    const timeUntilExpiration = session.expiresAt - now;
-    logger.debug("=== Starting Token Refresh ===");
-    logger.debug(`Current access token expires at: ${new Date(session.expiresAt).toISOString()}`);
-    logger.debug(`Time until expiration: ${Math.round(timeUntilExpiration / 1000)}s`);
-    logger.debug(`Token is ${timeUntilExpiration < 0 ? "EXPIRED" : "still valid"}`);
-    if (session.refreshTokenExpiresAt) {
-      const timeUntilRefreshExpiration = session.refreshTokenExpiresAt - now;
-      logger.debug(`Refresh token expires at: ${new Date(session.refreshTokenExpiresAt).toISOString()}`);
-      logger.debug(`Refresh token time remaining: ${Math.round(timeUntilRefreshExpiration / 1000)}s`);
-    } else {
-      logger.debug("Refresh token: Never expires");
-    }
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      throw new Error("Supabase configuration missing (URL or anon key)");
-    }
-    logger.debug("Using Supabase JS client to refresh session");
-    logger.debug(`Supabase URL: ${SUPABASE_URL}`);
-    logger.debug(`Refresh token length: ${session.refreshToken.length} characters`);
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false
-      }
-    });
-    const { data, error: error46 } = await supabase.auth.refreshSession({
-      refresh_token: session.refreshToken
-    });
-    if (error46) {
-      logger.error(`Supabase refresh error: ${error46.message}`, error46);
-      throw new Error(`Token refresh failed: ${error46.message}`);
-    }
-    if (!data.session) {
-      throw new Error("Token refresh failed: No session returned from Supabase");
-    }
-    logger.debug("Refresh response received successfully from Supabase");
-    logger.debug(`New access token length: ${data.session.access_token.length} characters`);
-    logger.debug(`New refresh token length: ${data.session.refresh_token.length} characters`);
-    logger.debug(`Access token expires in: ${data.session.expires_in || "unknown"} seconds`);
-    let expiresAt;
-    if (data.session.expires_at) {
-      expiresAt = data.session.expires_at * 1000;
-    } else if (data.session.expires_in) {
-      expiresAt = now + data.session.expires_in * 1000;
-    } else {
-      expiresAt = now + 3600 * 1000;
-      logger.warn("No expiration info from Supabase, assuming 1 hour");
-    }
-    const refreshTokenExpiresAt = session.refreshTokenExpiresAt;
-    const accessTokenChanged = session.accessToken !== data.session.access_token;
-    const refreshTokenChanged = session.refreshToken !== data.session.refresh_token;
-    logger.debug(`Access token changed: ${accessTokenChanged}`);
-    logger.debug(`Refresh token changed: ${refreshTokenChanged}`);
-    if (!accessTokenChanged) {
-      logger.warn("⚠️  Access token did not change after refresh - this might indicate an issue");
-    }
-    if (!refreshTokenChanged) {
-      logger.debug("Refresh token did not change (this is normal for Supabase)");
-    }
-    const newSession = {
-      ...session,
-      accessToken: data.session.access_token,
-      refreshToken: data.session.refresh_token,
-      expiresAt,
-      refreshTokenExpiresAt,
-      userId: data.session.user.id,
-      email: data.session.user.email || session.email
-    };
-    logger.debug(`New access token will expire at: ${new Date(expiresAt).toISOString()}`);
-    logger.debug(`New expiration is ${Math.round((expiresAt - session.expiresAt) / 1000)}s from old expiration`);
-    if (refreshTokenExpiresAt) {
-      logger.debug(`Refresh token will expire at: ${new Date(refreshTokenExpiresAt).toISOString()}`);
-    } else {
-      logger.debug("Refresh token does not expire");
-    }
-    logger.debug("Saving new session to file...");
-    await saveSession(newSession);
-    logger.info("✅ Session refreshed and saved successfully");
-    logger.debug("=== Token Refresh Complete ===");
-    return newSession;
-  } catch (error46) {
-    logger.error("❌ Failed to refresh session", error46);
-    if (error46 instanceof Error) {
-      logger.debug(`Error type: ${error46.constructor.name}`);
-      logger.debug(`Error message: ${error46.message}`);
-      if (error46.stack) {
-        logger.debug(`Error stack: ${error46.stack}`);
-      }
-      const timeUntilExpiry = session.expiresAt - Date.now();
-      captureException(error46, AUTH_TOKEN_REFRESH_FAILED, "session-manager", buildAuthProperties({
-        authMethod: "token_refresh",
-        timeUntilExpiry: Math.round(timeUntilExpiry / 1000)
-      }));
-    }
-    throw error46;
-  }
-}
-async function getValidSession() {
-  const session = await loadSession();
+async function loadValidSession() {
+  const session = await loadSessionFile();
   if (!session) {
-    logger.debug("getValidSession: No session found");
+    logger.debug("No session available, skipping Supabase client creation");
     return null;
   }
-  if (session.expiresAt < Date.now() + PROACTIVE_REFRESH_THRESHOLD_MS) {
-    try {
-      const refreshedSession = await refreshSession(session);
-      return refreshedSession;
-    } catch (error46) {
-      logger.warn("getValidSession: Failed to refresh session", error46);
-      return null;
-    }
+  if (session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now()) {
+    logger.warn("Refresh token expired, user must re-authenticate");
+    await clearSession();
+    return null;
   }
   return session;
 }
-
-// src/analytics/index.ts
-init_constants();
-
-// src/utils/claude-version.ts
-import { execSync } from "node:child_process";
-var cachedVersion;
-function getClaudeCodeVersion() {
-  if (cachedVersion !== undefined) {
-    return cachedVersion;
-  }
-  try {
-    const output = execSync("claude --version", {
-      timeout: 2000,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"]
-    });
-    const version5 = output.trim().split(" ")[0];
-    cachedVersion = version5 || undefined;
-    logger.debug("Detected Claude Code version", { version: cachedVersion });
-  } catch (error46) {
-    logger.debug("Could not detect Claude Code version", error46);
-    cachedVersion = undefined;
-  }
-  return cachedVersion;
-}
-
-// src/utils/plugin-version.ts
-init_constants();
-import { readFileSync } from "node:fs";
-import { join as join3 } from "node:path";
-function getPluginVersion() {
-  try {
-    const marketplacePluginPath = join3(CLAUDE_INSTALL_DIR, "plugins", "marketplaces", "zest-marketplace", "zest", ".claude-plugin", "plugin.json");
-    const pluginJson = JSON.parse(readFileSync(marketplacePluginPath, "utf-8"));
-    if (pluginJson.version && typeof pluginJson.version === "string") {
-      logger.debug("Read plugin version from marketplace plugin.json", {
-        version: pluginJson.version
-      });
-      return pluginJson.version;
-    }
-    logger.warn("Version field not found in marketplace plugin.json");
-    return "unknown";
-  } catch (error46) {
-    logger.warn("Failed to read plugin version from marketplace plugin.json", error46);
-    return "unknown";
-  }
-}
-
-// src/analytics/index.ts
-var analyticsClient = null;
-var cachedSession = null;
-async function getAnalyticsClient() {
-  if (!POSTHOG_API_KEY) {
-    return null;
-  }
-  if (!analyticsClient) {
-    analyticsClient = createServerAnalytics(POSTHOG_API_KEY);
-    try {
-      const session = await loadSession();
-      if (session) {
-        cachedSession = session;
-      }
-    } catch (error46) {
-      logger.debug("Could not load session for analytics context", error46);
-    }
-  }
-  return analyticsClient;
-}
-function buildStandardProperties() {
-  return {
-    plugin_version: getPluginVersion(),
-    node_version: process.version,
-    os_platform: process.platform,
-    os_version: release()
-  };
-}
-function buildUserProperties() {
-  if (!cachedSession) {
-    return {};
-  }
-  return {
-    user_id: cachedSession.userId,
-    email: cachedSession.email,
-    workspace_id: cachedSession.workspaceId,
-    workspace_name: cachedSession.workspaceName
-  };
-}
-async function captureException(error46, errorType, errorSource, additionalProperties) {
-  try {
-    const client = await getAnalyticsClient();
-    if (!client) {
-      return;
-    }
-    const context = {
-      error_type: errorType,
-      error_category: getErrorCategory(errorType),
-      error_source: `claude-cli-plugin/${errorSource}`,
-      ...buildStandardProperties(),
-      ...buildUserProperties(),
-      ...additionalProperties
-    };
-    client.captureException(error46, cachedSession?.userId, context);
-    logger.debug("Exception captured in PostHog", {
-      error_type: errorType,
-      error_message: error46.message
-    });
-  } catch (captureError) {
-    logger.debug("Failed to capture exception in PostHog", captureError);
-  }
-}
-async function trackCliSignedIn(userId) {
-  try {
-    const client = await getAnalyticsClient();
-    if (!client) {
-      return;
-    }
-    const claudeVersion = getClaudeCodeVersion();
-    client.track({
-      distinctId: userId,
-      event: "cliSignedIn",
-      properties: {
-        plugin_version: getPluginVersion(),
-        claude_code_version: claudeVersion,
-        node_version: process.version,
-        os_platform: process.platform,
-        os_version: release()
-      }
-    });
-    await shutdownAnalytics();
-    logger.debug("CLI sign-in tracked", { userId });
-  } catch (error46) {
-    logger.debug("Failed to track CLI sign-in", error46);
-  }
-}
-async function shutdownAnalytics() {
-  try {
-    if (analyticsClient) {
-      await analyticsClient.dispose();
-      analyticsClient = null;
-      logger.debug("Analytics client shut down successfully");
-    }
-  } catch (error46) {
-    logger.debug("Error shutting down analytics client", error46);
-  }
-}
-
-// ../../node_modules/.bun/open@10.2.0/node_modules/open/index.js
-import process7 from "node:process";
-import { Buffer as Buffer2 } from "node:buffer";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { promisify as promisify5 } from "node:util";
-import childProcess from "node:child_process";
-import fs5, { constants as fsConstants2 } from "node:fs/promises";
-
-// ../../node_modules/.bun/wsl-utils@0.1.0/node_modules/wsl-utils/index.js
-import process3 from "node:process";
-import fs4, { constants as fsConstants } from "node:fs/promises";
-
-// ../../node_modules/.bun/is-wsl@3.1.0/node_modules/is-wsl/index.js
-import process2 from "node:process";
-import os from "node:os";
-import fs3 from "node:fs";
-
-// ../../node_modules/.bun/is-inside-container@1.0.0/node_modules/is-inside-container/index.js
-import fs2 from "node:fs";
-
-// ../../node_modules/.bun/is-docker@3.0.0/node_modules/is-docker/index.js
-import fs from "node:fs";
-var isDockerCached;
-function hasDockerEnv() {
-  try {
-    fs.statSync("/.dockerenv");
-    return true;
-  } catch {
-    return false;
-  }
-}
-function hasDockerCGroup() {
-  try {
-    return fs.readFileSync("/proc/self/cgroup", "utf8").includes("docker");
-  } catch {
-    return false;
-  }
-}
-function isDocker() {
-  if (isDockerCached === undefined) {
-    isDockerCached = hasDockerEnv() || hasDockerCGroup();
-  }
-  return isDockerCached;
-}
-
-// ../../node_modules/.bun/is-inside-container@1.0.0/node_modules/is-inside-container/index.js
-var cachedResult;
-var hasContainerEnv = () => {
-  try {
-    fs2.statSync("/run/.containerenv");
-    return true;
-  } catch {
-    return false;
-  }
-};
-function isInsideContainer() {
-  if (cachedResult === undefined) {
-    cachedResult = hasContainerEnv() || isDocker();
-  }
-  return cachedResult;
-}
-
-// ../../node_modules/.bun/is-wsl@3.1.0/node_modules/is-wsl/index.js
-var isWsl = () => {
-  if (process2.platform !== "linux") {
-    return false;
-  }
-  if (os.release().toLowerCase().includes("microsoft")) {
-    if (isInsideContainer()) {
-      return false;
-    }
-    return true;
-  }
-  try {
-    return fs3.readFileSync("/proc/version", "utf8").toLowerCase().includes("microsoft") ? !isInsideContainer() : false;
-  } catch {
-    return false;
-  }
-};
-var is_wsl_default = process2.env.__IS_WSL_TEST__ ? isWsl : isWsl();
-
-// ../../node_modules/.bun/wsl-utils@0.1.0/node_modules/wsl-utils/index.js
-var wslDrivesMountPoint = (() => {
-  const defaultMountPoint = "/mnt/";
-  let mountPoint;
-  return async function() {
-    if (mountPoint) {
-      return mountPoint;
-    }
-    const configFilePath = "/etc/wsl.conf";
-    let isConfigFileExists = false;
-    try {
-      await fs4.access(configFilePath, fsConstants.F_OK);
-      isConfigFileExists = true;
-    } catch {}
-    if (!isConfigFileExists) {
-      return defaultMountPoint;
-    }
-    const configContent = await fs4.readFile(configFilePath, { encoding: "utf8" });
-    const configMountPoint = /(?<!#.*)root\s*=\s*(?<mountPoint>.*)/g.exec(configContent);
-    if (!configMountPoint) {
-      return defaultMountPoint;
-    }
-    mountPoint = configMountPoint.groups.mountPoint.trim();
-    mountPoint = mountPoint.endsWith("/") ? mountPoint : `${mountPoint}/`;
-    return mountPoint;
-  };
-})();
-var powerShellPathFromWsl = async () => {
-  const mountPoint = await wslDrivesMountPoint();
-  return `${mountPoint}c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe`;
-};
-var powerShellPath = async () => {
-  if (is_wsl_default) {
-    return powerShellPathFromWsl();
-  }
-  return `${process3.env.SYSTEMROOT || process3.env.windir || String.raw`C:\Windows`}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe`;
-};
-
-// ../../node_modules/.bun/define-lazy-prop@3.0.0/node_modules/define-lazy-prop/index.js
-function defineLazyProperty(object2, propertyName, valueGetter) {
-  const define2 = (value) => Object.defineProperty(object2, propertyName, { value, enumerable: true, writable: true });
-  Object.defineProperty(object2, propertyName, {
-    configurable: true,
-    enumerable: true,
-    get() {
-      const result = valueGetter();
-      define2(result);
-      return result;
-    },
-    set(value) {
-      define2(value);
-    }
-  });
-  return object2;
-}
-
-// ../../node_modules/.bun/default-browser@5.2.1/node_modules/default-browser/index.js
-import { promisify as promisify4 } from "node:util";
-import process6 from "node:process";
-import { execFile as execFile4 } from "node:child_process";
-
-// ../../node_modules/.bun/default-browser-id@5.0.0/node_modules/default-browser-id/index.js
-import { promisify } from "node:util";
-import process4 from "node:process";
-import { execFile } from "node:child_process";
-var execFileAsync = promisify(execFile);
-async function defaultBrowserId() {
-  if (process4.platform !== "darwin") {
-    throw new Error("macOS only");
-  }
-  const { stdout } = await execFileAsync("defaults", ["read", "com.apple.LaunchServices/com.apple.launchservices.secure", "LSHandlers"]);
-  const match = /LSHandlerRoleAll = "(?!-)(?<id>[^"]+?)";\s+?LSHandlerURLScheme = (?:http|https);/.exec(stdout);
-  return match?.groups.id ?? "com.apple.Safari";
-}
-
-// ../../node_modules/.bun/run-applescript@7.1.0/node_modules/run-applescript/index.js
-import process5 from "node:process";
-import { promisify as promisify2 } from "node:util";
-import { execFile as execFile2, execFileSync } from "node:child_process";
-var execFileAsync2 = promisify2(execFile2);
-async function runAppleScript(script, { humanReadableOutput = true, signal } = {}) {
-  if (process5.platform !== "darwin") {
-    throw new Error("macOS only");
-  }
-  const outputArguments = humanReadableOutput ? [] : ["-ss"];
-  const execOptions = {};
-  if (signal) {
-    execOptions.signal = signal;
-  }
-  const { stdout } = await execFileAsync2("osascript", ["-e", script, outputArguments], execOptions);
-  return stdout.trim();
-}
-
-// ../../node_modules/.bun/bundle-name@4.1.0/node_modules/bundle-name/index.js
-async function bundleName(bundleId) {
-  return runAppleScript(`tell application "Finder" to set app_path to application file id "${bundleId}" as string
-tell application "System Events" to get value of property list item "CFBundleName" of property list file (app_path & ":Contents:Info.plist")`);
-}
-
-// ../../node_modules/.bun/default-browser@5.2.1/node_modules/default-browser/windows.js
-import { promisify as promisify3 } from "node:util";
-import { execFile as execFile3 } from "node:child_process";
-var execFileAsync3 = promisify3(execFile3);
-var windowsBrowserProgIds = {
-  AppXq0fevzme2pys62n3e0fbqa7peapykr8v: { name: "Edge", id: "com.microsoft.edge.old" },
-  MSEdgeDHTML: { name: "Edge", id: "com.microsoft.edge" },
-  MSEdgeHTM: { name: "Edge", id: "com.microsoft.edge" },
-  "IE.HTTP": { name: "Internet Explorer", id: "com.microsoft.ie" },
-  FirefoxURL: { name: "Firefox", id: "org.mozilla.firefox" },
-  ChromeHTML: { name: "Chrome", id: "com.google.chrome" },
-  BraveHTML: { name: "Brave", id: "com.brave.Browser" },
-  BraveBHTML: { name: "Brave Beta", id: "com.brave.Browser.beta" },
-  BraveSSHTM: { name: "Brave Nightly", id: "com.brave.Browser.nightly" }
-};
-
-class UnknownBrowserError extends Error {
-}
-async function defaultBrowser(_execFileAsync = execFileAsync3) {
-  const { stdout } = await _execFileAsync("reg", [
-    "QUERY",
-    " HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\Shell\\Associations\\UrlAssociations\\http\\UserChoice",
-    "/v",
-    "ProgId"
-  ]);
-  const match = /ProgId\s*REG_SZ\s*(?<id>\S+)/.exec(stdout);
-  if (!match) {
-    throw new UnknownBrowserError(`Cannot find Windows browser in stdout: ${JSON.stringify(stdout)}`);
-  }
-  const { id } = match.groups;
-  const browser = windowsBrowserProgIds[id];
-  if (!browser) {
-    throw new UnknownBrowserError(`Unknown browser ID: ${id}`);
-  }
-  return browser;
-}
-
-// ../../node_modules/.bun/default-browser@5.2.1/node_modules/default-browser/index.js
-var execFileAsync4 = promisify4(execFile4);
-var titleize = (string4) => string4.toLowerCase().replaceAll(/(?:^|\s|-)\S/g, (x) => x.toUpperCase());
-async function defaultBrowser2() {
-  if (process6.platform === "darwin") {
-    const id = await defaultBrowserId();
-    const name = await bundleName(id);
-    return { name, id };
-  }
-  if (process6.platform === "linux") {
-    const { stdout } = await execFileAsync4("xdg-mime", ["query", "default", "x-scheme-handler/http"]);
-    const id = stdout.trim();
-    const name = titleize(id.replace(/.desktop$/, "").replace("-", " "));
-    return { name, id };
-  }
-  if (process6.platform === "win32") {
-    return defaultBrowser();
-  }
-  throw new Error("Only macOS, Linux, and Windows are supported");
-}
-
-// ../../node_modules/.bun/open@10.2.0/node_modules/open/index.js
-var execFile5 = promisify5(childProcess.execFile);
-var __dirname2 = path.dirname(fileURLToPath(import.meta.url));
-var localXdgOpenPath = path.join(__dirname2, "xdg-open");
-var { platform, arch } = process7;
-async function getWindowsDefaultBrowserFromWsl() {
-  const powershellPath = await powerShellPath();
-  const rawCommand = String.raw`(Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice").ProgId`;
-  const encodedCommand = Buffer2.from(rawCommand, "utf16le").toString("base64");
-  const { stdout } = await execFile5(powershellPath, [
-    "-NoProfile",
-    "-NonInteractive",
-    "-ExecutionPolicy",
-    "Bypass",
-    "-EncodedCommand",
-    encodedCommand
-  ], { encoding: "utf8" });
-  const progId = stdout.trim();
-  const browserMap = {
-    ChromeHTML: "com.google.chrome",
-    BraveHTML: "com.brave.Browser",
-    MSEdgeHTM: "com.microsoft.edge",
-    FirefoxURL: "org.mozilla.firefox"
-  };
-  return browserMap[progId] ? { id: browserMap[progId] } : {};
-}
-var pTryEach = async (array2, mapper) => {
-  let latestError;
-  for (const item of array2) {
-    try {
-      return await mapper(item);
-    } catch (error46) {
-      latestError = error46;
-    }
-  }
-  throw latestError;
-};
-var baseOpen = async (options) => {
-  options = {
-    wait: false,
-    background: false,
-    newInstance: false,
-    allowNonzeroExitCode: false,
-    ...options
-  };
-  if (Array.isArray(options.app)) {
-    return pTryEach(options.app, (singleApp) => baseOpen({
-      ...options,
-      app: singleApp
-    }));
-  }
-  let { name: app, arguments: appArguments = [] } = options.app ?? {};
-  appArguments = [...appArguments];
-  if (Array.isArray(app)) {
-    return pTryEach(app, (appName) => baseOpen({
-      ...options,
-      app: {
-        name: appName,
-        arguments: appArguments
-      }
-    }));
-  }
-  if (app === "browser" || app === "browserPrivate") {
-    const ids = {
-      "com.google.chrome": "chrome",
-      "google-chrome.desktop": "chrome",
-      "com.brave.Browser": "brave",
-      "org.mozilla.firefox": "firefox",
-      "firefox.desktop": "firefox",
-      "com.microsoft.msedge": "edge",
-      "com.microsoft.edge": "edge",
-      "com.microsoft.edgemac": "edge",
-      "microsoft-edge.desktop": "edge"
-    };
-    const flags = {
-      chrome: "--incognito",
-      brave: "--incognito",
-      firefox: "--private-window",
-      edge: "--inPrivate"
-    };
-    const browser = is_wsl_default ? await getWindowsDefaultBrowserFromWsl() : await defaultBrowser2();
-    if (browser.id in ids) {
-      const browserName = ids[browser.id];
-      if (app === "browserPrivate") {
-        appArguments.push(flags[browserName]);
-      }
-      return baseOpen({
-        ...options,
-        app: {
-          name: apps[browserName],
-          arguments: appArguments
-        }
-      });
-    }
-    throw new Error(`${browser.name} is not supported as a default browser`);
-  }
-  let command;
-  const cliArguments = [];
-  const childProcessOptions = {};
-  if (platform === "darwin") {
-    command = "open";
-    if (options.wait) {
-      cliArguments.push("--wait-apps");
-    }
-    if (options.background) {
-      cliArguments.push("--background");
-    }
-    if (options.newInstance) {
-      cliArguments.push("--new");
-    }
-    if (app) {
-      cliArguments.push("-a", app);
-    }
-  } else if (platform === "win32" || is_wsl_default && !isInsideContainer() && !app) {
-    command = await powerShellPath();
-    cliArguments.push("-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand");
-    if (!is_wsl_default) {
-      childProcessOptions.windowsVerbatimArguments = true;
-    }
-    const encodedArguments = ["Start"];
-    if (options.wait) {
-      encodedArguments.push("-Wait");
-    }
-    if (app) {
-      encodedArguments.push(`"\`"${app}\`""`);
-      if (options.target) {
-        appArguments.push(options.target);
-      }
-    } else if (options.target) {
-      encodedArguments.push(`"${options.target}"`);
-    }
-    if (appArguments.length > 0) {
-      appArguments = appArguments.map((argument) => `"\`"${argument}\`""`);
-      encodedArguments.push("-ArgumentList", appArguments.join(","));
-    }
-    options.target = Buffer2.from(encodedArguments.join(" "), "utf16le").toString("base64");
-  } else {
-    if (app) {
-      command = app;
-    } else {
-      const isBundled = !__dirname2 || __dirname2 === "/";
-      let exeLocalXdgOpen = false;
-      try {
-        await fs5.access(localXdgOpenPath, fsConstants2.X_OK);
-        exeLocalXdgOpen = true;
-      } catch {}
-      const useSystemXdgOpen = process7.versions.electron ?? (platform === "android" || isBundled || !exeLocalXdgOpen);
-      command = useSystemXdgOpen ? "xdg-open" : localXdgOpenPath;
-    }
-    if (appArguments.length > 0) {
-      cliArguments.push(...appArguments);
-    }
-    if (!options.wait) {
-      childProcessOptions.stdio = "ignore";
-      childProcessOptions.detached = true;
-    }
-  }
-  if (platform === "darwin" && appArguments.length > 0) {
-    cliArguments.push("--args", ...appArguments);
-  }
-  if (options.target) {
-    cliArguments.push(options.target);
-  }
-  const subprocess = childProcess.spawn(command, cliArguments, childProcessOptions);
-  if (options.wait) {
-    return new Promise((resolve, reject) => {
-      subprocess.once("error", reject);
-      subprocess.once("close", (exitCode) => {
-        if (!options.allowNonzeroExitCode && exitCode > 0) {
-          reject(new Error(`Exited with code ${exitCode}`));
-          return;
-        }
-        resolve(subprocess);
-      });
-    });
-  }
-  subprocess.unref();
-  return subprocess;
-};
-var open = (target, options) => {
-  if (typeof target !== "string") {
-    throw new TypeError("Expected a `target`");
-  }
-  return baseOpen({
-    ...options,
-    target
-  });
-};
-function detectArchBinary(binary) {
-  if (typeof binary === "string" || Array.isArray(binary)) {
-    return binary;
-  }
-  const { [arch]: archBinary } = binary;
-  if (!archBinary) {
-    throw new Error(`${arch} is not supported`);
-  }
-  return archBinary;
-}
-function detectPlatformBinary({ [platform]: platformBinary }, { wsl }) {
-  if (wsl && is_wsl_default) {
-    return detectArchBinary(wsl);
-  }
-  if (!platformBinary) {
-    throw new Error(`${platform} is not supported`);
-  }
-  return detectArchBinary(platformBinary);
-}
-var apps = {};
-defineLazyProperty(apps, "chrome", () => detectPlatformBinary({
-  darwin: "google chrome",
-  win32: "chrome",
-  linux: ["google-chrome", "google-chrome-stable", "chromium"]
-}, {
-  wsl: {
-    ia32: "/mnt/c/Program Files (x86)/Google/Chrome/Application/chrome.exe",
-    x64: ["/mnt/c/Program Files/Google/Chrome/Application/chrome.exe", "/mnt/c/Program Files (x86)/Google/Chrome/Application/chrome.exe"]
-  }
-}));
-defineLazyProperty(apps, "brave", () => detectPlatformBinary({
-  darwin: "brave browser",
-  win32: "brave",
-  linux: ["brave-browser", "brave"]
-}, {
-  wsl: {
-    ia32: "/mnt/c/Program Files (x86)/BraveSoftware/Brave-Browser/Application/brave.exe",
-    x64: ["/mnt/c/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe", "/mnt/c/Program Files (x86)/BraveSoftware/Brave-Browser/Application/brave.exe"]
-  }
-}));
-defineLazyProperty(apps, "firefox", () => detectPlatformBinary({
-  darwin: "firefox",
-  win32: String.raw`C:\Program Files\Mozilla Firefox\firefox.exe`,
-  linux: "firefox"
-}, {
-  wsl: "/mnt/c/Program Files/Mozilla Firefox/firefox.exe"
-}));
-defineLazyProperty(apps, "edge", () => detectPlatformBinary({
-  darwin: "microsoft edge",
-  win32: "msedge",
-  linux: ["microsoft-edge", "microsoft-edge-dev"]
-}, {
-  wsl: "/mnt/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
-}));
-defineLazyProperty(apps, "browser", () => "browser");
-defineLazyProperty(apps, "browserPrivate", () => "browserPrivate");
-var open_default = open;
-
-// src/auth/authentication.ts
-init_constants();
-
-// src/supabase/client.ts
-init_constants();
-async function getSupabaseClient() {
+async function createOnDemandClient() {
   try {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       logger.warn("Supabase configuration missing (URL or anon key)");
       return null;
     }
-    const session = await getValidSession();
+    const session = await loadValidSession();
     if (!session) {
-      logger.debug("No valid session available, skipping Supabase client creation");
       return null;
     }
-    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        persistSession: false
-      },
-      global: {
-        headers: {
-          Authorization: `Bearer ${session.accessToken}`
-        }
+    const client = createSupabaseClientInstance();
+    await setClientSession(client, session);
+    const { data } = client.auth.onAuthStateChange(async (event, supabaseSession) => {
+      logger.debug(`On-demand auth state change: ${event}`);
+      if (event === "TOKEN_REFRESHED" && supabaseSession) {
+        await persistRefreshedSession(supabaseSession);
       }
     });
-    logger.debug("Supabase client created successfully");
-    return client;
+    const unsubscribe = data.subscription.unsubscribe;
+    logger.debug("On-demand Supabase client created");
+    return {
+      client,
+      dispose: async () => {
+        unsubscribe();
+        try {
+          await client.removeAllChannels();
+        } catch (error46) {
+          logger.warn(`Error removing on-demand channels: ${error46.message}`);
+        }
+        logger.debug("On-demand Supabase client disposed");
+      }
+    };
   } catch (error46) {
-    logger.error("Failed to create Supabase client", error46);
+    logger.error("Failed to create on-demand Supabase client", error46);
+    if (error46 instanceof Error) {
+      captureException(error46, SUPABASE_CLIENT_INIT_FAILED, "supabase/client", {
+        has_supabase_url: Boolean(SUPABASE_URL),
+        has_anon_key: Boolean(SUPABASE_ANON_KEY),
+        client_type: "on_demand"
+      });
+    }
     return null;
   }
 }
 
 // src/supabase/profile-updater.ts
-async function updateClaudeCodeMetadata(userId, version5) {
+async function updateClaudeCodeMetadata(supabase, userId, version5) {
   try {
     logger.info("Updating Claude Code plugin metadata", { userId, version: version5 });
-    const supabase = await getSupabaseClient();
-    if (!supabase) {
-      throw new Error("Supabase client not available");
-    }
     const { data: existingProfile, error: fetchError } = await supabase.from("profiles").select("metadata").eq("id", userId).single();
     if (fetchError) {
       logger.warn("Failed to fetch existing profile metadata:", fetchError);
@@ -33067,17 +33143,9 @@ async function updateClaudeCodeMetadata(userId, version5) {
 }
 
 // src/supabase/workspace-fetcher.ts
-async function fetchUserWorkspaces() {
+async function fetchUserWorkspaces(supabase, userId) {
   try {
-    const session = await getValidSession();
-    if (!session) {
-      throw new Error("Not authenticated");
-    }
-    const supabase = await getSupabaseClient();
-    if (!supabase) {
-      throw new Error("Failed to create Supabase client");
-    }
-    logger.debug("Fetching workspaces for user", { userId: session.userId });
+    logger.debug("Fetching workspaces for user", { userId });
     const { data, error: error46 } = await supabase.from("workspaces").select(`
         id,
         name,
@@ -33087,7 +33155,7 @@ async function fetchUserWorkspaces() {
             user_id
           )
         )
-      `).eq("teams.team_memberships.user_id", session.userId);
+      `).eq("teams.team_memberships.user_id", userId);
     if (error46) {
       logger.error("Failed to fetch workspaces", error46);
       const errorMessage = error46 instanceof Error ? error46.message : String(error46);
@@ -33120,8 +33188,17 @@ async function startAuthFlow() {
     const session = await pollForAuthorization(deviceCodeData);
     await saveSession(session);
     logger.info("Device code authentication successful");
-    await updateProfileMetadata(session.userId);
-    await selectDefaultWorkspace();
+    const onDemand = await createOnDemandClient();
+    if (onDemand) {
+      try {
+        await updateProfileMetadata(onDemand.client, session.userId);
+        await selectDefaultWorkspace(onDemand.client);
+      } finally {
+        await onDemand.dispose();
+      }
+    } else {
+      logger.warn("Could not create Supabase client for post-login operations");
+    }
     return session;
   } catch (error46) {
     logger.error("Device code authentication failed", error46);
@@ -33200,22 +33277,12 @@ async function pollForAuthorization(deviceCodeData) {
         console.log("✅ Authorization successful!");
         logger.info("Device authorized successfully");
         const now = Date.now();
-        let expiresAt;
-        if (data.session.expires_at) {
-          expiresAt = data.session.expires_at * 1000;
-        } else if (data.session.expires_in) {
-          expiresAt = now + data.session.expires_in * 1000;
-        } else {
-          expiresAt = now + 3600 * 1000;
-          logger.warn("No access token expiration info from Supabase, assuming 1 hour");
-        }
         let refreshTokenExpiresAt;
         if (data.session.refresh_token_expires_at) {
           refreshTokenExpiresAt = data.session.refresh_token_expires_at * 1000;
         } else if (data.session.refresh_token_expires_in) {
           refreshTokenExpiresAt = now + data.session.refresh_token_expires_in * 1000;
         }
-        logger.debug(`Access token will expire at ${new Date(expiresAt).toISOString()}`);
         if (refreshTokenExpiresAt) {
           logger.debug(`Refresh token will expire at ${new Date(refreshTokenExpiresAt).toISOString()}`);
         } else {
@@ -33224,7 +33291,6 @@ async function pollForAuthorization(deviceCodeData) {
         return {
           accessToken: data.session.access_token,
           refreshToken: data.session.refresh_token,
-          expiresAt,
           refreshTokenExpiresAt,
           userId: data.session.user.id,
           email: data.session.user.email || "",
@@ -33267,16 +33333,16 @@ async function pollForAuthorization(deviceCodeData) {
   });
   throw timeoutError;
 }
-async function updateProfileMetadata(userId) {
+async function updateProfileMetadata(supabase, userId) {
   try {
     const version5 = getPluginVersion();
-    await updateClaudeCodeMetadata(userId, version5);
+    await updateClaudeCodeMetadata(supabase, userId, version5);
     logger.info("Profile metadata updated with Claude Code plugin info");
   } catch (error46) {
     logger.warn("Failed to update profile metadata (non-blocking)", error46);
   }
 }
-async function selectDefaultWorkspace() {
+async function selectDefaultWorkspace(supabase) {
   try {
     const session = await loadSession();
     if (!session) {
@@ -33284,7 +33350,7 @@ async function selectDefaultWorkspace() {
       return;
     }
     logger.info("Loading workspace information");
-    const workspaces = await fetchUserWorkspaces();
+    const workspaces = await fetchUserWorkspaces(supabase, session.userId);
     if (workspaces.length === 0) {
       console.log(`
 ⚠️  No workspace found`);
@@ -33342,10 +33408,10 @@ init_constants();
 
 // src/utils/claude-settings-manager.ts
 init_constants();
-import { readFile as readFile2, writeFile as writeFile2 } from "node:fs/promises";
+import { readFile as readFile3, writeFile as writeFile3 } from "node:fs/promises";
 async function readClaudeSettings() {
   try {
-    const content = await readFile2(CLAUDE_SETTINGS_FILE, "utf-8");
+    const content = await readFile3(CLAUDE_SETTINGS_FILE, "utf-8");
     const settings = JSON.parse(content);
     logger.debug("Claude settings read successfully", { path: CLAUDE_SETTINGS_FILE });
     return settings;
@@ -33366,7 +33432,7 @@ async function writeClaudeSettings(settings) {
     await ensureDirectory(CLAUDE_INSTALL_DIR);
     const existingSettings = await readClaudeSettings() || {};
     const mergedSettings = { ...existingSettings, ...settings };
-    await writeFile2(CLAUDE_SETTINGS_FILE, JSON.stringify(mergedSettings, null, 2), "utf-8");
+    await writeFile3(CLAUDE_SETTINGS_FILE, JSON.stringify(mergedSettings, null, 2), "utf-8");
     logger.info("Claude settings updated successfully", {
       path: CLAUDE_SETTINGS_FILE,
       updatedKeys: Object.keys(settings)
@@ -33459,7 +33525,7 @@ async function setupStatusLineAfterAuth() {
 }
 
 // src/config/settings.ts
-import { readFile as readFile3, writeFile as writeFile3 } from "node:fs/promises";
+import { readFile as readFile4, writeFile as writeFile4 } from "node:fs/promises";
 
 // ../../node_modules/.bun/zod@3.25.76/node_modules/zod/v3/external.js
 var exports_external2 = {};
@@ -37468,7 +37534,7 @@ var DEFAULT_SETTINGS = {
 };
 async function loadSettings() {
   try {
-    const content = await readFile3(SETTINGS_FILE, "utf-8");
+    const content = await readFile4(SETTINGS_FILE, "utf-8");
     const rawSettings = JSON.parse(content);
     const validated = UserSettingsSchema.parse(rawSettings);
     return { ...DEFAULT_SETTINGS, ...validated };
@@ -37479,6 +37545,261 @@ async function loadSettings() {
       logger.warn("Failed to load settings, using defaults:", error46);
     }
     return DEFAULT_SETTINGS;
+  }
+}
+
+// src/notifications/standup-notifications.ts
+init_constants();
+
+// src/supabase/standup-queries.ts
+async function hasExistingStandup(supabase, userId, workspaceId) {
+  try {
+    const { data: existingStandup, error: error46 } = await supabase.from("chat_analysis_summaries").select("id").eq("user_id", userId).eq("workspace_id", workspaceId).eq("is_active", true).limit(1).maybeSingle();
+    if (error46) {
+      logger.warn("Failed to check for existing standup", error46);
+      return false;
+    }
+    return !!existingStandup;
+  } catch (error46) {
+    logger.error("Error checking for existing standup", error46);
+    return false;
+  }
+}
+async function getWorkspaceSessionIds(supabase, userId, workspaceId) {
+  try {
+    const { data: sessions, error: error46 } = await supabase.from("chat_sessions").select("id").eq("user_id", userId).eq("workspace_id", workspaceId);
+    if (error46) {
+      logger.warn("Failed to get sessions for workspace", error46);
+      return [];
+    }
+    if (!sessions || sessions.length === 0) {
+      return [];
+    }
+    return sessions.map((s) => s.id);
+  } catch (error46) {
+    logger.error("Error getting workspace session IDs", error46);
+    return [];
+  }
+}
+async function countMessagesForSessions(supabase, sessionIds) {
+  try {
+    if (sessionIds.length === 0) {
+      return 0;
+    }
+    const { count, error: error46 } = await supabase.from("chat_messages").select("*", { count: "exact", head: true }).in("session_id", sessionIds);
+    if (error46) {
+      logger.warn("Failed to check message count", error46);
+      return 0;
+    }
+    return count || 0;
+  } catch (error46) {
+    logger.error("Error counting messages for sessions", error46);
+    return 0;
+  }
+}
+
+// src/utils/status-cache-manager.ts
+init_constants();
+import { readFileSync as readFileSync2, writeFileSync } from "node:fs";
+var DEFAULT_VERSION_CHECK = {
+  updateAvailable: false,
+  currentVersion: "unknown",
+  latestVersion: "unknown",
+  checkedAt: 0
+};
+var DEFAULT_SYNC_STATUS = {
+  hasError: false,
+  errorType: null,
+  errorMessage: null,
+  lastErrorAt: null,
+  lastSuccessAt: null
+};
+var DEFAULT_DEV_MODE_STATUS = {
+  active: false
+};
+var DEFAULT_STANDUP_NOTIFICATION = {
+  message: null,
+  createdAt: null,
+  expiresAt: null,
+  firstDataReadyLastShownAt: null,
+  standupRefreshedLastShownAt: null
+};
+var DEFAULT_STATUS_CACHE = {
+  versionCheck: DEFAULT_VERSION_CHECK,
+  syncStatus: DEFAULT_SYNC_STATUS,
+  devMode: DEFAULT_DEV_MODE_STATUS,
+  standupNotification: DEFAULT_STANDUP_NOTIFICATION
+};
+function readStatusCache() {
+  try {
+    const data = readFileSync2(STATUS_CACHE_FILE, "utf-8");
+    const parsed = JSON.parse(data);
+    if (parsed.updateAvailable !== undefined && !parsed.versionCheck) {
+      logger.info("Migrating old update-check.json format to new status-cache.json format");
+      const migrated = {
+        versionCheck: {
+          updateAvailable: parsed.updateAvailable ?? false,
+          currentVersion: parsed.currentVersion ?? "unknown",
+          latestVersion: parsed.latestVersion ?? "unknown",
+          checkedAt: parsed.checkedAt ?? 0
+        },
+        syncStatus: DEFAULT_SYNC_STATUS,
+        devMode: DEFAULT_DEV_MODE_STATUS,
+        standupNotification: DEFAULT_STANDUP_NOTIFICATION
+      };
+      return migrated;
+    }
+    return {
+      versionCheck: {
+        ...DEFAULT_VERSION_CHECK,
+        ...parsed.versionCheck
+      },
+      syncStatus: {
+        ...DEFAULT_SYNC_STATUS,
+        ...parsed.syncStatus
+      },
+      devMode: {
+        ...DEFAULT_DEV_MODE_STATUS,
+        ...parsed.devMode
+      },
+      standupNotification: {
+        ...DEFAULT_STANDUP_NOTIFICATION,
+        ...parsed.standupNotification
+      }
+    };
+  } catch (error46) {
+    if (error46.code === "ENOENT") {
+      logger.debug("Status cache file does not exist, using defaults");
+    } else {
+      logger.warn("Failed to read status cache file, using defaults", error46);
+    }
+    return DEFAULT_STATUS_CACHE;
+  }
+}
+async function writeSyncStatus(status) {
+  try {
+    await withFileLock(STATUS_CACHE_FILE, async () => {
+      const currentCache = readStatusCache();
+      const updatedCache = {
+        ...currentCache,
+        syncStatus: status
+      };
+      writeFileSync(STATUS_CACHE_FILE, JSON.stringify(updatedCache, null, 2), "utf-8");
+      logger.debug("Wrote sync status to status cache", {
+        hasError: status.hasError,
+        errorType: status.errorType
+      });
+    });
+  } catch (error46) {
+    logger.error("Failed to write sync status to status cache", error46);
+  }
+}
+async function clearSyncError() {
+  try {
+    await withFileLock(STATUS_CACHE_FILE, async () => {
+      const currentCache = readStatusCache();
+      const clearedStatus = {
+        hasError: false,
+        errorType: null,
+        errorMessage: null,
+        lastErrorAt: currentCache.syncStatus.lastErrorAt,
+        lastSuccessAt: Date.now()
+      };
+      const updatedCache = {
+        ...currentCache,
+        syncStatus: clearedStatus
+      };
+      writeFileSync(STATUS_CACHE_FILE, JSON.stringify(updatedCache, null, 2), "utf-8");
+      logger.debug("Cleared sync error in status cache");
+    });
+  } catch (error46) {
+    logger.error("Failed to clear sync error in status cache", error46);
+  }
+}
+async function writeStandupNotification(message, options) {
+  try {
+    await withFileLock(STATUS_CACHE_FILE, async () => {
+      const currentCache = readStatusCache();
+      const now = Date.now();
+      const updatedNotification = {
+        ...currentCache.standupNotification,
+        message,
+        createdAt: now,
+        expiresAt: now + NOTIFICATION_DURATION_MS,
+        ...options?.updateFirstDataReadyThrottle && { firstDataReadyLastShownAt: now },
+        ...options?.updateRefreshedThrottle && { standupRefreshedLastShownAt: now }
+      };
+      const updatedCache = {
+        ...currentCache,
+        standupNotification: updatedNotification
+      };
+      writeFileSync(STATUS_CACHE_FILE, JSON.stringify(updatedCache, null, 2), "utf-8");
+      logger.debug("Wrote standup notification to status cache", { message });
+    });
+  } catch (error46) {
+    logger.error("Failed to write standup notification to status cache", error46);
+  }
+}
+function hasActiveStandupNotification() {
+  try {
+    const cache = readStatusCache();
+    const { message, expiresAt } = cache.standupNotification;
+    return message !== null && expiresAt !== null && expiresAt > Date.now();
+  } catch (error46) {
+    logger.warn("Failed to check for active standup notification", error46);
+    return false;
+  }
+}
+function shouldShowFirstDataReady() {
+  try {
+    const cache = readStatusCache();
+    const { firstDataReadyLastShownAt } = cache.standupNotification;
+    if (!firstDataReadyLastShownAt)
+      return true;
+    return Date.now() - firstDataReadyLastShownAt >= STANDUP_NOTIFICATION_THROTTLE_MS;
+  } catch (error46) {
+    logger.warn("Failed to check first data ready throttle", error46);
+    return true;
+  }
+}
+
+// src/notifications/standup-notifications.ts
+async function checkFirstDataReadyNotification(supabase, session) {
+  try {
+    if (hasActiveStandupNotification()) {
+      logger.debug("Standup notification already active, skipping first data ready check");
+      return;
+    }
+    if (!shouldShowFirstDataReady()) {
+      logger.debug("First data ready notification throttled (2-hour cooldown)");
+      return;
+    }
+    const workspaceId = session.workspaceId;
+    if (!workspaceId) {
+      logger.debug("No workspace ID in session, skipping first data ready check");
+      return;
+    }
+    const existingStandup = await hasExistingStandup(supabase, session.userId, workspaceId);
+    if (existingStandup) {
+      logger.debug("User already has standup, skipping first data ready notification");
+      return;
+    }
+    const sessionIds = await getWorkspaceSessionIds(supabase, session.userId, workspaceId);
+    if (sessionIds.length === 0) {
+      logger.debug("No sessions synced yet, skipping first data ready notification");
+      return;
+    }
+    const messageCount = await countMessagesForSessions(supabase, sessionIds);
+    if (messageCount < FIRST_DATA_THRESHOLD_MESSAGES) {
+      logger.debug(`Not enough messages (${messageCount}/${FIRST_DATA_THRESHOLD_MESSAGES}), skipping first data ready notification`);
+      return;
+    }
+    logger.info("Showing first data ready notification");
+    await writeStandupNotification("\x1B[1;32m✨ Zest got your first code! You're ready to generate your first standup!\x1B[0m", {
+      updateFirstDataReadyThrottle: true
+    });
+  } catch (error46) {
+    logger.error("Failed to check first data ready notification", error46);
   }
 }
 
@@ -37824,101 +38145,6 @@ var ALL_BUILT_IN_RULES = [
   ...LOCK_FILE_RULES,
   ...BINARY_MEDIA_RULES
 ];
-// src/utils/file-lock.ts
-import { readdir as readdir2, readFile as readFile4, unlink as unlink3, writeFile as writeFile4 } from "node:fs/promises";
-import { dirname as dirname5 } from "node:path";
-init_constants();
-
-// src/utils/daemon-manager.ts
-import { dirname as dirname4, join as join4 } from "node:path";
-import { fileURLToPath as fileURLToPath2 } from "node:url";
-init_constants();
-var DAEMON_RESTART_LOCK = join4(CLAUDE_ZEST_DIR, "daemon-restart.lock");
-var __filename2 = fileURLToPath2(import.meta.url);
-var __dirname3 = dirname4(__filename2);
-function isProcessRunning(pid) {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// src/utils/file-lock.ts
-var activeLockFiles = new Set;
-function isLockStale(lockInfo) {
-  return !isProcessRunning(lockInfo.pid);
-}
-async function acquireFileLock(filePath) {
-  const lockFile = `${filePath}.lock`;
-  const lockInfo = {
-    pid: process.pid,
-    timestamp: Date.now()
-  };
-  try {
-    await ensureDirectory(dirname5(lockFile));
-    await writeFile4(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
-    activeLockFiles.add(lockFile);
-    return true;
-  } catch (error46) {
-    if (error46.code !== "EEXIST") {
-      const errCode = error46.code;
-      if (errCode === "ENOENT" || errCode === "EACCES") {
-        logger.error(`Failed to create lock file ${lockFile}:`, error46);
-        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
-          ...buildFileSystemProperties({
-            filePath: lockFile,
-            operation: "lock",
-            errnoCode: errCode
-          })
-        });
-      }
-      throw error46;
-    }
-    try {
-      const content = await readFile4(lockFile, "utf8");
-      const existingLock = JSON.parse(content);
-      if (isLockStale(existingLock)) {
-        logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
-        await unlink3(lockFile).catch(() => {});
-        return acquireFileLock(filePath);
-      }
-    } catch {
-      logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
-      await unlink3(lockFile).catch(() => {});
-      return acquireFileLock(filePath);
-    }
-    return false;
-  }
-}
-async function releaseFileLock(filePath) {
-  const lockFile = `${filePath}.lock`;
-  activeLockFiles.delete(lockFile);
-  await unlink3(lockFile).catch(() => {});
-}
-async function withFileLock(filePath, fn) {
-  let retries = 0;
-  while (!await acquireFileLock(filePath)) {
-    if (++retries >= LOCK_MAX_RETRIES) {
-      const error46 = new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
-      captureException(error46, FILE_LOCK_TIMEOUT, "file-lock", {
-        ...buildFileSystemProperties({ filePath, operation: "lock" }),
-        retries,
-        max_retries: LOCK_MAX_RETRIES,
-        retry_delay_ms: LOCK_RETRY_MS
-      });
-      throw error46;
-    }
-    await new Promise((resolve) => setTimeout(resolve, LOCK_RETRY_MS));
-  }
-  try {
-    return await fn();
-  } finally {
-    await releaseFileLock(filePath);
-  }
-}
-
 // src/utils/queue-manager.ts
 async function readJsonl(filePath) {
   try {
@@ -38000,111 +38226,6 @@ async function getQueueStats() {
   } catch (error46) {
     logger.error("Failed to get queue stats:", error46);
     return { events: 0, sessions: 0, messages: 0 };
-  }
-}
-
-// src/utils/status-cache-manager.ts
-init_constants();
-import { readFileSync as readFileSync2, writeFileSync } from "node:fs";
-var DEFAULT_VERSION_CHECK = {
-  updateAvailable: false,
-  currentVersion: "unknown",
-  latestVersion: "unknown",
-  checkedAt: 0
-};
-var DEFAULT_SYNC_STATUS = {
-  hasError: false,
-  errorType: null,
-  errorMessage: null,
-  lastErrorAt: null,
-  lastSuccessAt: null
-};
-var DEFAULT_DEV_MODE_STATUS = {
-  active: false
-};
-var DEFAULT_STATUS_CACHE = {
-  versionCheck: DEFAULT_VERSION_CHECK,
-  syncStatus: DEFAULT_SYNC_STATUS,
-  devMode: DEFAULT_DEV_MODE_STATUS
-};
-function readStatusCache() {
-  try {
-    const data = readFileSync2(STATUS_CACHE_FILE, "utf-8");
-    const parsed = JSON.parse(data);
-    if (parsed.updateAvailable !== undefined && !parsed.versionCheck) {
-      logger.info("Migrating old update-check.json format to new status-cache.json format");
-      const migrated = {
-        versionCheck: {
-          updateAvailable: parsed.updateAvailable ?? false,
-          currentVersion: parsed.currentVersion ?? "unknown",
-          latestVersion: parsed.latestVersion ?? "unknown",
-          checkedAt: parsed.checkedAt ?? 0
-        },
-        syncStatus: DEFAULT_SYNC_STATUS
-      };
-      return migrated;
-    }
-    return {
-      versionCheck: {
-        ...DEFAULT_VERSION_CHECK,
-        ...parsed.versionCheck
-      },
-      syncStatus: {
-        ...DEFAULT_SYNC_STATUS,
-        ...parsed.syncStatus
-      },
-      devMode: {
-        ...DEFAULT_DEV_MODE_STATUS,
-        ...parsed.devMode
-      }
-    };
-  } catch (error46) {
-    if (error46.code === "ENOENT") {
-      logger.debug("Status cache file does not exist, using defaults");
-    } else {
-      logger.warn("Failed to read status cache file, using defaults", error46);
-    }
-    return DEFAULT_STATUS_CACHE;
-  }
-}
-async function writeSyncStatus(status) {
-  try {
-    await withFileLock(STATUS_CACHE_FILE, async () => {
-      const currentCache = readStatusCache();
-      const updatedCache = {
-        ...currentCache,
-        syncStatus: status
-      };
-      writeFileSync(STATUS_CACHE_FILE, JSON.stringify(updatedCache, null, 2), "utf-8");
-      logger.debug("Wrote sync status to status cache", {
-        hasError: status.hasError,
-        errorType: status.errorType
-      });
-    });
-  } catch (error46) {
-    logger.error("Failed to write sync status to status cache", error46);
-  }
-}
-async function clearSyncError() {
-  try {
-    await withFileLock(STATUS_CACHE_FILE, async () => {
-      const currentCache = readStatusCache();
-      const clearedStatus = {
-        hasError: false,
-        errorType: null,
-        errorMessage: null,
-        lastErrorAt: currentCache.syncStatus.lastErrorAt,
-        lastSuccessAt: Date.now()
-      };
-      const updatedCache = {
-        ...currentCache,
-        syncStatus: clearedStatus
-      };
-      writeFileSync(STATUS_CACHE_FILE, JSON.stringify(updatedCache, null, 2), "utf-8");
-      logger.debug("Cleared sync error in status cache");
-    });
-  } catch (error46) {
-    logger.error("Failed to clear sync error in status cache", error46);
   }
 }
 
@@ -38896,7 +39017,7 @@ async function uploadEventsWithRetry(supabase, maxRetries = 3, backoffMs = 5000)
 }
 
 // src/supabase/sync.ts
-async function syncAllData() {
+async function syncAllData(supabase) {
   try {
     const stats = await getQueueStats();
     const hasData = stats.events > 0 || stats.sessions > 0 || stats.messages > 0;
@@ -38908,24 +39029,6 @@ async function syncAllData() {
       };
     }
     logger.info(`Starting sync: ${stats.events} events, ${stats.sessions} sessions, ${stats.messages} messages`);
-    const supabase = await getSupabaseClient();
-    if (!supabase) {
-      logger.debug("Cannot sync: not authenticated or Supabase not configured");
-      captureException(new Error("Sync failed: not authenticated"), SYNC_NOT_AUTHENTICATED, "sync", {
-        ...buildSyncProperties({
-          syncErrorType: "not_authenticated",
-          eventsAttempted: stats.events,
-          sessionsAttempted: stats.sessions,
-          messagesAttempted: stats.messages
-        })
-      });
-      return {
-        success: false,
-        uploaded: { events: 0, sessions: 0, messages: 0 },
-        error: "Not authenticated",
-        errorType: "not_authenticated"
-      };
-    }
     const eventsResult = await uploadEventsWithRetry(supabase);
     if (!eventsResult.success) {
       return {
@@ -38980,8 +39083,8 @@ async function syncAllData() {
     };
   }
 }
-async function syncWithMessage() {
-  const result = await syncAllData();
+async function syncWithMessage(supabase) {
+  const result = await syncAllData(supabase);
   if (result.success) {
     await recordSyncMetric({
       timestamp: Date.now(),
@@ -39051,22 +39154,30 @@ async function main() {
     console.log(`✅ Authenticated: ${session.email}`);
     await trackCliSignedIn(session.userId);
     await setupStatusLineAfterAuth();
-    const settings = await loadSettings();
-    if (settings.enableRemotePersistence) {
-      const statsBefore = await getQueueStats();
-      const totalQueued = statsBefore.events + statsBefore.sessions + statsBefore.messages;
-      if (totalQueued > 0) {
-        console.log("\uD83D\uDD04 Syncing queued data...");
-        const result = await syncWithMessage();
-        if (result.success) {
-          console.log(`✅ ${result.message}`);
+    const onDemand = await createOnDemandClient();
+    if (onDemand) {
+      try {
+        await checkFirstDataReadyNotification(onDemand.client, session);
+        const settings = await loadSettings();
+        if (settings.enableRemotePersistence) {
+          const statsBefore = await getQueueStats();
+          const totalQueued = statsBefore.events + statsBefore.sessions + statsBefore.messages;
+          if (totalQueued > 0) {
+            console.log("\uD83D\uDD04 Syncing queued data...");
+            const result = await syncWithMessage(onDemand.client);
+            if (result.success) {
+              console.log(`✅ ${result.message}`);
+            } else {
+              console.log(`⚠️ ${result.message}`);
+              console.log("\uD83D\uDCA1 Data is queued locally and will sync in background");
+            }
+          }
         } else {
-          console.log(`⚠️ ${result.message}`);
-          console.log("\uD83D\uDCA1 Data is queued locally and will sync in background");
+          console.log("\uD83D\uDCE6 Remote sync disabled - data will be stored locally only");
         }
+      } finally {
+        await onDemand.dispose();
       }
-    } else {
-      console.log("\uD83D\uDCE6 Remote sync disabled - data will be stored locally only");
     }
     console.log(`\uD83D\uDCC8 Your standup & metrics will be available at: ${"https://app.meetzest.com"}`);
     console.log("\uD83E\uDD8D Go ahead and start coding!");
