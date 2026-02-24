@@ -25701,6 +25701,26 @@ function date4(params) {
 
 // ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/classic/external.js
 config(en_default());
+// ../../packages/analytics/src/schemas/admin.events.ts
+var adminEvents = {
+  adminImpersonationStarted: {
+    name: "Admin Impersonation Started",
+    schema: exports_external.object({
+      targetUserId: exports_external.string(),
+      workspaceSlug: exports_external.string(),
+      reason: exports_external.string()
+    })
+  },
+  adminImpersonationEnded: {
+    name: "Admin Impersonation Ended",
+    schema: exports_external.object({
+      targetUserId: exports_external.string(),
+      workspaceSlug: exports_external.string(),
+      reason: exports_external.string()
+    })
+  }
+};
+
 // ../../packages/analytics/src/schemas/analysis.events.ts
 var analysisEvents = {
   standupGenerated: {
@@ -25797,6 +25817,7 @@ var onboardingEvents = {
 
 // ../../packages/analytics/src/schemas/index.ts
 var allEvents = {
+  ...adminEvents,
   ...authEvents,
   ...analysisEvents,
   ...onboardingEvents,
@@ -38564,7 +38585,7 @@ async function removeMessagesFromQueue(messageIdsToRemove) {
     return currentMessages.filter((m) => m.id && !messageIdsToRemove.has(m.id));
   });
 }
-async function uploadChatData(supabase) {
+async function uploadChatData(supabase, dataControls) {
   try {
     const session = await getValidSession();
     if (!session) {
@@ -38627,7 +38648,31 @@ async function uploadChatData(supabase) {
     const orphanedSessionIds = new Set(messagePartition.orphaned.map((m) => normalizeSessionId(m.session_id)).filter((id) => !!id));
     const allValidSessionIds = new Set([...uploadedSessionIds, ...orphanedSessionIds]);
     const messagesToUpload = enrichMessagesForUpload(uniqueMessages, session.userId).filter((m) => allValidSessionIds.has(m.session_id));
-    const messageSessionIds = new Set(messagesToUpload.map((m) => m.session_id));
+    let filteredMessages = messagesToUpload;
+    if (dataControls) {
+      const uploadUser = dataControls.shouldUploadUserMessages();
+      const uploadAssistant = dataControls.shouldUploadAssistantMessages();
+      const uploadDiffs = dataControls.shouldUploadCodeDiffs();
+      if (!uploadUser && !uploadAssistant) {
+        logger.info("Skipping chat upload: both user_messages and assistant_messages disabled");
+        if (categories.stale.length > 0) {
+          await removeStaleSessionsFromQueue(categories.staleIds);
+        }
+        return { success: true, uploaded: { sessions: 0, messages: 0 } };
+      }
+      filteredMessages = messagesToUpload.filter((m) => {
+        if (m.role === "user" && !uploadUser)
+          return false;
+        if (m.role === "assistant" && !uploadAssistant)
+          return false;
+        return true;
+      }).map((m) => uploadDiffs ? m : { ...m, code_diffs: null });
+      if (filteredMessages.length === 0) {
+        logger.info("No messages to upload after data controls filtering");
+        return { success: true, uploaded: { sessions: 0, messages: 0 } };
+      }
+    }
+    const messageSessionIds = new Set(filteredMessages.map((m) => m.session_id));
     const missingSessionIds = [...messageSessionIds].filter((id) => !allValidSessionIds.has(id));
     if (missingSessionIds.length > 0) {
       return { success: false, uploaded: { sessions: 0, messages: 0 } };
@@ -38636,7 +38681,7 @@ async function uploadChatData(supabase) {
     if (!sessionsUploaded) {
       return { success: false, uploaded: { sessions: 0, messages: 0 } };
     }
-    const messagesUploaded = await uploadMessagesToSupabase(supabase, messagesToUpload);
+    const messagesUploaded = await uploadMessagesToSupabase(supabase, filteredMessages);
     if (!messagesUploaded) {
       return {
         success: false,
@@ -38653,7 +38698,7 @@ async function uploadChatData(supabase) {
       success: true,
       uploaded: {
         sessions: sessionsToUpload.length,
-        messages: messagesToUpload.length
+        messages: filteredMessages.length
       }
     };
   } catch (error46) {
@@ -38666,11 +38711,11 @@ async function uploadChatData(supabase) {
     return { success: false, uploaded: { sessions: 0, messages: 0 } };
   }
 }
-async function uploadChatDataWithRetry(supabase, maxRetries = 3, backoffMs = 5000) {
+async function uploadChatDataWithRetry(supabase, dataControls, maxRetries = 3, backoffMs = 5000) {
   let lastError = null;
   for (let attempt = 1;attempt <= maxRetries; attempt++) {
     try {
-      const result = await uploadChatData(supabase);
+      const result = await uploadChatData(supabase, dataControls);
       if (result.success) {
         return result;
       }
@@ -38687,6 +38732,196 @@ async function uploadChatDataWithRetry(supabase, maxRetries = 3, backoffMs = 500
   }
   logger.error(`Chat upload failed after ${maxRetries} attempts`, lastError);
   return { success: false, uploaded: { sessions: 0, messages: 0 } };
+}
+// ../../packages/types/data-controls.ts
+var RETENTION_PERIODS = ["7d", "30d", "90d", "1y", "forever"];
+var RETENTION_PERIOD_ORDER = {
+  "7d": 0,
+  "30d": 1,
+  "90d": 2,
+  "1y": 3,
+  forever: 4
+};
+var collectionSettingsSchema = exports_external2.object({
+  user_messages: exports_external2.boolean(),
+  assistant_messages: exports_external2.boolean(),
+  code_diffs: exports_external2.boolean()
+});
+var retentionSettingsSchema = exports_external2.object({
+  user_messages: exports_external2.enum(RETENTION_PERIODS),
+  assistant_messages: exports_external2.enum(RETENTION_PERIODS),
+  code_diffs: exports_external2.enum(RETENTION_PERIODS)
+});
+var WORKSPACE_COLLECTION_DEFAULTS = {
+  user_messages: true,
+  assistant_messages: true,
+  code_diffs: true
+};
+var WORKSPACE_RETENTION_DEFAULTS = {
+  user_messages: "90d",
+  assistant_messages: "90d",
+  code_diffs: "7d"
+};
+function shorterRetentionPeriod(a, b) {
+  return RETENTION_PERIOD_ORDER[a] <= RETENTION_PERIOD_ORDER[b] ? a : b;
+}
+function getEffectiveCollection(workspace, user) {
+  if (!user)
+    return workspace;
+  return {
+    user_messages: workspace.user_messages && user.user_messages,
+    assistant_messages: workspace.assistant_messages && user.assistant_messages,
+    code_diffs: workspace.code_diffs && user.code_diffs
+  };
+}
+function getEffectiveRetention(workspace, user) {
+  if (!user)
+    return workspace;
+  return {
+    user_messages: shorterRetentionPeriod(workspace.user_messages, user.user_messages),
+    assistant_messages: shorterRetentionPeriod(workspace.assistant_messages, user.assistant_messages),
+    code_diffs: shorterRetentionPeriod(workspace.code_diffs, user.code_diffs)
+  };
+}
+// ../../packages/types/prompt-tags.ts
+var PromptTagSchema = exports_external2.object({
+  id: exports_external2.string(),
+  displayName: exports_external2.string(),
+  description: exports_external2.string().optional(),
+  category: exports_external2.string().optional()
+});
+var PROMPT_TAGS = {
+  TOP_5: {
+    id: "top-5",
+    displayName: "\uD83D\uDD79️ Top 5",
+    description: "Essential cheatcodes for maximum productivity",
+    category: "cheatcodes"
+  },
+  ANALYZE_PROMPTS: {
+    id: "analyze-prompts",
+    displayName: "\uD83D\uDCC8 Analyze my prompts",
+    description: "Analyze your AI usage patterns and prompt effectiveness",
+    category: "cheatcodes"
+  },
+  CHECKLISTS: {
+    id: "checklists",
+    displayName: "✅ Checklists",
+    description: "Comprehensive checklists for common development tasks",
+    category: "cheatcodes"
+  },
+  PROMPT_HACKS: {
+    id: "prompt-hacks",
+    displayName: "\uD83D\uDCAC Prompt Hacks",
+    description: "Advanced techniques for better AI interactions",
+    category: "cheatcodes"
+  },
+  AI_CODING_STACK: {
+    id: "ai-coding-stack",
+    displayName: "\uD83E\uDD16 AI Coding Stack",
+    description: "Tools and configurations for AI-assisted development",
+    category: "cheatcodes"
+  }
+};
+var AVAILABLE_PROMPT_TAGS = Object.values(PROMPT_TAGS);
+var tagIds = AVAILABLE_PROMPT_TAGS.map((tag) => tag.id);
+var VALID_TAG_IDS = tagIds;
+var TagIdSchema = exports_external2.enum(VALID_TAG_IDS);
+// ../../packages/types/index.ts
+var MetricDefinitionSchema = exports_external2.object({
+  metric_name: exports_external2.string(),
+  type: exports_external2.enum(["number", "percentage", "duration"]),
+  unit: exports_external2.enum(["count", "hours", "percentage", "minutes"]),
+  description: exports_external2.string().optional(),
+  long_description: exports_external2.string().optional()
+});
+var CustomPromptMetadataSchema = exports_external2.object({
+  metrics: exports_external2.array(MetricDefinitionSchema).optional(),
+  tags: exports_external2.array(exports_external2.string()).optional()
+});
+
+// src/supabase/data-controls-provider.ts
+var CACHE_TTL_MS = 5 * 60 * 1000;
+
+class DataControlsProvider {
+  effectiveCollection = null;
+  effectiveRetention = null;
+  lastFetchedAt = null;
+  ready = false;
+  async refresh(supabase, workspaceId, userId) {
+    try {
+      const [workspaceResult, userResult] = await Promise.all([
+        supabase.from("workspace_data_controls").select("collection, retention").eq("workspace_id", workspaceId).maybeSingle(),
+        supabase.from("user_data_controls").select("collection, retention").eq("user_id", userId).maybeSingle()
+      ]);
+      if (workspaceResult.error) {
+        logger.error("DataControlsProvider: failed to fetch workspace data controls", new Error(workspaceResult.error.message));
+        return false;
+      }
+      if (userResult.error) {
+        logger.error("DataControlsProvider: failed to fetch user data controls", new Error(userResult.error.message));
+        return false;
+      }
+      const wsCollectionParse = collectionSettingsSchema.safeParse(workspaceResult.data?.collection);
+      const wsRetentionParse = retentionSettingsSchema.safeParse(workspaceResult.data?.retention);
+      const wsCollection = wsCollectionParse.success ? wsCollectionParse.data : WORKSPACE_COLLECTION_DEFAULTS;
+      const wsRetention = wsRetentionParse.success ? wsRetentionParse.data : WORKSPACE_RETENTION_DEFAULTS;
+      const userCollectionParse = collectionSettingsSchema.safeParse(userResult.data?.collection);
+      const userRetentionParse = retentionSettingsSchema.safeParse(userResult.data?.retention);
+      const userCollection = userCollectionParse.success ? userCollectionParse.data : null;
+      const userRetention = userRetentionParse.success ? userRetentionParse.data : null;
+      this.effectiveCollection = getEffectiveCollection(wsCollection, userCollection);
+      this.effectiveRetention = getEffectiveRetention(wsRetention, userRetention);
+      this.lastFetchedAt = Date.now();
+      this.ready = true;
+      logger.debug("DataControlsProvider: refreshed", {
+        effectiveCollection: this.effectiveCollection,
+        effectiveRetention: this.effectiveRetention
+      });
+      return true;
+    } catch (error46) {
+      logger.error("DataControlsProvider: unexpected error during refresh", error46 instanceof Error ? error46 : new Error(String(error46)));
+      return false;
+    }
+  }
+  isReady() {
+    return this.ready;
+  }
+  isStale() {
+    if (!this.lastFetchedAt) {
+      return true;
+    }
+    return Date.now() - this.lastFetchedAt > CACHE_TTL_MS;
+  }
+  invalidate() {
+    this.effectiveCollection = null;
+    this.effectiveRetention = null;
+    this.lastFetchedAt = null;
+    this.ready = false;
+  }
+  shouldUploadUserMessages() {
+    if (!this.effectiveCollection) {
+      return false;
+    }
+    return this.effectiveCollection.user_messages;
+  }
+  shouldUploadAssistantMessages() {
+    if (!this.effectiveCollection) {
+      return false;
+    }
+    return this.effectiveCollection.assistant_messages;
+  }
+  shouldUploadCodeDiffs() {
+    if (!this.effectiveCollection) {
+      return false;
+    }
+    return this.effectiveCollection.code_diffs;
+  }
+  getCollection() {
+    return this.effectiveCollection;
+  }
+  getRetention() {
+    return this.effectiveRetention;
+  }
 }
 
 // src/supabase/events-uploader.ts
@@ -38918,7 +39153,7 @@ function deduplicateEvents(events) {
   }
   return Array.from(eventMap.values());
 }
-async function uploadEvents(supabase) {
+async function uploadEvents(supabase, dataControls) {
   try {
     const session = await getValidSession();
     if (!session) {
@@ -38928,6 +39163,11 @@ async function uploadEvents(supabase) {
     const queuedEvents = await readQueue(EVENTS_QUEUE_FILE);
     if (queuedEvents.length === 0) {
       logger.debug("No events to upload");
+      return { success: true, uploaded: 0 };
+    }
+    if (dataControls && !dataControls.shouldUploadCodeDiffs()) {
+      logger.info("Skipping code_digest_events upload: code_diffs collection disabled");
+      await atomicUpdateQueue(EVENTS_QUEUE_FILE, () => []);
       return { success: true, uploaded: 0 };
     }
     const uniqueEvents = deduplicateEvents(queuedEvents);
@@ -38988,11 +39228,11 @@ async function uploadEvents(supabase) {
     return { success: false, uploaded: 0 };
   }
 }
-async function uploadEventsWithRetry(supabase, maxRetries = 3, backoffMs = 5000) {
+async function uploadEventsWithRetry(supabase, dataControls, maxRetries = 3, backoffMs = 5000) {
   let lastError = null;
   for (let attempt = 1;attempt <= maxRetries; attempt++) {
     try {
-      const result = await uploadEvents(supabase);
+      const result = await uploadEvents(supabase, dataControls);
       if (result.success) {
         return result;
       }
@@ -39017,7 +39257,7 @@ async function uploadEventsWithRetry(supabase, maxRetries = 3, backoffMs = 5000)
 }
 
 // src/supabase/sync.ts
-async function syncAllData(supabase) {
+async function syncAllData(supabase, dataControls) {
   try {
     const stats = await getQueueStats();
     const hasData = stats.events > 0 || stats.sessions > 0 || stats.messages > 0;
@@ -39029,7 +39269,7 @@ async function syncAllData(supabase) {
       };
     }
     logger.info(`Starting sync: ${stats.events} events, ${stats.sessions} sessions, ${stats.messages} messages`);
-    const eventsResult = await uploadEventsWithRetry(supabase);
+    const eventsResult = await uploadEventsWithRetry(supabase, dataControls);
     if (!eventsResult.success) {
       return {
         success: false,
@@ -39038,7 +39278,7 @@ async function syncAllData(supabase) {
         errorType: "upload_failed"
       };
     }
-    const chatResult = await uploadChatDataWithRetry(supabase);
+    const chatResult = await uploadChatDataWithRetry(supabase, dataControls);
     if (!chatResult.success) {
       return {
         success: false,
@@ -39083,63 +39323,81 @@ async function syncAllData(supabase) {
     };
   }
 }
-async function syncWithMessage(supabase) {
-  const result = await syncAllData(supabase);
-  if (result.success) {
+async function syncWithMessage() {
+  let dataControls;
+  const onDemand = await createOnDemandClient();
+  if (!onDemand) {
+    return { success: false, message: "Sync failed: not authenticated" };
+  }
+  const { client: supabase, dispose } = onDemand;
+  try {
+    const session = await getValidSession();
+    if (session && session.workspaceId) {
+      const provider = new DataControlsProvider;
+      const refreshed = await provider.refresh(supabase, session.workspaceId, session.userId);
+      if (refreshed) {
+        dataControls = provider;
+      }
+    }
+    const result = await syncAllData(supabase, dataControls);
+    if (result.success) {
+      await recordSyncMetric({
+        timestamp: Date.now(),
+        success: true,
+        uploaded: result.uploaded
+      }).catch((error46) => {
+        logger.error("Failed to record sync metric", error46);
+      });
+      await clearSyncError().catch((error46) => {
+        logger.error("Failed to clear sync error in status cache", error46);
+      });
+      const { events, sessions, messages } = result.uploaded;
+      const total = events + sessions + messages;
+      if (total === 0) {
+        return { success: true, message: "No data to sync" };
+      }
+      const parts = [];
+      if (events > 0)
+        parts.push(`${events} events`);
+      if (sessions > 0)
+        parts.push(`${sessions} sessions`);
+      if (messages > 0)
+        parts.push(`${messages} messages`);
+      return { success: true, message: `Synced ${parts.join(", ")}` };
+    }
+    const errorType = result.errorType || "upload_failed";
     await recordSyncMetric({
       timestamp: Date.now(),
-      success: true,
-      uploaded: result.uploaded
+      success: false,
+      uploaded: result.uploaded,
+      errorType
     }).catch((error46) => {
       logger.error("Failed to record sync metric", error46);
     });
-    await clearSyncError().catch((error46) => {
-      logger.error("Failed to clear sync error in status cache", error46);
-    });
-    const { events, sessions, messages } = result.uploaded;
-    const total = events + sessions + messages;
-    if (total === 0) {
-      return { success: true, message: "No data to sync" };
+    let errorMessage;
+    if (errorType === "not_authenticated") {
+      errorMessage = "Auth required - run /zest:login.";
+    } else if (errorType === "network_error") {
+      errorMessage = "Network error.";
+    } else {
+      errorMessage = "Upload failed.";
     }
-    const parts = [];
-    if (events > 0)
-      parts.push(`${events} events`);
-    if (sessions > 0)
-      parts.push(`${sessions} sessions`);
-    if (messages > 0)
-      parts.push(`${messages} messages`);
-    return { success: true, message: `Synced ${parts.join(", ")}` };
+    await writeSyncStatus({
+      hasError: true,
+      errorType,
+      errorMessage,
+      lastErrorAt: Date.now(),
+      lastSuccessAt: null
+    }).catch((error46) => {
+      logger.error("Failed to write sync error to status cache", error46);
+    });
+    return {
+      success: false,
+      message: `Sync failed: ${result.error || "Unknown error"}`
+    };
+  } finally {
+    await dispose();
   }
-  const errorType = result.errorType || "upload_failed";
-  await recordSyncMetric({
-    timestamp: Date.now(),
-    success: false,
-    uploaded: result.uploaded,
-    errorType
-  }).catch((error46) => {
-    logger.error("Failed to record sync metric", error46);
-  });
-  let errorMessage;
-  if (errorType === "not_authenticated") {
-    errorMessage = "Auth required - run /zest:login.";
-  } else if (errorType === "network_error") {
-    errorMessage = "Network error.";
-  } else {
-    errorMessage = "Upload failed.";
-  }
-  await writeSyncStatus({
-    hasError: true,
-    errorType,
-    errorMessage,
-    lastErrorAt: Date.now(),
-    lastSuccessAt: null
-  }).catch((error46) => {
-    logger.error("Failed to write sync error to status cache", error46);
-  });
-  return {
-    success: false,
-    message: `Sync failed: ${result.error || "Unknown error"}`
-  };
 }
 
 // src/commands/login-cli.ts
@@ -39164,7 +39422,7 @@ async function main() {
           const totalQueued = statsBefore.events + statsBefore.sessions + statsBefore.messages;
           if (totalQueued > 0) {
             console.log("\uD83D\uDD04 Syncing queued data...");
-            const result = await syncWithMessage(onDemand.client);
+            const result = await syncWithMessage();
             if (result.success) {
               console.log(`✅ ${result.message}`);
             } else {

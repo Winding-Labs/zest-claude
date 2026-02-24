@@ -17625,6 +17625,26 @@ function date4(params) {
 
 // ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/classic/external.js
 config(en_default());
+// ../../packages/analytics/src/schemas/admin.events.ts
+var adminEvents = {
+  adminImpersonationStarted: {
+    name: "Admin Impersonation Started",
+    schema: exports_external.object({
+      targetUserId: exports_external.string(),
+      workspaceSlug: exports_external.string(),
+      reason: exports_external.string()
+    })
+  },
+  adminImpersonationEnded: {
+    name: "Admin Impersonation Ended",
+    schema: exports_external.object({
+      targetUserId: exports_external.string(),
+      workspaceSlug: exports_external.string(),
+      reason: exports_external.string()
+    })
+  }
+};
+
 // ../../packages/analytics/src/schemas/analysis.events.ts
 var analysisEvents = {
   standupGenerated: {
@@ -17721,6 +17741,7 @@ var onboardingEvents = {
 
 // ../../packages/analytics/src/schemas/index.ts
 var allEvents = {
+  ...adminEvents,
   ...authEvents,
   ...analysisEvents,
   ...onboardingEvents,
@@ -22183,7 +22204,7 @@ function deduplicateEvents(events) {
   }
   return Array.from(eventMap.values());
 }
-async function uploadEvents(supabase) {
+async function uploadEvents(supabase, dataControls) {
   try {
     const session = await getValidSession();
     if (!session) {
@@ -22193,6 +22214,11 @@ async function uploadEvents(supabase) {
     const queuedEvents = await readQueue(EVENTS_QUEUE_FILE);
     if (queuedEvents.length === 0) {
       logger.debug("No events to upload");
+      return { success: true, uploaded: 0 };
+    }
+    if (dataControls && !dataControls.shouldUploadCodeDiffs()) {
+      logger.info("Skipping code_digest_events upload: code_diffs collection disabled");
+      await atomicUpdateQueue(EVENTS_QUEUE_FILE, () => []);
       return { success: true, uploaded: 0 };
     }
     const uniqueEvents = deduplicateEvents(queuedEvents);
@@ -22253,11 +22279,11 @@ async function uploadEvents(supabase) {
     return { success: false, uploaded: 0 };
   }
 }
-async function uploadEventsWithRetry(supabase, maxRetries = 3, backoffMs = 5000) {
+async function uploadEventsWithRetry(supabase, dataControls, maxRetries = 3, backoffMs = 5000) {
   let lastError = null;
   for (let attempt = 1;attempt <= maxRetries; attempt++) {
     try {
-      const result = await uploadEvents(supabase);
+      const result = await uploadEvents(supabase, dataControls);
       if (result.success) {
         return result;
       }

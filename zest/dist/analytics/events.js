@@ -23,6 +23,7 @@ var API_PROFILE_UPDATE_FAILED = "api_profile_update_failed";
 var API_STANDUP_TEAM_FETCH_FAILED = "api_standup_team_fetch_failed";
 var API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed";
 var API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed";
+var API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed";
 var SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed";
 var SUPABASE_SESSION_SET_FAILED = "supabase_session_set_failed";
 var SUPABASE_SESSION_REFRESH_PERSIST_FAILED = "supabase_session_refresh_persist_failed";
@@ -69,5 +70,6 @@ export {
   API_STANDUP_TEAM_FETCH_FAILED,
   API_STANDUP_PROMPT_FETCH_FAILED,
   API_STANDUP_GENERATION_FAILED,
-  API_PROFILE_UPDATE_FAILED
+  API_PROFILE_UPDATE_FAILED,
+  API_DATA_CONTROLS_FETCH_FAILED
 };

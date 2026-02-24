@@ -17448,6 +17448,26 @@ function date4(params) {
 
 // ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/classic/external.js
 config(en_default());
+// ../../packages/analytics/src/schemas/admin.events.ts
+var adminEvents = {
+  adminImpersonationStarted: {
+    name: "Admin Impersonation Started",
+    schema: exports_external.object({
+      targetUserId: exports_external.string(),
+      workspaceSlug: exports_external.string(),
+      reason: exports_external.string()
+    })
+  },
+  adminImpersonationEnded: {
+    name: "Admin Impersonation Ended",
+    schema: exports_external.object({
+      targetUserId: exports_external.string(),
+      workspaceSlug: exports_external.string(),
+      reason: exports_external.string()
+    })
+  }
+};
+
 // ../../packages/analytics/src/schemas/analysis.events.ts
 var analysisEvents = {
   standupGenerated: {
@@ -17544,6 +17564,7 @@ var onboardingEvents = {
 
 // ../../packages/analytics/src/schemas/index.ts
 var allEvents = {
+  ...adminEvents,
   ...authEvents,
   ...analysisEvents,
   ...onboardingEvents,
@@ -22144,7 +22165,7 @@ async function removeMessagesFromQueue(messageIdsToRemove) {
     return currentMessages.filter((m) => m.id && !messageIdsToRemove.has(m.id));
   });
 }
-async function uploadChatData(supabase) {
+async function uploadChatData(supabase, dataControls) {
   try {
     const session = await getValidSession();
     if (!session) {
@@ -22207,7 +22228,31 @@ async function uploadChatData(supabase) {
     const orphanedSessionIds = new Set(messagePartition.orphaned.map((m) => normalizeSessionId(m.session_id)).filter((id) => !!id));
     const allValidSessionIds = new Set([...uploadedSessionIds, ...orphanedSessionIds]);
     const messagesToUpload = enrichMessagesForUpload(uniqueMessages, session.userId).filter((m) => allValidSessionIds.has(m.session_id));
-    const messageSessionIds = new Set(messagesToUpload.map((m) => m.session_id));
+    let filteredMessages = messagesToUpload;
+    if (dataControls) {
+      const uploadUser = dataControls.shouldUploadUserMessages();
+      const uploadAssistant = dataControls.shouldUploadAssistantMessages();
+      const uploadDiffs = dataControls.shouldUploadCodeDiffs();
+      if (!uploadUser && !uploadAssistant) {
+        logger.info("Skipping chat upload: both user_messages and assistant_messages disabled");
+        if (categories.stale.length > 0) {
+          await removeStaleSessionsFromQueue(categories.staleIds);
+        }
+        return { success: true, uploaded: { sessions: 0, messages: 0 } };
+      }
+      filteredMessages = messagesToUpload.filter((m) => {
+        if (m.role === "user" && !uploadUser)
+          return false;
+        if (m.role === "assistant" && !uploadAssistant)
+          return false;
+        return true;
+      }).map((m) => uploadDiffs ? m : { ...m, code_diffs: null });
+      if (filteredMessages.length === 0) {
+        logger.info("No messages to upload after data controls filtering");
+        return { success: true, uploaded: { sessions: 0, messages: 0 } };
+      }
+    }
+    const messageSessionIds = new Set(filteredMessages.map((m) => m.session_id));
     const missingSessionIds = [...messageSessionIds].filter((id) => !allValidSessionIds.has(id));
     if (missingSessionIds.length > 0) {
       return { success: false, uploaded: { sessions: 0, messages: 0 } };
@@ -22216,7 +22261,7 @@ async function uploadChatData(supabase) {
     if (!sessionsUploaded) {
       return { success: false, uploaded: { sessions: 0, messages: 0 } };
     }
-    const messagesUploaded = await uploadMessagesToSupabase(supabase, messagesToUpload);
+    const messagesUploaded = await uploadMessagesToSupabase(supabase, filteredMessages);
     if (!messagesUploaded) {
       return {
         success: false,
@@ -22233,7 +22278,7 @@ async function uploadChatData(supabase) {
       success: true,
       uploaded: {
         sessions: sessionsToUpload.length,
-        messages: messagesToUpload.length
+        messages: filteredMessages.length
       }
     };
   } catch (error46) {
@@ -22246,11 +22291,11 @@ async function uploadChatData(supabase) {
     return { success: false, uploaded: { sessions: 0, messages: 0 } };
   }
 }
-async function uploadChatDataWithRetry(supabase, maxRetries = 3, backoffMs = 5000) {
+async function uploadChatDataWithRetry(supabase, dataControls, maxRetries = 3, backoffMs = 5000) {
   let lastError = null;
   for (let attempt = 1;attempt <= maxRetries; attempt++) {
     try {
-      const result = await uploadChatData(supabase);
+      const result = await uploadChatData(supabase, dataControls);
       if (result.success) {
         return result;
       }
