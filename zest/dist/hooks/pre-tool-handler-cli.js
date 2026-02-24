@@ -21743,6 +21743,26 @@ function date4(params) {
 
 // ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/classic/external.js
 config(en_default2());
+// ../../packages/analytics/src/schemas/admin.events.ts
+var adminEvents = {
+  adminImpersonationStarted: {
+    name: "Admin Impersonation Started",
+    schema: exports_external2.object({
+      targetUserId: exports_external2.string(),
+      workspaceSlug: exports_external2.string(),
+      reason: exports_external2.string()
+    })
+  },
+  adminImpersonationEnded: {
+    name: "Admin Impersonation Ended",
+    schema: exports_external2.object({
+      targetUserId: exports_external2.string(),
+      workspaceSlug: exports_external2.string(),
+      reason: exports_external2.string()
+    })
+  }
+};
+
 // ../../packages/analytics/src/schemas/analysis.events.ts
 var analysisEvents = {
   standupGenerated: {
@@ -21839,6 +21859,7 @@ var onboardingEvents = {
 
 // ../../packages/analytics/src/schemas/index.ts
 var allEvents = {
+  ...adminEvents,
   ...authEvents,
   ...analysisEvents,
   ...onboardingEvents,
