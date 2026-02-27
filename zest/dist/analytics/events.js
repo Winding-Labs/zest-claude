@@ -27,6 +27,8 @@ var API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed";
 var SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed";
 var SUPABASE_SESSION_SET_FAILED = "supabase_session_set_failed";
 var SUPABASE_SESSION_REFRESH_PERSIST_FAILED = "supabase_session_refresh_persist_failed";
+var AUTH_SESSION_RACE_RECOVERY = "auth_session_race_recovery";
+var AUTH_SESSION_RACE_RECOVERY_FAILED = "auth_session_race_recovery_failed";
 function getErrorCategory(errorType) {
   if (errorType.startsWith("auth_"))
     return "auth";
@@ -63,6 +65,8 @@ export {
   DAEMON_RESTART_FAILED,
   AUTH_TOKEN_REFRESH_FAILED,
   AUTH_SESSION_SAVE_FAILED,
+  AUTH_SESSION_RACE_RECOVERY_FAILED,
+  AUTH_SESSION_RACE_RECOVERY,
   AUTH_SESSION_LOAD_FAILED,
   AUTH_DEVICE_CODE_POLLING_FAILED,
   AUTH_DEVICE_CODE_INITIATION_FAILED,

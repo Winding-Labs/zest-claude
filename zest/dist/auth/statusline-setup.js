@@ -85,7 +85,7 @@ var init_constants = __esm(() => {
   LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
   STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
   DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-  SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
+  SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
   SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
   DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
   CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");

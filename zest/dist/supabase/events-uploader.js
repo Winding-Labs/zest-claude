@@ -651,11 +651,11 @@ var require_main = __commonJS((exports) => {
     }), i2;
   };
   function Ut(t2, i2) {
-    return e2 = t2, r2 = (t3) => O(t3) && !D(i2) ? t3.slice(0, i2) : t3, s2 = new Set, function t(i3, e3) {
+    return e2 = t2, r2 = (t3) => O(t3) && !D(i2) ? t3.slice(0, i2) : t3, s2 = new Set, function t3(i3, e3) {
       return i3 !== Object(i3) ? r2 ? r2(i3, e3) : i3 : s2.has(i3) ? undefined : (s2.add(i3), R(i3) ? (n2 = [], Ct(i3, (i4) => {
-        n2.push(t(i4));
+        n2.push(t3(i4));
       })) : (n2 = {}, Mt(i3, (i4, e4) => {
-        s2.has(i4) || (n2[e4] = t(i4, e4));
+        s2.has(i4) || (n2[e4] = t3(i4, e4));
       })), n2);
       var n2;
     }(e2);
@@ -4963,16 +4963,16 @@ import { exec, execSync } from "node:child_process";
 import * as path from "node:path";
 import { promisify } from "node:util";
 
-// ../../node_modules/uuid/dist-node/regex.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/regex.js
 var regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
 
-// ../../node_modules/uuid/dist-node/validate.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/validate.js
 function validate(uuid) {
   return typeof uuid === "string" && regex_default.test(uuid);
 }
 var validate_default = validate;
 
-// ../../node_modules/uuid/dist-node/parse.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/parse.js
 function parse(uuid) {
   if (!validate_default(uuid)) {
     throw TypeError("Invalid UUID");
@@ -4982,7 +4982,7 @@ function parse(uuid) {
 }
 var parse_default = parse;
 
-// ../../node_modules/uuid/dist-node/stringify.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/stringify.js
 var byteToHex = [];
 for (let i = 0;i < 256; ++i) {
   byteToHex.push((i + 256).toString(16).slice(1));
@@ -4991,7 +4991,7 @@ function unsafeStringify(arr, offset = 0) {
   return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
 }
 
-// ../../node_modules/uuid/dist-node/v35.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/v35.js
 function stringToBytes(str) {
   str = unescape(encodeURIComponent(str));
   const bytes = new Uint8Array(str.length);
@@ -5027,7 +5027,7 @@ function v35(version, hash, value, namespace, buf, offset) {
   return unsafeStringify(bytes);
 }
 
-// ../../node_modules/uuid/dist-node/sha1.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/sha1.js
 import { createHash } from "node:crypto";
 function sha1(bytes) {
   if (Array.isArray(bytes)) {
@@ -5039,7 +5039,7 @@ function sha1(bytes) {
 }
 var sha1_default = sha1;
 
-// ../../node_modules/uuid/dist-node/v5.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/v5.js
 function v5(value, namespace, buf, offset) {
   return v35(80, sha1_default, value, namespace, buf, offset);
 }
@@ -17724,6 +17724,22 @@ var extensionEvents = {
       domain: exports_external.string().optional(),
       email: exports_external.email().optional()
     })
+  },
+  extensionInstalled: {
+    name: "Extension Installed",
+    schema: exports_external.object({
+      extensionType: exports_external.string(),
+      version: exports_external.string(),
+      claude_code_version: exports_external.string().optional(),
+      plugin_version: exports_external.string().optional(),
+      node_version: exports_external.string().optional(),
+      os_platform: exports_external.string().optional(),
+      os_version: exports_external.string().optional(),
+      user_id: exports_external.string().optional(),
+      email: exports_external.string().optional(),
+      workspace_id: exports_external.string().optional(),
+      workspace_name: exports_external.string().optional()
+    })
   }
 };
 
@@ -17739,13 +17755,29 @@ var onboardingEvents = {
   }
 };
 
+// ../../packages/analytics/src/schemas/workspace.events.ts
+var workspaceEvents = {
+  userInvited: {
+    name: "User Invited",
+    schema: exports_external.object({
+      workspaceId: exports_external.string(),
+      workspaceName: exports_external.string(),
+      teamId: exports_external.string().optional(),
+      teamName: exports_external.string().optional(),
+      invitedEmails: exports_external.array(exports_external.string()),
+      invitedCount: exports_external.number()
+    })
+  }
+};
+
 // ../../packages/analytics/src/schemas/index.ts
 var allEvents = {
   ...adminEvents,
   ...authEvents,
   ...analysisEvents,
   ...onboardingEvents,
-  ...extensionEvents
+  ...extensionEvents,
+  ...workspaceEvents
 };
 // ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/extensions/error-tracking/modifiers/module.node.mjs
 import { dirname, posix, sep } from "path";
@@ -21283,7 +21315,7 @@ var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
 var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
+var SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
 var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
@@ -21471,19 +21503,6 @@ async function clearSession() {
     logger.error("Failed to clear session", error46);
     throw error46;
   }
-}
-async function getValidSession() {
-  const session = await loadSessionFile();
-  if (!session) {
-    logger.debug("getValidSession: No session found");
-    return null;
-  }
-  if (session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now()) {
-    logger.warn("getValidSession: Refresh token expired, user must re-authenticate");
-    await clearSession();
-    return null;
-  }
-  return session;
 }
 
 // src/utils/plugin-version.ts
@@ -22004,6 +22023,11 @@ async function withFileLock(filePath, fn) {
   }
 }
 
+// src/utils/string-utils.ts
+function toWellFormed(str) {
+  return str.toWellFormed?.() ?? str;
+}
+
 // src/utils/queue-manager.ts
 async function readJsonl(filePath) {
   try {
@@ -22035,6 +22059,12 @@ async function readJsonl(filePath) {
     throw error46;
   }
 }
+function sanitizingReplacer(_key, value) {
+  if (typeof value === "string") {
+    return toWellFormed(value);
+  }
+  return value;
+}
 async function readQueue(queueFile) {
   try {
     return await readJsonl(queueFile);
@@ -22049,7 +22079,7 @@ async function atomicUpdateQueue(queueFile, transform2) {
       const currentItems = await readJsonl(queueFile);
       const newItems = transform2(currentItems);
       await ensureDirectory(dirname5(queueFile));
-      const content = newItems.map((item) => JSON.stringify(item)).join(`
+      const content = newItems.map((item) => JSON.stringify(item, sanitizingReplacer)).join(`
 `) + (newItems.length > 0 ? `
 ` : "");
       await writeFile3(queueFile, content, "utf8");
@@ -22061,95 +22091,12 @@ async function atomicUpdateQueue(queueFile, transform2) {
   }
 }
 
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/regex.js
-var regex_default2 = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
-
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/validate.js
-function validate2(uuid3) {
-  return typeof uuid3 === "string" && regex_default2.test(uuid3);
-}
-var validate_default2 = validate2;
-
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/parse.js
-function parse6(uuid3) {
-  if (!validate_default2(uuid3)) {
-    throw TypeError("Invalid UUID");
-  }
-  let v;
-  return Uint8Array.of((v = parseInt(uuid3.slice(0, 8), 16)) >>> 24, v >>> 16 & 255, v >>> 8 & 255, v & 255, (v = parseInt(uuid3.slice(9, 13), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(14, 18), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(19, 23), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(24, 36), 16)) / 1099511627776 & 255, v / 4294967296 & 255, v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
-}
-var parse_default2 = parse6;
-
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/stringify.js
-var byteToHex2 = [];
-for (let i = 0;i < 256; ++i) {
-  byteToHex2.push((i + 256).toString(16).slice(1));
-}
-function unsafeStringify2(arr, offset = 0) {
-  return (byteToHex2[arr[offset + 0]] + byteToHex2[arr[offset + 1]] + byteToHex2[arr[offset + 2]] + byteToHex2[arr[offset + 3]] + "-" + byteToHex2[arr[offset + 4]] + byteToHex2[arr[offset + 5]] + "-" + byteToHex2[arr[offset + 6]] + byteToHex2[arr[offset + 7]] + "-" + byteToHex2[arr[offset + 8]] + byteToHex2[arr[offset + 9]] + "-" + byteToHex2[arr[offset + 10]] + byteToHex2[arr[offset + 11]] + byteToHex2[arr[offset + 12]] + byteToHex2[arr[offset + 13]] + byteToHex2[arr[offset + 14]] + byteToHex2[arr[offset + 15]]).toLowerCase();
-}
-
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/v35.js
-function stringToBytes2(str) {
-  str = unescape(encodeURIComponent(str));
-  const bytes = new Uint8Array(str.length);
-  for (let i = 0;i < str.length; ++i) {
-    bytes[i] = str.charCodeAt(i);
-  }
-  return bytes;
-}
-var DNS2 = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
-var URL3 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
-function v352(version3, hash2, value, namespace, buf, offset) {
-  const valueBytes = typeof value === "string" ? stringToBytes2(value) : value;
-  const namespaceBytes = typeof namespace === "string" ? parse_default2(namespace) : namespace;
-  if (typeof namespace === "string") {
-    namespace = parse_default2(namespace);
-  }
-  if (namespace?.length !== 16) {
-    throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
-  }
-  let bytes = new Uint8Array(16 + valueBytes.length);
-  bytes.set(namespaceBytes);
-  bytes.set(valueBytes, namespaceBytes.length);
-  bytes = hash2(bytes);
-  bytes[6] = bytes[6] & 15 | version3;
-  bytes[8] = bytes[8] & 63 | 128;
-  if (buf) {
-    offset = offset || 0;
-    for (let i = 0;i < 16; ++i) {
-      buf[offset + i] = bytes[i];
-    }
-    return buf;
-  }
-  return unsafeStringify2(bytes);
-}
-
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/sha1.js
-import { createHash as createHash2 } from "crypto";
-function sha12(bytes) {
-  if (Array.isArray(bytes)) {
-    bytes = Buffer.from(bytes);
-  } else if (typeof bytes === "string") {
-    bytes = Buffer.from(bytes, "utf8");
-  }
-  return createHash2("sha1").update(bytes).digest();
-}
-var sha1_default2 = sha12;
-
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/v5.js
-function v52(value, namespace, buf, offset) {
-  return v352(80, sha1_default2, value, namespace, buf, offset);
-}
-v52.DNS = DNS2;
-v52.URL = URL3;
-var v5_default2 = v52;
 // src/utils/session-id-normalizer.ts
 function normalizeSessionId(sessionId) {
-  if (validate_default2(sessionId)) {
+  if (validate_default(sessionId)) {
     return sessionId;
   }
-  return v5_default2(sessionId, ZEST_SESSION_NAMESPACE);
+  return v5_default(sessionId, ZEST_SESSION_NAMESPACE);
 }
 
 // src/supabase/events-uploader.ts
@@ -22204,13 +22151,8 @@ function deduplicateEvents(events) {
   }
   return Array.from(eventMap.values());
 }
-async function uploadEvents(supabase, dataControls) {
+async function uploadEvents(supabase, session, dataControls) {
   try {
-    const session = await getValidSession();
-    if (!session) {
-      logger.debug("Not authenticated, skipping events upload");
-      return { success: false, uploaded: 0 };
-    }
     const queuedEvents = await readQueue(EVENTS_QUEUE_FILE);
     if (queuedEvents.length === 0) {
       logger.debug("No events to upload");
@@ -22279,11 +22221,11 @@ async function uploadEvents(supabase, dataControls) {
     return { success: false, uploaded: 0 };
   }
 }
-async function uploadEventsWithRetry(supabase, dataControls, maxRetries = 3, backoffMs = 5000) {
+async function uploadEventsWithRetry(supabase, session, dataControls, maxRetries = 3, backoffMs = 5000) {
   let lastError = null;
   for (let attempt = 1;attempt <= maxRetries; attempt++) {
     try {
-      const result = await uploadEvents(supabase, dataControls);
+      const result = await uploadEvents(supabase, session, dataControls);
       if (result.success) {
         return result;
       }
