@@ -997,7 +997,7 @@ var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
 var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
+var SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
 var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
@@ -1137,12 +1137,15 @@ class Logger {
 }
 var logger = new Logger;
 
+// src/utils/string-utils.ts
+function toWellFormed(str) {
+  return str.toWellFormed?.() ?? str;
+}
+
 // src/utils/diff-utils.ts
 function createUnifiedDiff(filePath, oldString, newString) {
   try {
-    return createPatch(filePath, oldString.trimEnd(), newString.trimEnd(), "", "", {
-      context: 3
-    });
+    return createPatch(filePath, toWellFormed(oldString.trimEnd()), toWellFormed(newString.trimEnd()), "", "", { context: 3 });
   } catch (error) {
     logger.warn(`Failed to create unified diff for ${filePath}`, error);
     return "";

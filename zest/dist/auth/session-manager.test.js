@@ -651,11 +651,11 @@ var require_main = __commonJS((exports) => {
     }), i2;
   };
   function Ut(t2, i2) {
-    return e2 = t2, r2 = (t3) => O(t3) && !D(i2) ? t3.slice(0, i2) : t3, s2 = new Set, function t(i3, e3) {
+    return e2 = t2, r2 = (t3) => O(t3) && !D(i2) ? t3.slice(0, i2) : t3, s2 = new Set, function t3(i3, e3) {
       return i3 !== Object(i3) ? r2 ? r2(i3, e3) : i3 : s2.has(i3) ? undefined : (s2.add(i3), R(i3) ? (n2 = [], Ct(i3, (i4) => {
-        n2.push(t(i4));
+        n2.push(t3(i4));
       })) : (n2 = {}, Mt(i3, (i4, e4) => {
-        s2.has(i4) || (n2[e4] = t(i4, e4));
+        s2.has(i4) || (n2[e4] = t3(i4, e4));
       })), n2);
       var n2;
     }(e2);
@@ -4955,42 +4955,59 @@ var require_main = __commonJS((exports) => {
   exports.COPY_AUTOCAPTURE_EVENT = ne, exports.Compression = oe, exports.DisplaySurveyType = Bn, exports.PostHog = jo, exports.SurveyEventName = zn, exports.SurveyEventProperties = Hn, exports.SurveyEventType = Mn, exports.SurveyPosition = An, exports.SurveyQuestionBranchingType = Nn, exports.SurveyQuestionType = Ln, exports.SurveySchedule = Un, exports.SurveyTabPosition = Dn, exports.SurveyType = jn, exports.SurveyWidgetType = On, exports.default = No, exports.posthog = No, exports.severityLevels = ["fatal", "error", "warning", "log", "info", "debug"];
 });
 
-// src/config/constants.ts
-import { homedir } from "node:os";
-import { join } from "node:path";
-var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
-var CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
-var CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
-var CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
-var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
-var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
-var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
-var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
-var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
-var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
-var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
-var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
-var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
-var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
-var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
-var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
-var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
-var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
-var LOG_RETENTION_DAYS = 7;
-var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
-var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
-var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
-var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+// src/auth/session-manager.test.ts
+import { afterEach, describe, expect, test } from "bun:test";
 
-// src/utils/daemon-manager.ts
-import { readFileSync } from "node:fs";
-import { dirname as dirname3, join as join3 } from "node:path";
-import { fileURLToPath } from "node:url";
+// src/auth/session-manager.ts
+import { readFile, unlink as unlink2, writeFile } from "node:fs/promises";
+import { dirname as dirname3 } from "node:path";
+
+// src/analytics/events.ts
+var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
+var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
+function getErrorCategory(errorType) {
+  if (errorType.startsWith("auth_"))
+    return "auth";
+  if (errorType.startsWith("sync_"))
+    return "sync";
+  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("notification_") || errorType.startsWith("extraction_"))
+    return "filesystem";
+  if (errorType.startsWith("daemon_"))
+    return "daemon";
+  if (errorType.startsWith("api_"))
+    return "api";
+  if (errorType.startsWith("supabase_"))
+    return "supabase";
+  return "api";
+}
+
+// src/analytics/index.ts
+import { release } from "node:os";
 
 // ../../packages/analytics/src/browser.ts
 var import_posthog_js = __toESM(require_main(), 1);
+
+// ../../packages/analytics/src/client.ts
+function validateEvent(schemas, eventName, properties) {
+  const eventSchema = schemas[eventName];
+  if (!eventSchema) {
+    throw new Error(`Unknown event: ${String(eventName)}`);
+  }
+  const validationResult = eventSchema.schema.safeParse(properties);
+  if (!validationResult.success) {
+    throw new Error(`Invalid properties for event "${String(eventName)}": ${validationResult.error.message}`);
+  }
+  return { name: eventSchema.name, data: validationResult.data };
+}
+function createServerClient(schemas, captureFunc, disposeFunc) {
+  return {
+    track: (params) => {
+      const { name, data } = validateEvent(schemas, params.event, params.properties);
+      return captureFunc(params.distinctId, name, data);
+    },
+    dispose: disposeFunc || (() => Promise.resolve())
+  };
+}
 
 // ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/classic/external.js
 var exports_external = {};
@@ -17435,6 +17452,26 @@ function date4(params) {
 
 // ../../node_modules/.bun/zod@4.1.12/node_modules/zod/v4/classic/external.js
 config(en_default());
+// ../../packages/analytics/src/schemas/admin.events.ts
+var adminEvents = {
+  adminImpersonationStarted: {
+    name: "Admin Impersonation Started",
+    schema: exports_external.object({
+      targetUserId: exports_external.string(),
+      workspaceSlug: exports_external.string(),
+      reason: exports_external.string()
+    })
+  },
+  adminImpersonationEnded: {
+    name: "Admin Impersonation Ended",
+    schema: exports_external.object({
+      targetUserId: exports_external.string(),
+      workspaceSlug: exports_external.string(),
+      reason: exports_external.string()
+    })
+  }
+};
+
 // ../../packages/analytics/src/schemas/analysis.events.ts
 var analysisEvents = {
   standupGenerated: {
@@ -17490,6 +17527,16 @@ var authEvents = {
       workspaceId: exports_external.uuid(),
       workspaceName: exports_external.string()
     })
+  },
+  cliSignedIn: {
+    name: "CLI Signed In",
+    schema: exports_external.object({
+      plugin_version: exports_external.string(),
+      claude_code_version: exports_external.string().optional(),
+      node_version: exports_external.string(),
+      os_platform: exports_external.string(),
+      os_version: exports_external.string()
+    })
   }
 };
 
@@ -17503,6 +17550,22 @@ var extensionEvents = {
       workspaceId: exports_external.uuid().optional(),
       domain: exports_external.string().optional(),
       email: exports_external.email().optional()
+    })
+  },
+  extensionInstalled: {
+    name: "Extension Installed",
+    schema: exports_external.object({
+      extensionType: exports_external.string(),
+      version: exports_external.string(),
+      claude_code_version: exports_external.string().optional(),
+      plugin_version: exports_external.string().optional(),
+      node_version: exports_external.string().optional(),
+      os_platform: exports_external.string().optional(),
+      os_version: exports_external.string().optional(),
+      user_id: exports_external.string().optional(),
+      email: exports_external.string().optional(),
+      workspace_id: exports_external.string().optional(),
+      workspace_name: exports_external.string().optional()
     })
   }
 };
@@ -17519,12 +17582,29 @@ var onboardingEvents = {
   }
 };
 
+// ../../packages/analytics/src/schemas/workspace.events.ts
+var workspaceEvents = {
+  userInvited: {
+    name: "User Invited",
+    schema: exports_external.object({
+      workspaceId: exports_external.string(),
+      workspaceName: exports_external.string(),
+      teamId: exports_external.string().optional(),
+      teamName: exports_external.string().optional(),
+      invitedEmails: exports_external.array(exports_external.string()),
+      invitedCount: exports_external.number()
+    })
+  }
+};
+
 // ../../packages/analytics/src/schemas/index.ts
 var allEvents = {
+  ...adminEvents,
   ...authEvents,
   ...analysisEvents,
   ...onboardingEvents,
-  ...extensionEvents
+  ...extensionEvents,
+  ...workspaceEvents
 };
 // ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/extensions/error-tracking/modifiers/module.node.mjs
 import { dirname, posix, sep } from "path";
@@ -17561,6 +17641,77 @@ function createGetModuleFromFilename(basePath = process.argv[1] ? dirname(proces
 function normalizeWindowsPath(path) {
   return path.replace(/^[A-Z]:/, "").replace(/\\/g, "/");
 }
+
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/featureFlagUtils.mjs
+var normalizeFlagsResponse = (flagsResponse) => {
+  if ("flags" in flagsResponse) {
+    const featureFlags = getFlagValuesFromFlags(flagsResponse.flags);
+    const featureFlagPayloads = getPayloadsFromFlags(flagsResponse.flags);
+    return {
+      ...flagsResponse,
+      featureFlags,
+      featureFlagPayloads
+    };
+  }
+  {
+    const featureFlags = flagsResponse.featureFlags ?? {};
+    const featureFlagPayloads = Object.fromEntries(Object.entries(flagsResponse.featureFlagPayloads || {}).map(([k, v]) => [
+      k,
+      parsePayload(v)
+    ]));
+    const flags = Object.fromEntries(Object.entries(featureFlags).map(([key, value]) => [
+      key,
+      getFlagDetailFromFlagAndPayload(key, value, featureFlagPayloads[key])
+    ]));
+    return {
+      ...flagsResponse,
+      featureFlags,
+      featureFlagPayloads,
+      flags
+    };
+  }
+};
+function getFlagDetailFromFlagAndPayload(key, value, payload) {
+  return {
+    key,
+    enabled: typeof value == "string" ? true : value,
+    variant: typeof value == "string" ? value : undefined,
+    reason: undefined,
+    metadata: {
+      id: undefined,
+      version: undefined,
+      payload: payload ? JSON.stringify(payload) : undefined,
+      description: undefined
+    }
+  };
+}
+var getFlagValuesFromFlags = (flags) => Object.fromEntries(Object.entries(flags ?? {}).map(([key, detail]) => [
+  key,
+  getFeatureFlagValue(detail)
+]).filter(([, value]) => value !== undefined));
+var getPayloadsFromFlags = (flags) => {
+  const safeFlags = flags ?? {};
+  return Object.fromEntries(Object.keys(safeFlags).filter((flag) => {
+    const details = safeFlags[flag];
+    return details.enabled && details.metadata && details.metadata.payload !== undefined;
+  }).map((flag) => {
+    const payload = safeFlags[flag].metadata?.payload;
+    return [
+      flag,
+      payload ? parsePayload(payload) : undefined
+    ];
+  }));
+};
+var getFeatureFlagValue = (detail) => detail === undefined ? undefined : detail.variant ?? detail.enabled;
+var parsePayload = (response) => {
+  if (typeof response != "string")
+    return response;
+  try {
+    return JSON.parse(response);
+  } catch {
+    return response;
+  }
+};
 
 // ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/vendor/uuidv7.mjs
 /*! For license information please see uuidv7.mjs.LICENSE.txt */
@@ -17739,6 +17890,126 @@ var getDefaultRandom = () => ({
 var defaultGenerator;
 var uuidv72 = () => uuidv7obj().toString();
 var uuidv7obj = () => (defaultGenerator || (defaultGenerator = new V7Generator)).generate();
+
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/utils/bot-detection.mjs
+var DEFAULT_BLOCKED_UA_STRS = [
+  "amazonbot",
+  "amazonproductbot",
+  "app.hypefactors.com",
+  "applebot",
+  "archive.org_bot",
+  "awariobot",
+  "backlinksextendedbot",
+  "baiduspider",
+  "bingbot",
+  "bingpreview",
+  "chrome-lighthouse",
+  "dataforseobot",
+  "deepscan",
+  "duckduckbot",
+  "facebookexternal",
+  "facebookcatalog",
+  "http://yandex.com/bots",
+  "hubspot",
+  "ia_archiver",
+  "leikibot",
+  "linkedinbot",
+  "meta-externalagent",
+  "mj12bot",
+  "msnbot",
+  "nessus",
+  "petalbot",
+  "pinterest",
+  "prerender",
+  "rogerbot",
+  "screaming frog",
+  "sebot-wa",
+  "sitebulb",
+  "slackbot",
+  "slurp",
+  "trendictionbot",
+  "turnitin",
+  "twitterbot",
+  "vercel-screenshot",
+  "vercelbot",
+  "yahoo! slurp",
+  "yandexbot",
+  "zoombot",
+  "bot.htm",
+  "bot.php",
+  "(bot;",
+  "bot/",
+  "crawler",
+  "ahrefsbot",
+  "ahrefssiteaudit",
+  "semrushbot",
+  "siteauditbot",
+  "splitsignalbot",
+  "gptbot",
+  "oai-searchbot",
+  "chatgpt-user",
+  "perplexitybot",
+  "better uptime bot",
+  "sentryuptimebot",
+  "uptimerobot",
+  "headlesschrome",
+  "cypress",
+  "google-hoteladsverifier",
+  "adsbot-google",
+  "apis-google",
+  "duplexweb-google",
+  "feedfetcher-google",
+  "google favicon",
+  "google web preview",
+  "google-read-aloud",
+  "googlebot",
+  "googleother",
+  "google-cloudvertexbot",
+  "googleweblight",
+  "mediapartners-google",
+  "storebot-google",
+  "google-inspectiontool",
+  "bytespider"
+];
+var isBlockedUA = function(ua, customBlockedUserAgents = []) {
+  if (!ua)
+    return false;
+  const uaLower = ua.toLowerCase();
+  return DEFAULT_BLOCKED_UA_STRS.concat(customBlockedUserAgents).some((blockedUA) => {
+    const blockedUaLower = blockedUA.toLowerCase();
+    return uaLower.indexOf(blockedUaLower) !== -1;
+  });
+};
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/types.mjs
+var types_PostHogPersistedProperty = /* @__PURE__ */ function(PostHogPersistedProperty) {
+  PostHogPersistedProperty["AnonymousId"] = "anonymous_id";
+  PostHogPersistedProperty["DistinctId"] = "distinct_id";
+  PostHogPersistedProperty["Props"] = "props";
+  PostHogPersistedProperty["FeatureFlagDetails"] = "feature_flag_details";
+  PostHogPersistedProperty["FeatureFlags"] = "feature_flags";
+  PostHogPersistedProperty["FeatureFlagPayloads"] = "feature_flag_payloads";
+  PostHogPersistedProperty["BootstrapFeatureFlagDetails"] = "bootstrap_feature_flag_details";
+  PostHogPersistedProperty["BootstrapFeatureFlags"] = "bootstrap_feature_flags";
+  PostHogPersistedProperty["BootstrapFeatureFlagPayloads"] = "bootstrap_feature_flag_payloads";
+  PostHogPersistedProperty["OverrideFeatureFlags"] = "override_feature_flags";
+  PostHogPersistedProperty["Queue"] = "queue";
+  PostHogPersistedProperty["OptedOut"] = "opted_out";
+  PostHogPersistedProperty["SessionId"] = "session_id";
+  PostHogPersistedProperty["SessionStartTimestamp"] = "session_start_timestamp";
+  PostHogPersistedProperty["SessionLastTimestamp"] = "session_timestamp";
+  PostHogPersistedProperty["PersonProperties"] = "person_properties";
+  PostHogPersistedProperty["GroupProperties"] = "group_properties";
+  PostHogPersistedProperty["InstalledAppBuild"] = "installed_app_build";
+  PostHogPersistedProperty["InstalledAppVersion"] = "installed_app_version";
+  PostHogPersistedProperty["SessionReplay"] = "session_replay";
+  PostHogPersistedProperty["SurveyLastSeenDate"] = "survey_last_seen_date";
+  PostHogPersistedProperty["SurveysSeen"] = "surveys_seen";
+  PostHogPersistedProperty["Surveys"] = "surveys";
+  PostHogPersistedProperty["RemoteConfig"] = "remote_config";
+  PostHogPersistedProperty["FlagsEndpointWasHit"] = "flags_endpoint_was_hit";
+  return PostHogPersistedProperty;
+}({});
+
 // ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/utils/type-utils.mjs
 var nativeIsArray = Array.isArray;
 var ObjProto = Object.prototype;
@@ -17770,6 +18041,9 @@ function isErrorEvent(event) {
 }
 function isEvent(candidate) {
   return !isUndefined(Event) && isInstanceOf(candidate, Event);
+}
+function isPlainObject2(candidate) {
+  return isBuiltin(candidate, "Object");
 }
 
 // ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/utils/number-utils.mjs
@@ -17836,8 +18110,825 @@ class BucketedRateLimiter {
     this._buckets = {};
   }
 }
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/utils/promise-queue.mjs
+class PromiseQueue {
+  add(promise2) {
+    const promiseUUID = uuidv72();
+    this.promiseByIds[promiseUUID] = promise2;
+    promise2.catch(() => {}).finally(() => {
+      delete this.promiseByIds[promiseUUID];
+    });
+    return promise2;
+  }
+  async join() {
+    let promises = Object.values(this.promiseByIds);
+    let length = promises.length;
+    while (length > 0) {
+      await Promise.all(promises);
+      promises = Object.values(this.promiseByIds);
+      length = promises.length;
+    }
+  }
+  get length() {
+    return Object.keys(this.promiseByIds).length;
+  }
+  constructor() {
+    this.promiseByIds = {};
+  }
+}
+
 // ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/utils/index.mjs
+var STRING_FORMAT = "utf8";
+function assert2(truthyValue, message) {
+  if (!truthyValue || typeof truthyValue != "string" || isEmpty(truthyValue))
+    throw new Error(message);
+}
+function isEmpty(truthyValue) {
+  if (truthyValue.trim().length === 0)
+    return true;
+  return false;
+}
+function removeTrailingSlash(url2) {
+  return url2?.replace(/\/+$/, "");
+}
+async function retriable(fn, props) {
+  let lastError = null;
+  for (let i = 0;i < props.retryCount + 1; i++) {
+    if (i > 0)
+      await new Promise((r) => setTimeout(r, props.retryDelay));
+    try {
+      const res = await fn();
+      return res;
+    } catch (e) {
+      lastError = e;
+      if (!props.retryCheck(e))
+        throw e;
+    }
+  }
+  throw lastError;
+}
+function currentISOTime() {
+  return new Date().toISOString();
+}
+function safeSetTimeout(fn, timeout) {
+  const t = setTimeout(fn, timeout);
+  t?.unref && t?.unref();
+  return t;
+}
 var isError = (x) => x instanceof Error;
+function allSettled(promises) {
+  return Promise.all(promises.map((p) => (p ?? Promise.resolve()).then((value) => ({
+    status: "fulfilled",
+    value
+  }), (reason) => ({
+    status: "rejected",
+    reason
+  }))));
+}
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/eventemitter.mjs
+class SimpleEventEmitter {
+  constructor() {
+    this.events = {};
+    this.events = {};
+  }
+  on(event, listener) {
+    if (!this.events[event])
+      this.events[event] = [];
+    this.events[event].push(listener);
+    return () => {
+      this.events[event] = this.events[event].filter((x) => x !== listener);
+    };
+  }
+  emit(event, payload) {
+    for (const listener of this.events[event] || [])
+      listener(payload);
+    for (const listener of this.events["*"] || [])
+      listener(event, payload);
+  }
+}
+
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/gzip.mjs
+function isGzipSupported() {
+  return "CompressionStream" in globalThis;
+}
+async function gzipCompress(input, isDebug = true) {
+  try {
+    const dataStream = new Blob([
+      input
+    ], {
+      type: "text/plain"
+    }).stream();
+    const compressedStream = dataStream.pipeThrough(new CompressionStream("gzip"));
+    return await new Response(compressedStream).blob();
+  } catch (error46) {
+    if (isDebug)
+      console.error("Failed to gzip compress data", error46);
+    return null;
+  }
+}
+
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/logger.mjs
+function createConsole(consoleLike = console) {
+  const lockedMethods = {
+    log: consoleLike.log.bind(consoleLike),
+    warn: consoleLike.warn.bind(consoleLike),
+    error: consoleLike.error.bind(consoleLike),
+    debug: consoleLike.debug.bind(consoleLike)
+  };
+  return lockedMethods;
+}
+var _createLogger = (prefix, maybeCall, consoleLike) => {
+  function _log(level, ...args) {
+    maybeCall(() => {
+      const consoleMethod = consoleLike[level];
+      consoleMethod(prefix, ...args);
+    });
+  }
+  const logger = {
+    info: (...args) => {
+      _log("log", ...args);
+    },
+    warn: (...args) => {
+      _log("warn", ...args);
+    },
+    error: (...args) => {
+      _log("error", ...args);
+    },
+    critical: (...args) => {
+      consoleLike["error"](prefix, ...args);
+    },
+    createLogger: (additionalPrefix) => _createLogger(`${prefix} ${additionalPrefix}`, maybeCall, consoleLike)
+  };
+  return logger;
+};
+function createLogger(prefix, maybeCall) {
+  return _createLogger(prefix, maybeCall, createConsole());
+}
+
+// ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/posthog-core-stateless.mjs
+class PostHogFetchHttpError extends Error {
+  constructor(response, reqByteLength) {
+    super("HTTP error while fetching PostHog: status=" + response.status + ", reqByteLength=" + reqByteLength), this.response = response, this.reqByteLength = reqByteLength, this.name = "PostHogFetchHttpError";
+  }
+  get status() {
+    return this.response.status;
+  }
+  get text() {
+    return this.response.text();
+  }
+  get json() {
+    return this.response.json();
+  }
+}
+
+class PostHogFetchNetworkError extends Error {
+  constructor(error46) {
+    super("Network error while fetching PostHog", error46 instanceof Error ? {
+      cause: error46
+    } : {}), this.error = error46, this.name = "PostHogFetchNetworkError";
+  }
+}
+async function logFlushError(err) {
+  if (err instanceof PostHogFetchHttpError) {
+    let text = "";
+    try {
+      text = await err.text;
+    } catch {}
+    console.error(`Error while flushing PostHog: message=${err.message}, response body=${text}`, err);
+  } else
+    console.error("Error while flushing PostHog", err);
+  return Promise.resolve();
+}
+function isPostHogFetchError(err) {
+  return typeof err == "object" && (err instanceof PostHogFetchHttpError || err instanceof PostHogFetchNetworkError);
+}
+function isPostHogFetchContentTooLargeError(err) {
+  return typeof err == "object" && err instanceof PostHogFetchHttpError && err.status === 413;
+}
+class PostHogCoreStateless {
+  constructor(apiKey, options = {}) {
+    this.flushPromise = null;
+    this.shutdownPromise = null;
+    this.promiseQueue = new PromiseQueue;
+    this._events = new SimpleEventEmitter;
+    this._isInitialized = false;
+    assert2(apiKey, "You must pass your PostHog project's api key.");
+    this.apiKey = apiKey;
+    this.host = removeTrailingSlash(options.host || "https://us.i.posthog.com");
+    this.flushAt = options.flushAt ? Math.max(options.flushAt, 1) : 20;
+    this.maxBatchSize = Math.max(this.flushAt, options.maxBatchSize ?? 100);
+    this.maxQueueSize = Math.max(this.flushAt, options.maxQueueSize ?? 1000);
+    this.flushInterval = options.flushInterval ?? 1e4;
+    this.preloadFeatureFlags = options.preloadFeatureFlags ?? true;
+    this.defaultOptIn = options.defaultOptIn ?? true;
+    this.disableSurveys = options.disableSurveys ?? false;
+    this._retryOptions = {
+      retryCount: options.fetchRetryCount ?? 3,
+      retryDelay: options.fetchRetryDelay ?? 3000,
+      retryCheck: isPostHogFetchError
+    };
+    this.requestTimeout = options.requestTimeout ?? 1e4;
+    this.featureFlagsRequestTimeoutMs = options.featureFlagsRequestTimeoutMs ?? 3000;
+    this.remoteConfigRequestTimeoutMs = options.remoteConfigRequestTimeoutMs ?? 3000;
+    this.disableGeoip = options.disableGeoip ?? true;
+    this.disabled = options.disabled ?? false;
+    this.historicalMigration = options?.historicalMigration ?? false;
+    this.evaluationEnvironments = options?.evaluationEnvironments;
+    this._initPromise = Promise.resolve();
+    this._isInitialized = true;
+    this._logger = createLogger("[PostHog]", this.logMsgIfDebug.bind(this));
+    this.disableCompression = !isGzipSupported() || (options?.disableCompression ?? false);
+  }
+  logMsgIfDebug(fn) {
+    if (this.isDebug)
+      fn();
+  }
+  wrap(fn) {
+    if (this.disabled)
+      return void this._logger.warn("The client is disabled");
+    if (this._isInitialized)
+      return fn();
+    this._initPromise.then(() => fn());
+  }
+  getCommonEventProperties() {
+    return {
+      $lib: this.getLibraryId(),
+      $lib_version: this.getLibraryVersion()
+    };
+  }
+  get optedOut() {
+    return this.getPersistedProperty(types_PostHogPersistedProperty.OptedOut) ?? !this.defaultOptIn;
+  }
+  async optIn() {
+    this.wrap(() => {
+      this.setPersistedProperty(types_PostHogPersistedProperty.OptedOut, false);
+    });
+  }
+  async optOut() {
+    this.wrap(() => {
+      this.setPersistedProperty(types_PostHogPersistedProperty.OptedOut, true);
+    });
+  }
+  on(event, cb) {
+    return this._events.on(event, cb);
+  }
+  debug(enabled = true) {
+    this.removeDebugCallback?.();
+    if (enabled) {
+      const removeDebugCallback = this.on("*", (event, payload) => this._logger.info(event, payload));
+      this.removeDebugCallback = () => {
+        removeDebugCallback();
+        this.removeDebugCallback = undefined;
+      };
+    }
+  }
+  get isDebug() {
+    return !!this.removeDebugCallback;
+  }
+  get isDisabled() {
+    return this.disabled;
+  }
+  buildPayload(payload) {
+    return {
+      distinct_id: payload.distinct_id,
+      event: payload.event,
+      properties: {
+        ...payload.properties || {},
+        ...this.getCommonEventProperties()
+      }
+    };
+  }
+  addPendingPromise(promise2) {
+    return this.promiseQueue.add(promise2);
+  }
+  identifyStateless(distinctId, properties, options) {
+    this.wrap(() => {
+      const payload = {
+        ...this.buildPayload({
+          distinct_id: distinctId,
+          event: "$identify",
+          properties
+        })
+      };
+      this.enqueue("identify", payload, options);
+    });
+  }
+  async identifyStatelessImmediate(distinctId, properties, options) {
+    const payload = {
+      ...this.buildPayload({
+        distinct_id: distinctId,
+        event: "$identify",
+        properties
+      })
+    };
+    await this.sendImmediate("identify", payload, options);
+  }
+  captureStateless(distinctId, event, properties, options) {
+    this.wrap(() => {
+      const payload = this.buildPayload({
+        distinct_id: distinctId,
+        event,
+        properties
+      });
+      this.enqueue("capture", payload, options);
+    });
+  }
+  async captureStatelessImmediate(distinctId, event, properties, options) {
+    const payload = this.buildPayload({
+      distinct_id: distinctId,
+      event,
+      properties
+    });
+    await this.sendImmediate("capture", payload, options);
+  }
+  aliasStateless(alias, distinctId, properties, options) {
+    this.wrap(() => {
+      const payload = this.buildPayload({
+        event: "$create_alias",
+        distinct_id: distinctId,
+        properties: {
+          ...properties || {},
+          distinct_id: distinctId,
+          alias
+        }
+      });
+      this.enqueue("alias", payload, options);
+    });
+  }
+  async aliasStatelessImmediate(alias, distinctId, properties, options) {
+    const payload = this.buildPayload({
+      event: "$create_alias",
+      distinct_id: distinctId,
+      properties: {
+        ...properties || {},
+        distinct_id: distinctId,
+        alias
+      }
+    });
+    await this.sendImmediate("alias", payload, options);
+  }
+  groupIdentifyStateless(groupType, groupKey, groupProperties, options, distinctId, eventProperties) {
+    this.wrap(() => {
+      const payload = this.buildPayload({
+        distinct_id: distinctId || `$${groupType}_${groupKey}`,
+        event: "$groupidentify",
+        properties: {
+          $group_type: groupType,
+          $group_key: groupKey,
+          $group_set: groupProperties || {},
+          ...eventProperties || {}
+        }
+      });
+      this.enqueue("capture", payload, options);
+    });
+  }
+  async getRemoteConfig() {
+    await this._initPromise;
+    let host = this.host;
+    if (host === "https://us.i.posthog.com")
+      host = "https://us-assets.i.posthog.com";
+    else if (host === "https://eu.i.posthog.com")
+      host = "https://eu-assets.i.posthog.com";
+    const url2 = `${host}/array/${this.apiKey}/config`;
+    const fetchOptions = {
+      method: "GET",
+      headers: {
+        ...this.getCustomHeaders(),
+        "Content-Type": "application/json"
+      }
+    };
+    return this.fetchWithRetry(url2, fetchOptions, {
+      retryCount: 0
+    }, this.remoteConfigRequestTimeoutMs).then((response) => response.json()).catch((error46) => {
+      this._logger.error("Remote config could not be loaded", error46);
+      this._events.emit("error", error46);
+    });
+  }
+  async getFlags(distinctId, groups = {}, personProperties = {}, groupProperties = {}, extraPayload = {}, fetchConfig = true) {
+    await this._initPromise;
+    const configParam = fetchConfig ? "&config=true" : "";
+    const url2 = `${this.host}/flags/?v=2${configParam}`;
+    const requestData = {
+      token: this.apiKey,
+      distinct_id: distinctId,
+      groups,
+      person_properties: personProperties,
+      group_properties: groupProperties,
+      ...extraPayload
+    };
+    if (this.evaluationEnvironments && this.evaluationEnvironments.length > 0)
+      requestData.evaluation_environments = this.evaluationEnvironments;
+    const fetchOptions = {
+      method: "POST",
+      headers: {
+        ...this.getCustomHeaders(),
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(requestData)
+    };
+    this._logger.info("Flags URL", url2);
+    return this.fetchWithRetry(url2, fetchOptions, {
+      retryCount: 0
+    }, this.featureFlagsRequestTimeoutMs).then((response) => response.json()).then((response) => normalizeFlagsResponse(response)).catch((error46) => {
+      this._events.emit("error", error46);
+    });
+  }
+  async getFeatureFlagStateless(key, distinctId, groups = {}, personProperties = {}, groupProperties = {}, disableGeoip) {
+    await this._initPromise;
+    const flagDetailResponse = await this.getFeatureFlagDetailStateless(key, distinctId, groups, personProperties, groupProperties, disableGeoip);
+    if (flagDetailResponse === undefined)
+      return {
+        response: undefined,
+        requestId: undefined
+      };
+    let response = getFeatureFlagValue(flagDetailResponse.response);
+    if (response === undefined)
+      response = false;
+    return {
+      response,
+      requestId: flagDetailResponse.requestId
+    };
+  }
+  async getFeatureFlagDetailStateless(key, distinctId, groups = {}, personProperties = {}, groupProperties = {}, disableGeoip) {
+    await this._initPromise;
+    const flagsResponse = await this.getFeatureFlagDetailsStateless(distinctId, groups, personProperties, groupProperties, disableGeoip, [
+      key
+    ]);
+    if (flagsResponse === undefined)
+      return;
+    const featureFlags = flagsResponse.flags;
+    const flagDetail = featureFlags[key];
+    return {
+      response: flagDetail,
+      requestId: flagsResponse.requestId
+    };
+  }
+  async getFeatureFlagPayloadStateless(key, distinctId, groups = {}, personProperties = {}, groupProperties = {}, disableGeoip) {
+    await this._initPromise;
+    const payloads = await this.getFeatureFlagPayloadsStateless(distinctId, groups, personProperties, groupProperties, disableGeoip, [
+      key
+    ]);
+    if (!payloads)
+      return;
+    const response = payloads[key];
+    if (response === undefined)
+      return null;
+    return response;
+  }
+  async getFeatureFlagPayloadsStateless(distinctId, groups = {}, personProperties = {}, groupProperties = {}, disableGeoip, flagKeysToEvaluate) {
+    await this._initPromise;
+    const payloads = (await this.getFeatureFlagsAndPayloadsStateless(distinctId, groups, personProperties, groupProperties, disableGeoip, flagKeysToEvaluate)).payloads;
+    return payloads;
+  }
+  async getFeatureFlagsStateless(distinctId, groups = {}, personProperties = {}, groupProperties = {}, disableGeoip, flagKeysToEvaluate) {
+    await this._initPromise;
+    return await this.getFeatureFlagsAndPayloadsStateless(distinctId, groups, personProperties, groupProperties, disableGeoip, flagKeysToEvaluate);
+  }
+  async getFeatureFlagsAndPayloadsStateless(distinctId, groups = {}, personProperties = {}, groupProperties = {}, disableGeoip, flagKeysToEvaluate) {
+    await this._initPromise;
+    const featureFlagDetails = await this.getFeatureFlagDetailsStateless(distinctId, groups, personProperties, groupProperties, disableGeoip, flagKeysToEvaluate);
+    if (!featureFlagDetails)
+      return {
+        flags: undefined,
+        payloads: undefined,
+        requestId: undefined
+      };
+    return {
+      flags: featureFlagDetails.featureFlags,
+      payloads: featureFlagDetails.featureFlagPayloads,
+      requestId: featureFlagDetails.requestId
+    };
+  }
+  async getFeatureFlagDetailsStateless(distinctId, groups = {}, personProperties = {}, groupProperties = {}, disableGeoip, flagKeysToEvaluate) {
+    await this._initPromise;
+    const extraPayload = {};
+    if (disableGeoip ?? this.disableGeoip)
+      extraPayload["geoip_disable"] = true;
+    if (flagKeysToEvaluate)
+      extraPayload["flag_keys_to_evaluate"] = flagKeysToEvaluate;
+    const flagsResponse = await this.getFlags(distinctId, groups, personProperties, groupProperties, extraPayload);
+    if (flagsResponse === undefined)
+      return;
+    if (flagsResponse.errorsWhileComputingFlags)
+      console.error("[FEATURE FLAGS] Error while computing feature flags, some flags may be missing or incorrect. Learn more at https://posthog.com/docs/feature-flags/best-practices");
+    if (flagsResponse.quotaLimited?.includes("feature_flags")) {
+      console.warn("[FEATURE FLAGS] Feature flags quota limit exceeded - feature flags unavailable. Learn more about billing limits at https://posthog.com/docs/billing/limits-alerts");
+      return {
+        flags: {},
+        featureFlags: {},
+        featureFlagPayloads: {},
+        requestId: flagsResponse?.requestId
+      };
+    }
+    return flagsResponse;
+  }
+  async getSurveysStateless() {
+    await this._initPromise;
+    if (this.disableSurveys === true) {
+      this._logger.info("Loading surveys is disabled.");
+      return [];
+    }
+    const url2 = `${this.host}/api/surveys/?token=${this.apiKey}`;
+    const fetchOptions = {
+      method: "GET",
+      headers: {
+        ...this.getCustomHeaders(),
+        "Content-Type": "application/json"
+      }
+    };
+    const response = await this.fetchWithRetry(url2, fetchOptions).then((response2) => {
+      if (response2.status !== 200 || !response2.json) {
+        const msg = `Surveys API could not be loaded: ${response2.status}`;
+        const error46 = new Error(msg);
+        this._logger.error(error46);
+        this._events.emit("error", new Error(msg));
+        return;
+      }
+      return response2.json();
+    }).catch((error46) => {
+      this._logger.error("Surveys API could not be loaded", error46);
+      this._events.emit("error", error46);
+    });
+    const newSurveys = response?.surveys;
+    if (newSurveys)
+      this._logger.info("Surveys fetched from API: ", JSON.stringify(newSurveys));
+    return newSurveys ?? [];
+  }
+  get props() {
+    if (!this._props)
+      this._props = this.getPersistedProperty(types_PostHogPersistedProperty.Props);
+    return this._props || {};
+  }
+  set props(val) {
+    this._props = val;
+  }
+  async register(properties) {
+    this.wrap(() => {
+      this.props = {
+        ...this.props,
+        ...properties
+      };
+      this.setPersistedProperty(types_PostHogPersistedProperty.Props, this.props);
+    });
+  }
+  async unregister(property) {
+    this.wrap(() => {
+      delete this.props[property];
+      this.setPersistedProperty(types_PostHogPersistedProperty.Props, this.props);
+    });
+  }
+  enqueue(type, _message, options) {
+    this.wrap(() => {
+      if (this.optedOut)
+        return void this._events.emit(type, "Library is disabled. Not sending event. To re-enable, call posthog.optIn()");
+      const message = this.prepareMessage(type, _message, options);
+      const queue = this.getPersistedProperty(types_PostHogPersistedProperty.Queue) || [];
+      if (queue.length >= this.maxQueueSize) {
+        queue.shift();
+        this._logger.info("Queue is full, the oldest event is dropped.");
+      }
+      queue.push({
+        message
+      });
+      this.setPersistedProperty(types_PostHogPersistedProperty.Queue, queue);
+      this._events.emit(type, message);
+      if (queue.length >= this.flushAt)
+        this.flushBackground();
+      if (this.flushInterval && !this._flushTimer)
+        this._flushTimer = safeSetTimeout(() => this.flushBackground(), this.flushInterval);
+    });
+  }
+  async sendImmediate(type, _message, options) {
+    if (this.disabled)
+      return void this._logger.warn("The client is disabled");
+    if (!this._isInitialized)
+      await this._initPromise;
+    if (this.optedOut)
+      return void this._events.emit(type, "Library is disabled. Not sending event. To re-enable, call posthog.optIn()");
+    const data = {
+      api_key: this.apiKey,
+      batch: [
+        this.prepareMessage(type, _message, options)
+      ],
+      sent_at: currentISOTime()
+    };
+    if (this.historicalMigration)
+      data.historical_migration = true;
+    const payload = JSON.stringify(data);
+    const url2 = `${this.host}/batch/`;
+    const gzippedPayload = this.disableCompression ? null : await gzipCompress(payload, this.isDebug);
+    const fetchOptions = {
+      method: "POST",
+      headers: {
+        ...this.getCustomHeaders(),
+        "Content-Type": "application/json",
+        ...gzippedPayload !== null && {
+          "Content-Encoding": "gzip"
+        }
+      },
+      body: gzippedPayload || payload
+    };
+    try {
+      await this.fetchWithRetry(url2, fetchOptions);
+    } catch (err) {
+      this._events.emit("error", err);
+    }
+  }
+  prepareMessage(type, _message, options) {
+    const message = {
+      ..._message,
+      type,
+      library: this.getLibraryId(),
+      library_version: this.getLibraryVersion(),
+      timestamp: options?.timestamp ? options?.timestamp : currentISOTime(),
+      uuid: options?.uuid ? options.uuid : uuidv72()
+    };
+    const addGeoipDisableProperty = options?.disableGeoip ?? this.disableGeoip;
+    if (addGeoipDisableProperty) {
+      if (!message.properties)
+        message.properties = {};
+      message["properties"]["$geoip_disable"] = true;
+    }
+    if (message.distinctId) {
+      message.distinct_id = message.distinctId;
+      delete message.distinctId;
+    }
+    return message;
+  }
+  clearFlushTimer() {
+    if (this._flushTimer) {
+      clearTimeout(this._flushTimer);
+      this._flushTimer = undefined;
+    }
+  }
+  flushBackground() {
+    this.flush().catch(async (err) => {
+      await logFlushError(err);
+    });
+  }
+  async flush() {
+    const nextFlushPromise = allSettled([
+      this.flushPromise
+    ]).then(() => this._flush());
+    this.flushPromise = nextFlushPromise;
+    this.addPendingPromise(nextFlushPromise);
+    allSettled([
+      nextFlushPromise
+    ]).then(() => {
+      if (this.flushPromise === nextFlushPromise)
+        this.flushPromise = null;
+    });
+    return nextFlushPromise;
+  }
+  getCustomHeaders() {
+    const customUserAgent = this.getCustomUserAgent();
+    const headers = {};
+    if (customUserAgent && customUserAgent !== "")
+      headers["User-Agent"] = customUserAgent;
+    return headers;
+  }
+  async _flush() {
+    this.clearFlushTimer();
+    await this._initPromise;
+    let queue = this.getPersistedProperty(types_PostHogPersistedProperty.Queue) || [];
+    if (!queue.length)
+      return;
+    const sentMessages = [];
+    const originalQueueLength = queue.length;
+    while (queue.length > 0 && sentMessages.length < originalQueueLength) {
+      const batchItems = queue.slice(0, this.maxBatchSize);
+      const batchMessages = batchItems.map((item) => item.message);
+      const persistQueueChange = () => {
+        const refreshedQueue = this.getPersistedProperty(types_PostHogPersistedProperty.Queue) || [];
+        const newQueue = refreshedQueue.slice(batchItems.length);
+        this.setPersistedProperty(types_PostHogPersistedProperty.Queue, newQueue);
+        queue = newQueue;
+      };
+      const data = {
+        api_key: this.apiKey,
+        batch: batchMessages,
+        sent_at: currentISOTime()
+      };
+      if (this.historicalMigration)
+        data.historical_migration = true;
+      const payload = JSON.stringify(data);
+      const url2 = `${this.host}/batch/`;
+      const gzippedPayload = this.disableCompression ? null : await gzipCompress(payload, this.isDebug);
+      const fetchOptions = {
+        method: "POST",
+        headers: {
+          ...this.getCustomHeaders(),
+          "Content-Type": "application/json",
+          ...gzippedPayload !== null && {
+            "Content-Encoding": "gzip"
+          }
+        },
+        body: gzippedPayload || payload
+      };
+      const retryOptions = {
+        retryCheck: (err) => {
+          if (isPostHogFetchContentTooLargeError(err))
+            return false;
+          return isPostHogFetchError(err);
+        }
+      };
+      try {
+        await this.fetchWithRetry(url2, fetchOptions, retryOptions);
+      } catch (err) {
+        if (isPostHogFetchContentTooLargeError(err) && batchMessages.length > 1) {
+          this.maxBatchSize = Math.max(1, Math.floor(batchMessages.length / 2));
+          this._logger.warn(`Received 413 when sending batch of size ${batchMessages.length}, reducing batch size to ${this.maxBatchSize}`);
+          continue;
+        }
+        if (!(err instanceof PostHogFetchNetworkError))
+          persistQueueChange();
+        this._events.emit("error", err);
+        throw err;
+      }
+      persistQueueChange();
+      sentMessages.push(...batchMessages);
+    }
+    this._events.emit("flush", sentMessages);
+  }
+  async fetchWithRetry(url2, options, retryOptions, requestTimeout) {
+    AbortSignal.timeout ??= function(ms) {
+      const ctrl = new AbortController;
+      setTimeout(() => ctrl.abort(), ms);
+      return ctrl.signal;
+    };
+    const body = options.body ? options.body : "";
+    let reqByteLength = -1;
+    try {
+      reqByteLength = body instanceof Blob ? body.size : Buffer.byteLength(body, STRING_FORMAT);
+    } catch {
+      if (body instanceof Blob)
+        reqByteLength = body.size;
+      else {
+        const encoded = new TextEncoder().encode(body);
+        reqByteLength = encoded.length;
+      }
+    }
+    return await retriable(async () => {
+      let res = null;
+      try {
+        res = await this.fetch(url2, {
+          signal: AbortSignal.timeout(requestTimeout ?? this.requestTimeout),
+          ...options
+        });
+      } catch (e) {
+        throw new PostHogFetchNetworkError(e);
+      }
+      const isNoCors = options.mode === "no-cors";
+      if (!isNoCors && (res.status < 200 || res.status >= 400))
+        throw new PostHogFetchHttpError(res, reqByteLength);
+      return res;
+    }, {
+      ...this._retryOptions,
+      ...retryOptions
+    });
+  }
+  async _shutdown(shutdownTimeoutMs = 30000) {
+    await this._initPromise;
+    let hasTimedOut = false;
+    this.clearFlushTimer();
+    const doShutdown = async () => {
+      try {
+        await this.promiseQueue.join();
+        while (true) {
+          const queue = this.getPersistedProperty(types_PostHogPersistedProperty.Queue) || [];
+          if (queue.length === 0)
+            break;
+          await this.flush();
+          if (hasTimedOut)
+            break;
+        }
+      } catch (e) {
+        if (!isPostHogFetchError(e))
+          throw e;
+        await logFlushError(e);
+      }
+    };
+    return Promise.race([
+      new Promise((_, reject) => {
+        safeSetTimeout(() => {
+          this._logger.error("Timed out while shutting down PostHog");
+          hasTimedOut = true;
+          reject("Timeout while shutting down PostHog. Some events may not have been sent.");
+        }, shutdownTimeoutMs);
+      }),
+      doShutdown()
+    ]);
+  }
+  async shutdown(shutdownTimeoutMs = 30000) {
+    if (this.shutdownPromise)
+      this._logger.warn("shutdown() called while already shutting down. shutdown() is meant to be called once before process exit - use flush() for per-request cleanup");
+    else
+      this.shutdownPromise = this._shutdown(shutdownTimeoutMs).finally(() => {
+        this.shutdownPromise = null;
+      });
+    return this.shutdownPromise;
+  }
+}
 // ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/error-tracking/index.mjs
 var exports_error_tracking = {};
 __export(exports_error_tracking, {
@@ -18812,6 +19903,1100 @@ class ErrorTracking {
   }
 }
 
+// ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/version.mjs
+var version2 = "5.11.0";
+
+// ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/extensions/feature-flags/crypto.mjs
+async function hashSHA1(text) {
+  const subtle = globalThis.crypto?.subtle;
+  if (!subtle)
+    throw new Error("SubtleCrypto API not available");
+  const hashBuffer = await subtle.digest("SHA-1", new TextEncoder().encode(text));
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+// ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/extensions/feature-flags/feature-flags.mjs
+var SIXTY_SECONDS = 60000;
+var LONG_SCALE = 1152921504606847000;
+var NULL_VALUES_ALLOWED_OPERATORS = [
+  "is_not"
+];
+
+class ClientError extends Error {
+  constructor(message) {
+    super();
+    Error.captureStackTrace(this, this.constructor);
+    this.name = "ClientError";
+    this.message = message;
+    Object.setPrototypeOf(this, ClientError.prototype);
+  }
+}
+
+class InconclusiveMatchError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+    Object.setPrototypeOf(this, InconclusiveMatchError.prototype);
+  }
+}
+
+class RequiresServerEvaluation extends Error {
+  constructor(message) {
+    super(message);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+    Object.setPrototypeOf(this, RequiresServerEvaluation.prototype);
+  }
+}
+
+class FeatureFlagsPoller {
+  constructor({ pollingInterval, personalApiKey, projectApiKey, timeout, host, customHeaders, ...options }) {
+    this.debugMode = false;
+    this.shouldBeginExponentialBackoff = false;
+    this.backOffCount = 0;
+    this.pollingInterval = pollingInterval;
+    this.personalApiKey = personalApiKey;
+    this.featureFlags = [];
+    this.featureFlagsByKey = {};
+    this.groupTypeMapping = {};
+    this.cohorts = {};
+    this.loadedSuccessfullyOnce = false;
+    this.timeout = timeout;
+    this.projectApiKey = projectApiKey;
+    this.host = host;
+    this.poller = undefined;
+    this.fetch = options.fetch || fetch;
+    this.onError = options.onError;
+    this.customHeaders = customHeaders;
+    this.onLoad = options.onLoad;
+    this.loadFeatureFlags();
+  }
+  debug(enabled = true) {
+    this.debugMode = enabled;
+  }
+  logMsgIfDebug(fn) {
+    if (this.debugMode)
+      fn();
+  }
+  async getFeatureFlag(key, distinctId, groups = {}, personProperties = {}, groupProperties = {}) {
+    await this.loadFeatureFlags();
+    let response;
+    let featureFlag;
+    if (!this.loadedSuccessfullyOnce)
+      return response;
+    featureFlag = this.featureFlagsByKey[key];
+    if (featureFlag !== undefined)
+      try {
+        const result = await this.computeFlagAndPayloadLocally(featureFlag, distinctId, groups, personProperties, groupProperties);
+        response = result.value;
+        this.logMsgIfDebug(() => console.debug(`Successfully computed flag locally: ${key} -> ${response}`));
+      } catch (e) {
+        if (e instanceof RequiresServerEvaluation || e instanceof InconclusiveMatchError)
+          this.logMsgIfDebug(() => console.debug(`${e.name} when computing flag locally: ${key}: ${e.message}`));
+        else if (e instanceof Error)
+          this.onError?.(new Error(`Error computing flag locally: ${key}: ${e}`));
+      }
+    return response;
+  }
+  async getAllFlagsAndPayloads(distinctId, groups = {}, personProperties = {}, groupProperties = {}, flagKeysToExplicitlyEvaluate) {
+    await this.loadFeatureFlags();
+    const response = {};
+    const payloads = {};
+    let fallbackToFlags = this.featureFlags.length == 0;
+    const flagsToEvaluate = flagKeysToExplicitlyEvaluate ? flagKeysToExplicitlyEvaluate.map((key) => this.featureFlagsByKey[key]).filter(Boolean) : this.featureFlags;
+    const sharedEvaluationCache = {};
+    await Promise.all(flagsToEvaluate.map(async (flag) => {
+      try {
+        const { value: matchValue, payload: matchPayload } = await this.computeFlagAndPayloadLocally(flag, distinctId, groups, personProperties, groupProperties, undefined, sharedEvaluationCache);
+        response[flag.key] = matchValue;
+        if (matchPayload)
+          payloads[flag.key] = matchPayload;
+      } catch (e) {
+        if (e instanceof RequiresServerEvaluation || e instanceof InconclusiveMatchError)
+          this.logMsgIfDebug(() => console.debug(`${e.name} when computing flag locally: ${flag.key}: ${e.message}`));
+        else if (e instanceof Error)
+          this.onError?.(new Error(`Error computing flag locally: ${flag.key}: ${e}`));
+        fallbackToFlags = true;
+      }
+    }));
+    return {
+      response,
+      payloads,
+      fallbackToFlags
+    };
+  }
+  async computeFlagAndPayloadLocally(flag, distinctId, groups = {}, personProperties = {}, groupProperties = {}, matchValue, evaluationCache, skipLoadCheck = false) {
+    if (!skipLoadCheck)
+      await this.loadFeatureFlags();
+    if (!this.loadedSuccessfullyOnce)
+      return {
+        value: false,
+        payload: null
+      };
+    let flagValue;
+    flagValue = matchValue !== undefined ? matchValue : await this.computeFlagValueLocally(flag, distinctId, groups, personProperties, groupProperties, evaluationCache);
+    const payload = this.getFeatureFlagPayload(flag.key, flagValue);
+    return {
+      value: flagValue,
+      payload
+    };
+  }
+  async computeFlagValueLocally(flag, distinctId, groups = {}, personProperties = {}, groupProperties = {}, evaluationCache = {}) {
+    if (flag.ensure_experience_continuity)
+      throw new InconclusiveMatchError("Flag has experience continuity enabled");
+    if (!flag.active)
+      return false;
+    const flagFilters = flag.filters || {};
+    const aggregation_group_type_index = flagFilters.aggregation_group_type_index;
+    if (aggregation_group_type_index == undefined)
+      return await this.matchFeatureFlagProperties(flag, distinctId, personProperties, evaluationCache);
+    {
+      const groupName = this.groupTypeMapping[String(aggregation_group_type_index)];
+      if (!groupName) {
+        this.logMsgIfDebug(() => console.warn(`[FEATURE FLAGS] Unknown group type index ${aggregation_group_type_index} for feature flag ${flag.key}`));
+        throw new InconclusiveMatchError("Flag has unknown group type index");
+      }
+      if (!(groupName in groups)) {
+        this.logMsgIfDebug(() => console.warn(`[FEATURE FLAGS] Can't compute group feature flag: ${flag.key} without group names passed in`));
+        return false;
+      }
+      const focusedGroupProperties = groupProperties[groupName];
+      return await this.matchFeatureFlagProperties(flag, groups[groupName], focusedGroupProperties, evaluationCache);
+    }
+  }
+  getFeatureFlagPayload(key, flagValue) {
+    let payload = null;
+    if (flagValue !== false && flagValue != null) {
+      if (typeof flagValue == "boolean")
+        payload = this.featureFlagsByKey?.[key]?.filters?.payloads?.[flagValue.toString()] || null;
+      else if (typeof flagValue == "string")
+        payload = this.featureFlagsByKey?.[key]?.filters?.payloads?.[flagValue] || null;
+      if (payload != null) {
+        if (typeof payload == "object")
+          return payload;
+        if (typeof payload == "string")
+          try {
+            return JSON.parse(payload);
+          } catch {}
+        return payload;
+      }
+    }
+    return null;
+  }
+  async evaluateFlagDependency(property, distinctId, properties, evaluationCache) {
+    const targetFlagKey = property.key;
+    if (!this.featureFlagsByKey)
+      throw new InconclusiveMatchError("Feature flags not available for dependency evaluation");
+    if (!("dependency_chain" in property))
+      throw new InconclusiveMatchError(`Flag dependency property for '${targetFlagKey}' is missing required 'dependency_chain' field`);
+    const dependencyChain = property.dependency_chain;
+    if (!Array.isArray(dependencyChain))
+      throw new InconclusiveMatchError(`Flag dependency property for '${targetFlagKey}' has an invalid 'dependency_chain' (expected array, got ${typeof dependencyChain})`);
+    if (dependencyChain.length === 0)
+      throw new InconclusiveMatchError(`Circular dependency detected for flag '${targetFlagKey}' (empty dependency chain)`);
+    for (const depFlagKey of dependencyChain) {
+      if (!(depFlagKey in evaluationCache)) {
+        const depFlag = this.featureFlagsByKey[depFlagKey];
+        if (depFlag)
+          if (depFlag.active)
+            try {
+              const depResult = await this.matchFeatureFlagProperties(depFlag, distinctId, properties, evaluationCache);
+              evaluationCache[depFlagKey] = depResult;
+            } catch (error46) {
+              throw new InconclusiveMatchError(`Error evaluating flag dependency '${depFlagKey}' for flag '${targetFlagKey}': ${error46}`);
+            }
+          else
+            evaluationCache[depFlagKey] = false;
+        else
+          throw new InconclusiveMatchError(`Missing flag dependency '${depFlagKey}' for flag '${targetFlagKey}'`);
+      }
+      const cachedResult = evaluationCache[depFlagKey];
+      if (cachedResult == null)
+        throw new InconclusiveMatchError(`Dependency '${depFlagKey}' could not be evaluated`);
+    }
+    const targetFlagValue = evaluationCache[targetFlagKey];
+    return this.flagEvaluatesToExpectedValue(property.value, targetFlagValue);
+  }
+  flagEvaluatesToExpectedValue(expectedValue, flagValue) {
+    if (typeof expectedValue == "boolean")
+      return expectedValue === flagValue || typeof flagValue == "string" && flagValue !== "" && expectedValue === true;
+    if (typeof expectedValue == "string")
+      return flagValue === expectedValue;
+    return false;
+  }
+  async matchFeatureFlagProperties(flag, distinctId, properties, evaluationCache = {}) {
+    const flagFilters = flag.filters || {};
+    const flagConditions = flagFilters.groups || [];
+    let isInconclusive = false;
+    let result;
+    for (const condition of flagConditions)
+      try {
+        if (await this.isConditionMatch(flag, distinctId, condition, properties, evaluationCache)) {
+          const variantOverride = condition.variant;
+          const flagVariants = flagFilters.multivariate?.variants || [];
+          result = variantOverride && flagVariants.some((variant) => variant.key === variantOverride) ? variantOverride : await this.getMatchingVariant(flag, distinctId) || true;
+          break;
+        }
+      } catch (e) {
+        if (e instanceof RequiresServerEvaluation)
+          throw e;
+        if (e instanceof InconclusiveMatchError)
+          isInconclusive = true;
+        else
+          throw e;
+      }
+    if (result !== undefined)
+      return result;
+    if (isInconclusive)
+      throw new InconclusiveMatchError("Can't determine if feature flag is enabled or not with given properties");
+    return false;
+  }
+  async isConditionMatch(flag, distinctId, condition, properties, evaluationCache = {}) {
+    const rolloutPercentage = condition.rollout_percentage;
+    const warnFunction = (msg) => {
+      this.logMsgIfDebug(() => console.warn(msg));
+    };
+    if ((condition.properties || []).length > 0) {
+      for (const prop of condition.properties) {
+        const propertyType = prop.type;
+        let matches = false;
+        matches = propertyType === "cohort" ? matchCohort(prop, properties, this.cohorts, this.debugMode) : propertyType === "flag" ? await this.evaluateFlagDependency(prop, distinctId, properties, evaluationCache) : matchProperty(prop, properties, warnFunction);
+        if (!matches)
+          return false;
+      }
+      if (rolloutPercentage == undefined)
+        return true;
+    }
+    if (rolloutPercentage != null && await _hash(flag.key, distinctId) > rolloutPercentage / 100)
+      return false;
+    return true;
+  }
+  async getMatchingVariant(flag, distinctId) {
+    const hashValue = await _hash(flag.key, distinctId, "variant");
+    const matchingVariant = this.variantLookupTable(flag).find((variant) => hashValue >= variant.valueMin && hashValue < variant.valueMax);
+    if (matchingVariant)
+      return matchingVariant.key;
+  }
+  variantLookupTable(flag) {
+    const lookupTable = [];
+    let valueMin = 0;
+    let valueMax = 0;
+    const flagFilters = flag.filters || {};
+    const multivariates = flagFilters.multivariate?.variants || [];
+    multivariates.forEach((variant) => {
+      valueMax = valueMin + variant.rollout_percentage / 100;
+      lookupTable.push({
+        valueMin,
+        valueMax,
+        key: variant.key
+      });
+      valueMin = valueMax;
+    });
+    return lookupTable;
+  }
+  async loadFeatureFlags(forceReload = false) {
+    if (!this.loadedSuccessfullyOnce || forceReload)
+      await this._loadFeatureFlags();
+  }
+  isLocalEvaluationReady() {
+    return (this.loadedSuccessfullyOnce ?? false) && (this.featureFlags?.length ?? 0) > 0;
+  }
+  getPollingInterval() {
+    if (!this.shouldBeginExponentialBackoff)
+      return this.pollingInterval;
+    return Math.min(SIXTY_SECONDS, this.pollingInterval * 2 ** this.backOffCount);
+  }
+  async _loadFeatureFlags() {
+    if (this.poller) {
+      clearTimeout(this.poller);
+      this.poller = undefined;
+    }
+    this.poller = setTimeout(() => this._loadFeatureFlags(), this.getPollingInterval());
+    try {
+      const res = await this._requestFeatureFlagDefinitions();
+      if (!res)
+        return;
+      switch (res.status) {
+        case 401:
+          this.shouldBeginExponentialBackoff = true;
+          this.backOffCount += 1;
+          throw new ClientError(`Your project key or personal API key is invalid. Setting next polling interval to ${this.getPollingInterval()}ms. More information: https://posthog.com/docs/api#rate-limiting`);
+        case 402:
+          console.warn("[FEATURE FLAGS] Feature flags quota limit exceeded - unsetting all local flags. Learn more about billing limits at https://posthog.com/docs/billing/limits-alerts");
+          this.featureFlags = [];
+          this.featureFlagsByKey = {};
+          this.groupTypeMapping = {};
+          this.cohorts = {};
+          return;
+        case 403:
+          this.shouldBeginExponentialBackoff = true;
+          this.backOffCount += 1;
+          throw new ClientError(`Your personal API key does not have permission to fetch feature flag definitions for local evaluation. Setting next polling interval to ${this.getPollingInterval()}ms. Are you sure you're using the correct personal and Project API key pair? More information: https://posthog.com/docs/api/overview`);
+        case 429:
+          this.shouldBeginExponentialBackoff = true;
+          this.backOffCount += 1;
+          throw new ClientError(`You are being rate limited. Setting next polling interval to ${this.getPollingInterval()}ms. More information: https://posthog.com/docs/api#rate-limiting`);
+        case 200: {
+          const responseJson = await res.json() ?? {};
+          if (!("flags" in responseJson))
+            return void this.onError?.(new Error(`Invalid response when getting feature flags: ${JSON.stringify(responseJson)}`));
+          this.featureFlags = responseJson.flags ?? [];
+          this.featureFlagsByKey = this.featureFlags.reduce((acc, curr) => (acc[curr.key] = curr, acc), {});
+          this.groupTypeMapping = responseJson.group_type_mapping || {};
+          this.cohorts = responseJson.cohorts || {};
+          this.loadedSuccessfullyOnce = true;
+          this.shouldBeginExponentialBackoff = false;
+          this.backOffCount = 0;
+          this.onLoad?.(this.featureFlags.length);
+          break;
+        }
+        default:
+          return;
+      }
+    } catch (err) {
+      if (err instanceof ClientError)
+        this.onError?.(err);
+    }
+  }
+  getPersonalApiKeyRequestOptions(method = "GET") {
+    return {
+      method,
+      headers: {
+        ...this.customHeaders,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.personalApiKey}`
+      }
+    };
+  }
+  async _requestFeatureFlagDefinitions() {
+    const url2 = `${this.host}/api/feature_flag/local_evaluation?token=${this.projectApiKey}&send_cohorts`;
+    const options = this.getPersonalApiKeyRequestOptions();
+    let abortTimeout = null;
+    if (this.timeout && typeof this.timeout == "number") {
+      const controller = new AbortController;
+      abortTimeout = safeSetTimeout(() => {
+        controller.abort();
+      }, this.timeout);
+      options.signal = controller.signal;
+    }
+    try {
+      return await this.fetch(url2, options);
+    } finally {
+      clearTimeout(abortTimeout);
+    }
+  }
+  stopPoller() {
+    clearTimeout(this.poller);
+  }
+}
+async function _hash(key, distinctId, salt = "") {
+  const hashString = await hashSHA1(`${key}.${distinctId}${salt}`);
+  return parseInt(hashString.slice(0, 15), 16) / LONG_SCALE;
+}
+function matchProperty(property, propertyValues, warnFunction) {
+  const key = property.key;
+  const value = property.value;
+  const operator = property.operator || "exact";
+  if (key in propertyValues) {
+    if (operator === "is_not_set")
+      throw new InconclusiveMatchError("Operator is_not_set is not supported");
+  } else
+    throw new InconclusiveMatchError(`Property ${key} not found in propertyValues`);
+  const overrideValue = propertyValues[key];
+  if (overrideValue == null && !NULL_VALUES_ALLOWED_OPERATORS.includes(operator)) {
+    if (warnFunction)
+      warnFunction(`Property ${key} cannot have a value of null/undefined with the ${operator} operator`);
+    return false;
+  }
+  function computeExactMatch(value2, overrideValue2) {
+    if (Array.isArray(value2))
+      return value2.map((val) => String(val).toLowerCase()).includes(String(overrideValue2).toLowerCase());
+    return String(value2).toLowerCase() === String(overrideValue2).toLowerCase();
+  }
+  function compare(lhs, rhs, operator2) {
+    if (operator2 === "gt")
+      return lhs > rhs;
+    if (operator2 === "gte")
+      return lhs >= rhs;
+    if (operator2 === "lt")
+      return lhs < rhs;
+    if (operator2 === "lte")
+      return lhs <= rhs;
+    throw new Error(`Invalid operator: ${operator2}`);
+  }
+  switch (operator) {
+    case "exact":
+      return computeExactMatch(value, overrideValue);
+    case "is_not":
+      return !computeExactMatch(value, overrideValue);
+    case "is_set":
+      return key in propertyValues;
+    case "icontains":
+      return String(overrideValue).toLowerCase().includes(String(value).toLowerCase());
+    case "not_icontains":
+      return !String(overrideValue).toLowerCase().includes(String(value).toLowerCase());
+    case "regex":
+      return isValidRegex(String(value)) && String(overrideValue).match(String(value)) !== null;
+    case "not_regex":
+      return isValidRegex(String(value)) && String(overrideValue).match(String(value)) === null;
+    case "gt":
+    case "gte":
+    case "lt":
+    case "lte": {
+      let parsedValue = typeof value == "number" ? value : null;
+      if (typeof value == "string")
+        try {
+          parsedValue = parseFloat(value);
+        } catch (err) {}
+      if (parsedValue == null || overrideValue == null)
+        return compare(String(overrideValue), String(value), operator);
+      if (typeof overrideValue == "string")
+        return compare(overrideValue, String(value), operator);
+      return compare(overrideValue, parsedValue, operator);
+    }
+    case "is_date_after":
+    case "is_date_before": {
+      if (typeof value == "boolean")
+        throw new InconclusiveMatchError("Date operations cannot be performed on boolean values");
+      let parsedDate = relativeDateParseForFeatureFlagMatching(String(value));
+      if (parsedDate == null)
+        parsedDate = convertToDateTime(value);
+      if (parsedDate == null)
+        throw new InconclusiveMatchError(`Invalid date: ${value}`);
+      const overrideDate = convertToDateTime(overrideValue);
+      if ([
+        "is_date_before"
+      ].includes(operator))
+        return overrideDate < parsedDate;
+      return overrideDate > parsedDate;
+    }
+    default:
+      throw new InconclusiveMatchError(`Unknown operator: ${operator}`);
+  }
+}
+function checkCohortExists(cohortId, cohortProperties) {
+  if (!(cohortId in cohortProperties))
+    throw new RequiresServerEvaluation(`cohort ${cohortId} not found in local cohorts - likely a static cohort that requires server evaluation`);
+}
+function matchCohort(property, propertyValues, cohortProperties, debugMode = false) {
+  const cohortId = String(property.value);
+  checkCohortExists(cohortId, cohortProperties);
+  const propertyGroup = cohortProperties[cohortId];
+  return matchPropertyGroup(propertyGroup, propertyValues, cohortProperties, debugMode);
+}
+function matchPropertyGroup(propertyGroup, propertyValues, cohortProperties, debugMode = false) {
+  if (!propertyGroup)
+    return true;
+  const propertyGroupType = propertyGroup.type;
+  const properties = propertyGroup.values;
+  if (!properties || properties.length === 0)
+    return true;
+  let errorMatchingLocally = false;
+  if ("values" in properties[0]) {
+    for (const prop of properties)
+      try {
+        const matches = matchPropertyGroup(prop, propertyValues, cohortProperties, debugMode);
+        if (propertyGroupType === "AND") {
+          if (!matches)
+            return false;
+        } else if (matches)
+          return true;
+      } catch (err) {
+        if (err instanceof RequiresServerEvaluation)
+          throw err;
+        if (err instanceof InconclusiveMatchError) {
+          if (debugMode)
+            console.debug(`Failed to compute property ${prop} locally: ${err}`);
+          errorMatchingLocally = true;
+        } else
+          throw err;
+      }
+    if (errorMatchingLocally)
+      throw new InconclusiveMatchError("Can't match cohort without a given cohort property value");
+    return propertyGroupType === "AND";
+  }
+  for (const prop of properties)
+    try {
+      let matches;
+      if (prop.type === "cohort")
+        matches = matchCohort(prop, propertyValues, cohortProperties, debugMode);
+      else if (prop.type === "flag") {
+        if (debugMode)
+          console.warn(`[FEATURE FLAGS] Flag dependency filters are not supported in local evaluation. Skipping condition with dependency on flag '${prop.key || "unknown"}'`);
+        continue;
+      } else
+        matches = matchProperty(prop, propertyValues);
+      const negation = prop.negation || false;
+      if (propertyGroupType === "AND") {
+        if (!matches && !negation)
+          return false;
+        if (matches && negation)
+          return false;
+      } else {
+        if (matches && !negation)
+          return true;
+        if (!matches && negation)
+          return true;
+      }
+    } catch (err) {
+      if (err instanceof RequiresServerEvaluation)
+        throw err;
+      if (err instanceof InconclusiveMatchError) {
+        if (debugMode)
+          console.debug(`Failed to compute property ${prop} locally: ${err}`);
+        errorMatchingLocally = true;
+      } else
+        throw err;
+    }
+  if (errorMatchingLocally)
+    throw new InconclusiveMatchError("can't match cohort without a given cohort property value");
+  return propertyGroupType === "AND";
+}
+function isValidRegex(regex) {
+  try {
+    new RegExp(regex);
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+function convertToDateTime(value) {
+  if (value instanceof Date)
+    return value;
+  if (typeof value == "string" || typeof value == "number") {
+    const date5 = new Date(value);
+    if (!isNaN(date5.valueOf()))
+      return date5;
+    throw new InconclusiveMatchError(`${value} is in an invalid date format`);
+  }
+  throw new InconclusiveMatchError(`The date provided ${value} must be a string, number, or date object`);
+}
+function relativeDateParseForFeatureFlagMatching(value) {
+  const regex = /^-?(?<number>[0-9]+)(?<interval>[a-z])$/;
+  const match = value.match(regex);
+  const parsedDt = new Date(new Date().toISOString());
+  if (!match)
+    return null;
+  {
+    if (!match.groups)
+      return null;
+    const number4 = parseInt(match.groups["number"]);
+    if (number4 >= 1e4)
+      return null;
+    const interval = match.groups["interval"];
+    if (interval == "h")
+      parsedDt.setUTCHours(parsedDt.getUTCHours() - number4);
+    else if (interval == "d")
+      parsedDt.setUTCDate(parsedDt.getUTCDate() - number4);
+    else if (interval == "w")
+      parsedDt.setUTCDate(parsedDt.getUTCDate() - 7 * number4);
+    else if (interval == "m")
+      parsedDt.setUTCMonth(parsedDt.getUTCMonth() - number4);
+    else {
+      if (interval != "y")
+        return null;
+      parsedDt.setUTCFullYear(parsedDt.getUTCFullYear() - number4);
+    }
+    return parsedDt;
+  }
+}
+
+// ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/storage-memory.mjs
+class PostHogMemoryStorage {
+  getProperty(key) {
+    return this._memoryStorage[key];
+  }
+  setProperty(key, value) {
+    this._memoryStorage[key] = value !== null ? value : undefined;
+  }
+  constructor() {
+    this._memoryStorage = {};
+  }
+}
+
+// ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/client.mjs
+var MINIMUM_POLLING_INTERVAL = 100;
+var THIRTY_SECONDS = 30000;
+var MAX_CACHE_SIZE = 50000;
+
+class PostHogBackendClient extends PostHogCoreStateless {
+  constructor(apiKey, options = {}) {
+    super(apiKey, options), this._memoryStorage = new PostHogMemoryStorage;
+    this.options = options;
+    this.options.featureFlagsPollingInterval = typeof options.featureFlagsPollingInterval == "number" ? Math.max(options.featureFlagsPollingInterval, MINIMUM_POLLING_INTERVAL) : THIRTY_SECONDS;
+    if (options.personalApiKey) {
+      if (options.personalApiKey.includes("phc_"))
+        throw new Error('Your Personal API key is invalid. These keys are prefixed with "phx_" and can be created in PostHog project settings.');
+      const shouldEnableLocalEvaluation = options.enableLocalEvaluation !== false;
+      if (shouldEnableLocalEvaluation)
+        this.featureFlagsPoller = new FeatureFlagsPoller({
+          pollingInterval: this.options.featureFlagsPollingInterval,
+          personalApiKey: options.personalApiKey,
+          projectApiKey: apiKey,
+          timeout: options.requestTimeout ?? 1e4,
+          host: this.host,
+          fetch: options.fetch,
+          onError: (err) => {
+            this._events.emit("error", err);
+          },
+          onLoad: (count) => {
+            this._events.emit("localEvaluationFlagsLoaded", count);
+          },
+          customHeaders: this.getCustomHeaders()
+        });
+    }
+    this.errorTracking = new ErrorTracking(this, options, this._logger);
+    this.distinctIdHasSentFlagCalls = {};
+    this.maxCacheSize = options.maxCacheSize || MAX_CACHE_SIZE;
+  }
+  getPersistedProperty(key) {
+    return this._memoryStorage.getProperty(key);
+  }
+  setPersistedProperty(key, value) {
+    return this._memoryStorage.setProperty(key, value);
+  }
+  fetch(url2, options) {
+    return this.options.fetch ? this.options.fetch(url2, options) : fetch(url2, options);
+  }
+  getLibraryVersion() {
+    return version2;
+  }
+  getCustomUserAgent() {
+    return `${this.getLibraryId()}/${this.getLibraryVersion()}`;
+  }
+  enable() {
+    return super.optIn();
+  }
+  disable() {
+    return super.optOut();
+  }
+  debug(enabled = true) {
+    super.debug(enabled);
+    this.featureFlagsPoller?.debug(enabled);
+  }
+  capture(props) {
+    if (typeof props == "string")
+      this._logger.warn("Called capture() with a string as the first argument when an object was expected.");
+    this.addPendingPromise(this.prepareEventMessage(props).then(({ distinctId, event, properties, options }) => super.captureStateless(distinctId, event, properties, {
+      timestamp: options.timestamp,
+      disableGeoip: options.disableGeoip,
+      uuid: options.uuid
+    })).catch((err) => {
+      if (err)
+        console.error(err);
+    }));
+  }
+  async captureImmediate(props) {
+    if (typeof props == "string")
+      this._logger.warn("Called captureImmediate() with a string as the first argument when an object was expected.");
+    return this.addPendingPromise(this.prepareEventMessage(props).then(({ distinctId, event, properties, options }) => super.captureStatelessImmediate(distinctId, event, properties, {
+      timestamp: options.timestamp,
+      disableGeoip: options.disableGeoip,
+      uuid: options.uuid
+    })).catch((err) => {
+      if (err)
+        console.error(err);
+    }));
+  }
+  identify({ distinctId, properties, disableGeoip }) {
+    const userPropsOnce = properties?.$set_once;
+    delete properties?.$set_once;
+    const userProps = properties?.$set || properties;
+    super.identifyStateless(distinctId, {
+      $set: userProps,
+      $set_once: userPropsOnce
+    }, {
+      disableGeoip
+    });
+  }
+  async identifyImmediate({ distinctId, properties, disableGeoip }) {
+    const userPropsOnce = properties?.$set_once;
+    delete properties?.$set_once;
+    const userProps = properties?.$set || properties;
+    await super.identifyStatelessImmediate(distinctId, {
+      $set: userProps,
+      $set_once: userPropsOnce
+    }, {
+      disableGeoip
+    });
+  }
+  alias(data) {
+    super.aliasStateless(data.alias, data.distinctId, undefined, {
+      disableGeoip: data.disableGeoip
+    });
+  }
+  async aliasImmediate(data) {
+    await super.aliasStatelessImmediate(data.alias, data.distinctId, undefined, {
+      disableGeoip: data.disableGeoip
+    });
+  }
+  isLocalEvaluationReady() {
+    return this.featureFlagsPoller?.isLocalEvaluationReady() ?? false;
+  }
+  async waitForLocalEvaluationReady(timeoutMs = THIRTY_SECONDS) {
+    if (this.isLocalEvaluationReady())
+      return true;
+    if (this.featureFlagsPoller === undefined)
+      return false;
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        cleanup();
+        resolve(false);
+      }, timeoutMs);
+      const cleanup = this._events.on("localEvaluationFlagsLoaded", (count) => {
+        clearTimeout(timeout);
+        cleanup();
+        resolve(count > 0);
+      });
+    });
+  }
+  async getFeatureFlag(key, distinctId, options) {
+    const { groups, disableGeoip } = options || {};
+    let { onlyEvaluateLocally, sendFeatureFlagEvents, personProperties, groupProperties } = options || {};
+    const adjustedProperties = this.addLocalPersonAndGroupProperties(distinctId, groups, personProperties, groupProperties);
+    personProperties = adjustedProperties.allPersonProperties;
+    groupProperties = adjustedProperties.allGroupProperties;
+    if (onlyEvaluateLocally == undefined)
+      onlyEvaluateLocally = false;
+    if (sendFeatureFlagEvents == undefined)
+      sendFeatureFlagEvents = this.options.sendFeatureFlagEvent ?? true;
+    let response = await this.featureFlagsPoller?.getFeatureFlag(key, distinctId, groups, personProperties, groupProperties);
+    const flagWasLocallyEvaluated = response !== undefined;
+    let requestId;
+    let flagDetail;
+    if (!flagWasLocallyEvaluated && !onlyEvaluateLocally) {
+      const remoteResponse = await super.getFeatureFlagDetailStateless(key, distinctId, groups, personProperties, groupProperties, disableGeoip);
+      if (remoteResponse === undefined)
+        return;
+      flagDetail = remoteResponse.response;
+      response = getFeatureFlagValue(flagDetail);
+      requestId = remoteResponse?.requestId;
+    }
+    const featureFlagReportedKey = `${key}_${response}`;
+    if (sendFeatureFlagEvents && (!(distinctId in this.distinctIdHasSentFlagCalls) || !this.distinctIdHasSentFlagCalls[distinctId].includes(featureFlagReportedKey))) {
+      if (Object.keys(this.distinctIdHasSentFlagCalls).length >= this.maxCacheSize)
+        this.distinctIdHasSentFlagCalls = {};
+      if (Array.isArray(this.distinctIdHasSentFlagCalls[distinctId]))
+        this.distinctIdHasSentFlagCalls[distinctId].push(featureFlagReportedKey);
+      else
+        this.distinctIdHasSentFlagCalls[distinctId] = [
+          featureFlagReportedKey
+        ];
+      this.capture({
+        distinctId,
+        event: "$feature_flag_called",
+        properties: {
+          $feature_flag: key,
+          $feature_flag_response: response,
+          $feature_flag_id: flagDetail?.metadata?.id,
+          $feature_flag_version: flagDetail?.metadata?.version,
+          $feature_flag_reason: flagDetail?.reason?.description ?? flagDetail?.reason?.code,
+          locally_evaluated: flagWasLocallyEvaluated,
+          [`$feature/${key}`]: response,
+          $feature_flag_request_id: requestId
+        },
+        groups,
+        disableGeoip
+      });
+    }
+    return response;
+  }
+  async getFeatureFlagPayload(key, distinctId, matchValue, options) {
+    const { groups, disableGeoip } = options || {};
+    let { onlyEvaluateLocally, personProperties, groupProperties } = options || {};
+    const adjustedProperties = this.addLocalPersonAndGroupProperties(distinctId, groups, personProperties, groupProperties);
+    personProperties = adjustedProperties.allPersonProperties;
+    groupProperties = adjustedProperties.allGroupProperties;
+    let response;
+    const localEvaluationEnabled = this.featureFlagsPoller !== undefined;
+    if (localEvaluationEnabled) {
+      await this.featureFlagsPoller?.loadFeatureFlags();
+      const flag = this.featureFlagsPoller?.featureFlagsByKey[key];
+      if (flag)
+        try {
+          const result = await this.featureFlagsPoller?.computeFlagAndPayloadLocally(flag, distinctId, groups, personProperties, groupProperties, matchValue);
+          if (result) {
+            matchValue = result.value;
+            response = result.payload;
+          }
+        } catch (e) {
+          if (e instanceof RequiresServerEvaluation || e instanceof InconclusiveMatchError)
+            this._logger?.info(`${e.name} when computing flag locally: ${flag.key}: ${e.message}`);
+          else
+            throw e;
+        }
+    }
+    if (onlyEvaluateLocally == undefined)
+      onlyEvaluateLocally = false;
+    const payloadWasLocallyEvaluated = response !== undefined;
+    if (!payloadWasLocallyEvaluated && !onlyEvaluateLocally)
+      response = await super.getFeatureFlagPayloadStateless(key, distinctId, groups, personProperties, groupProperties, disableGeoip);
+    return response;
+  }
+  async getRemoteConfigPayload(flagKey) {
+    if (!this.options.personalApiKey)
+      throw new Error("Personal API key is required for remote config payload decryption");
+    const response = await this._requestRemoteConfigPayload(flagKey);
+    if (!response)
+      return;
+    const parsed = await response.json();
+    if (typeof parsed == "string")
+      try {
+        return JSON.parse(parsed);
+      } catch (e) {}
+    return parsed;
+  }
+  async isFeatureEnabled(key, distinctId, options) {
+    const feat = await this.getFeatureFlag(key, distinctId, options);
+    if (feat === undefined)
+      return;
+    return !!feat || false;
+  }
+  async getAllFlags(distinctId, options) {
+    const response = await this.getAllFlagsAndPayloads(distinctId, options);
+    return response.featureFlags || {};
+  }
+  async getAllFlagsAndPayloads(distinctId, options) {
+    const { groups, disableGeoip, flagKeys } = options || {};
+    let { onlyEvaluateLocally, personProperties, groupProperties } = options || {};
+    const adjustedProperties = this.addLocalPersonAndGroupProperties(distinctId, groups, personProperties, groupProperties);
+    personProperties = adjustedProperties.allPersonProperties;
+    groupProperties = adjustedProperties.allGroupProperties;
+    if (onlyEvaluateLocally == undefined)
+      onlyEvaluateLocally = false;
+    const localEvaluationResult = await this.featureFlagsPoller?.getAllFlagsAndPayloads(distinctId, groups, personProperties, groupProperties, flagKeys);
+    let featureFlags = {};
+    let featureFlagPayloads = {};
+    let fallbackToFlags = true;
+    if (localEvaluationResult) {
+      featureFlags = localEvaluationResult.response;
+      featureFlagPayloads = localEvaluationResult.payloads;
+      fallbackToFlags = localEvaluationResult.fallbackToFlags;
+    }
+    if (fallbackToFlags && !onlyEvaluateLocally) {
+      const remoteEvaluationResult = await super.getFeatureFlagsAndPayloadsStateless(distinctId, groups, personProperties, groupProperties, disableGeoip, flagKeys);
+      featureFlags = {
+        ...featureFlags,
+        ...remoteEvaluationResult.flags || {}
+      };
+      featureFlagPayloads = {
+        ...featureFlagPayloads,
+        ...remoteEvaluationResult.payloads || {}
+      };
+    }
+    return {
+      featureFlags,
+      featureFlagPayloads
+    };
+  }
+  groupIdentify({ groupType, groupKey, properties, distinctId, disableGeoip }) {
+    super.groupIdentifyStateless(groupType, groupKey, properties, {
+      disableGeoip
+    }, distinctId);
+  }
+  async reloadFeatureFlags() {
+    await this.featureFlagsPoller?.loadFeatureFlags(true);
+  }
+  async _shutdown(shutdownTimeoutMs) {
+    this.featureFlagsPoller?.stopPoller();
+    this.errorTracking.shutdown();
+    return super._shutdown(shutdownTimeoutMs);
+  }
+  async _requestRemoteConfigPayload(flagKey) {
+    if (!this.options.personalApiKey)
+      return;
+    const url2 = `${this.host}/api/projects/@current/feature_flags/${flagKey}/remote_config?token=${encodeURIComponent(this.apiKey)}`;
+    const options = {
+      method: "GET",
+      headers: {
+        ...this.getCustomHeaders(),
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.options.personalApiKey}`
+      }
+    };
+    let abortTimeout = null;
+    if (this.options.requestTimeout && typeof this.options.requestTimeout == "number") {
+      const controller = new AbortController;
+      abortTimeout = safeSetTimeout(() => {
+        controller.abort();
+      }, this.options.requestTimeout);
+      options.signal = controller.signal;
+    }
+    try {
+      return await this.fetch(url2, options);
+    } catch (error46) {
+      this._events.emit("error", error46);
+      return;
+    } finally {
+      if (abortTimeout)
+        clearTimeout(abortTimeout);
+    }
+  }
+  extractPropertiesFromEvent(eventProperties, groups) {
+    if (!eventProperties)
+      return {
+        personProperties: {},
+        groupProperties: {}
+      };
+    const personProperties = {};
+    const groupProperties = {};
+    for (const [key, value] of Object.entries(eventProperties))
+      if (isPlainObject2(value) && groups && key in groups) {
+        const groupProps = {};
+        for (const [groupKey, groupValue] of Object.entries(value))
+          groupProps[String(groupKey)] = String(groupValue);
+        groupProperties[String(key)] = groupProps;
+      } else
+        personProperties[String(key)] = String(value);
+    return {
+      personProperties,
+      groupProperties
+    };
+  }
+  async getFeatureFlagsForEvent(distinctId, groups, disableGeoip, sendFeatureFlagsOptions) {
+    const finalPersonProperties = sendFeatureFlagsOptions?.personProperties || {};
+    const finalGroupProperties = sendFeatureFlagsOptions?.groupProperties || {};
+    const flagKeys = sendFeatureFlagsOptions?.flagKeys;
+    const onlyEvaluateLocally = sendFeatureFlagsOptions?.onlyEvaluateLocally ?? false;
+    if (onlyEvaluateLocally)
+      if (!((this.featureFlagsPoller?.featureFlags?.length || 0) > 0))
+        return {};
+      else {
+        const groupsWithStringValues = {};
+        for (const [key, value] of Object.entries(groups || {}))
+          groupsWithStringValues[key] = String(value);
+        return await this.getAllFlags(distinctId, {
+          groups: groupsWithStringValues,
+          personProperties: finalPersonProperties,
+          groupProperties: finalGroupProperties,
+          disableGeoip,
+          onlyEvaluateLocally: true,
+          flagKeys
+        });
+      }
+    if ((this.featureFlagsPoller?.featureFlags?.length || 0) > 0) {
+      const groupsWithStringValues = {};
+      for (const [key, value] of Object.entries(groups || {}))
+        groupsWithStringValues[key] = String(value);
+      return await this.getAllFlags(distinctId, {
+        groups: groupsWithStringValues,
+        personProperties: finalPersonProperties,
+        groupProperties: finalGroupProperties,
+        disableGeoip,
+        onlyEvaluateLocally: true,
+        flagKeys
+      });
+    }
+    return (await super.getFeatureFlagsStateless(distinctId, groups, finalPersonProperties, finalGroupProperties, disableGeoip)).flags;
+  }
+  addLocalPersonAndGroupProperties(distinctId, groups, personProperties, groupProperties) {
+    const allPersonProperties = {
+      distinct_id: distinctId,
+      ...personProperties || {}
+    };
+    const allGroupProperties = {};
+    if (groups)
+      for (const groupName of Object.keys(groups))
+        allGroupProperties[groupName] = {
+          $group_key: groups[groupName],
+          ...groupProperties?.[groupName] || {}
+        };
+    return {
+      allPersonProperties,
+      allGroupProperties
+    };
+  }
+  captureException(error46, distinctId, additionalProperties) {
+    const syntheticException = new Error("PostHog syntheticException");
+    this.addPendingPromise(ErrorTracking.buildEventMessage(error46, {
+      syntheticException
+    }, distinctId, additionalProperties).then((msg) => this.capture(msg)));
+  }
+  async captureExceptionImmediate(error46, distinctId, additionalProperties) {
+    const syntheticException = new Error("PostHog syntheticException");
+    this.addPendingPromise(ErrorTracking.buildEventMessage(error46, {
+      syntheticException
+    }, distinctId, additionalProperties).then((msg) => this.captureImmediate(msg)));
+  }
+  async prepareEventMessage(props) {
+    const { distinctId, event, properties, groups, sendFeatureFlags, timestamp, disableGeoip, uuid: uuid3 } = props;
+    const eventMessage = this._runBeforeSend({
+      distinctId,
+      event,
+      properties,
+      groups,
+      sendFeatureFlags,
+      timestamp,
+      disableGeoip,
+      uuid: uuid3
+    });
+    if (!eventMessage)
+      return Promise.reject(null);
+    const eventProperties = await Promise.resolve().then(async () => {
+      if (sendFeatureFlags) {
+        const sendFeatureFlagsOptions = typeof sendFeatureFlags == "object" ? sendFeatureFlags : undefined;
+        return await this.getFeatureFlagsForEvent(distinctId, groups, disableGeoip, sendFeatureFlagsOptions);
+      }
+      return {};
+    }).then((flags) => {
+      const additionalProperties = {};
+      if (flags)
+        for (const [feature, variant] of Object.entries(flags))
+          additionalProperties[`$feature/${feature}`] = variant;
+      const activeFlags = Object.keys(flags || {}).filter((flag) => flags?.[flag] !== false).sort();
+      if (activeFlags.length > 0)
+        additionalProperties["$active_feature_flags"] = activeFlags;
+      return additionalProperties;
+    }).catch(() => ({})).then((additionalProperties) => {
+      const props2 = {
+        ...additionalProperties,
+        ...eventMessage.properties || {},
+        $groups: eventMessage.groups || groups
+      };
+      return props2;
+    });
+    if (eventMessage.event === "$pageview" && this.options.__preview_capture_bot_pageviews && typeof eventProperties.$raw_user_agent == "string") {
+      if (isBlockedUA(eventProperties.$raw_user_agent, this.options.custom_blocked_useragents || [])) {
+        eventMessage.event = "$bot_pageview";
+        eventProperties.$browser_type = "bot";
+      }
+    }
+    return {
+      distinctId: eventMessage.distinctId,
+      event: eventMessage.event,
+      properties: eventProperties,
+      options: {
+        timestamp: eventMessage.timestamp,
+        disableGeoip: eventMessage.disableGeoip,
+        uuid: eventMessage.uuid
+      }
+    };
+  }
+  _runBeforeSend(eventMessage) {
+    const beforeSend = this.options.before_send;
+    if (!beforeSend)
+      return eventMessage;
+    const fns = Array.isArray(beforeSend) ? beforeSend : [
+      beforeSend
+    ];
+    let result = eventMessage;
+    for (const fn of fns) {
+      result = fn(result);
+      if (!result) {
+        this._logger.info(`Event '${eventMessage.event}' was rejected in beforeSend function`);
+        return null;
+      }
+      if (!result.properties || Object.keys(result.properties).length === 0) {
+        const message = `Event '${result.event}' has no properties after beforeSend function, this is likely an error.`;
+        this._logger.warn(message);
+      }
+    }
+    return result;
+  }
+}
+
 // ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/extensions/sentry-integration.mjs
 var NAME = "posthog-node";
 function createEventProcessor(_posthog, { organization, projectId, prefix, severityAllowList = [
@@ -18893,6 +21078,70 @@ ErrorTracking.errorPropertiesBuilder = new exports_error_tracking.ErrorPropertie
   createModulerModifier(),
   addSourceContext
 ]);
+
+class PostHog extends PostHogBackendClient {
+  getLibraryId() {
+    return "posthog-node";
+  }
+}
+
+// ../../packages/analytics/src/server.ts
+function createServerAnalytics(posthogApiKey) {
+  const posthog2 = new PostHog(posthogApiKey, {
+    host: "https://us.i.posthog.com",
+    disableGeoip: false
+  });
+  return {
+    ...createServerClient(allEvents, (distinctId, event, properties) => {
+      posthog2.capture({
+        distinctId,
+        event,
+        properties
+      });
+    }, () => posthog2.shutdown()),
+    captureException: (error46, distinctId, context) => {
+      posthog2.captureException(error46, distinctId, context);
+    }
+  };
+}
+// src/config/constants.ts
+import { homedir } from "node:os";
+import { join } from "node:path";
+var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
+var CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
+var CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
+var CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
+var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
+var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
+var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
+var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
+var SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
+var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
+var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
+var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
+var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
+var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
+var SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
+var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
+var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
+var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
+var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
+var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
+var LOG_RETENTION_DAYS = 7;
+var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
+var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+var POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ";
+var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
+var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+var NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
+var STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
+var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
+
+// src/utils/logger.ts
+import { appendFile } from "node:fs/promises";
+import { dirname as dirname2 } from "node:path";
+
 // src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
 async function ensureDirectory(dirPath) {
@@ -18902,10 +21151,6 @@ async function ensureDirectory(dirPath) {
     await mkdir(dirPath, { recursive: true, mode: 448 });
   }
 }
-
-// src/utils/logger.ts
-import { appendFile } from "node:fs/promises";
-import { dirname as dirname2 } from "node:path";
 
 // src/utils/log-rotation.ts
 import { readdir, unlink } from "node:fs/promises";
@@ -19011,127 +21256,232 @@ class Logger {
 }
 var logger = new Logger;
 
-// src/utils/file-lock.ts
-var activeLockFiles = new Set;
-
-// src/utils/daemon-manager.ts
-var DAEMON_RESTART_LOCK = join3(CLAUDE_ZEST_DIR, "daemon-restart.lock");
-var __filename2 = fileURLToPath(import.meta.url);
-var __dirname2 = dirname3(__filename2);
-function isProcessRunning(pid) {
+// src/utils/plugin-version.ts
+import { readFileSync } from "node:fs";
+import { join as join3 } from "node:path";
+function getPluginVersion() {
   try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-function isDaemonRunning() {
-  try {
-    const pidData = readFileSync(DAEMON_PID_FILE, "utf-8");
-    const pidStr = pidData.trim();
-    if (!pidStr) {
-      return false;
+    const marketplacePluginPath = join3(CLAUDE_INSTALL_DIR, "plugins", "marketplaces", "zest-marketplace", "zest", ".claude-plugin", "plugin.json");
+    const pluginJson = JSON.parse(readFileSync(marketplacePluginPath, "utf-8"));
+    if (pluginJson.version && typeof pluginJson.version === "string") {
+      logger.debug("Read plugin version from marketplace plugin.json", {
+        version: pluginJson.version
+      });
+      return pluginJson.version;
     }
-    const pid = Number.parseInt(pidStr, 10);
-    if (Number.isNaN(pid) || pid <= 0) {
-      return false;
-    }
-    return isProcessRunning(pid);
-  } catch {
-    return false;
+    logger.warn("Version field not found in marketplace plugin.json");
+    return "unknown";
+  } catch (error46) {
+    logger.warn("Failed to read plugin version from marketplace plugin.json", error46);
+    return "unknown";
   }
 }
 
-// src/utils/status-cache-manager.ts
-import { readFileSync as readFileSync2, writeFileSync } from "node:fs";
-var DEFAULT_VERSION_CHECK = {
-  updateAvailable: false,
-  currentVersion: "unknown",
-  latestVersion: "unknown",
-  checkedAt: 0
-};
-var DEFAULT_SYNC_STATUS = {
-  hasError: false,
-  errorType: null,
-  errorMessage: null,
-  lastErrorAt: null,
-  lastSuccessAt: null
-};
-var DEFAULT_DEV_MODE_STATUS = {
-  active: false
-};
-var DEFAULT_STATUS_CACHE = {
-  versionCheck: DEFAULT_VERSION_CHECK,
-  syncStatus: DEFAULT_SYNC_STATUS,
-  devMode: DEFAULT_DEV_MODE_STATUS
-};
-function readStatusCache() {
-  try {
-    const data = readFileSync2(STATUS_CACHE_FILE, "utf-8");
-    const parsed = JSON.parse(data);
-    if (parsed.updateAvailable !== undefined && !parsed.versionCheck) {
-      logger.info("Migrating old update-check.json format to new status-cache.json format");
-      const migrated = {
-        versionCheck: {
-          updateAvailable: parsed.updateAvailable ?? false,
-          currentVersion: parsed.currentVersion ?? "unknown",
-          latestVersion: parsed.latestVersion ?? "unknown",
-          checkedAt: parsed.checkedAt ?? 0
-        },
-        syncStatus: DEFAULT_SYNC_STATUS
-      };
-      return migrated;
-    }
-    return {
-      versionCheck: {
-        ...DEFAULT_VERSION_CHECK,
-        ...parsed.versionCheck
-      },
-      syncStatus: {
-        ...DEFAULT_SYNC_STATUS,
-        ...parsed.syncStatus
-      },
-      devMode: {
-        ...DEFAULT_DEV_MODE_STATUS,
-        ...parsed.devMode
+// src/analytics/index.ts
+var analyticsClient = null;
+var cachedSession = null;
+async function getAnalyticsClient() {
+  if (!POSTHOG_API_KEY) {
+    return null;
+  }
+  if (!analyticsClient) {
+    analyticsClient = createServerAnalytics(POSTHOG_API_KEY);
+    try {
+      const session = await loadSession();
+      if (session) {
+        cachedSession = session;
       }
+    } catch (error46) {
+      logger.debug("Could not load session for analytics context", error46);
+    }
+  }
+  return analyticsClient;
+}
+function buildStandardProperties() {
+  return {
+    plugin_version: getPluginVersion(),
+    node_version: process.version,
+    os_platform: process.platform,
+    os_version: release()
+  };
+}
+function buildUserProperties() {
+  if (!cachedSession) {
+    return {};
+  }
+  return {
+    user_id: cachedSession.userId,
+    email: cachedSession.email,
+    workspace_id: cachedSession.workspaceId,
+    workspace_name: cachedSession.workspaceName
+  };
+}
+async function captureException(error46, errorType, errorSource, additionalProperties) {
+  try {
+    const client = await getAnalyticsClient();
+    if (!client) {
+      return;
+    }
+    const context = {
+      error_type: errorType,
+      error_category: getErrorCategory(errorType),
+      error_source: `claude-cli-plugin/${errorSource}`,
+      ...buildStandardProperties(),
+      ...buildUserProperties(),
+      ...additionalProperties
     };
+    client.captureException(error46, cachedSession?.userId, context);
+    logger.debug("Exception captured in PostHog", {
+      error_type: errorType,
+      error_message: error46.message
+    });
+  } catch (captureError) {
+    logger.debug("Failed to capture exception in PostHog", captureError);
+  }
+}
+
+// src/analytics/properties.ts
+import { basename } from "node:path";
+function buildFileSystemProperties(options) {
+  const anonymizedPath = options.filePath ? basename(options.filePath) : undefined;
+  return {
+    ...anonymizedPath && { file_name: anonymizedPath },
+    operation: options.operation,
+    ...options.errnoCode && { errno_code: options.errnoCode }
+  };
+}
+
+// src/auth/session-manager.ts
+async function loadSessionFile() {
+  try {
+    const content = await readFile(SESSION_FILE, "utf-8");
+    const session = JSON.parse(content);
+    if (!session.accessToken || !session.refreshToken || !session.userId || !session.email) {
+      logger.warn("Invalid session structure, clearing session");
+      await clearSession();
+      return null;
+    }
+    return session;
   } catch (error46) {
     if (error46.code === "ENOENT") {
-      logger.debug("Status cache file does not exist, using defaults");
-    } else {
-      logger.warn("Failed to read status cache file, using defaults", error46);
+      return null;
     }
-    return DEFAULT_STATUS_CACHE;
+    logger.error("Failed to load session file", error46);
+    if (error46 instanceof Error) {
+      captureException(error46, AUTH_SESSION_LOAD_FAILED, "session-manager", {
+        ...buildFileSystemProperties({
+          filePath: SESSION_FILE,
+          operation: "read",
+          errnoCode: error46.code
+        })
+      });
+    }
+    return null;
+  }
+}
+async function loadSession() {
+  return loadSessionFile();
+}
+async function saveSession(session) {
+  try {
+    await ensureDirectory(dirname3(SESSION_FILE));
+    await writeFile(SESSION_FILE, JSON.stringify(session, null, 2), {
+      encoding: "utf-8",
+      mode: 384
+    });
+    logger.info("Session saved successfully");
+  } catch (error46) {
+    logger.error("Failed to save session", error46);
+    if (error46 instanceof Error) {
+      captureException(error46, AUTH_SESSION_SAVE_FAILED, "session-manager", {
+        ...buildFileSystemProperties({
+          filePath: SESSION_FILE,
+          operation: "write",
+          errnoCode: error46.code
+        })
+      });
+    }
+    throw error46;
+  }
+}
+async function clearSessionIfStale(usedRefreshToken) {
+  const current = await loadSessionFile();
+  if (!current) {
+    return true;
+  }
+  if (current.refreshToken !== usedRefreshToken) {
+    logger.info("clearSessionIfStale: on-disk refresh token differs — concurrent refresh succeeded, preserving session");
+    return false;
+  }
+  await clearSession();
+  return true;
+}
+async function clearSession() {
+  try {
+    await unlink2(SESSION_FILE);
+    logger.info("Session cleared successfully");
+  } catch (error46) {
+    if (error46.code === "ENOENT") {
+      return;
+    }
+    logger.error("Failed to clear session", error46);
+    throw error46;
   }
 }
 
-// src/cli/statusline.ts
-function handleStatusline() {
-  const cache = readStatusCache();
-  const hasSyncError = cache.syncStatus.hasError;
-  const daemonRunning = isDaemonRunning();
-  const showDaemonError = !hasSyncError && !daemonRunning;
-  const isUpdateCheckRecent = Date.now() - cache.versionCheck.checkedAt < UPDATE_CHECK_CACHE_TTL_MS;
-  const hasUpdateAvailable = cache.versionCheck.updateAvailable && isUpdateCheckRecent;
-  const isDevMode = cache.devMode?.active === true;
-  const messages = [];
-  if (isDevMode) {
-    messages.push("\x1B[1;36mDev mode\x1B[0m");
-  }
-  if (hasSyncError && cache.syncStatus.errorMessage) {
-    messages.push(`\x1B[1;31mSync: ${cache.syncStatus.errorMessage}\x1B[0m`);
-  } else if (showDaemonError) {
-    messages.push("\x1B[1;31mSync: Background process not running.\x1B[0m");
-  }
-  if (hasUpdateAvailable) {
-    messages.push(`\x1B[1;33mv${cache.versionCheck.currentVersion} -> v${cache.versionCheck.latestVersion} available\x1B[0m`);
-  }
-  if (messages.length > 0) {
-    console.log(messages.join(" | "));
-  }
+// src/auth/session-manager.test.ts
+function makeSession(overrides = {}) {
+  return {
+    accessToken: "access-abc",
+    refreshToken: "refresh-xyz",
+    userId: "user-001",
+    email: "user@test.com",
+    workspaceId: "ws-001",
+    refreshTokenExpiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+    ...overrides
+  };
 }
-export {
-  handleStatusline
-};
+afterEach(async () => {
+  try {
+    await clearSession();
+  } catch {}
+});
+describe("clearSessionIfStale", () => {
+  test("returns false and preserves session when on-disk token differs from the used one", async () => {
+    await saveSession(makeSession({ refreshToken: "refresh-NEW" }));
+    const cleared = await clearSessionIfStale("refresh-OLD");
+    expect(cleared).toBe(false);
+    const onDisk = await loadSessionFile();
+    expect(onDisk?.refreshToken).toBe("refresh-NEW");
+  });
+  test("returns true and clears session when on-disk token matches the used one", async () => {
+    await saveSession(makeSession({ refreshToken: "refresh-STALE" }));
+    const cleared = await clearSessionIfStale("refresh-STALE");
+    expect(cleared).toBe(true);
+    expect(await loadSessionFile()).toBeNull();
+  });
+  test("returns true when no session file exists", async () => {
+    const cleared = await clearSessionIfStale("any-token");
+    expect(cleared).toBe(true);
+  });
+});
+describe("saveSession / loadSessionFile", () => {
+  test("round-trips all fields correctly", async () => {
+    const session = makeSession();
+    await saveSession(session);
+    const loaded = await loadSessionFile();
+    expect(loaded?.accessToken).toBe(session.accessToken);
+    expect(loaded?.refreshToken).toBe(session.refreshToken);
+    expect(loaded?.userId).toBe(session.userId);
+    expect(loaded?.email).toBe(session.email);
+    expect(loaded?.workspaceId).toBe(session.workspaceId);
+  });
+  test("loadSessionFile returns null after clearSession", async () => {
+    await saveSession(makeSession());
+    await clearSession();
+    expect(await loadSessionFile()).toBeNull();
+  });
+  test("loadSessionFile returns null when file does not exist", async () => {
+    expect(await loadSessionFile()).toBeNull();
+  });
+});

@@ -668,11 +668,11 @@ var require_main = __commonJS((exports) => {
     }), i2;
   };
   function Ut(t2, i2) {
-    return e2 = t2, r2 = (t3) => O(t3) && !D(i2) ? t3.slice(0, i2) : t3, s2 = new Set, function t(i3, e3) {
+    return e2 = t2, r2 = (t3) => O(t3) && !D(i2) ? t3.slice(0, i2) : t3, s2 = new Set, function t3(i3, e3) {
       return i3 !== Object(i3) ? r2 ? r2(i3, e3) : i3 : s2.has(i3) ? undefined : (s2.add(i3), R(i3) ? (n2 = [], Ct(i3, (i4) => {
-        n2.push(t(i4));
+        n2.push(t3(i4));
       })) : (n2 = {}, Mt(i3, (i4, e4) => {
-        s2.has(i4) || (n2[e4] = t(i4, e4));
+        s2.has(i4) || (n2[e4] = t3(i4, e4));
       })), n2);
       var n2;
     }(e2);
@@ -13622,6 +13622,8 @@ var API_PROFILE_UPDATE_FAILED = "api_profile_update_failed";
 var SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed";
 var SUPABASE_SESSION_SET_FAILED = "supabase_session_set_failed";
 var SUPABASE_SESSION_REFRESH_PERSIST_FAILED = "supabase_session_refresh_persist_failed";
+var AUTH_SESSION_RACE_RECOVERY = "auth_session_race_recovery";
+var AUTH_SESSION_RACE_RECOVERY_FAILED = "auth_session_race_recovery_failed";
 function getErrorCategory(errorType) {
   if (errorType.startsWith("auth_"))
     return "auth";
@@ -26208,6 +26210,22 @@ var extensionEvents = {
       domain: exports_external.string().optional(),
       email: exports_external.email().optional()
     })
+  },
+  extensionInstalled: {
+    name: "Extension Installed",
+    schema: exports_external.object({
+      extensionType: exports_external.string(),
+      version: exports_external.string(),
+      claude_code_version: exports_external.string().optional(),
+      plugin_version: exports_external.string().optional(),
+      node_version: exports_external.string().optional(),
+      os_platform: exports_external.string().optional(),
+      os_version: exports_external.string().optional(),
+      user_id: exports_external.string().optional(),
+      email: exports_external.string().optional(),
+      workspace_id: exports_external.string().optional(),
+      workspace_name: exports_external.string().optional()
+    })
   }
 };
 
@@ -26223,13 +26241,29 @@ var onboardingEvents = {
   }
 };
 
+// ../../packages/analytics/src/schemas/workspace.events.ts
+var workspaceEvents = {
+  userInvited: {
+    name: "User Invited",
+    schema: exports_external.object({
+      workspaceId: exports_external.string(),
+      workspaceName: exports_external.string(),
+      teamId: exports_external.string().optional(),
+      teamName: exports_external.string().optional(),
+      invitedEmails: exports_external.array(exports_external.string()),
+      invitedCount: exports_external.number()
+    })
+  }
+};
+
 // ../../packages/analytics/src/schemas/index.ts
 var allEvents = {
   ...adminEvents,
   ...authEvents,
   ...analysisEvents,
   ...onboardingEvents,
-  ...extensionEvents
+  ...extensionEvents,
+  ...workspaceEvents
 };
 // ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/extensions/error-tracking/modifiers/module.node.mjs
 import { dirname, posix, sep } from "path";
@@ -29769,7 +29803,7 @@ var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
 var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
+var SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
 var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
@@ -29969,6 +30003,18 @@ async function saveSession(session) {
     throw error46;
   }
 }
+async function clearSessionIfStale(usedRefreshToken) {
+  const current = await loadSessionFile();
+  if (!current) {
+    return true;
+  }
+  if (current.refreshToken !== usedRefreshToken) {
+    logger.info("clearSessionIfStale: on-disk refresh token differs — concurrent refresh succeeded, preserving session");
+    return false;
+  }
+  await clearSession();
+  return true;
+}
 async function clearSession() {
   try {
     await unlink2(SESSION_FILE);
@@ -29980,6 +30026,29 @@ async function clearSession() {
     logger.error("Failed to clear session", error46);
     throw error46;
   }
+}
+
+// src/utils/claude-version.ts
+import { execSync } from "node:child_process";
+var cachedVersion;
+function getClaudeCodeVersion() {
+  if (cachedVersion !== undefined) {
+    return cachedVersion;
+  }
+  try {
+    const output = execSync("claude --version", {
+      timeout: 2000,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"]
+    });
+    const version3 = output.trim().split(" ")[0];
+    cachedVersion = version3 || undefined;
+    logger.debug("Detected Claude Code version", { version: cachedVersion });
+  } catch (error46) {
+    logger.debug("Could not detect Claude Code version", error46);
+    cachedVersion = undefined;
+  }
+  return cachedVersion;
 }
 
 // src/utils/plugin-version.ts
@@ -30063,6 +30132,58 @@ async function captureException(error46, errorType, errorSource, additionalPrope
     });
   } catch (captureError) {
     logger.debug("Failed to capture exception in PostHog", captureError);
+  }
+}
+async function capture(eventName, properties) {
+  try {
+    const client = await getAnalyticsClient();
+    if (!client)
+      return;
+    client.track({
+      distinctId: cachedSession?.userId ?? "anonymous",
+      event: eventName,
+      properties: {
+        ...buildStandardProperties(),
+        ...buildUserProperties(),
+        ...properties
+      }
+    });
+  } catch (error46) {
+    logger.debug("Failed to capture event in PostHog", error46);
+  }
+}
+async function trackExtensionInstalled(userId, version3) {
+  try {
+    const client = await getAnalyticsClient();
+    if (!client) {
+      return;
+    }
+    client.track({
+      distinctId: userId,
+      event: "extensionInstalled",
+      properties: {
+        extensionType: "claudeCode",
+        version: version3,
+        claude_code_version: getClaudeCodeVersion(),
+        ...buildStandardProperties(),
+        ...buildUserProperties()
+      }
+    });
+    await shutdownAnalytics();
+    logger.debug("Extension installed event tracked", { userId });
+  } catch (error46) {
+    logger.debug("Failed to track extension installed event", error46);
+  }
+}
+async function shutdownAnalytics() {
+  try {
+    if (analyticsClient) {
+      await analyticsClient.dispose();
+      analyticsClient = null;
+      logger.debug("Analytics client shut down successfully");
+    }
+  } catch (error46) {
+    logger.debug("Error shutting down analytics client", error46);
   }
 }
 
@@ -32877,12 +32998,36 @@ async function setClientSession(client, session) {
   });
   if (error46) {
     logger.error(`Failed to set Supabase session: ${error46.message}`);
-    const isInvalidRefreshToken = error46.message.includes("Invalid Refresh Token") || error46.code === "refresh_token_not_found" || error46.code === "refresh_token_already_used" || error46.code === "session_not_found" || error46.code === "session_expired";
+    const isAlreadyUsed = error46.code === "refresh_token_already_used";
+    const isInvalidRefreshToken = isAlreadyUsed || error46.message.includes("Invalid Refresh Token") || error46.code === "refresh_token_not_found" || error46.code === "session_not_found" || error46.code === "session_expired";
     captureException(error46, SUPABASE_SESSION_SET_FAILED, "supabase/client", {
       is_invalid_refresh_token: isInvalidRefreshToken,
       error_code: error46.code,
       error_status: error46.status
     });
+    if (isAlreadyUsed) {
+      const freshSession = await loadSessionFile();
+      if (freshSession && freshSession.refreshToken !== session.refreshToken) {
+        logger.info("refresh_token_already_used: concurrent refresh detected, retrying with fresh session");
+        const { error: retryError } = await client.auth.setSession({
+          access_token: freshSession.accessToken,
+          refresh_token: freshSession.refreshToken
+        });
+        if (!retryError) {
+          capture(AUTH_SESSION_RACE_RECOVERY, { error_code: error46.code });
+          logger.info("Race recovery successful — session restored from concurrent refresh");
+          return;
+        }
+        captureException(retryError, AUTH_SESSION_RACE_RECOVERY_FAILED, "supabase/client", {
+          error_code: retryError.code,
+          original_error_code: error46.code
+        });
+        logger.warn(`Race recovery failed: ${retryError.message}`);
+      }
+      logger.warn("refresh_token_already_used: no concurrent refresh found, clearing session");
+      await clearSessionIfStale(session.refreshToken);
+      throw error46;
+    }
     if (isInvalidRefreshToken) {
       logger.warn("Invalid refresh token, clearing session");
       await clearSession();
@@ -32959,6 +33104,7 @@ async function updateClaudeCodeMetadata(supabase, userId, version5) {
     }
     const existingMetadata = existingProfile?.metadata || {};
     const existingExtensions = existingMetadata?.extensions || {};
+    const wasAlreadyInstalled = existingExtensions.claudeCode?.installed === true;
     const updatedMetadata = {
       ...existingMetadata,
       extensions: {
@@ -32975,6 +33121,9 @@ async function updateClaudeCodeMetadata(supabase, userId, version5) {
     }).eq("id", userId);
     if (upsertError) {
       throw new Error(`Failed to update profile metadata: ${upsertError.message}`);
+    }
+    if (!wasAlreadyInstalled) {
+      await trackExtensionInstalled(userId, version5);
     }
     logger.info("Claude Code plugin metadata updated successfully");
   } catch (error46) {

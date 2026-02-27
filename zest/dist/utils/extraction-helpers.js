@@ -654,11 +654,11 @@ var require_main = __commonJS((exports) => {
     }), i2;
   };
   function Ut(t2, i2) {
-    return e2 = t2, r2 = (t3) => O(t3) && !D(i2) ? t3.slice(0, i2) : t3, s2 = new Set, function t(i3, e3) {
+    return e2 = t2, r2 = (t3) => O(t3) && !D(i2) ? t3.slice(0, i2) : t3, s2 = new Set, function t3(i3, e3) {
       return i3 !== Object(i3) ? r2 ? r2(i3, e3) : i3 : s2.has(i3) ? undefined : (s2.add(i3), R(i3) ? (n2 = [], Ct(i3, (i4) => {
-        n2.push(t(i4));
+        n2.push(t3(i4));
       })) : (n2 = {}, Mt(i3, (i4, e4) => {
-        s2.has(i4) || (n2[e4] = t(i4, e4));
+        s2.has(i4) || (n2[e4] = t3(i4, e4));
       })), n2);
       var n2;
     }(e2);
@@ -4972,7 +4972,7 @@ var init_constants = __esm(() => {
   LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
   STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
   DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-  SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
+  SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
   SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
   DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
   CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
@@ -5307,16 +5307,16 @@ import { exec, execSync } from "node:child_process";
 import * as path from "node:path";
 import { promisify } from "node:util";
 
-// ../../node_modules/uuid/dist-node/regex.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/regex.js
 var regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
 
-// ../../node_modules/uuid/dist-node/validate.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/validate.js
 function validate(uuid) {
   return typeof uuid === "string" && regex_default.test(uuid);
 }
 var validate_default = validate;
 
-// ../../node_modules/uuid/dist-node/parse.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/parse.js
 function parse(uuid) {
   if (!validate_default(uuid)) {
     throw TypeError("Invalid UUID");
@@ -5326,7 +5326,7 @@ function parse(uuid) {
 }
 var parse_default = parse;
 
-// ../../node_modules/uuid/dist-node/stringify.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/stringify.js
 var byteToHex = [];
 for (let i = 0;i < 256; ++i) {
   byteToHex.push((i + 256).toString(16).slice(1));
@@ -5335,7 +5335,7 @@ function unsafeStringify(arr, offset = 0) {
   return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
 }
 
-// ../../node_modules/uuid/dist-node/v35.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/v35.js
 function stringToBytes(str) {
   str = unescape(encodeURIComponent(str));
   const bytes = new Uint8Array(str.length);
@@ -5371,7 +5371,7 @@ function v35(version, hash, value, namespace, buf, offset) {
   return unsafeStringify(bytes);
 }
 
-// ../../node_modules/uuid/dist-node/sha1.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/sha1.js
 import { createHash } from "node:crypto";
 function sha1(bytes) {
   if (Array.isArray(bytes)) {
@@ -5383,7 +5383,7 @@ function sha1(bytes) {
 }
 var sha1_default = sha1;
 
-// ../../node_modules/uuid/dist-node/v5.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/v5.js
 function v5(value, namespace, buf, offset) {
   return v35(80, sha1_default, value, namespace, buf, offset);
 }
@@ -18067,6 +18067,22 @@ var extensionEvents = {
       domain: exports_external.string().optional(),
       email: exports_external.email().optional()
     })
+  },
+  extensionInstalled: {
+    name: "Extension Installed",
+    schema: exports_external.object({
+      extensionType: exports_external.string(),
+      version: exports_external.string(),
+      claude_code_version: exports_external.string().optional(),
+      plugin_version: exports_external.string().optional(),
+      node_version: exports_external.string().optional(),
+      os_platform: exports_external.string().optional(),
+      os_version: exports_external.string().optional(),
+      user_id: exports_external.string().optional(),
+      email: exports_external.string().optional(),
+      workspace_id: exports_external.string().optional(),
+      workspace_name: exports_external.string().optional()
+    })
   }
 };
 
@@ -18082,13 +18098,29 @@ var onboardingEvents = {
   }
 };
 
+// ../../packages/analytics/src/schemas/workspace.events.ts
+var workspaceEvents = {
+  userInvited: {
+    name: "User Invited",
+    schema: exports_external.object({
+      workspaceId: exports_external.string(),
+      workspaceName: exports_external.string(),
+      teamId: exports_external.string().optional(),
+      teamName: exports_external.string().optional(),
+      invitedEmails: exports_external.array(exports_external.string()),
+      invitedCount: exports_external.number()
+    })
+  }
+};
+
 // ../../packages/analytics/src/schemas/index.ts
 var allEvents = {
   ...adminEvents,
   ...authEvents,
   ...analysisEvents,
   ...onboardingEvents,
-  ...extensionEvents
+  ...extensionEvents,
+  ...workspaceEvents
 };
 // ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/extensions/error-tracking/modifiers/module.node.mjs
 import { dirname, posix, sep } from "path";
@@ -25883,13 +25915,13 @@ var Diff = function() {
       editLength++;
     };
     if (callback) {
-      (function exec() {
+      (function exec2() {
         setTimeout(function() {
           if (editLength > maxEditLength || Date.now() > abortAfterTimestamp) {
             return callback(undefined);
           }
           if (!execEditLength()) {
-            exec();
+            exec2();
           }
         }, 0);
       })();
@@ -26788,11 +26820,16 @@ function splitLines(text) {
 // src/utils/diff-utils.ts
 init_constants();
 init_logger();
+
+// src/utils/string-utils.ts
+function toWellFormed(str) {
+  return str.toWellFormed?.() ?? str;
+}
+
+// src/utils/diff-utils.ts
 function createUnifiedDiff(filePath, oldString, newString) {
   try {
-    return createPatch(filePath, oldString.trimEnd(), newString.trimEnd(), "", "", {
-      context: 3
-    });
+    return createPatch(filePath, toWellFormed(oldString.trimEnd()), toWellFormed(newString.trimEnd()), "", "", { context: 3 });
   } catch (error46) {
     logger.warn(`Failed to create unified diff for ${filePath}`, error46);
     return "";
@@ -26823,12 +26860,12 @@ function sanitizeDiff(diff, filePath) {
 init_logger();
 function extractTextContent(content) {
   if (typeof content === "string") {
-    return content;
+    return toWellFormed(content);
   }
   if (Array.isArray(content)) {
     const textBlocks = content.filter((block) => block.type === "text" && block.text).map((block) => block.text);
-    return textBlocks.join(`
-`);
+    return toWellFormed(textBlocks.join(`
+`));
   }
   return "";
 }
@@ -26906,7 +26943,7 @@ async function extractToolUse(contentBlock, sessionId, timestamp) {
       session_id: sessionId,
       tool_name: operationType,
       file_path: filePath,
-      content: content?.substring(0, MAX_CONTENT_PREVIEW_LENGTH),
+      content: content ? toWellFormed(content.substring(0, MAX_CONTENT_PREVIEW_LENGTH)) : undefined,
       timestamp: timestamp || new Date().toISOString()
     };
     if ((operationType === "Write" || operationType === "write") && content) {
@@ -28679,6 +28716,12 @@ async function readJsonl(filePath) {
     throw error46;
   }
 }
+function sanitizingReplacer(_key, value) {
+  if (typeof value === "string") {
+    return toWellFormed(value);
+  }
+  return value;
+}
 async function enqueueEvent(event) {
   try {
     const privacyManager = getPrivacyManager();
@@ -28710,7 +28753,7 @@ async function enqueueEvent(event) {
         return;
       }
       await ensureDirectory(dirname5(EVENTS_QUEUE_FILE));
-      const line = JSON.stringify(redactedEvent) + `
+      const line = JSON.stringify(redactedEvent, sanitizingReplacer) + `
 `;
       await appendFile2(EVENTS_QUEUE_FILE, line, "utf8");
       logger.debug("Enqueued event", {
@@ -28738,7 +28781,7 @@ async function enqueueChatSession(session) {
         return;
       }
       await ensureDirectory(dirname5(SESSIONS_QUEUE_FILE));
-      const line = JSON.stringify(redactedSession) + `
+      const line = JSON.stringify(redactedSession, sanitizingReplacer) + `
 `;
       await appendFile2(SESSIONS_QUEUE_FILE, line, "utf8");
       logger.debug("Enqueued session", { sessionId: redactedSession.id });
@@ -28767,7 +28810,7 @@ async function enqueueChatMessage(message) {
         return;
       }
       await ensureDirectory(dirname5(MESSAGES_QUEUE_FILE));
-      const line = JSON.stringify(redactedMessage) + `
+      const line = JSON.stringify(redactedMessage, sanitizingReplacer) + `
 `;
       await appendFile2(MESSAGES_QUEUE_FILE, line, "utf8");
       logger.debug("Enqueued message", {
@@ -28970,7 +29013,7 @@ async function queueSessionData(sessionId, messages, toolUses, fileStats, projec
     const projectInfo = getProjectInfoSync(projectDir);
     const session = {
       id: sessionId,
-      title: messages.length > 0 ? messages[0].content.substring(0, 100) : `Session ${sessionId}`,
+      title: toWellFormed(messages.length > 0 ? messages[0].content.substring(0, 100) : `Session ${sessionId}`),
       created_at: fileStats.birthtime.toISOString(),
       project_id: projectInfo.projectId !== "unknown" ? projectInfo.projectId : null,
       project_name: projectInfo.projectName !== "unknown" ? projectInfo.projectName : null

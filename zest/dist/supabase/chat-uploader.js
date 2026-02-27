@@ -651,11 +651,11 @@ var require_main = __commonJS((exports) => {
     }), i2;
   };
   function Ut(t2, i2) {
-    return e2 = t2, r2 = (t3) => O(t3) && !D(i2) ? t3.slice(0, i2) : t3, s2 = new Set, function t(i3, e3) {
+    return e2 = t2, r2 = (t3) => O(t3) && !D(i2) ? t3.slice(0, i2) : t3, s2 = new Set, function t3(i3, e3) {
       return i3 !== Object(i3) ? r2 ? r2(i3, e3) : i3 : s2.has(i3) ? undefined : (s2.add(i3), R(i3) ? (n2 = [], Ct(i3, (i4) => {
-        n2.push(t(i4));
+        n2.push(t3(i4));
       })) : (n2 = {}, Mt(i3, (i4, e4) => {
-        s2.has(i4) || (n2[e4] = t(i4, e4));
+        s2.has(i4) || (n2[e4] = t3(i4, e4));
       })), n2);
       var n2;
     }(e2);
@@ -17547,6 +17547,22 @@ var extensionEvents = {
       domain: exports_external.string().optional(),
       email: exports_external.email().optional()
     })
+  },
+  extensionInstalled: {
+    name: "Extension Installed",
+    schema: exports_external.object({
+      extensionType: exports_external.string(),
+      version: exports_external.string(),
+      claude_code_version: exports_external.string().optional(),
+      plugin_version: exports_external.string().optional(),
+      node_version: exports_external.string().optional(),
+      os_platform: exports_external.string().optional(),
+      os_version: exports_external.string().optional(),
+      user_id: exports_external.string().optional(),
+      email: exports_external.string().optional(),
+      workspace_id: exports_external.string().optional(),
+      workspace_name: exports_external.string().optional()
+    })
   }
 };
 
@@ -17562,13 +17578,29 @@ var onboardingEvents = {
   }
 };
 
+// ../../packages/analytics/src/schemas/workspace.events.ts
+var workspaceEvents = {
+  userInvited: {
+    name: "User Invited",
+    schema: exports_external.object({
+      workspaceId: exports_external.string(),
+      workspaceName: exports_external.string(),
+      teamId: exports_external.string().optional(),
+      teamName: exports_external.string().optional(),
+      invitedEmails: exports_external.array(exports_external.string()),
+      invitedCount: exports_external.number()
+    })
+  }
+};
+
 // ../../packages/analytics/src/schemas/index.ts
 var allEvents = {
   ...adminEvents,
   ...authEvents,
   ...analysisEvents,
   ...onboardingEvents,
-  ...extensionEvents
+  ...extensionEvents,
+  ...workspaceEvents
 };
 // ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/extensions/error-tracking/modifiers/module.node.mjs
 import { dirname, posix, sep } from "path";
@@ -21106,7 +21138,7 @@ var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
 var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
+var SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
 var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
@@ -21295,19 +21327,6 @@ async function clearSession() {
     logger.error("Failed to clear session", error46);
     throw error46;
   }
-}
-async function getValidSession() {
-  const session = await loadSessionFile();
-  if (!session) {
-    logger.debug("getValidSession: No session found");
-    return null;
-  }
-  if (session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now()) {
-    logger.warn("getValidSession: Refresh token expired, user must re-authenticate");
-    await clearSession();
-    return null;
-  }
-  return session;
 }
 
 // src/utils/plugin-version.ts
@@ -21828,6 +21847,11 @@ async function withFileLock(filePath, fn) {
   }
 }
 
+// src/utils/string-utils.ts
+function toWellFormed(str) {
+  return str.toWellFormed?.() ?? str;
+}
+
 // src/utils/queue-manager.ts
 async function readJsonl(filePath) {
   try {
@@ -21859,6 +21883,12 @@ async function readJsonl(filePath) {
     throw error46;
   }
 }
+function sanitizingReplacer(_key, value) {
+  if (typeof value === "string") {
+    return toWellFormed(value);
+  }
+  return value;
+}
 async function readQueue(queueFile) {
   try {
     return await readJsonl(queueFile);
@@ -21873,7 +21903,7 @@ async function atomicUpdateQueue(queueFile, transform2) {
       const currentItems = await readJsonl(queueFile);
       const newItems = transform2(currentItems);
       await ensureDirectory(dirname5(queueFile));
-      const content = newItems.map((item) => JSON.stringify(item)).join(`
+      const content = newItems.map((item) => JSON.stringify(item, sanitizingReplacer)).join(`
 `) + (newItems.length > 0 ? `
 ` : "");
       await writeFile3(queueFile, content, "utf8");
@@ -21885,16 +21915,16 @@ async function atomicUpdateQueue(queueFile, transform2) {
   }
 }
 
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/regex.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/regex.js
 var regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
 
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/validate.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/validate.js
 function validate(uuid3) {
   return typeof uuid3 === "string" && regex_default.test(uuid3);
 }
 var validate_default = validate;
 
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/parse.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/parse.js
 function parse5(uuid3) {
   if (!validate_default(uuid3)) {
     throw TypeError("Invalid UUID");
@@ -21904,7 +21934,7 @@ function parse5(uuid3) {
 }
 var parse_default = parse5;
 
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/stringify.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/stringify.js
 var byteToHex = [];
 for (let i = 0;i < 256; ++i) {
   byteToHex.push((i + 256).toString(16).slice(1));
@@ -21913,7 +21943,7 @@ function unsafeStringify(arr, offset = 0) {
   return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
 }
 
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/v35.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/v35.js
 function stringToBytes(str) {
   str = unescape(encodeURIComponent(str));
   const bytes = new Uint8Array(str.length);
@@ -21949,8 +21979,8 @@ function v35(version3, hash2, value, namespace, buf, offset) {
   return unsafeStringify(bytes);
 }
 
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/sha1.js
-import { createHash } from "crypto";
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/sha1.js
+import { createHash } from "node:crypto";
 function sha1(bytes) {
   if (Array.isArray(bytes)) {
     bytes = Buffer.from(bytes);
@@ -21961,7 +21991,7 @@ function sha1(bytes) {
 }
 var sha1_default = sha1;
 
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/v5.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/v5.js
 function v5(value, namespace, buf, offset) {
   return v35(80, sha1_default, value, namespace, buf, offset);
 }
@@ -22165,13 +22195,8 @@ async function removeMessagesFromQueue(messageIdsToRemove) {
     return currentMessages.filter((m) => m.id && !messageIdsToRemove.has(m.id));
   });
 }
-async function uploadChatData(supabase, dataControls) {
+async function uploadChatData(supabase, session, dataControls) {
   try {
-    const session = await getValidSession();
-    if (!session) {
-      logger.debug("Not authenticated, skipping chat upload");
-      return { success: false, uploaded: { sessions: 0, messages: 0 } };
-    }
     const queuedSessions = await readQueue(SESSIONS_QUEUE_FILE);
     const queuedMessages = await readQueue(MESSAGES_QUEUE_FILE);
     if (queuedSessions.length === 0 && queuedMessages.length === 0) {
@@ -22291,11 +22316,11 @@ async function uploadChatData(supabase, dataControls) {
     return { success: false, uploaded: { sessions: 0, messages: 0 } };
   }
 }
-async function uploadChatDataWithRetry(supabase, dataControls, maxRetries = 3, backoffMs = 5000) {
+async function uploadChatDataWithRetry(supabase, session, dataControls, maxRetries = 3, backoffMs = 5000) {
   let lastError = null;
   for (let attempt = 1;attempt <= maxRetries; attempt++) {
     try {
-      const result = await uploadChatData(supabase, dataControls);
+      const result = await uploadChatData(supabase, session, dataControls);
       if (result.success) {
         return result;
       }

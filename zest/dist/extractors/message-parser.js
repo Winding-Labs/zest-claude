@@ -13,7 +13,7 @@ var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
 var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
+var SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
 var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
@@ -1183,12 +1183,15 @@ function splitLines(text) {
   return result;
 }
 
+// src/utils/string-utils.ts
+function toWellFormed(str) {
+  return str.toWellFormed?.() ?? str;
+}
+
 // src/utils/diff-utils.ts
 function createUnifiedDiff(filePath, oldString, newString) {
   try {
-    return createPatch(filePath, oldString.trimEnd(), newString.trimEnd(), "", "", {
-      context: 3
-    });
+    return createPatch(filePath, toWellFormed(oldString.trimEnd()), toWellFormed(newString.trimEnd()), "", "", { context: 3 });
   } catch (error) {
     logger.warn(`Failed to create unified diff for ${filePath}`, error);
     return "";
@@ -1218,12 +1221,12 @@ function sanitizeDiff(diff, filePath) {
 // src/extractors/extraction-utils.ts
 function extractTextContent(content) {
   if (typeof content === "string") {
-    return content;
+    return toWellFormed(content);
   }
   if (Array.isArray(content)) {
     const textBlocks = content.filter((block) => block.type === "text" && block.text).map((block) => block.text);
-    return textBlocks.join(`
-`);
+    return toWellFormed(textBlocks.join(`
+`));
   }
   return "";
 }
@@ -1301,7 +1304,7 @@ async function extractToolUse(contentBlock, sessionId, timestamp) {
       session_id: sessionId,
       tool_name: operationType,
       file_path: filePath,
-      content: content?.substring(0, MAX_CONTENT_PREVIEW_LENGTH),
+      content: content ? toWellFormed(content.substring(0, MAX_CONTENT_PREVIEW_LENGTH)) : undefined,
       timestamp: timestamp || new Date().toISOString()
     };
     if ((operationType === "Write" || operationType === "write") && content) {

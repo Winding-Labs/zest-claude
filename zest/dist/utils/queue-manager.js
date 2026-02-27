@@ -651,11 +651,11 @@ var require_main = __commonJS((exports) => {
     }), i2;
   };
   function Ut(t2, i2) {
-    return e2 = t2, r2 = (t3) => O(t3) && !D(i2) ? t3.slice(0, i2) : t3, s2 = new Set, function t(i3, e3) {
+    return e2 = t2, r2 = (t3) => O(t3) && !D(i2) ? t3.slice(0, i2) : t3, s2 = new Set, function t3(i3, e3) {
       return i3 !== Object(i3) ? r2 ? r2(i3, e3) : i3 : s2.has(i3) ? undefined : (s2.add(i3), R(i3) ? (n2 = [], Ct(i3, (i4) => {
-        n2.push(t(i4));
+        n2.push(t3(i4));
       })) : (n2 = {}, Mt(i3, (i4, e4) => {
-        s2.has(i4) || (n2[e4] = t(i4, e4));
+        s2.has(i4) || (n2[e4] = t3(i4, e4));
       })), n2);
       var n2;
     }(e2);
@@ -17551,6 +17551,22 @@ var extensionEvents = {
       domain: exports_external.string().optional(),
       email: exports_external.email().optional()
     })
+  },
+  extensionInstalled: {
+    name: "Extension Installed",
+    schema: exports_external.object({
+      extensionType: exports_external.string(),
+      version: exports_external.string(),
+      claude_code_version: exports_external.string().optional(),
+      plugin_version: exports_external.string().optional(),
+      node_version: exports_external.string().optional(),
+      os_platform: exports_external.string().optional(),
+      os_version: exports_external.string().optional(),
+      user_id: exports_external.string().optional(),
+      email: exports_external.string().optional(),
+      workspace_id: exports_external.string().optional(),
+      workspace_name: exports_external.string().optional()
+    })
   }
 };
 
@@ -17566,13 +17582,29 @@ var onboardingEvents = {
   }
 };
 
+// ../../packages/analytics/src/schemas/workspace.events.ts
+var workspaceEvents = {
+  userInvited: {
+    name: "User Invited",
+    schema: exports_external.object({
+      workspaceId: exports_external.string(),
+      workspaceName: exports_external.string(),
+      teamId: exports_external.string().optional(),
+      teamName: exports_external.string().optional(),
+      invitedEmails: exports_external.array(exports_external.string()),
+      invitedCount: exports_external.number()
+    })
+  }
+};
+
 // ../../packages/analytics/src/schemas/index.ts
 var allEvents = {
   ...adminEvents,
   ...authEvents,
   ...analysisEvents,
   ...onboardingEvents,
-  ...extensionEvents
+  ...extensionEvents,
+  ...workspaceEvents
 };
 // ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/extensions/error-tracking/modifiers/module.node.mjs
 import { dirname, posix, sep } from "path";
@@ -21097,7 +21129,7 @@ var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
 var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
+var SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
 var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
@@ -22820,6 +22852,11 @@ async function withFileLock(filePath, fn) {
   }
 }
 
+// src/utils/string-utils.ts
+function toWellFormed(str) {
+  return str.toWellFormed?.() ?? str;
+}
+
 // src/utils/queue-manager.ts
 async function readJsonl(filePath) {
   try {
@@ -22874,6 +22911,12 @@ async function deleteFile(filePath) {
     throw error46;
   }
 }
+function sanitizingReplacer(_key, value) {
+  if (typeof value === "string") {
+    return toWellFormed(value);
+  }
+  return value;
+}
 async function enqueueEvent(event) {
   try {
     const privacyManager = getPrivacyManager();
@@ -22905,7 +22948,7 @@ async function enqueueEvent(event) {
         return;
       }
       await ensureDirectory(dirname5(EVENTS_QUEUE_FILE));
-      const line = JSON.stringify(redactedEvent) + `
+      const line = JSON.stringify(redactedEvent, sanitizingReplacer) + `
 `;
       await appendFile2(EVENTS_QUEUE_FILE, line, "utf8");
       logger.debug("Enqueued event", {
@@ -22933,7 +22976,7 @@ async function enqueueChatSession(session) {
         return;
       }
       await ensureDirectory(dirname5(SESSIONS_QUEUE_FILE));
-      const line = JSON.stringify(redactedSession) + `
+      const line = JSON.stringify(redactedSession, sanitizingReplacer) + `
 `;
       await appendFile2(SESSIONS_QUEUE_FILE, line, "utf8");
       logger.debug("Enqueued session", { sessionId: redactedSession.id });
@@ -22962,7 +23005,7 @@ async function enqueueChatMessage(message) {
         return;
       }
       await ensureDirectory(dirname5(MESSAGES_QUEUE_FILE));
-      const line = JSON.stringify(redactedMessage) + `
+      const line = JSON.stringify(redactedMessage, sanitizingReplacer) + `
 `;
       await appendFile2(MESSAGES_QUEUE_FILE, line, "utf8");
       logger.debug("Enqueued message", {
@@ -22987,7 +23030,7 @@ async function writeQueue(queueFile, items) {
   try {
     await withFileLock(queueFile, async () => {
       await ensureDirectory(dirname5(queueFile));
-      const content = items.map((item) => JSON.stringify(item)).join(`
+      const content = items.map((item) => JSON.stringify(item, sanitizingReplacer)).join(`
 `) + (items.length > 0 ? `
 ` : "");
       await writeFile3(queueFile, content, "utf8");
@@ -23014,7 +23057,7 @@ async function atomicUpdateQueue(queueFile, transform2) {
       const currentItems = await readJsonl(queueFile);
       const newItems = transform2(currentItems);
       await ensureDirectory(dirname5(queueFile));
-      const content = newItems.map((item) => JSON.stringify(item)).join(`
+      const content = newItems.map((item) => JSON.stringify(item, sanitizingReplacer)).join(`
 `) + (newItems.length > 0 ? `
 ` : "");
       await writeFile3(queueFile, content, "utf8");

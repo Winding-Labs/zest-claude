@@ -8,7 +8,81 @@ var __export = (target, all) => {
       set: (newValue) => all[name] = () => newValue
     });
 };
-
+// ../../packages/types/data-controls.ts
+var RETENTION_PERIODS = ["7d", "30d", "90d", "1y", "forever"];
+var RETENTION_PERIOD_ORDER = {
+  "7d": 0,
+  "30d": 1,
+  "90d": 2,
+  "1y": 3,
+  forever: 4
+};
+var WORKSPACE_COLLECTION_DEFAULTS = {
+  user_messages: true,
+  assistant_messages: true,
+  code_diffs: true
+};
+var WORKSPACE_RETENTION_DEFAULTS = {
+  user_messages: "90d",
+  assistant_messages: "90d",
+  code_diffs: "7d"
+};
+function shorterRetentionPeriod(a, b) {
+  return RETENTION_PERIOD_ORDER[a] <= RETENTION_PERIOD_ORDER[b] ? a : b;
+}
+function getEffectiveCollection(workspace, user) {
+  if (!user)
+    return workspace;
+  return {
+    user_messages: workspace.user_messages && user.user_messages,
+    assistant_messages: workspace.assistant_messages && user.assistant_messages,
+    code_diffs: workspace.code_diffs && user.code_diffs
+  };
+}
+function getEffectiveRetention(workspace, user) {
+  if (!user)
+    return workspace;
+  return {
+    user_messages: shorterRetentionPeriod(workspace.user_messages, user.user_messages),
+    assistant_messages: shorterRetentionPeriod(workspace.assistant_messages, user.assistant_messages),
+    code_diffs: shorterRetentionPeriod(workspace.code_diffs, user.code_diffs)
+  };
+}
+// ../../packages/types/prompt-tags.ts
+var PROMPT_TAGS = {
+  TOP_5: {
+    id: "top-5",
+    displayName: "\uD83D\uDD79️ Top 5",
+    description: "Essential cheatcodes for maximum productivity",
+    category: "cheatcodes"
+  },
+  ANALYZE_PROMPTS: {
+    id: "analyze-prompts",
+    displayName: "\uD83D\uDCC8 Analyze my prompts",
+    description: "Analyze your AI usage patterns and prompt effectiveness",
+    category: "cheatcodes"
+  },
+  CHECKLISTS: {
+    id: "checklists",
+    displayName: "✅ Checklists",
+    description: "Comprehensive checklists for common development tasks",
+    category: "cheatcodes"
+  },
+  PROMPT_HACKS: {
+    id: "prompt-hacks",
+    displayName: "\uD83D\uDCAC Prompt Hacks",
+    description: "Advanced techniques for better AI interactions",
+    category: "cheatcodes"
+  },
+  AI_CODING_STACK: {
+    id: "ai-coding-stack",
+    displayName: "\uD83E\uDD16 AI Coding Stack",
+    description: "Tools and configurations for AI-assisted development",
+    category: "cheatcodes"
+  }
+};
+var AVAILABLE_PROMPT_TAGS = Object.values(PROMPT_TAGS);
+var tagIds = AVAILABLE_PROMPT_TAGS.map((tag) => tag.id);
 // ../../node_modules/.bun/zod@3.25.76/node_modules/zod/v3/external.js
 var exports_external = {};
 __export(exports_external, {
@@ -3982,15 +4056,7 @@ var coerce = {
   date: (arg) => ZodDate.create({ ...arg, coerce: true })
 };
 var NEVER = INVALID;
-// ../../packages/types/data-controls.ts
-var RETENTION_PERIODS = ["7d", "30d", "90d", "1y", "forever"];
-var RETENTION_PERIOD_ORDER = {
-  "7d": 0,
-  "30d": 1,
-  "90d": 2,
-  "1y": 3,
-  forever: 4
-};
+// ../../packages/types/data-controls-schemas.ts
 var collectionSettingsSchema = exports_external.object({
   user_messages: exports_external.boolean(),
   assistant_messages: exports_external.boolean(),
@@ -4000,92 +4066,6 @@ var retentionSettingsSchema = exports_external.object({
   user_messages: exports_external.enum(RETENTION_PERIODS),
   assistant_messages: exports_external.enum(RETENTION_PERIODS),
   code_diffs: exports_external.enum(RETENTION_PERIODS)
-});
-var WORKSPACE_COLLECTION_DEFAULTS = {
-  user_messages: true,
-  assistant_messages: true,
-  code_diffs: true
-};
-var WORKSPACE_RETENTION_DEFAULTS = {
-  user_messages: "90d",
-  assistant_messages: "90d",
-  code_diffs: "7d"
-};
-function shorterRetentionPeriod(a, b) {
-  return RETENTION_PERIOD_ORDER[a] <= RETENTION_PERIOD_ORDER[b] ? a : b;
-}
-function getEffectiveCollection(workspace, user) {
-  if (!user)
-    return workspace;
-  return {
-    user_messages: workspace.user_messages && user.user_messages,
-    assistant_messages: workspace.assistant_messages && user.assistant_messages,
-    code_diffs: workspace.code_diffs && user.code_diffs
-  };
-}
-function getEffectiveRetention(workspace, user) {
-  if (!user)
-    return workspace;
-  return {
-    user_messages: shorterRetentionPeriod(workspace.user_messages, user.user_messages),
-    assistant_messages: shorterRetentionPeriod(workspace.assistant_messages, user.assistant_messages),
-    code_diffs: shorterRetentionPeriod(workspace.code_diffs, user.code_diffs)
-  };
-}
-// ../../packages/types/prompt-tags.ts
-var PromptTagSchema = exports_external.object({
-  id: exports_external.string(),
-  displayName: exports_external.string(),
-  description: exports_external.string().optional(),
-  category: exports_external.string().optional()
-});
-var PROMPT_TAGS = {
-  TOP_5: {
-    id: "top-5",
-    displayName: "\uD83D\uDD79️ Top 5",
-    description: "Essential cheatcodes for maximum productivity",
-    category: "cheatcodes"
-  },
-  ANALYZE_PROMPTS: {
-    id: "analyze-prompts",
-    displayName: "\uD83D\uDCC8 Analyze my prompts",
-    description: "Analyze your AI usage patterns and prompt effectiveness",
-    category: "cheatcodes"
-  },
-  CHECKLISTS: {
-    id: "checklists",
-    displayName: "✅ Checklists",
-    description: "Comprehensive checklists for common development tasks",
-    category: "cheatcodes"
-  },
-  PROMPT_HACKS: {
-    id: "prompt-hacks",
-    displayName: "\uD83D\uDCAC Prompt Hacks",
-    description: "Advanced techniques for better AI interactions",
-    category: "cheatcodes"
-  },
-  AI_CODING_STACK: {
-    id: "ai-coding-stack",
-    displayName: "\uD83E\uDD16 AI Coding Stack",
-    description: "Tools and configurations for AI-assisted development",
-    category: "cheatcodes"
-  }
-};
-var AVAILABLE_PROMPT_TAGS = Object.values(PROMPT_TAGS);
-var tagIds = AVAILABLE_PROMPT_TAGS.map((tag) => tag.id);
-var VALID_TAG_IDS = tagIds;
-var TagIdSchema = exports_external.enum(VALID_TAG_IDS);
-// ../../packages/types/index.ts
-var MetricDefinitionSchema = exports_external.object({
-  metric_name: exports_external.string(),
-  type: exports_external.enum(["number", "percentage", "duration"]),
-  unit: exports_external.enum(["count", "hours", "percentage", "minutes"]),
-  description: exports_external.string().optional(),
-  long_description: exports_external.string().optional()
-});
-var CustomPromptMetadataSchema = exports_external.object({
-  metrics: exports_external.array(MetricDefinitionSchema).optional(),
-  tags: exports_external.array(exports_external.string()).optional()
 });
 
 // src/utils/logger.ts
@@ -4117,7 +4097,7 @@ var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
 var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
+var SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
 var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");

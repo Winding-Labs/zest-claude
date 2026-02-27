@@ -668,11 +668,11 @@ var require_main = __commonJS((exports) => {
     }), i2;
   };
   function Ut(t2, i2) {
-    return e2 = t2, r2 = (t3) => O(t3) && !D(i2) ? t3.slice(0, i2) : t3, s2 = new Set, function t(i3, e3) {
+    return e2 = t2, r2 = (t3) => O(t3) && !D(i2) ? t3.slice(0, i2) : t3, s2 = new Set, function t3(i3, e3) {
       return i3 !== Object(i3) ? r2 ? r2(i3, e3) : i3 : s2.has(i3) ? undefined : (s2.add(i3), R(i3) ? (n2 = [], Ct(i3, (i4) => {
-        n2.push(t(i4));
+        n2.push(t3(i4));
       })) : (n2 = {}, Mt(i3, (i4, e4) => {
-        s2.has(i4) || (n2[e4] = t(i4, e4));
+        s2.has(i4) || (n2[e4] = t3(i4, e4));
       })), n2);
       var n2;
     }(e2);
@@ -13138,6 +13138,8 @@ var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
 var SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed";
 var SUPABASE_SESSION_SET_FAILED = "supabase_session_set_failed";
 var SUPABASE_SESSION_REFRESH_PERSIST_FAILED = "supabase_session_refresh_persist_failed";
+var AUTH_SESSION_RACE_RECOVERY = "auth_session_race_recovery";
+var AUTH_SESSION_RACE_RECOVERY_FAILED = "auth_session_race_recovery_failed";
 function getErrorCategory(errorType) {
   if (errorType.startsWith("auth_"))
     return "auth";
@@ -25724,6 +25726,22 @@ var extensionEvents = {
       domain: exports_external.string().optional(),
       email: exports_external.email().optional()
     })
+  },
+  extensionInstalled: {
+    name: "Extension Installed",
+    schema: exports_external.object({
+      extensionType: exports_external.string(),
+      version: exports_external.string(),
+      claude_code_version: exports_external.string().optional(),
+      plugin_version: exports_external.string().optional(),
+      node_version: exports_external.string().optional(),
+      os_platform: exports_external.string().optional(),
+      os_version: exports_external.string().optional(),
+      user_id: exports_external.string().optional(),
+      email: exports_external.string().optional(),
+      workspace_id: exports_external.string().optional(),
+      workspace_name: exports_external.string().optional()
+    })
   }
 };
 
@@ -25739,13 +25757,29 @@ var onboardingEvents = {
   }
 };
 
+// ../../packages/analytics/src/schemas/workspace.events.ts
+var workspaceEvents = {
+  userInvited: {
+    name: "User Invited",
+    schema: exports_external.object({
+      workspaceId: exports_external.string(),
+      workspaceName: exports_external.string(),
+      teamId: exports_external.string().optional(),
+      teamName: exports_external.string().optional(),
+      invitedEmails: exports_external.array(exports_external.string()),
+      invitedCount: exports_external.number()
+    })
+  }
+};
+
 // ../../packages/analytics/src/schemas/index.ts
 var allEvents = {
   ...adminEvents,
   ...authEvents,
   ...analysisEvents,
   ...onboardingEvents,
-  ...extensionEvents
+  ...extensionEvents,
+  ...workspaceEvents
 };
 // ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/extensions/error-tracking/modifiers/module.node.mjs
 import { dirname, posix, sep } from "path";
@@ -29284,7 +29318,7 @@ var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
 var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
 var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
 var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-var SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
+var SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
 var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
@@ -29486,6 +29520,18 @@ async function saveSession(session) {
     throw error46;
   }
 }
+async function clearSessionIfStale(usedRefreshToken) {
+  const current = await loadSessionFile();
+  if (!current) {
+    return true;
+  }
+  if (current.refreshToken !== usedRefreshToken) {
+    logger.info("clearSessionIfStale: on-disk refresh token differs — concurrent refresh succeeded, preserving session");
+    return false;
+  }
+  await clearSession();
+  return true;
+}
 async function clearSession() {
   try {
     await unlink2(SESSION_FILE);
@@ -29593,6 +29639,24 @@ async function captureException(error46, errorType, errorSource, additionalPrope
     });
   } catch (captureError) {
     logger.debug("Failed to capture exception in PostHog", captureError);
+  }
+}
+async function capture(eventName, properties) {
+  try {
+    const client = await getAnalyticsClient();
+    if (!client)
+      return;
+    client.track({
+      distinctId: cachedSession?.userId ?? "anonymous",
+      event: eventName,
+      properties: {
+        ...buildStandardProperties(),
+        ...buildUserProperties(),
+        ...properties
+      }
+    });
+  } catch (error46) {
+    logger.debug("Failed to capture event in PostHog", error46);
   }
 }
 
@@ -30030,6 +30094,11 @@ async function withFileLock(filePath, fn) {
   }
 }
 
+// src/utils/string-utils.ts
+function toWellFormed(str) {
+  return str.toWellFormed?.() ?? str;
+}
+
 // src/utils/queue-manager.ts
 async function readJsonl(filePath) {
   try {
@@ -30074,6 +30143,12 @@ async function countLines(filePath) {
     throw error46;
   }
 }
+function sanitizingReplacer(_key, value) {
+  if (typeof value === "string") {
+    return toWellFormed(value);
+  }
+  return value;
+}
 async function readQueue(queueFile) {
   try {
     return await readJsonl(queueFile);
@@ -30088,7 +30163,7 @@ async function atomicUpdateQueue(queueFile, transform2) {
       const currentItems = await readJsonl(queueFile);
       const newItems = transform2(currentItems);
       await ensureDirectory(dirname6(queueFile));
-      const content = newItems.map((item) => JSON.stringify(item)).join(`
+      const content = newItems.map((item) => JSON.stringify(item, sanitizingReplacer)).join(`
 `) + (newItems.length > 0 ? `
 ` : "");
       await writeFile3(queueFile, content, "utf8");
@@ -30282,16 +30357,16 @@ async function recordSyncMetric(entry) {
   }
 }
 
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/regex.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/regex.js
 var regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
 
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/validate.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/validate.js
 function validate(uuid3) {
   return typeof uuid3 === "string" && regex_default.test(uuid3);
 }
 var validate_default = validate;
 
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/parse.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/parse.js
 function parse5(uuid3) {
   if (!validate_default(uuid3)) {
     throw TypeError("Invalid UUID");
@@ -30301,7 +30376,7 @@ function parse5(uuid3) {
 }
 var parse_default = parse5;
 
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/stringify.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/stringify.js
 var byteToHex = [];
 for (let i = 0;i < 256; ++i) {
   byteToHex.push((i + 256).toString(16).slice(1));
@@ -30310,7 +30385,7 @@ function unsafeStringify(arr, offset = 0) {
   return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
 }
 
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/v35.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/v35.js
 function stringToBytes(str) {
   str = unescape(encodeURIComponent(str));
   const bytes = new Uint8Array(str.length);
@@ -30346,8 +30421,8 @@ function v35(version3, hash2, value, namespace, buf, offset) {
   return unsafeStringify(bytes);
 }
 
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/sha1.js
-import { createHash } from "crypto";
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/sha1.js
+import { createHash } from "node:crypto";
 function sha1(bytes) {
   if (Array.isArray(bytes)) {
     bytes = Buffer.from(bytes);
@@ -30358,7 +30433,7 @@ function sha1(bytes) {
 }
 var sha1_default = sha1;
 
-// ../../node_modules/.bun/uuid@11.1.0/node_modules/uuid/dist/esm/v5.js
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/v5.js
 function v5(value, namespace, buf, offset) {
   return v35(80, sha1_default, value, namespace, buf, offset);
 }
@@ -30562,13 +30637,8 @@ async function removeMessagesFromQueue(messageIdsToRemove) {
     return currentMessages.filter((m) => m.id && !messageIdsToRemove.has(m.id));
   });
 }
-async function uploadChatData(supabase, dataControls) {
+async function uploadChatData(supabase, session, dataControls) {
   try {
-    const session = await getValidSession();
-    if (!session) {
-      logger.debug("Not authenticated, skipping chat upload");
-      return { success: false, uploaded: { sessions: 0, messages: 0 } };
-    }
     const queuedSessions = await readQueue(SESSIONS_QUEUE_FILE);
     const queuedMessages = await readQueue(MESSAGES_QUEUE_FILE);
     if (queuedSessions.length === 0 && queuedMessages.length === 0) {
@@ -30688,11 +30758,11 @@ async function uploadChatData(supabase, dataControls) {
     return { success: false, uploaded: { sessions: 0, messages: 0 } };
   }
 }
-async function uploadChatDataWithRetry(supabase, dataControls, maxRetries = 3, backoffMs = 5000) {
+async function uploadChatDataWithRetry(supabase, session, dataControls, maxRetries = 3, backoffMs = 5000) {
   let lastError = null;
   for (let attempt = 1;attempt <= maxRetries; attempt++) {
     try {
-      const result = await uploadChatData(supabase, dataControls);
+      const result = await uploadChatData(supabase, session, dataControls);
       if (result.success) {
         return result;
       }
@@ -33429,12 +33499,36 @@ async function setClientSession(client, session) {
   });
   if (error46) {
     logger.error(`Failed to set Supabase session: ${error46.message}`);
-    const isInvalidRefreshToken = error46.message.includes("Invalid Refresh Token") || error46.code === "refresh_token_not_found" || error46.code === "refresh_token_already_used" || error46.code === "session_not_found" || error46.code === "session_expired";
+    const isAlreadyUsed = error46.code === "refresh_token_already_used";
+    const isInvalidRefreshToken = isAlreadyUsed || error46.message.includes("Invalid Refresh Token") || error46.code === "refresh_token_not_found" || error46.code === "session_not_found" || error46.code === "session_expired";
     captureException(error46, SUPABASE_SESSION_SET_FAILED, "supabase/client", {
       is_invalid_refresh_token: isInvalidRefreshToken,
       error_code: error46.code,
       error_status: error46.status
     });
+    if (isAlreadyUsed) {
+      const freshSession = await loadSessionFile();
+      if (freshSession && freshSession.refreshToken !== session.refreshToken) {
+        logger.info("refresh_token_already_used: concurrent refresh detected, retrying with fresh session");
+        const { error: retryError } = await client.auth.setSession({
+          access_token: freshSession.accessToken,
+          refresh_token: freshSession.refreshToken
+        });
+        if (!retryError) {
+          capture(AUTH_SESSION_RACE_RECOVERY, { error_code: error46.code });
+          logger.info("Race recovery successful — session restored from concurrent refresh");
+          return;
+        }
+        captureException(retryError, AUTH_SESSION_RACE_RECOVERY_FAILED, "supabase/client", {
+          error_code: retryError.code,
+          original_error_code: error46.code
+        });
+        logger.warn(`Race recovery failed: ${retryError.message}`);
+      }
+      logger.warn("refresh_token_already_used: no concurrent refresh found, clearing session");
+      await clearSessionIfStale(session.refreshToken);
+      throw error46;
+    }
     if (isInvalidRefreshToken) {
       logger.warn("Invalid refresh token, clearing session");
       await clearSession();
@@ -33500,7 +33594,81 @@ async function createOnDemandClient() {
     return null;
   }
 }
-
+// ../../packages/types/data-controls.ts
+var RETENTION_PERIODS = ["7d", "30d", "90d", "1y", "forever"];
+var RETENTION_PERIOD_ORDER = {
+  "7d": 0,
+  "30d": 1,
+  "90d": 2,
+  "1y": 3,
+  forever: 4
+};
+var WORKSPACE_COLLECTION_DEFAULTS = {
+  user_messages: true,
+  assistant_messages: true,
+  code_diffs: true
+};
+var WORKSPACE_RETENTION_DEFAULTS = {
+  user_messages: "90d",
+  assistant_messages: "90d",
+  code_diffs: "7d"
+};
+function shorterRetentionPeriod(a, b) {
+  return RETENTION_PERIOD_ORDER[a] <= RETENTION_PERIOD_ORDER[b] ? a : b;
+}
+function getEffectiveCollection(workspace, user) {
+  if (!user)
+    return workspace;
+  return {
+    user_messages: workspace.user_messages && user.user_messages,
+    assistant_messages: workspace.assistant_messages && user.assistant_messages,
+    code_diffs: workspace.code_diffs && user.code_diffs
+  };
+}
+function getEffectiveRetention(workspace, user) {
+  if (!user)
+    return workspace;
+  return {
+    user_messages: shorterRetentionPeriod(workspace.user_messages, user.user_messages),
+    assistant_messages: shorterRetentionPeriod(workspace.assistant_messages, user.assistant_messages),
+    code_diffs: shorterRetentionPeriod(workspace.code_diffs, user.code_diffs)
+  };
+}
+// ../../packages/types/prompt-tags.ts
+var PROMPT_TAGS = {
+  TOP_5: {
+    id: "top-5",
+    displayName: "\uD83D\uDD79️ Top 5",
+    description: "Essential cheatcodes for maximum productivity",
+    category: "cheatcodes"
+  },
+  ANALYZE_PROMPTS: {
+    id: "analyze-prompts",
+    displayName: "\uD83D\uDCC8 Analyze my prompts",
+    description: "Analyze your AI usage patterns and prompt effectiveness",
+    category: "cheatcodes"
+  },
+  CHECKLISTS: {
+    id: "checklists",
+    displayName: "✅ Checklists",
+    description: "Comprehensive checklists for common development tasks",
+    category: "cheatcodes"
+  },
+  PROMPT_HACKS: {
+    id: "prompt-hacks",
+    displayName: "\uD83D\uDCAC Prompt Hacks",
+    description: "Advanced techniques for better AI interactions",
+    category: "cheatcodes"
+  },
+  AI_CODING_STACK: {
+    id: "ai-coding-stack",
+    displayName: "\uD83E\uDD16 AI Coding Stack",
+    description: "Tools and configurations for AI-assisted development",
+    category: "cheatcodes"
+  }
+};
+var AVAILABLE_PROMPT_TAGS = Object.values(PROMPT_TAGS);
+var tagIds = AVAILABLE_PROMPT_TAGS.map((tag) => tag.id);
 // ../../node_modules/.bun/zod@3.25.76/node_modules/zod/v3/external.js
 var exports_external2 = {};
 __export(exports_external2, {
@@ -37474,15 +37642,7 @@ var coerce = {
   date: (arg) => ZodDate2.create({ ...arg, coerce: true })
 };
 var NEVER2 = INVALID;
-// ../../packages/types/data-controls.ts
-var RETENTION_PERIODS = ["7d", "30d", "90d", "1y", "forever"];
-var RETENTION_PERIOD_ORDER = {
-  "7d": 0,
-  "30d": 1,
-  "90d": 2,
-  "1y": 3,
-  forever: 4
-};
+// ../../packages/types/data-controls-schemas.ts
 var collectionSettingsSchema = exports_external2.object({
   user_messages: exports_external2.boolean(),
   assistant_messages: exports_external2.boolean(),
@@ -37492,92 +37652,6 @@ var retentionSettingsSchema = exports_external2.object({
   user_messages: exports_external2.enum(RETENTION_PERIODS),
   assistant_messages: exports_external2.enum(RETENTION_PERIODS),
   code_diffs: exports_external2.enum(RETENTION_PERIODS)
-});
-var WORKSPACE_COLLECTION_DEFAULTS = {
-  user_messages: true,
-  assistant_messages: true,
-  code_diffs: true
-};
-var WORKSPACE_RETENTION_DEFAULTS = {
-  user_messages: "90d",
-  assistant_messages: "90d",
-  code_diffs: "7d"
-};
-function shorterRetentionPeriod(a, b) {
-  return RETENTION_PERIOD_ORDER[a] <= RETENTION_PERIOD_ORDER[b] ? a : b;
-}
-function getEffectiveCollection(workspace, user) {
-  if (!user)
-    return workspace;
-  return {
-    user_messages: workspace.user_messages && user.user_messages,
-    assistant_messages: workspace.assistant_messages && user.assistant_messages,
-    code_diffs: workspace.code_diffs && user.code_diffs
-  };
-}
-function getEffectiveRetention(workspace, user) {
-  if (!user)
-    return workspace;
-  return {
-    user_messages: shorterRetentionPeriod(workspace.user_messages, user.user_messages),
-    assistant_messages: shorterRetentionPeriod(workspace.assistant_messages, user.assistant_messages),
-    code_diffs: shorterRetentionPeriod(workspace.code_diffs, user.code_diffs)
-  };
-}
-// ../../packages/types/prompt-tags.ts
-var PromptTagSchema = exports_external2.object({
-  id: exports_external2.string(),
-  displayName: exports_external2.string(),
-  description: exports_external2.string().optional(),
-  category: exports_external2.string().optional()
-});
-var PROMPT_TAGS = {
-  TOP_5: {
-    id: "top-5",
-    displayName: "\uD83D\uDD79️ Top 5",
-    description: "Essential cheatcodes for maximum productivity",
-    category: "cheatcodes"
-  },
-  ANALYZE_PROMPTS: {
-    id: "analyze-prompts",
-    displayName: "\uD83D\uDCC8 Analyze my prompts",
-    description: "Analyze your AI usage patterns and prompt effectiveness",
-    category: "cheatcodes"
-  },
-  CHECKLISTS: {
-    id: "checklists",
-    displayName: "✅ Checklists",
-    description: "Comprehensive checklists for common development tasks",
-    category: "cheatcodes"
-  },
-  PROMPT_HACKS: {
-    id: "prompt-hacks",
-    displayName: "\uD83D\uDCAC Prompt Hacks",
-    description: "Advanced techniques for better AI interactions",
-    category: "cheatcodes"
-  },
-  AI_CODING_STACK: {
-    id: "ai-coding-stack",
-    displayName: "\uD83E\uDD16 AI Coding Stack",
-    description: "Tools and configurations for AI-assisted development",
-    category: "cheatcodes"
-  }
-};
-var AVAILABLE_PROMPT_TAGS = Object.values(PROMPT_TAGS);
-var tagIds = AVAILABLE_PROMPT_TAGS.map((tag) => tag.id);
-var VALID_TAG_IDS = tagIds;
-var TagIdSchema = exports_external2.enum(VALID_TAG_IDS);
-// ../../packages/types/index.ts
-var MetricDefinitionSchema = exports_external2.object({
-  metric_name: exports_external2.string(),
-  type: exports_external2.enum(["number", "percentage", "duration"]),
-  unit: exports_external2.enum(["count", "hours", "percentage", "minutes"]),
-  description: exports_external2.string().optional(),
-  long_description: exports_external2.string().optional()
-});
-var CustomPromptMetadataSchema = exports_external2.object({
-  metrics: exports_external2.array(MetricDefinitionSchema).optional(),
-  tags: exports_external2.array(exports_external2.string()).optional()
 });
 
 // src/supabase/data-controls-provider.ts
@@ -37672,91 +37746,6 @@ import { fileURLToPath as fileURLToPath2 } from "node:url";
 import { exec, execSync } from "node:child_process";
 import * as path from "node:path";
 import { promisify } from "node:util";
-
-// ../../node_modules/uuid/dist-node/regex.js
-var regex_default2 = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
-
-// ../../node_modules/uuid/dist-node/validate.js
-function validate2(uuid3) {
-  return typeof uuid3 === "string" && regex_default2.test(uuid3);
-}
-var validate_default2 = validate2;
-
-// ../../node_modules/uuid/dist-node/parse.js
-function parse6(uuid3) {
-  if (!validate_default2(uuid3)) {
-    throw TypeError("Invalid UUID");
-  }
-  let v;
-  return Uint8Array.of((v = parseInt(uuid3.slice(0, 8), 16)) >>> 24, v >>> 16 & 255, v >>> 8 & 255, v & 255, (v = parseInt(uuid3.slice(9, 13), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(14, 18), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(19, 23), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(24, 36), 16)) / 1099511627776 & 255, v / 4294967296 & 255, v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
-}
-var parse_default2 = parse6;
-
-// ../../node_modules/uuid/dist-node/stringify.js
-var byteToHex2 = [];
-for (let i = 0;i < 256; ++i) {
-  byteToHex2.push((i + 256).toString(16).slice(1));
-}
-function unsafeStringify2(arr, offset = 0) {
-  return (byteToHex2[arr[offset + 0]] + byteToHex2[arr[offset + 1]] + byteToHex2[arr[offset + 2]] + byteToHex2[arr[offset + 3]] + "-" + byteToHex2[arr[offset + 4]] + byteToHex2[arr[offset + 5]] + "-" + byteToHex2[arr[offset + 6]] + byteToHex2[arr[offset + 7]] + "-" + byteToHex2[arr[offset + 8]] + byteToHex2[arr[offset + 9]] + "-" + byteToHex2[arr[offset + 10]] + byteToHex2[arr[offset + 11]] + byteToHex2[arr[offset + 12]] + byteToHex2[arr[offset + 13]] + byteToHex2[arr[offset + 14]] + byteToHex2[arr[offset + 15]]).toLowerCase();
-}
-
-// ../../node_modules/uuid/dist-node/v35.js
-function stringToBytes2(str) {
-  str = unescape(encodeURIComponent(str));
-  const bytes = new Uint8Array(str.length);
-  for (let i = 0;i < str.length; ++i) {
-    bytes[i] = str.charCodeAt(i);
-  }
-  return bytes;
-}
-var DNS2 = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
-var URL3 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
-function v352(version5, hash2, value, namespace, buf, offset) {
-  const valueBytes = typeof value === "string" ? stringToBytes2(value) : value;
-  const namespaceBytes = typeof namespace === "string" ? parse_default2(namespace) : namespace;
-  if (typeof namespace === "string") {
-    namespace = parse_default2(namespace);
-  }
-  if (namespace?.length !== 16) {
-    throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
-  }
-  let bytes = new Uint8Array(16 + valueBytes.length);
-  bytes.set(namespaceBytes);
-  bytes.set(valueBytes, namespaceBytes.length);
-  bytes = hash2(bytes);
-  bytes[6] = bytes[6] & 15 | version5;
-  bytes[8] = bytes[8] & 63 | 128;
-  if (buf) {
-    offset = offset || 0;
-    for (let i = 0;i < 16; ++i) {
-      buf[offset + i] = bytes[i];
-    }
-    return buf;
-  }
-  return unsafeStringify2(bytes);
-}
-
-// ../../node_modules/uuid/dist-node/sha1.js
-import { createHash as createHash2 } from "node:crypto";
-function sha12(bytes) {
-  if (Array.isArray(bytes)) {
-    bytes = Buffer.from(bytes);
-  } else if (typeof bytes === "string") {
-    bytes = Buffer.from(bytes, "utf8");
-  }
-  return createHash2("sha1").update(bytes).digest();
-}
-var sha1_default2 = sha12;
-
-// ../../node_modules/uuid/dist-node/v5.js
-function v52(value, namespace, buf, offset) {
-  return v352(80, sha1_default2, value, namespace, buf, offset);
-}
-v52.DNS = DNS2;
-v52.URL = URL3;
-var v5_default2 = v52;
-// ../../packages/utils/src/git-utils.ts
 var execAsync = promisify(exec);
 var UNKNOWN_PROJECT = {
   projectId: "unknown",
@@ -37764,7 +37753,7 @@ var UNKNOWN_PROJECT = {
 };
 var PROJECT_ID_NAMESPACE = "e1f3b3c4-0b7a-4c1e-8a7b-9f3c0e1d2a3b";
 function generateProjectId(input) {
-  return v5_default2(input, PROJECT_ID_NAMESPACE);
+  return v5_default(input, PROJECT_ID_NAMESPACE);
 }
 function extractNameFromRemoteUrl(remoteUrl) {
   const orgRepoMatch = remoteUrl.match(/[/:]([^/:.]+\/[^/]+?)(\.git)?$/);
@@ -37893,13 +37882,8 @@ function deduplicateEvents(events) {
   }
   return Array.from(eventMap.values());
 }
-async function uploadEvents(supabase, dataControls) {
+async function uploadEvents(supabase, session, dataControls) {
   try {
-    const session = await getValidSession();
-    if (!session) {
-      logger.debug("Not authenticated, skipping events upload");
-      return { success: false, uploaded: 0 };
-    }
     const queuedEvents = await readQueue(EVENTS_QUEUE_FILE);
     if (queuedEvents.length === 0) {
       logger.debug("No events to upload");
@@ -37968,11 +37952,11 @@ async function uploadEvents(supabase, dataControls) {
     return { success: false, uploaded: 0 };
   }
 }
-async function uploadEventsWithRetry(supabase, dataControls, maxRetries = 3, backoffMs = 5000) {
+async function uploadEventsWithRetry(supabase, session, dataControls, maxRetries = 3, backoffMs = 5000) {
   let lastError = null;
   for (let attempt = 1;attempt <= maxRetries; attempt++) {
     try {
-      const result = await uploadEvents(supabase, dataControls);
+      const result = await uploadEvents(supabase, session, dataControls);
       if (result.success) {
         return result;
       }
@@ -37997,7 +37981,7 @@ async function uploadEventsWithRetry(supabase, dataControls, maxRetries = 3, bac
 }
 
 // src/supabase/sync.ts
-async function syncAllData(supabase, dataControls) {
+async function syncAllData(supabase, session, dataControls) {
   try {
     const stats = await getQueueStats();
     const hasData = stats.events > 0 || stats.sessions > 0 || stats.messages > 0;
@@ -38009,7 +37993,7 @@ async function syncAllData(supabase, dataControls) {
       };
     }
     logger.info(`Starting sync: ${stats.events} events, ${stats.sessions} sessions, ${stats.messages} messages`);
-    const eventsResult = await uploadEventsWithRetry(supabase, dataControls);
+    const eventsResult = await uploadEventsWithRetry(supabase, session, dataControls);
     if (!eventsResult.success) {
       return {
         success: false,
@@ -38018,7 +38002,7 @@ async function syncAllData(supabase, dataControls) {
         errorType: "upload_failed"
       };
     }
-    const chatResult = await uploadChatDataWithRetry(supabase, dataControls);
+    const chatResult = await uploadChatDataWithRetry(supabase, session, dataControls);
     if (!chatResult.success) {
       return {
         success: false,
@@ -38072,14 +38056,17 @@ async function syncWithMessage() {
   const { client: supabase, dispose } = onDemand;
   try {
     const session = await getValidSession();
-    if (session && session.workspaceId) {
+    if (!session) {
+      return { success: false, message: "Sync failed: not authenticated" };
+    }
+    if (session.workspaceId) {
       const provider = new DataControlsProvider;
       const refreshed = await provider.refresh(supabase, session.workspaceId, session.userId);
       if (refreshed) {
         dataControls = provider;
       }
     }
-    const result = await syncAllData(supabase, dataControls);
+    const result = await syncAllData(supabase, session, dataControls);
     if (result.success) {
       await recordSyncMetric({
         timestamp: Date.now(),

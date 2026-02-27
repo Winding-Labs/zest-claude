@@ -57,7 +57,7 @@ var init_constants = __esm(() => {
   LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
   STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
   DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-  SESSION_FILE = join(CLAUDE_ZEST_DIR, "session.json");
+  SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
   SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
   DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
   CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
@@ -829,11 +829,11 @@ var require_main = __commonJS((exports) => {
     }), i2;
   };
   function Ut(t2, i2) {
-    return e2 = t2, r2 = (t3) => O(t3) && !D(i2) ? t3.slice(0, i2) : t3, s2 = new Set, function t(i3, e3) {
+    return e2 = t2, r2 = (t3) => O(t3) && !D(i2) ? t3.slice(0, i2) : t3, s2 = new Set, function t3(i3, e3) {
       return i3 !== Object(i3) ? r2 ? r2(i3, e3) : i3 : s2.has(i3) ? undefined : (s2.add(i3), R(i3) ? (n2 = [], Ct(i3, (i4) => {
-        n2.push(t(i4));
+        n2.push(t3(i4));
       })) : (n2 = {}, Mt(i3, (i4, e4) => {
-        s2.has(i4) || (n2[e4] = t(i4, e4));
+        s2.has(i4) || (n2[e4] = t3(i4, e4));
       })), n2);
       var n2;
     }(e2);
@@ -21842,6 +21842,22 @@ var extensionEvents = {
       domain: exports_external2.string().optional(),
       email: exports_external2.email().optional()
     })
+  },
+  extensionInstalled: {
+    name: "Extension Installed",
+    schema: exports_external2.object({
+      extensionType: exports_external2.string(),
+      version: exports_external2.string(),
+      claude_code_version: exports_external2.string().optional(),
+      plugin_version: exports_external2.string().optional(),
+      node_version: exports_external2.string().optional(),
+      os_platform: exports_external2.string().optional(),
+      os_version: exports_external2.string().optional(),
+      user_id: exports_external2.string().optional(),
+      email: exports_external2.string().optional(),
+      workspace_id: exports_external2.string().optional(),
+      workspace_name: exports_external2.string().optional()
+    })
   }
 };
 
@@ -21857,13 +21873,29 @@ var onboardingEvents = {
   }
 };
 
+// ../../packages/analytics/src/schemas/workspace.events.ts
+var workspaceEvents = {
+  userInvited: {
+    name: "User Invited",
+    schema: exports_external2.object({
+      workspaceId: exports_external2.string(),
+      workspaceName: exports_external2.string(),
+      teamId: exports_external2.string().optional(),
+      teamName: exports_external2.string().optional(),
+      invitedEmails: exports_external2.array(exports_external2.string()),
+      invitedCount: exports_external2.number()
+    })
+  }
+};
+
 // ../../packages/analytics/src/schemas/index.ts
 var allEvents = {
   ...adminEvents,
   ...authEvents,
   ...analysisEvents,
   ...onboardingEvents,
-  ...extensionEvents
+  ...extensionEvents,
+  ...workspaceEvents
 };
 // ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/extensions/error-tracking/modifiers/module.node.mjs
 import { dirname as dirname2, posix, sep } from "path";
@@ -25758,13 +25790,13 @@ var Diff = function() {
       editLength++;
     };
     if (callback) {
-      (function exec() {
+      (function exec2() {
         setTimeout(function() {
           if (editLength > maxEditLength || Date.now() > abortAfterTimestamp) {
             return callback(undefined);
           }
           if (!execEditLength()) {
-            exec();
+            exec2();
           }
         }, 0);
       })();
