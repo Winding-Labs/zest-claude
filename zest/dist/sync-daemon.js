@@ -38138,6 +38138,7 @@ function enrichSessionsForUpload(sessions, userId, workspaceId) {
     return {
       ...s,
       id: normalizeSessionId(s.id),
+      title: s.title ? toWellFormed(s.title) : s.title,
       user_id: userId,
       platform: PLATFORM,
       source: SOURCE,
@@ -38155,6 +38156,7 @@ function enrichMessagesForUpload(messages, userId) {
   return filteredMessages.map((m) => ({
     ...m,
     session_id: normalizeSessionId(m.session_id),
+    content: toWellFormed(m.content),
     user_id: userId,
     code_diffs: null,
     metadata: m.metadata ?? null
