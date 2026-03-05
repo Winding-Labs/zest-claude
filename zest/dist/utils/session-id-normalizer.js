@@ -1,3 +1,15 @@
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/sha1.js
+import { createHash } from "node:crypto";
+function sha1(bytes) {
+  if (Array.isArray(bytes)) {
+    bytes = Buffer.from(bytes);
+  } else if (typeof bytes === "string") {
+    bytes = Buffer.from(bytes, "utf8");
+  }
+  return createHash("sha1").update(bytes).digest();
+}
+var sha1_default = sha1;
+
 // ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/regex.js
 var regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
 
@@ -62,18 +74,6 @@ function v35(version, hash, value, namespace, buf, offset) {
   return unsafeStringify(bytes);
 }
 
-// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/sha1.js
-import { createHash } from "node:crypto";
-function sha1(bytes) {
-  if (Array.isArray(bytes)) {
-    bytes = Buffer.from(bytes);
-  } else if (typeof bytes === "string") {
-    bytes = Buffer.from(bytes, "utf8");
-  }
-  return createHash("sha1").update(bytes).digest();
-}
-var sha1_default = sha1;
-
 // ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/v5.js
 function v5(value, namespace, buf, offset) {
   return v35(80, sha1_default, value, namespace, buf, offset);
@@ -97,7 +97,7 @@ var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
 var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
-var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
+var STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
 var SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
@@ -110,6 +110,7 @@ var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var ZEST_SESSION_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341";
 var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
 var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+var DAEMON_WARMUP_GRACE_MS = 3 * 1000;
 var NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
 var STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
 var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;

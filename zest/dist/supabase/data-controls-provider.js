@@ -1,11 +1,15 @@
 var __defProp = Object.defineProperty;
+var __returnValue = (v) => v;
+function __exportSetter(name, newValue) {
+  this[name] = __returnValue.bind(null, newValue);
+}
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, {
       get: all[name],
       enumerable: true,
       configurable: true,
-      set: (newValue) => all[name] = () => newValue
+      set: __exportSetter.bind(all, name)
     });
 };
 // ../../packages/types/data-controls.ts
@@ -4102,7 +4106,7 @@ var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
 var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
-var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
+var STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
 var SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
@@ -4115,6 +4119,7 @@ var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
 var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+var DAEMON_WARMUP_GRACE_MS = 3 * 1000;
 var NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
 var STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
 var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;

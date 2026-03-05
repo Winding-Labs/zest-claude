@@ -3,42 +3,61 @@ var __getProtoOf = Object.getPrototypeOf;
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+function __accessProp(key) {
+  return this[key];
+}
 var __reExport = (target, mod, secondTarget) => {
-  for (let key of __getOwnPropNames(mod))
+  var keys = __getOwnPropNames(mod);
+  for (let key of keys)
     if (!__hasOwnProp.call(target, key) && key !== "default")
       __defProp(target, key, {
-        get: () => mod[key],
+        get: __accessProp.bind(mod, key),
         enumerable: true
       });
   if (secondTarget) {
-    for (let key of __getOwnPropNames(mod))
+    for (let key of keys)
       if (!__hasOwnProp.call(secondTarget, key) && key !== "default")
         __defProp(secondTarget, key, {
-          get: () => mod[key],
+          get: __accessProp.bind(mod, key),
           enumerable: true
         });
     return secondTarget;
   }
 };
+var __toESMCache_node;
+var __toESMCache_esm;
 var __toESM = (mod, isNodeMode, target) => {
+  var canCache = mod != null && typeof mod === "object";
+  if (canCache) {
+    var cache = isNodeMode ? __toESMCache_node ??= new WeakMap : __toESMCache_esm ??= new WeakMap;
+    var cached = cache.get(mod);
+    if (cached)
+      return cached;
+  }
   target = mod != null ? __create(__getProtoOf(mod)) : {};
   const to = isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target;
   for (let key of __getOwnPropNames(mod))
     if (!__hasOwnProp.call(to, key))
       __defProp(to, key, {
-        get: () => mod[key],
+        get: __accessProp.bind(mod, key),
         enumerable: true
       });
+  if (canCache)
+    cache.set(mod, to);
   return to;
 };
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
+var __returnValue = (v) => v;
+function __exportSetter(name, newValue) {
+  this[name] = __returnValue.bind(null, newValue);
+}
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, {
       get: all[name],
       enumerable: true,
       configurable: true,
-      set: (newValue) => all[name] = () => newValue
+      set: __exportSetter.bind(all, name)
     });
 };
 
@@ -13619,6 +13638,7 @@ var FILE_LOCK_TIMEOUT = "file_lock_timeout";
 var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
 var API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed";
 var API_PROFILE_UPDATE_FAILED = "api_profile_update_failed";
+var API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed";
 var SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed";
 var SUPABASE_SESSION_SET_FAILED = "supabase_session_set_failed";
 var SUPABASE_SESSION_REFRESH_PERSIST_FAILED = "supabase_session_refresh_persist_failed";
@@ -29745,21 +29765,22 @@ class PostHog extends PostHogBackendClient {
 }
 
 // ../../packages/analytics/src/server.ts
-function createServerAnalytics(posthogApiKey) {
+function createServerAnalytics(posthogApiKey, options) {
   const posthog2 = new PostHog(posthogApiKey, {
     host: "https://us.i.posthog.com",
     disableGeoip: false
   });
+  const defaultProps = options?.defaultProperties ?? {};
   return {
     ...createServerClient(allEvents, (distinctId, event, properties) => {
       posthog2.capture({
         distinctId,
         event,
-        properties
+        properties: { ...defaultProps, ...properties }
       });
     }, () => posthog2.shutdown()),
     captureException: (error46, distinctId, context) => {
-      posthog2.captureException(error46, distinctId, context);
+      posthog2.captureException(error46, distinctId, { ...defaultProps, ...context });
     }
   };
 }
@@ -29808,7 +29829,7 @@ var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
 var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
-var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
+var STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
 var SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
@@ -29828,6 +29849,7 @@ var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 var POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ";
 var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
 var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+var DAEMON_WARMUP_GRACE_MS = 3 * 1000;
 var NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
 var STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
 var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
@@ -33098,29 +33120,33 @@ async function createOnDemandClient() {
 async function updateClaudeCodeMetadata(supabase, userId, version5) {
   try {
     logger.info("Updating Claude Code plugin metadata", { userId, version: version5 });
-    const { data: existingProfile, error: fetchError } = await supabase.from("profiles").select("metadata").eq("id", userId).single();
-    if (fetchError) {
-      logger.warn("Failed to fetch existing profile metadata:", fetchError);
+    let wasAlreadyInstalled = true;
+    try {
+      const { data: existingProfile } = await supabase.from("profiles").select("metadata").eq("id", userId).single();
+      const existingMetadata = existingProfile?.metadata || {};
+      wasAlreadyInstalled = existingMetadata?.extensions?.claudeCode?.installed === true;
+    } catch (error46) {
+      logger.debug("Could not read existing metadata for first-install tracking; skipping analytics event");
+      if (error46 instanceof Error) {
+        captureException(error46, API_PROFILE_METADATA_PREFETCH_FAILED, "profile-updater", {
+          ...buildApiProperties({ endpoint: "profiles" })
+        });
+      }
     }
-    const existingMetadata = existingProfile?.metadata || {};
-    const existingExtensions = existingMetadata?.extensions || {};
-    const wasAlreadyInstalled = existingExtensions.claudeCode?.installed === true;
-    const updatedMetadata = {
-      ...existingMetadata,
-      extensions: {
-        ...existingExtensions,
-        claudeCode: {
-          installed: true,
-          version: version5,
-          lastSeen: new Date().toISOString()
+    const { error: rpcError } = await supabase.rpc("merge_profile_metadata", {
+      p_user_id: userId,
+      p_metadata: {
+        extensions: {
+          claudeCode: {
+            installed: true,
+            version: version5,
+            lastSeen: new Date().toISOString()
+          }
         }
       }
-    };
-    const { error: upsertError } = await supabase.from("profiles").update({
-      metadata: updatedMetadata
-    }).eq("id", userId);
-    if (upsertError) {
-      throw new Error(`Failed to update profile metadata: ${upsertError.message}`);
+    });
+    if (rpcError) {
+      throw new Error(`Failed to merge profile metadata: ${rpcError.message}`);
     }
     if (!wasAlreadyInstalled) {
       await trackExtensionInstalled(userId, version5);

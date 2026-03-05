@@ -20,6 +20,7 @@ var DAEMON_RESTART_FAILED = "daemon_restart_failed";
 var DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed";
 var API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed";
 var API_PROFILE_UPDATE_FAILED = "api_profile_update_failed";
+var API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed";
 var API_STANDUP_TEAM_FETCH_FAILED = "api_standup_team_fetch_failed";
 var API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed";
 var API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed";
@@ -75,5 +76,6 @@ export {
   API_STANDUP_PROMPT_FETCH_FAILED,
   API_STANDUP_GENERATION_FAILED,
   API_PROFILE_UPDATE_FAILED,
+  API_PROFILE_METADATA_PREFETCH_FAILED,
   API_DATA_CONTROLS_FETCH_FAILED
 };

@@ -4,42 +4,61 @@ var __getProtoOf = Object.getPrototypeOf;
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+function __accessProp(key) {
+  return this[key];
+}
 var __reExport = (target, mod, secondTarget) => {
-  for (let key of __getOwnPropNames(mod))
+  var keys = __getOwnPropNames(mod);
+  for (let key of keys)
     if (!__hasOwnProp.call(target, key) && key !== "default")
       __defProp(target, key, {
-        get: () => mod[key],
+        get: __accessProp.bind(mod, key),
         enumerable: true
       });
   if (secondTarget) {
-    for (let key of __getOwnPropNames(mod))
+    for (let key of keys)
       if (!__hasOwnProp.call(secondTarget, key) && key !== "default")
         __defProp(secondTarget, key, {
-          get: () => mod[key],
+          get: __accessProp.bind(mod, key),
           enumerable: true
         });
     return secondTarget;
   }
 };
+var __toESMCache_node;
+var __toESMCache_esm;
 var __toESM = (mod, isNodeMode, target) => {
+  var canCache = mod != null && typeof mod === "object";
+  if (canCache) {
+    var cache = isNodeMode ? __toESMCache_node ??= new WeakMap : __toESMCache_esm ??= new WeakMap;
+    var cached = cache.get(mod);
+    if (cached)
+      return cached;
+  }
   target = mod != null ? __create(__getProtoOf(mod)) : {};
   const to = isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target;
   for (let key of __getOwnPropNames(mod))
     if (!__hasOwnProp.call(to, key))
       __defProp(to, key, {
-        get: () => mod[key],
+        get: __accessProp.bind(mod, key),
         enumerable: true
       });
+  if (canCache)
+    cache.set(mod, to);
   return to;
 };
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
+var __returnValue = (v) => v;
+function __exportSetter(name, newValue) {
+  this[name] = __returnValue.bind(null, newValue);
+}
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, {
       get: all[name],
       enumerable: true,
       configurable: true,
-      set: (newValue) => all[name] = () => newValue
+      set: __exportSetter.bind(all, name)
     });
 };
 var __esm = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
@@ -5025,6 +5044,7 @@ __export(exports_constants, {
   DEBOUNCE_WINDOW_MS: () => DEBOUNCE_WINDOW_MS,
   DEBOUNCE_TRAILING_MS: () => DEBOUNCE_TRAILING_MS,
   DEBOUNCE_DIR: () => DEBOUNCE_DIR,
+  DAEMON_WARMUP_GRACE_MS: () => DAEMON_WARMUP_GRACE_MS,
   DAEMON_PID_FILE: () => DAEMON_PID_FILE,
   DAEMON_INACTIVITY_TIMEOUT_MS: () => DAEMON_INACTIVITY_TIMEOUT_MS,
   DAEMON_FRESH_PID_THRESHOLD_MS: () => DAEMON_FRESH_PID_THRESHOLD_MS,
@@ -5038,7 +5058,7 @@ __export(exports_constants, {
 });
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_INSTALL_DIR, CLAUDE_DIR_SEPARATOR_PATTERN, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, PLATFORM = "terminal", SOURCE = "claude-code", CLIENT_ID = "claude-cli", SYNC_INTERVAL_MS = 60000, MAX_RETRY_ATTEMPTS = 3, RETRY_BACKOFF_MS = 5000, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DEBOUNCE_WINDOW_MS = 500, DEBOUNCE_TRAILING_MS = 300, DELAYED_EXTRACTION_INITIAL_DELAY_MS = 500, DELAYED_EXTRACTION_MAX_WAIT_MS = 1e4, DELAYED_EXTRACTION_CHECK_INTERVAL_MS = 300, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MAX_CONTENT_PREVIEW_LENGTH = 1000, MAX_SESSION_TITLE_LENGTH = 100, MIN_SESSION_TITLE_LENGTH = 3, MIN_MESSAGES_PER_SESSION = 3, STALE_SESSION_AGE_MS, WEB_APP_URL = "https://app.meetzest.com", SUPABASE_URL = "https://fnnlebrtmlxxjwdvngck.supabase.co", SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubmxlYnJ0bWx4eGp3ZHZuZ2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MzA3MjYsImV4cCI6MjA3MjMwNjcyNn0.0IE3HCY_DiyyALdewbRn1vkedwzDW27NQMQ28V6j4Dk", POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", EXCLUDED_COMMAND_PATTERNS, ZEST_SESSION_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341", MARKETPLACE_PLUGIN_JSON_URL = "https://raw.githubusercontent.com/Winding-Labs/zest-claude/refs/heads/main/zest/.claude-plugin/plugin.json", VERSION_CHECK_TIMEOUT_MS = 5000, UPDATE_CHECK_CACHE_TTL_MS, DAEMON_FRESH_PID_THRESHOLD_MS = 2000, DAEMON_INACTIVITY_TIMEOUT_MS, NOTIFICATION_DURATION_MS, FIRST_DATA_THRESHOLD_MESSAGES = 5, STANDUP_NOTIFICATION_THROTTLE_MS, SYNC_METRICS_RETENTION_MS, DEFAULT_STANDUP_MODEL = "anthropic/claude-opus-4-5";
+var CLAUDE_INSTALL_DIR, CLAUDE_DIR_SEPARATOR_PATTERN, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, PLATFORM = "terminal", SOURCE = "claude-code", CLIENT_ID = "claude-cli", SYNC_INTERVAL_MS = 60000, MAX_RETRY_ATTEMPTS = 3, RETRY_BACKOFF_MS = 5000, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DEBOUNCE_WINDOW_MS = 500, DEBOUNCE_TRAILING_MS = 300, DELAYED_EXTRACTION_INITIAL_DELAY_MS = 500, DELAYED_EXTRACTION_MAX_WAIT_MS = 1e4, DELAYED_EXTRACTION_CHECK_INTERVAL_MS = 300, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MAX_CONTENT_PREVIEW_LENGTH = 1000, MAX_SESSION_TITLE_LENGTH = 100, MIN_SESSION_TITLE_LENGTH = 3, MIN_MESSAGES_PER_SESSION = 3, STALE_SESSION_AGE_MS, WEB_APP_URL = "https://app.meetzest.com", SUPABASE_URL = "https://fnnlebrtmlxxjwdvngck.supabase.co", SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubmxlYnJ0bWx4eGp3ZHZuZ2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MzA3MjYsImV4cCI6MjA3MjMwNjcyNn0.0IE3HCY_DiyyALdewbRn1vkedwzDW27NQMQ28V6j4Dk", POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", EXCLUDED_COMMAND_PATTERNS, ZEST_SESSION_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341", MARKETPLACE_PLUGIN_JSON_URL = "https://raw.githubusercontent.com/Winding-Labs/zest-claude/refs/heads/main/zest/.claude-plugin/plugin.json", VERSION_CHECK_TIMEOUT_MS = 5000, UPDATE_CHECK_CACHE_TTL_MS, DAEMON_FRESH_PID_THRESHOLD_MS = 2000, DAEMON_INACTIVITY_TIMEOUT_MS, DAEMON_WARMUP_GRACE_MS, NOTIFICATION_DURATION_MS, FIRST_DATA_THRESHOLD_MESSAGES = 5, STANDUP_NOTIFICATION_THROTTLE_MS, SYNC_METRICS_RETENTION_MS, DEFAULT_STANDUP_MODEL = "anthropic/claude-opus-4-5";
 var init_constants = __esm(() => {
   CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
   CLAUDE_DIR_SEPARATOR_PATTERN = /[\\/:.\s_]/g;
@@ -5054,7 +5074,7 @@ var init_constants = __esm(() => {
   DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
   CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
   STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
-  STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
+  STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
   SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
   EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
   SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
@@ -5072,6 +5092,7 @@ var init_constants = __esm(() => {
   ];
   UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
   DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+  DAEMON_WARMUP_GRACE_MS = 3 * 1000;
   NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
   STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
   SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
@@ -29335,21 +29356,22 @@ class PostHog extends PostHogBackendClient {
 }
 
 // ../../packages/analytics/src/server.ts
-function createServerAnalytics(posthogApiKey) {
+function createServerAnalytics(posthogApiKey, options) {
   const posthog2 = new PostHog(posthogApiKey, {
     host: "https://us.i.posthog.com",
     disableGeoip: false
   });
+  const defaultProps = options?.defaultProperties ?? {};
   return {
     ...createServerClient(allEvents, (distinctId, event, properties) => {
       posthog2.capture({
         distinctId,
         event,
-        properties
+        properties: { ...defaultProps, ...properties }
       });
     }, () => posthog2.shutdown()),
     captureException: (error46, distinctId, context) => {
-      posthog2.captureException(error46, distinctId, context);
+      posthog2.captureException(error46, distinctId, { ...defaultProps, ...context });
     }
   };
 }
@@ -29371,6 +29393,7 @@ var FILE_LOCK_TIMEOUT = "file_lock_timeout";
 var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
 var API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed";
 var API_PROFILE_UPDATE_FAILED = "api_profile_update_failed";
+var API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed";
 var SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed";
 var SUPABASE_SESSION_SET_FAILED = "supabase_session_set_failed";
 var SUPABASE_SESSION_REFRESH_PERSIST_FAILED = "supabase_session_refresh_persist_failed";
@@ -33239,29 +33262,33 @@ async function createOnDemandClient() {
 async function updateClaudeCodeMetadata(supabase, userId, version5) {
   try {
     logger.info("Updating Claude Code plugin metadata", { userId, version: version5 });
-    const { data: existingProfile, error: fetchError } = await supabase.from("profiles").select("metadata").eq("id", userId).single();
-    if (fetchError) {
-      logger.warn("Failed to fetch existing profile metadata:", fetchError);
+    let wasAlreadyInstalled = true;
+    try {
+      const { data: existingProfile } = await supabase.from("profiles").select("metadata").eq("id", userId).single();
+      const existingMetadata = existingProfile?.metadata || {};
+      wasAlreadyInstalled = existingMetadata?.extensions?.claudeCode?.installed === true;
+    } catch (error46) {
+      logger.debug("Could not read existing metadata for first-install tracking; skipping analytics event");
+      if (error46 instanceof Error) {
+        captureException(error46, API_PROFILE_METADATA_PREFETCH_FAILED, "profile-updater", {
+          ...buildApiProperties({ endpoint: "profiles" })
+        });
+      }
     }
-    const existingMetadata = existingProfile?.metadata || {};
-    const existingExtensions = existingMetadata?.extensions || {};
-    const wasAlreadyInstalled = existingExtensions.claudeCode?.installed === true;
-    const updatedMetadata = {
-      ...existingMetadata,
-      extensions: {
-        ...existingExtensions,
-        claudeCode: {
-          installed: true,
-          version: version5,
-          lastSeen: new Date().toISOString()
+    const { error: rpcError } = await supabase.rpc("merge_profile_metadata", {
+      p_user_id: userId,
+      p_metadata: {
+        extensions: {
+          claudeCode: {
+            installed: true,
+            version: version5,
+            lastSeen: new Date().toISOString()
+          }
         }
       }
-    };
-    const { error: upsertError } = await supabase.from("profiles").update({
-      metadata: updatedMetadata
-    }).eq("id", userId);
-    if (upsertError) {
-      throw new Error(`Failed to update profile metadata: ${upsertError.message}`);
+    });
+    if (rpcError) {
+      throw new Error(`Failed to merge profile metadata: ${rpcError.message}`);
     }
     if (!wasAlreadyInstalled) {
       await trackExtensionInstalled(userId, version5);
@@ -37764,7 +37791,8 @@ var DEFAULT_STATUS_CACHE = {
   versionCheck: DEFAULT_VERSION_CHECK,
   syncStatus: DEFAULT_SYNC_STATUS,
   devMode: DEFAULT_DEV_MODE_STATUS,
-  standupNotification: DEFAULT_STANDUP_NOTIFICATION
+  standupNotification: DEFAULT_STANDUP_NOTIFICATION,
+  daemonWarmingUpUntil: null
 };
 function readStatusCache() {
   try {
@@ -37781,7 +37809,8 @@ function readStatusCache() {
         },
         syncStatus: DEFAULT_SYNC_STATUS,
         devMode: DEFAULT_DEV_MODE_STATUS,
-        standupNotification: DEFAULT_STANDUP_NOTIFICATION
+        standupNotification: DEFAULT_STANDUP_NOTIFICATION,
+        daemonWarmingUpUntil: null
       };
       return migrated;
     }
@@ -37801,7 +37830,8 @@ function readStatusCache() {
       standupNotification: {
         ...DEFAULT_STANDUP_NOTIFICATION,
         ...parsed.standupNotification
-      }
+      },
+      daemonWarmingUpUntil: parsed.daemonWarmingUpUntil ?? null
     };
   } catch (error46) {
     if (error46.code === "ENOENT") {
@@ -38429,6 +38459,17 @@ async function recordSyncMetric(entry) {
 
 // src/supabase/chat-uploader.ts
 init_constants();
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/sha1.js
+import { createHash } from "node:crypto";
+function sha1(bytes) {
+  if (Array.isArray(bytes)) {
+    bytes = Buffer.from(bytes);
+  } else if (typeof bytes === "string") {
+    bytes = Buffer.from(bytes, "utf8");
+  }
+  return createHash("sha1").update(bytes).digest();
+}
+var sha1_default = sha1;
 
 // ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/regex.js
 var regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
@@ -38493,18 +38534,6 @@ function v35(version5, hash2, value, namespace, buf, offset) {
   }
   return unsafeStringify(bytes);
 }
-
-// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/sha1.js
-import { createHash } from "node:crypto";
-function sha1(bytes) {
-  if (Array.isArray(bytes)) {
-    bytes = Buffer.from(bytes);
-  } else if (typeof bytes === "string") {
-    bytes = Buffer.from(bytes, "utf8");
-  }
-  return createHash("sha1").update(bytes).digest();
-}
-var sha1_default = sha1;
 
 // ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/v5.js
 function v5(value, namespace, buf, offset) {

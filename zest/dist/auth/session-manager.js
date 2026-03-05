@@ -3,25 +3,43 @@ var __getProtoOf = Object.getPrototypeOf;
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+function __accessProp(key) {
+  return this[key];
+}
+var __toESMCache_node;
+var __toESMCache_esm;
 var __toESM = (mod, isNodeMode, target) => {
+  var canCache = mod != null && typeof mod === "object";
+  if (canCache) {
+    var cache = isNodeMode ? __toESMCache_node ??= new WeakMap : __toESMCache_esm ??= new WeakMap;
+    var cached = cache.get(mod);
+    if (cached)
+      return cached;
+  }
   target = mod != null ? __create(__getProtoOf(mod)) : {};
   const to = isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target;
   for (let key of __getOwnPropNames(mod))
     if (!__hasOwnProp.call(to, key))
       __defProp(to, key, {
-        get: () => mod[key],
+        get: __accessProp.bind(mod, key),
         enumerable: true
       });
+  if (canCache)
+    cache.set(mod, to);
   return to;
 };
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
+var __returnValue = (v) => v;
+function __exportSetter(name, newValue) {
+  this[name] = __returnValue.bind(null, newValue);
+}
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, {
       get: all[name],
       enumerable: true,
       configurable: true,
-      set: (newValue) => all[name] = () => newValue
+      set: __exportSetter.bind(all, name)
     });
 };
 
@@ -21083,21 +21101,22 @@ class PostHog extends PostHogBackendClient {
 }
 
 // ../../packages/analytics/src/server.ts
-function createServerAnalytics(posthogApiKey) {
+function createServerAnalytics(posthogApiKey, options) {
   const posthog2 = new PostHog(posthogApiKey, {
     host: "https://us.i.posthog.com",
     disableGeoip: false
   });
+  const defaultProps = options?.defaultProperties ?? {};
   return {
     ...createServerClient(allEvents, (distinctId, event, properties) => {
       posthog2.capture({
         distinctId,
         event,
-        properties
+        properties: { ...defaultProps, ...properties }
       });
     }, () => posthog2.shutdown()),
     captureException: (error46, distinctId, context) => {
-      posthog2.captureException(error46, distinctId, context);
+      posthog2.captureException(error46, distinctId, { ...defaultProps, ...context });
     }
   };
 }
@@ -21117,7 +21136,7 @@ var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
 var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
 var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
 var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
-var STATUS_CACHE_FILE = join(CLAUDE_ZEST_DIR, "status-cache.json");
+var STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
 var SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
@@ -21131,6 +21150,7 @@ var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ";
 var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
 var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+var DAEMON_WARMUP_GRACE_MS = 3 * 1000;
 var NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
 var STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
 var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
