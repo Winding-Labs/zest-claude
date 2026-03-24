@@ -165,7 +165,8 @@ function getClaudeCodeVersion() {
     const output = execSync("claude --version", {
       timeout: 2000,
       encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"]
+      stdio: ["pipe", "pipe", "pipe"],
+      windowsHide: true
     });
     const version = output.trim().split(" ")[0];
     cachedVersion = version || undefined;

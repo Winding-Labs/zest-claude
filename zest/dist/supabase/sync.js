@@ -25736,11 +25736,11 @@ var authEvents = {
 
 // ../../packages/analytics/src/schemas/extension.events.ts
 var extensionEvents = {
-  cheatcodeClicked: {
-    name: "Cheatcode Clicked",
+  aiPracticeClicked: {
+    name: "AI Practice Clicked",
     schema: exports_external.object({
-      cheatcodeId: exports_external.string(),
-      cheatcodeName: exports_external.string(),
+      aiPracticeId: exports_external.string(),
+      aiPracticeName: exports_external.string(),
       workspaceId: exports_external.uuid().optional(),
       domain: exports_external.string().optional(),
       email: exports_external.email().optional()
@@ -33620,13 +33620,15 @@ async function createOnDemandClient() {
   }
 }
 // ../../packages/types/data-controls.ts
-var RETENTION_PERIODS = ["7d", "30d", "90d", "1y", "forever"];
+var RETENTION_PERIODS = ["12h", "1d", "7d", "30d", "90d", "1y", "forever"];
 var RETENTION_PERIOD_ORDER = {
-  "7d": 0,
-  "30d": 1,
-  "90d": 2,
-  "1y": 3,
-  forever: 4
+  "12h": 0,
+  "1d": 1,
+  "7d": 2,
+  "30d": 3,
+  "90d": 4,
+  "1y": 5,
+  forever: 6
 };
 var WORKSPACE_COLLECTION_DEFAULTS = {
   user_messages: true,
@@ -33664,32 +33666,32 @@ var PROMPT_TAGS = {
   TOP_5: {
     id: "top-5",
     displayName: "\uD83D\uDD79️ Top 5",
-    description: "Essential cheatcodes for maximum productivity",
-    category: "cheatcodes"
+    description: "Essential practices for maximum productivity",
+    category: "practices"
   },
   ANALYZE_PROMPTS: {
     id: "analyze-prompts",
     displayName: "\uD83D\uDCC8 Analyze my prompts",
     description: "Analyze your AI usage patterns and prompt effectiveness",
-    category: "cheatcodes"
+    category: "practices"
   },
   CHECKLISTS: {
     id: "checklists",
     displayName: "✅ Checklists",
     description: "Comprehensive checklists for common development tasks",
-    category: "cheatcodes"
+    category: "practices"
   },
   PROMPT_HACKS: {
     id: "prompt-hacks",
     displayName: "\uD83D\uDCAC Prompt Hacks",
     description: "Advanced techniques for better AI interactions",
-    category: "cheatcodes"
+    category: "practices"
   },
   AI_CODING_STACK: {
     id: "ai-coding-stack",
     displayName: "\uD83E\uDD16 AI Coding Stack",
     description: "Tools and configurations for AI-assisted development",
-    category: "cheatcodes"
+    category: "practices"
   }
 };
 var AVAILABLE_PROMPT_TAGS = Object.values(PROMPT_TAGS);

@@ -17554,11 +17554,11 @@ var authEvents = {
 
 // ../../packages/analytics/src/schemas/extension.events.ts
 var extensionEvents = {
-  cheatcodeClicked: {
-    name: "Cheatcode Clicked",
+  aiPracticeClicked: {
+    name: "AI Practice Clicked",
     schema: exports_external.object({
-      cheatcodeId: exports_external.string(),
-      cheatcodeName: exports_external.string(),
+      aiPracticeId: exports_external.string(),
+      aiPracticeName: exports_external.string(),
       workspaceId: exports_external.uuid().optional(),
       domain: exports_external.string().optional(),
       email: exports_external.email().optional()
@@ -21346,7 +21346,8 @@ function getClaudeCodeVersion() {
     const output = execSync("claude --version", {
       timeout: 2000,
       encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"]
+      stdio: ["pipe", "pipe", "pipe"],
+      windowsHide: true
     });
     const version3 = output.trim().split(" ")[0];
     cachedVersion = version3 || undefined;

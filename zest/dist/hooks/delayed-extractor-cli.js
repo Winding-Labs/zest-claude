@@ -21808,11 +21808,11 @@ var authEvents = {
 
 // ../../packages/analytics/src/schemas/extension.events.ts
 var extensionEvents = {
-  cheatcodeClicked: {
-    name: "Cheatcode Clicked",
+  aiPracticeClicked: {
+    name: "AI Practice Clicked",
     schema: exports_external2.object({
-      cheatcodeId: exports_external2.string(),
-      cheatcodeName: exports_external2.string(),
+      aiPracticeId: exports_external2.string(),
+      aiPracticeName: exports_external2.string(),
       workspaceId: exports_external2.uuid().optional(),
       domain: exports_external2.string().optional(),
       email: exports_external2.email().optional()
@@ -25751,6 +25751,18 @@ function getLanguageFromPath(filePath) {
   const ext = filePath.split(".").pop()?.toLowerCase();
   return languageMap[ext || ""] || "plaintext";
 }
+// ../../packages/utils/src/date-range.ts
+var PERIOD_TYPE_LABELS = {
+  ["today" /* Today */]: "Today",
+  ["this_week" /* ThisWeek */]: "This Week",
+  ["this_month" /* ThisMonth */]: "This Month"
+};
+var PERIOD_SUMMARY_LABELS = {
+  ["today" /* Today */]: "Daily Summary",
+  ["this_week" /* ThisWeek */]: "Weekly Summary",
+  ["this_month" /* ThisMonth */]: "Monthly Summary",
+  custom: "Custom Period"
+};
 // ../../packages/utils/src/git-utils.ts
 import { exec, execSync } from "node:child_process";
 import * as path from "node:path";

@@ -17554,11 +17554,11 @@ var authEvents = {
 
 // ../../packages/analytics/src/schemas/extension.events.ts
 var extensionEvents = {
-  cheatcodeClicked: {
-    name: "Cheatcode Clicked",
+  aiPracticeClicked: {
+    name: "AI Practice Clicked",
     schema: exports_external.object({
-      cheatcodeId: exports_external.string(),
-      cheatcodeName: exports_external.string(),
+      aiPracticeId: exports_external.string(),
+      aiPracticeName: exports_external.string(),
       workspaceId: exports_external.uuid().optional(),
       domain: exports_external.string().optional(),
       email: exports_external.email().optional()
@@ -21433,14 +21433,15 @@ async function fetchUserTeamAndProfile(supabase, userId, workspaceId) {
       logger.error("Failed to fetch team membership", membershipError);
       return null;
     }
-    const { data: profileData, error: profileError } = await supabase.from("profiles").select("slug").eq("id", userId).single();
+    const { data: profileData, error: profileError } = await supabase.from("profiles").select("slug, timezone").eq("id", userId).single();
     if (profileError || !profileData) {
       logger.error("Failed to fetch user profile", profileError);
       return null;
     }
     return {
       teamId: membershipData.team_id,
-      userSlug: profileData.slug
+      userSlug: profileData.slug,
+      timezone: profileData.timezone ?? null
     };
   } catch (error46) {
     logger.error("Error fetching team and profile for standup", error46);

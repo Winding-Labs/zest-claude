@@ -25746,11 +25746,11 @@ var authEvents = {
 
 // ../../packages/analytics/src/schemas/extension.events.ts
 var extensionEvents = {
-  cheatcodeClicked: {
-    name: "Cheatcode Clicked",
+  aiPracticeClicked: {
+    name: "AI Practice Clicked",
     schema: exports_external.object({
-      cheatcodeId: exports_external.string(),
-      cheatcodeName: exports_external.string(),
+      aiPracticeId: exports_external.string(),
+      aiPracticeName: exports_external.string(),
       workspaceId: exports_external.uuid().optional(),
       domain: exports_external.string().optional(),
       email: exports_external.email().optional()
@@ -29383,6 +29383,7 @@ var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var MIN_MESSAGES_PER_SESSION = 3;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+var WEB_APP_URL = "https://app.meetzest.com";
 var SUPABASE_URL = "https://fnnlebrtmlxxjwdvngck.supabase.co";
 var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubmxlYnJ0bWx4eGp3ZHZuZ2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MzA3MjYsImV4cCI6MjA3MjMwNjcyNn0.0IE3HCY_DiyyALdewbRn1vkedwzDW27NQMQ28V6j4Dk";
 var POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ";
@@ -29619,7 +29620,8 @@ function getClaudeCodeVersion() {
     const output = execSync("claude --version", {
       timeout: 2000,
       encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"]
+      stdio: ["pipe", "pipe", "pipe"],
+      windowsHide: true
     });
     const version3 = output.trim().split(" ")[0];
     cachedVersion = version3 || undefined;
@@ -34266,7 +34268,7 @@ async function checkFirstDataReadyNotification(supabase, session) {
       return;
     }
     logger.info("Showing first data ready notification");
-    await writeStandupNotification("\x1B[1;32m✨ Zest got your first code! You're ready to generate your first standup!\x1B[0m", {
+    await writeStandupNotification(`\x1B[1;32m✨ Zest got your first code! Now, code away and we'll let you know when your AI standup is ready at ${WEB_APP_URL}/me\x1B[0m`, {
       updateFirstDataReadyThrottle: true
     });
   } catch (error46) {
@@ -37234,13 +37236,15 @@ async function destroyDaemonClient() {
   }
 }
 // ../../packages/types/data-controls.ts
-var RETENTION_PERIODS = ["7d", "30d", "90d", "1y", "forever"];
+var RETENTION_PERIODS = ["12h", "1d", "7d", "30d", "90d", "1y", "forever"];
 var RETENTION_PERIOD_ORDER = {
-  "7d": 0,
-  "30d": 1,
-  "90d": 2,
-  "1y": 3,
-  forever: 4
+  "12h": 0,
+  "1d": 1,
+  "7d": 2,
+  "30d": 3,
+  "90d": 4,
+  "1y": 5,
+  forever: 6
 };
 var WORKSPACE_COLLECTION_DEFAULTS = {
   user_messages: true,
@@ -37278,32 +37282,32 @@ var PROMPT_TAGS = {
   TOP_5: {
     id: "top-5",
     displayName: "\uD83D\uDD79️ Top 5",
-    description: "Essential cheatcodes for maximum productivity",
-    category: "cheatcodes"
+    description: "Essential practices for maximum productivity",
+    category: "practices"
   },
   ANALYZE_PROMPTS: {
     id: "analyze-prompts",
     displayName: "\uD83D\uDCC8 Analyze my prompts",
     description: "Analyze your AI usage patterns and prompt effectiveness",
-    category: "cheatcodes"
+    category: "practices"
   },
   CHECKLISTS: {
     id: "checklists",
     displayName: "✅ Checklists",
     description: "Comprehensive checklists for common development tasks",
-    category: "cheatcodes"
+    category: "practices"
   },
   PROMPT_HACKS: {
     id: "prompt-hacks",
     displayName: "\uD83D\uDCAC Prompt Hacks",
     description: "Advanced techniques for better AI interactions",
-    category: "cheatcodes"
+    category: "practices"
   },
   AI_CODING_STACK: {
     id: "ai-coding-stack",
     displayName: "\uD83E\uDD16 AI Coding Stack",
     description: "Tools and configurations for AI-assisted development",
-    category: "cheatcodes"
+    category: "practices"
   }
 };
 var AVAILABLE_PROMPT_TAGS = Object.values(PROMPT_TAGS);
