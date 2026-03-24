@@ -5002,6 +5002,7 @@ var LOG_RETENTION_DAYS = 7;
 var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+var WEB_APP_URL = "https://app.meetzest.com";
 var POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ";
 var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
 var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
@@ -17764,11 +17765,11 @@ var authEvents = {
 
 // ../../packages/analytics/src/schemas/extension.events.ts
 var extensionEvents = {
-  cheatcodeClicked: {
-    name: "Cheatcode Clicked",
+  aiPracticeClicked: {
+    name: "AI Practice Clicked",
     schema: exports_external.object({
-      cheatcodeId: exports_external.string(),
-      cheatcodeName: exports_external.string(),
+      aiPracticeId: exports_external.string(),
+      aiPracticeName: exports_external.string(),
       workspaceId: exports_external.uuid().optional(),
       domain: exports_external.string().optional(),
       email: exports_external.email().optional()
@@ -21728,7 +21729,7 @@ async function checkFirstDataReadyNotification(supabase, session) {
       return;
     }
     logger.info("Showing first data ready notification");
-    await writeStandupNotification("\x1B[1;32m✨ Zest got your first code! You're ready to generate your first standup!\x1B[0m", {
+    await writeStandupNotification(`\x1B[1;32m✨ Zest got your first code! Now, code away and we'll let you know when your AI standup is ready at ${WEB_APP_URL}/me\x1B[0m`, {
       updateFirstDataReadyThrottle: true
     });
   } catch (error46) {

@@ -13145,16 +13145,48 @@ var require_main4 = __commonJS((exports2) => {
   } });
 });
 // ../../packages/utils/src/date-range.ts
-function calculateTodayDateRange(baseDate = new Date) {
-  const year = baseDate.getFullYear();
-  const month = baseDate.getMonth();
-  const day = baseDate.getDate();
-  const start = new Date(year, month, day, 0, 0, 0, 0);
-  const end = new Date(year, month, day, 23, 59, 59, 999);
+var PERIOD_TYPE_LABELS = {
+  ["today" /* Today */]: "Today",
+  ["this_week" /* ThisWeek */]: "This Week",
+  ["this_month" /* ThisMonth */]: "This Month"
+};
+var PERIOD_SUMMARY_LABELS = {
+  ["today" /* Today */]: "Daily Summary",
+  ["this_week" /* ThisWeek */]: "Weekly Summary",
+  ["this_month" /* ThisMonth */]: "Monthly Summary",
+  custom: "Custom Period"
+};
+function getLocalDateStr(timezone, referenceDate = new Date) {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+  return formatter.format(referenceDate);
+}
+function getTimezoneOffsetMs(timezone, localDateStr) {
+  const tempDate = new Date(`${localDateStr}T00:00:00Z`);
+  const utcDate = new Date(tempDate.toLocaleString("en-US", { timeZone: "UTC" }));
+  const tzDate = new Date(tempDate.toLocaleString("en-US", { timeZone: timezone }));
+  return utcDate.getTime() - tzDate.getTime();
+}
+function calculateDayDateRange(timezone, localDateStr) {
+  const offsetMs = getTimezoneOffsetMs(timezone, localDateStr);
+  const midnightUTC = new Date(`${localDateStr}T00:00:00Z`);
+  const startOfDayUTC = new Date(midnightUTC.getTime() + offsetMs);
+  const endOfDayUTC = new Date(startOfDayUTC.getTime() + 24 * 60 * 60 * 1000 - 1);
   return {
-    dateFrom: start.toISOString(),
-    dateTo: end.toISOString()
+    dateFrom: startOfDayUTC.toISOString(),
+    dateTo: endOfDayUTC.toISOString()
   };
+}
+function calculateDayDateRangeFromDate(timezone, referenceDate = new Date) {
+  const localDateStr = getLocalDateStr(timezone, referenceDate);
+  return calculateDayDateRange(timezone, localDateStr);
+}
+function resolveTimezone(storedTimezone, fallback = "UTC") {
+  return storedTimezone || fallback;
 }
 // src/analytics/events.ts
 var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
@@ -25746,11 +25778,11 @@ var authEvents = {
 
 // ../../packages/analytics/src/schemas/extension.events.ts
 var extensionEvents = {
-  cheatcodeClicked: {
-    name: "Cheatcode Clicked",
+  aiPracticeClicked: {
+    name: "AI Practice Clicked",
     schema: exports_external.object({
-      cheatcodeId: exports_external.string(),
-      cheatcodeName: exports_external.string(),
+      aiPracticeId: exports_external.string(),
+      aiPracticeName: exports_external.string(),
       workspaceId: exports_external.uuid().optional(),
       domain: exports_external.string().optional(),
       email: exports_external.email().optional()
@@ -32614,14 +32646,15 @@ async function fetchUserTeamAndProfile(supabase, userId, workspaceId) {
       logger.error("Failed to fetch team membership", membershipError);
       return null;
     }
-    const { data: profileData, error: profileError } = await supabase.from("profiles").select("slug").eq("id", userId).single();
+    const { data: profileData, error: profileError } = await supabase.from("profiles").select("slug, timezone").eq("id", userId).single();
     if (profileError || !profileData) {
       logger.error("Failed to fetch user profile", profileError);
       return null;
     }
     return {
       teamId: membershipData.team_id,
-      userSlug: profileData.slug
+      userSlug: profileData.slug,
+      timezone: profileData.timezone ?? null
     };
   } catch (error46) {
     logger.error("Error fetching team and profile for standup", error46);
@@ -32689,7 +32722,7 @@ async function main() {
         console.log("❌ No team found for your workspace");
         return;
       }
-      const { teamId, userSlug } = teamAndProfile;
+      const { teamId, userSlug, timezone } = teamAndProfile;
       const promptId = await fetchDefaultStandupPromptId(supabase, workspaceId);
       if (!promptId) {
         console.log("❌ No standup prompt configured for this workspace");
@@ -32703,7 +32736,8 @@ async function main() {
           return;
         }
       }
-      const { dateFrom, dateTo } = calculateTodayDateRange();
+      const tz = resolveTimezone(timezone);
+      const { dateFrom, dateTo } = calculateDayDateRangeFromDate(tz);
       console.log("\uD83D\uDD04 Generating standup...");
       const { error: error46 } = await supabase.functions.invoke("analyze-sessions", {
         body: {

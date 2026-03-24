@@ -17564,11 +17564,11 @@ var authEvents = {
 
 // ../../packages/analytics/src/schemas/extension.events.ts
 var extensionEvents = {
-  cheatcodeClicked: {
-    name: "Cheatcode Clicked",
+  aiPracticeClicked: {
+    name: "AI Practice Clicked",
     schema: exports_external.object({
-      cheatcodeId: exports_external.string(),
-      cheatcodeName: exports_external.string(),
+      aiPracticeId: exports_external.string(),
+      aiPracticeName: exports_external.string(),
       workspaceId: exports_external.uuid().optional(),
       domain: exports_external.string().optional(),
       email: exports_external.email().optional()
@@ -21642,7 +21642,13 @@ async function killAllDaemons() {
     }
     const execAsync = promisify(exec);
     try {
-      await execAsync(`pkill -f 'sync-daemon.js' 2>/dev/null || true`);
+      if (process.platform === "win32") {
+        await execAsync(`wmic process where "CommandLine like '%sync-daemon.js%'" call terminate`, { windowsHide: true });
+      } else {
+        await execAsync("pkill -f 'sync-daemon.js' 2>/dev/null || true", {
+          windowsHide: true
+        });
+      }
     } catch {}
     await new Promise((resolve) => setTimeout(resolve, 500));
     await cleanupPidFile();
@@ -21730,7 +21736,7 @@ function getParentPid(pid) {
       }
       return null;
     }
-    const output = execSync(`ps -o ppid= -p ${pid}`, { encoding: "utf-8" });
+    const output = execSync(`ps -o ppid= -p ${pid}`, { encoding: "utf-8", windowsHide: true });
     const ppid = Number.parseInt(output.trim(), 10);
     return Number.isNaN(ppid) ? null : ppid;
   } catch {
