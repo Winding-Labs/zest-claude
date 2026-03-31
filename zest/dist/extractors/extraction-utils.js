@@ -1347,6 +1347,9 @@ function extractToolUseResult(entry, sessionId) {
       file_path: result.filePath,
       timestamp: entry.timestamp || new Date().toISOString()
     };
+    if (entry.permissionMode) {
+      toolUse.permission_mode = entry.permissionMode;
+    }
     if (result.structuredPatch || result.oldString !== undefined || result.newString !== undefined) {
       const rawDiff = {
         old_string: result.oldString,

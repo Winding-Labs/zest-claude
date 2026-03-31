@@ -7520,8 +7520,8 @@ var require_RealtimeChannel = __commonJS((exports2) => {
     _trigger(type, payload, ref) {
       var _a, _b;
       const typeLower = type.toLocaleLowerCase();
-      const { close, error: error46, leave, join: join5 } = constants_1.CHANNEL_EVENTS;
-      const events = [close, error46, leave, join5];
+      const { close, error: error46, leave, join: join6 } = constants_1.CHANNEL_EVENTS;
+      const events = [close, error46, leave, join6];
       if (ref && events.indexOf(typeLower) >= 0 && ref !== this._joinRef()) {
         return;
       }
@@ -25793,6 +25793,13 @@ var workspaceEvents = {
       invitedEmails: exports_external.array(exports_external.string()),
       invitedCount: exports_external.number()
     })
+  },
+  linkInvitationCreated: {
+    name: "Link Invitation Created",
+    schema: exports_external.object({
+      workspaceId: exports_external.string(),
+      teamId: exports_external.string()
+    })
   }
 };
 
@@ -30472,6 +30479,70 @@ function normalizeSessionId(sessionId) {
   return v5_default(sessionId, ZEST_SESSION_NAMESPACE);
 }
 
+// src/utils/signal-state.ts
+import { readFile as readFile5, writeFile as writeFile5 } from "node:fs/promises";
+import { join as join5 } from "node:path";
+
+// src/utils/signal-scanner.ts
+var EMPTY_SIGNALS = {
+  mcp_usage: {},
+  skill_usage: {},
+  agent_usage: {},
+  builtin_usage: {},
+  unknown_usage: {},
+  image_count: 0
+};
+var KNOWN_BUILTIN_NAMES = new Set([
+  "Bash",
+  "Read",
+  "Edit",
+  "Write",
+  "Glob",
+  "Grep",
+  "WebFetch",
+  "WebSearch",
+  "LSP",
+  "NotebookEdit"
+]);
+var KNOWN_TOOL_NAMES = new Set([...KNOWN_BUILTIN_NAMES, "Task", "Agent", "Skill"]);
+
+// src/utils/signal-state.ts
+function getSignalStatePath(sessionId) {
+  return join5(STATE_DIR, `signals-${sessionId}.json`);
+}
+async function readStateFromFile(stateFile) {
+  try {
+    const content = await readFile5(stateFile, "utf-8");
+    return JSON.parse(content);
+  } catch {
+    return { lastReadLine: 0, totals: EMPTY_SIGNALS };
+  }
+}
+async function readSessionSignals(sessionId) {
+  const stateFile = getSignalStatePath(sessionId);
+  try {
+    return await withFileLock(stateFile, async () => {
+      const state = await readStateFromFile(stateFile);
+      return hasSignalData(state.totals) ? state.totals : null;
+    });
+  } catch {
+    return null;
+  }
+}
+function hasSignalData(signals) {
+  for (const key of Object.keys(EMPTY_SIGNALS)) {
+    const value = signals[key];
+    if (typeof value === "number") {
+      if (value !== 0)
+        return true;
+    } else if (typeof value === "object" && value !== null && value !== undefined) {
+      if (Object.keys(value).length > 0)
+        return true;
+    }
+  }
+  return false;
+}
+
 // src/supabase/chat-uploader.ts
 function getMaxMessageIndexPerSession(messages) {
   const maxIndices = new Map;
@@ -30592,13 +30663,15 @@ function deduplicateMessages(messages) {
   }
   return Array.from(messageMap.values());
 }
-function enrichSessionsForUpload(sessions, userId, workspaceId) {
-  const filteredSessions = sessions.filter((s) => s.id);
+async function enrichSessionsForUpload(sessions, userId, workspaceId) {
+  const filteredSessions = sessions.filter((s) => !!s.id);
   if (filteredSessions.length < sessions.length) {
     logger.warn(`Filtered out ${sessions.length - filteredSessions.length} sessions without IDs`);
   }
-  return filteredSessions.map((s) => {
-    return {
+  const enriched = [];
+  for (const s of filteredSessions) {
+    const signals = await readSessionSignals(s.id);
+    const session = {
       ...s,
       id: normalizeSessionId(s.id),
       title: s.title ? toWellFormed(s.title) : s.title,
@@ -30609,7 +30682,12 @@ function enrichSessionsForUpload(sessions, userId, workspaceId) {
       workspace_id: workspaceId,
       metadata: null
     };
-  });
+    if (signals) {
+      session.signals = signals;
+    }
+    enriched.push(session);
+  }
+  return enriched;
 }
 function enrichMessagesForUpload(messages, userId) {
   const filteredMessages = messages.filter((m) => m.session_id);
@@ -30716,7 +30794,7 @@ async function uploadChatData(supabase, session, dataControls) {
     const uniqueSessions = deduplicateSessions(categories.valid);
     const allMessagesToUpload = [...messagePartition.valid, ...messagePartition.orphaned];
     const uniqueMessages = deduplicateMessages(allMessagesToUpload);
-    const sessionsToUpload = enrichSessionsForUpload(uniqueSessions, session.userId, session.workspaceId || null);
+    const sessionsToUpload = await enrichSessionsForUpload(uniqueSessions, session.userId, session.workspaceId || null);
     const uploadedSessionIds = new Set(sessionsToUpload.map((s) => s.id));
     const orphanedSessionIds = new Set(messagePartition.orphaned.map((m) => normalizeSessionId(m.session_id)).filter((id) => !!id));
     const allValidSessionIds = new Set([...uploadedSessionIds, ...orphanedSessionIds]);
@@ -38008,6 +38086,60 @@ async function uploadEventsWithRetry(supabase, session, dataControls, maxRetries
   return { success: false, uploaded: 0 };
 }
 
+// src/supabase/signal-syncer.ts
+import { readdir as readdir3, unlink as unlink5 } from "node:fs/promises";
+var SIGNAL_FILE_PREFIX = "signals-";
+var SIGNAL_FILE_SUFFIX = ".json";
+async function scanSignalStateFiles() {
+  try {
+    const entries = await readdir3(STATE_DIR);
+    return entries.filter((f) => f.startsWith(SIGNAL_FILE_PREFIX) && f.endsWith(SIGNAL_FILE_SUFFIX) && !f.endsWith(".lock")).map((f) => ({
+      sessionId: f.slice(SIGNAL_FILE_PREFIX.length, -SIGNAL_FILE_SUFFIX.length),
+      fileName: f
+    }));
+  } catch {
+    return [];
+  }
+}
+async function syncSessionSignals(supabase) {
+  const stateFiles = await scanSignalStateFiles();
+  if (stateFiles.length === 0)
+    return 0;
+  let synced = 0;
+  for (const { sessionId } of stateFiles) {
+    try {
+      const stateFile = getSignalStatePath(sessionId);
+      const result = await withFileLock(stateFile, async () => {
+        const state = await readStateFromFile(stateFile);
+        if (!hasSignalData(state.totals))
+          return null;
+        const normalizedId = normalizeSessionId(sessionId);
+        const { error: error46 } = await supabase.from("chat_sessions").update({ signals: state.totals }).eq("id", normalizedId);
+        if (error46) {
+          logger.warn(`Failed to sync signals for session ${sessionId}: ${error46.message}`);
+          return null;
+        }
+        const unrecognized = state.unrecognizedToolNames ?? [];
+        if (unrecognized.length > 0) {
+          logger.debug(`Unrecognized tool names in session ${sessionId}: ${unrecognized.join(", ")}`);
+        }
+        if (state.final) {
+          try {
+            await unlink5(stateFile);
+            logger.debug(`Cleaned up final signal state: ${sessionId}`);
+          } catch {}
+        }
+        return "synced";
+      });
+      if (result === "synced")
+        synced++;
+    } catch (error46) {
+      logger.warn(`Signal sync error for ${sessionId}:`, error46);
+    }
+  }
+  return synced;
+}
+
 // src/supabase/sync.ts
 async function syncAllData(supabase, session, dataControls) {
   try {
@@ -38042,6 +38174,14 @@ async function syncAllData(supabase, session, dataControls) {
         error: "Failed to upload chat data",
         errorType: "upload_failed"
       };
+    }
+    try {
+      const signalsSynced = await syncSessionSignals(supabase);
+      if (signalsSynced > 0) {
+        logger.info(`Synced signals for ${signalsSynced} session(s)`);
+      }
+    } catch (error46) {
+      logger.warn("Signal sync failed:", error46);
     }
     logger.info("✓ Sync completed successfully");
     return {

@@ -21827,6 +21827,13 @@ var workspaceEvents = {
       invitedEmails: exports_external2.array(exports_external2.string()),
       invitedCount: exports_external2.number()
     })
+  },
+  linkInvitationCreated: {
+    name: "Link Invitation Created",
+    schema: exports_external2.object({
+      workspaceId: exports_external2.string(),
+      teamId: exports_external2.string()
+    })
   }
 };
 

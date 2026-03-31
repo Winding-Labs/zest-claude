@@ -1358,7 +1358,7 @@ class Logger {
 var logger = new Logger;
 
 // src/privacy/node-fs-adapter.ts
-import { readFile, readdir as readdir2, stat as stat2 } from "node:fs/promises";
+import { readdir as readdir2, readFile, stat as stat2 } from "node:fs/promises";
 function createNodeFsAdapter(workspaceRoot) {
   return {
     async readFile(path) {

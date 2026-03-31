@@ -17612,6 +17612,13 @@ var workspaceEvents = {
       invitedEmails: exports_external.array(exports_external.string()),
       invitedCount: exports_external.number()
     })
+  },
+  linkInvitationCreated: {
+    name: "Link Invitation Created",
+    schema: exports_external.object({
+      workspaceId: exports_external.string(),
+      teamId: exports_external.string()
+    })
   }
 };
 
@@ -22627,7 +22634,7 @@ class PrivacyService {
   }
 }
 // src/privacy/node-fs-adapter.ts
-import { readFile as readFile2, readdir as readdir2, stat as stat2 } from "node:fs/promises";
+import { readdir as readdir2, readFile as readFile2, stat as stat2 } from "node:fs/promises";
 function createNodeFsAdapter(workspaceRoot) {
   return {
     async readFile(path) {

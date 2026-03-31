@@ -4973,8 +4973,48 @@ var require_main = __commonJS((exports) => {
   exports.COPY_AUTOCAPTURE_EVENT = ne, exports.Compression = oe, exports.DisplaySurveyType = Bn, exports.PostHog = jo, exports.SurveyEventName = zn, exports.SurveyEventProperties = Hn, exports.SurveyEventType = Mn, exports.SurveyPosition = An, exports.SurveyQuestionBranchingType = Nn, exports.SurveyQuestionType = Ln, exports.SurveySchedule = Un, exports.SurveyTabPosition = Dn, exports.SurveyType = jn, exports.SurveyWidgetType = On, exports.default = No, exports.posthog = No, exports.severityLevels = ["fatal", "error", "warning", "log", "info", "debug"];
 });
 
+// src/supabase/signal-syncer.ts
+import { readdir as readdir3, unlink as unlink4 } from "node:fs/promises";
+
+// src/config/constants.ts
+import { homedir } from "node:os";
+import { join } from "node:path";
+var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
+var CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
+var CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
+var CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
+var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
+var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
+var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
+var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
+var SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
+var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
+var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
+var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
+var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
+var STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
+var SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
+var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
+var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
+var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
+var LOCK_RETRY_MS = 50;
+var LOCK_MAX_RETRIES = 300;
+var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
+var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
+var LOG_RETENTION_DAYS = 7;
+var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
+var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+var POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ";
+var ZEST_SESSION_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341";
+var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
+var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+var DAEMON_WARMUP_GRACE_MS = 3 * 1000;
+var NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
+var STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
+var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
+
 // src/utils/file-lock.ts
-import { unlinkSync } from "node:fs";
 import { readdir as readdir2, readFile as readFile2, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
 import { dirname as dirname4 } from "node:path";
 
@@ -21143,43 +21183,6 @@ function buildFileSystemProperties(options) {
   };
 }
 
-// src/config/constants.ts
-import { homedir } from "node:os";
-import { join } from "node:path";
-var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
-var CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
-var CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
-var CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
-var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
-var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
-var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
-var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-var SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
-var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
-var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
-var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
-var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
-var STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
-var SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
-var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
-var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
-var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
-var LOCK_RETRY_MS = 50;
-var LOCK_MAX_RETRIES = 300;
-var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
-var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
-var LOG_RETENTION_DAYS = 7;
-var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
-var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
-var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-var POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ";
-var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
-var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
-var DAEMON_WARMUP_GRACE_MS = 3 * 1000;
-var NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
-var STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
-var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
-
 // src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
 async function ensureDirectory(dirPath) {
@@ -21493,52 +21496,6 @@ async function releaseFileLock(filePath) {
   activeLockFiles.delete(lockFile);
   await unlink3(lockFile).catch(() => {});
 }
-function cleanupLockFiles() {
-  for (const lockFile of activeLockFiles) {
-    try {
-      unlinkSync(lockFile);
-    } catch {}
-  }
-  activeLockFiles.clear();
-}
-async function cleanupStaleLocks() {
-  try {
-    const files = await readdir2(QUEUE_DIR).catch(() => []);
-    const lockFiles = files.filter((f) => f.endsWith(".lock"));
-    for (const lockFileName of lockFiles) {
-      const lockFile = `${QUEUE_DIR}/${lockFileName}`;
-      try {
-        const content = await readFile2(lockFile, "utf8");
-        const lockInfo = JSON.parse(content);
-        if (!isProcessRunning(lockInfo.pid)) {
-          await unlink3(lockFile);
-          logger.info(`Cleaned up stale lock file: ${lockFileName} (PID ${lockInfo.pid} is dead)`);
-        }
-      } catch {
-        await unlink3(lockFile).catch(() => {});
-        logger.info(`Removed corrupted lock file: ${lockFileName}`);
-      }
-    }
-  } catch (error46) {
-    logger.debug("Failed to clean up stale locks:", error46);
-  }
-}
-var cleanupRegistered = false;
-function setupLockCleanup() {
-  if (cleanupRegistered)
-    return;
-  cleanupRegistered = true;
-  process.on("exit", cleanupLockFiles);
-  process.on("SIGINT", () => {
-    cleanupLockFiles();
-    process.exit(0);
-  });
-  process.on("SIGTERM", () => {
-    cleanupLockFiles();
-    process.exit(0);
-  });
-  logger.debug("Lock cleanup handlers registered");
-}
 async function withFileLock(filePath, fn) {
   let retries = 0;
   while (!await acquireFileLock(filePath)) {
@@ -21560,8 +21517,203 @@ async function withFileLock(filePath, fn) {
     await releaseFileLock(filePath);
   }
 }
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/sha1.js
+import { createHash } from "node:crypto";
+function sha1(bytes) {
+  if (Array.isArray(bytes)) {
+    bytes = Buffer.from(bytes);
+  } else if (typeof bytes === "string") {
+    bytes = Buffer.from(bytes, "utf8");
+  }
+  return createHash("sha1").update(bytes).digest();
+}
+var sha1_default = sha1;
+
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/regex.js
+var regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
+
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/validate.js
+function validate(uuid3) {
+  return typeof uuid3 === "string" && regex_default.test(uuid3);
+}
+var validate_default = validate;
+
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/parse.js
+function parse5(uuid3) {
+  if (!validate_default(uuid3)) {
+    throw TypeError("Invalid UUID");
+  }
+  let v;
+  return Uint8Array.of((v = parseInt(uuid3.slice(0, 8), 16)) >>> 24, v >>> 16 & 255, v >>> 8 & 255, v & 255, (v = parseInt(uuid3.slice(9, 13), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(14, 18), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(19, 23), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(24, 36), 16)) / 1099511627776 & 255, v / 4294967296 & 255, v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
+}
+var parse_default = parse5;
+
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/stringify.js
+var byteToHex = [];
+for (let i = 0;i < 256; ++i) {
+  byteToHex.push((i + 256).toString(16).slice(1));
+}
+function unsafeStringify(arr, offset = 0) {
+  return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
+}
+
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/v35.js
+function stringToBytes(str) {
+  str = unescape(encodeURIComponent(str));
+  const bytes = new Uint8Array(str.length);
+  for (let i = 0;i < str.length; ++i) {
+    bytes[i] = str.charCodeAt(i);
+  }
+  return bytes;
+}
+var DNS = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+var URL2 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
+function v35(version3, hash2, value, namespace, buf, offset) {
+  const valueBytes = typeof value === "string" ? stringToBytes(value) : value;
+  const namespaceBytes = typeof namespace === "string" ? parse_default(namespace) : namespace;
+  if (typeof namespace === "string") {
+    namespace = parse_default(namespace);
+  }
+  if (namespace?.length !== 16) {
+    throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
+  }
+  let bytes = new Uint8Array(16 + valueBytes.length);
+  bytes.set(namespaceBytes);
+  bytes.set(valueBytes, namespaceBytes.length);
+  bytes = hash2(bytes);
+  bytes[6] = bytes[6] & 15 | version3;
+  bytes[8] = bytes[8] & 63 | 128;
+  if (buf) {
+    offset = offset || 0;
+    for (let i = 0;i < 16; ++i) {
+      buf[offset + i] = bytes[i];
+    }
+    return buf;
+  }
+  return unsafeStringify(bytes);
+}
+
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/v5.js
+function v5(value, namespace, buf, offset) {
+  return v35(80, sha1_default, value, namespace, buf, offset);
+}
+v5.DNS = DNS;
+v5.URL = URL2;
+var v5_default = v5;
+// src/utils/session-id-normalizer.ts
+function normalizeSessionId(sessionId) {
+  if (validate_default(sessionId)) {
+    return sessionId;
+  }
+  return v5_default(sessionId, ZEST_SESSION_NAMESPACE);
+}
+
+// src/utils/signal-state.ts
+import { readFile as readFile3, writeFile as writeFile3 } from "node:fs/promises";
+import { join as join5 } from "node:path";
+
+// src/utils/signal-scanner.ts
+var EMPTY_SIGNALS = {
+  mcp_usage: {},
+  skill_usage: {},
+  agent_usage: {},
+  builtin_usage: {},
+  unknown_usage: {},
+  image_count: 0
+};
+var KNOWN_BUILTIN_NAMES = new Set([
+  "Bash",
+  "Read",
+  "Edit",
+  "Write",
+  "Glob",
+  "Grep",
+  "WebFetch",
+  "WebSearch",
+  "LSP",
+  "NotebookEdit"
+]);
+var KNOWN_TOOL_NAMES = new Set([...KNOWN_BUILTIN_NAMES, "Task", "Agent", "Skill"]);
+
+// src/utils/signal-state.ts
+function getSignalStatePath(sessionId) {
+  return join5(STATE_DIR, `signals-${sessionId}.json`);
+}
+async function readStateFromFile(stateFile) {
+  try {
+    const content = await readFile3(stateFile, "utf-8");
+    return JSON.parse(content);
+  } catch {
+    return { lastReadLine: 0, totals: EMPTY_SIGNALS };
+  }
+}
+function hasSignalData(signals) {
+  for (const key of Object.keys(EMPTY_SIGNALS)) {
+    const value = signals[key];
+    if (typeof value === "number") {
+      if (value !== 0)
+        return true;
+    } else if (typeof value === "object" && value !== null && value !== undefined) {
+      if (Object.keys(value).length > 0)
+        return true;
+    }
+  }
+  return false;
+}
+
+// src/supabase/signal-syncer.ts
+var SIGNAL_FILE_PREFIX = "signals-";
+var SIGNAL_FILE_SUFFIX = ".json";
+async function scanSignalStateFiles() {
+  try {
+    const entries = await readdir3(STATE_DIR);
+    return entries.filter((f) => f.startsWith(SIGNAL_FILE_PREFIX) && f.endsWith(SIGNAL_FILE_SUFFIX) && !f.endsWith(".lock")).map((f) => ({
+      sessionId: f.slice(SIGNAL_FILE_PREFIX.length, -SIGNAL_FILE_SUFFIX.length),
+      fileName: f
+    }));
+  } catch {
+    return [];
+  }
+}
+async function syncSessionSignals(supabase) {
+  const stateFiles = await scanSignalStateFiles();
+  if (stateFiles.length === 0)
+    return 0;
+  let synced = 0;
+  for (const { sessionId } of stateFiles) {
+    try {
+      const stateFile = getSignalStatePath(sessionId);
+      const result = await withFileLock(stateFile, async () => {
+        const state = await readStateFromFile(stateFile);
+        if (!hasSignalData(state.totals))
+          return null;
+        const normalizedId = normalizeSessionId(sessionId);
+        const { error: error46 } = await supabase.from("chat_sessions").update({ signals: state.totals }).eq("id", normalizedId);
+        if (error46) {
+          logger.warn(`Failed to sync signals for session ${sessionId}: ${error46.message}`);
+          return null;
+        }
+        const unrecognized = state.unrecognizedToolNames ?? [];
+        if (unrecognized.length > 0) {
+          logger.debug(`Unrecognized tool names in session ${sessionId}: ${unrecognized.join(", ")}`);
+        }
+        if (state.final) {
+          try {
+            await unlink4(stateFile);
+            logger.debug(`Cleaned up final signal state: ${sessionId}`);
+          } catch {}
+        }
+        return "synced";
+      });
+      if (result === "synced")
+        synced++;
+    } catch (error46) {
+      logger.warn(`Signal sync error for ${sessionId}:`, error46);
+    }
+  }
+  return synced;
+}
 export {
-  withFileLock,
-  setupLockCleanup,
-  cleanupStaleLocks
+  syncSessionSignals,
+  scanSignalStateFiles
 };

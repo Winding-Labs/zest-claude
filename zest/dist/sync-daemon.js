@@ -25798,6 +25798,13 @@ var workspaceEvents = {
       invitedEmails: exports_external.array(exports_external.string()),
       invitedCount: exports_external.number()
     })
+  },
+  linkInvitationCreated: {
+    name: "Link Invitation Created",
+    schema: exports_external.object({
+      workspaceId: exports_external.string(),
+      teamId: exports_external.string()
+    })
   }
 };
 
@@ -37456,8 +37463,218 @@ async function updateClaudeCodeMetadata(supabase, userId, version5) {
   }
 }
 
+// src/supabase/signal-syncer.ts
+import { readdir as readdir3, unlink as unlink6 } from "node:fs/promises";
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/sha1.js
+import { createHash } from "node:crypto";
+function sha1(bytes) {
+  if (Array.isArray(bytes)) {
+    bytes = Buffer.from(bytes);
+  } else if (typeof bytes === "string") {
+    bytes = Buffer.from(bytes, "utf8");
+  }
+  return createHash("sha1").update(bytes).digest();
+}
+var sha1_default = sha1;
+
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/regex.js
+var regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
+
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/validate.js
+function validate(uuid3) {
+  return typeof uuid3 === "string" && regex_default.test(uuid3);
+}
+var validate_default = validate;
+
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/parse.js
+function parse5(uuid3) {
+  if (!validate_default(uuid3)) {
+    throw TypeError("Invalid UUID");
+  }
+  let v;
+  return Uint8Array.of((v = parseInt(uuid3.slice(0, 8), 16)) >>> 24, v >>> 16 & 255, v >>> 8 & 255, v & 255, (v = parseInt(uuid3.slice(9, 13), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(14, 18), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(19, 23), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(24, 36), 16)) / 1099511627776 & 255, v / 4294967296 & 255, v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
+}
+var parse_default = parse5;
+
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/stringify.js
+var byteToHex = [];
+for (let i = 0;i < 256; ++i) {
+  byteToHex.push((i + 256).toString(16).slice(1));
+}
+function unsafeStringify(arr, offset = 0) {
+  return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
+}
+
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/v35.js
+function stringToBytes(str) {
+  str = unescape(encodeURIComponent(str));
+  const bytes = new Uint8Array(str.length);
+  for (let i = 0;i < str.length; ++i) {
+    bytes[i] = str.charCodeAt(i);
+  }
+  return bytes;
+}
+var DNS = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+var URL2 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
+function v35(version5, hash2, value, namespace, buf, offset) {
+  const valueBytes = typeof value === "string" ? stringToBytes(value) : value;
+  const namespaceBytes = typeof namespace === "string" ? parse_default(namespace) : namespace;
+  if (typeof namespace === "string") {
+    namespace = parse_default(namespace);
+  }
+  if (namespace?.length !== 16) {
+    throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
+  }
+  let bytes = new Uint8Array(16 + valueBytes.length);
+  bytes.set(namespaceBytes);
+  bytes.set(valueBytes, namespaceBytes.length);
+  bytes = hash2(bytes);
+  bytes[6] = bytes[6] & 15 | version5;
+  bytes[8] = bytes[8] & 63 | 128;
+  if (buf) {
+    offset = offset || 0;
+    for (let i = 0;i < 16; ++i) {
+      buf[offset + i] = bytes[i];
+    }
+    return buf;
+  }
+  return unsafeStringify(bytes);
+}
+
+// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/v5.js
+function v5(value, namespace, buf, offset) {
+  return v35(80, sha1_default, value, namespace, buf, offset);
+}
+v5.DNS = DNS;
+v5.URL = URL2;
+var v5_default = v5;
+// src/utils/session-id-normalizer.ts
+function normalizeSessionId(sessionId) {
+  if (validate_default(sessionId)) {
+    return sessionId;
+  }
+  return v5_default(sessionId, ZEST_SESSION_NAMESPACE);
+}
+
+// src/utils/signal-state.ts
+import { readFile as readFile6, writeFile as writeFile6 } from "node:fs/promises";
+import { join as join5 } from "node:path";
+
+// src/utils/signal-scanner.ts
+var EMPTY_SIGNALS = {
+  mcp_usage: {},
+  skill_usage: {},
+  agent_usage: {},
+  builtin_usage: {},
+  unknown_usage: {},
+  image_count: 0
+};
+var KNOWN_BUILTIN_NAMES = new Set([
+  "Bash",
+  "Read",
+  "Edit",
+  "Write",
+  "Glob",
+  "Grep",
+  "WebFetch",
+  "WebSearch",
+  "LSP",
+  "NotebookEdit"
+]);
+var KNOWN_TOOL_NAMES = new Set([...KNOWN_BUILTIN_NAMES, "Task", "Agent", "Skill"]);
+
+// src/utils/signal-state.ts
+function getSignalStatePath(sessionId) {
+  return join5(STATE_DIR, `signals-${sessionId}.json`);
+}
+async function readStateFromFile(stateFile) {
+  try {
+    const content = await readFile6(stateFile, "utf-8");
+    return JSON.parse(content);
+  } catch {
+    return { lastReadLine: 0, totals: EMPTY_SIGNALS };
+  }
+}
+async function readSessionSignals(sessionId) {
+  const stateFile = getSignalStatePath(sessionId);
+  try {
+    return await withFileLock(stateFile, async () => {
+      const state = await readStateFromFile(stateFile);
+      return hasSignalData(state.totals) ? state.totals : null;
+    });
+  } catch {
+    return null;
+  }
+}
+function hasSignalData(signals) {
+  for (const key of Object.keys(EMPTY_SIGNALS)) {
+    const value = signals[key];
+    if (typeof value === "number") {
+      if (value !== 0)
+        return true;
+    } else if (typeof value === "object" && value !== null && value !== undefined) {
+      if (Object.keys(value).length > 0)
+        return true;
+    }
+  }
+  return false;
+}
+
+// src/supabase/signal-syncer.ts
+var SIGNAL_FILE_PREFIX = "signals-";
+var SIGNAL_FILE_SUFFIX = ".json";
+async function scanSignalStateFiles() {
+  try {
+    const entries = await readdir3(STATE_DIR);
+    return entries.filter((f) => f.startsWith(SIGNAL_FILE_PREFIX) && f.endsWith(SIGNAL_FILE_SUFFIX) && !f.endsWith(".lock")).map((f) => ({
+      sessionId: f.slice(SIGNAL_FILE_PREFIX.length, -SIGNAL_FILE_SUFFIX.length),
+      fileName: f
+    }));
+  } catch {
+    return [];
+  }
+}
+async function syncSessionSignals(supabase) {
+  const stateFiles = await scanSignalStateFiles();
+  if (stateFiles.length === 0)
+    return 0;
+  let synced = 0;
+  for (const { sessionId } of stateFiles) {
+    try {
+      const stateFile = getSignalStatePath(sessionId);
+      const result = await withFileLock(stateFile, async () => {
+        const state = await readStateFromFile(stateFile);
+        if (!hasSignalData(state.totals))
+          return null;
+        const normalizedId = normalizeSessionId(sessionId);
+        const { error: error46 } = await supabase.from("chat_sessions").update({ signals: state.totals }).eq("id", normalizedId);
+        if (error46) {
+          logger.warn(`Failed to sync signals for session ${sessionId}: ${error46.message}`);
+          return null;
+        }
+        const unrecognized = state.unrecognizedToolNames ?? [];
+        if (unrecognized.length > 0) {
+          logger.debug(`Unrecognized tool names in session ${sessionId}: ${unrecognized.join(", ")}`);
+        }
+        if (state.final) {
+          try {
+            await unlink6(stateFile);
+            logger.debug(`Cleaned up final signal state: ${sessionId}`);
+          } catch {}
+        }
+        return "synced";
+      });
+      if (result === "synced")
+        synced++;
+    } catch (error46) {
+      logger.warn(`Signal sync error for ${sessionId}:`, error46);
+    }
+  }
+  return synced;
+}
+
 // src/utils/queue-manager.ts
-import { appendFile as appendFile2, readFile as readFile6, unlink as unlink6, writeFile as writeFile6 } from "node:fs/promises";
+import { appendFile as appendFile2, readFile as readFile7, unlink as unlink7, writeFile as writeFile7 } from "node:fs/promises";
 import { dirname as dirname6 } from "node:path";
 
 // ../../packages/privacy-redaction/src/config/defaults.ts
@@ -37805,7 +38022,7 @@ function toWellFormed(str) {
 // src/utils/queue-manager.ts
 async function readJsonl(filePath) {
   try {
-    const content = await readFile6(filePath, "utf8");
+    const content = await readFile7(filePath, "utf8");
     const lines = content.trim().split(`
 `).filter(Boolean);
     const results = [];
@@ -37835,7 +38052,7 @@ async function readJsonl(filePath) {
 }
 async function countLines(filePath) {
   try {
-    const content = await readFile6(filePath, "utf8");
+    const content = await readFile7(filePath, "utf8");
     const lines = content.trim().split(`
 `).filter(Boolean);
     return lines.length;
@@ -37869,7 +38086,7 @@ async function atomicUpdateQueue(queueFile, transform2) {
       const content = newItems.map((item) => JSON.stringify(item, sanitizingReplacer)).join(`
 `) + (newItems.length > 0 ? `
 ` : "");
-      await writeFile6(queueFile, content, "utf8");
+      await writeFile7(queueFile, content, "utf8");
       logger.debug(`Atomically updated queue file: ${queueFile} (${currentItems.length} → ${newItems.length} items)`);
     });
   } catch (error46) {
@@ -37902,11 +38119,11 @@ async function initializeQueue() {
 }
 
 // src/utils/sync-metrics-manager.ts
-import { readFile as readFile7, writeFile as writeFile7 } from "node:fs/promises";
+import { readFile as readFile8, writeFile as writeFile8 } from "node:fs/promises";
 import { dirname as dirname7 } from "node:path";
 async function readMetrics() {
   try {
-    const content = await readFile7(SYNC_METRICS_FILE, "utf8");
+    const content = await readFile8(SYNC_METRICS_FILE, "utf8");
     const lines = content.trim().split(`
 `).filter(Boolean);
     const results = [];
@@ -37930,7 +38147,7 @@ async function writeMetrics(entries) {
   const content = entries.map((entry) => JSON.stringify(entry)).join(`
 `) + (entries.length > 0 ? `
 ` : "");
-  await writeFile7(SYNC_METRICS_FILE, content, "utf8");
+  await writeFile8(SYNC_METRICS_FILE, content, "utf8");
 }
 async function recordSyncMetric(entry) {
   try {
@@ -37949,96 +38166,6 @@ async function recordSyncMetric(entry) {
   } catch (error46) {
     logger.error("Failed to record sync metric", error46);
   }
-}
-// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/sha1.js
-import { createHash } from "node:crypto";
-function sha1(bytes) {
-  if (Array.isArray(bytes)) {
-    bytes = Buffer.from(bytes);
-  } else if (typeof bytes === "string") {
-    bytes = Buffer.from(bytes, "utf8");
-  }
-  return createHash("sha1").update(bytes).digest();
-}
-var sha1_default = sha1;
-
-// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/regex.js
-var regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
-
-// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/validate.js
-function validate(uuid3) {
-  return typeof uuid3 === "string" && regex_default.test(uuid3);
-}
-var validate_default = validate;
-
-// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/parse.js
-function parse5(uuid3) {
-  if (!validate_default(uuid3)) {
-    throw TypeError("Invalid UUID");
-  }
-  let v;
-  return Uint8Array.of((v = parseInt(uuid3.slice(0, 8), 16)) >>> 24, v >>> 16 & 255, v >>> 8 & 255, v & 255, (v = parseInt(uuid3.slice(9, 13), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(14, 18), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(19, 23), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(24, 36), 16)) / 1099511627776 & 255, v / 4294967296 & 255, v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
-}
-var parse_default = parse5;
-
-// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/stringify.js
-var byteToHex = [];
-for (let i = 0;i < 256; ++i) {
-  byteToHex.push((i + 256).toString(16).slice(1));
-}
-function unsafeStringify(arr, offset = 0) {
-  return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
-}
-
-// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/v35.js
-function stringToBytes(str) {
-  str = unescape(encodeURIComponent(str));
-  const bytes = new Uint8Array(str.length);
-  for (let i = 0;i < str.length; ++i) {
-    bytes[i] = str.charCodeAt(i);
-  }
-  return bytes;
-}
-var DNS = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
-var URL2 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
-function v35(version5, hash2, value, namespace, buf, offset) {
-  const valueBytes = typeof value === "string" ? stringToBytes(value) : value;
-  const namespaceBytes = typeof namespace === "string" ? parse_default(namespace) : namespace;
-  if (typeof namespace === "string") {
-    namespace = parse_default(namespace);
-  }
-  if (namespace?.length !== 16) {
-    throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
-  }
-  let bytes = new Uint8Array(16 + valueBytes.length);
-  bytes.set(namespaceBytes);
-  bytes.set(valueBytes, namespaceBytes.length);
-  bytes = hash2(bytes);
-  bytes[6] = bytes[6] & 15 | version5;
-  bytes[8] = bytes[8] & 63 | 128;
-  if (buf) {
-    offset = offset || 0;
-    for (let i = 0;i < 16; ++i) {
-      buf[offset + i] = bytes[i];
-    }
-    return buf;
-  }
-  return unsafeStringify(bytes);
-}
-
-// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/v5.js
-function v5(value, namespace, buf, offset) {
-  return v35(80, sha1_default, value, namespace, buf, offset);
-}
-v5.DNS = DNS;
-v5.URL = URL2;
-var v5_default = v5;
-// src/utils/session-id-normalizer.ts
-function normalizeSessionId(sessionId) {
-  if (validate_default(sessionId)) {
-    return sessionId;
-  }
-  return v5_default(sessionId, ZEST_SESSION_NAMESPACE);
 }
 
 // src/supabase/chat-uploader.ts
@@ -38161,13 +38288,15 @@ function deduplicateMessages(messages) {
   }
   return Array.from(messageMap.values());
 }
-function enrichSessionsForUpload(sessions, userId, workspaceId) {
-  const filteredSessions = sessions.filter((s) => s.id);
+async function enrichSessionsForUpload(sessions, userId, workspaceId) {
+  const filteredSessions = sessions.filter((s) => !!s.id);
   if (filteredSessions.length < sessions.length) {
     logger.warn(`Filtered out ${sessions.length - filteredSessions.length} sessions without IDs`);
   }
-  return filteredSessions.map((s) => {
-    return {
+  const enriched = [];
+  for (const s of filteredSessions) {
+    const signals = await readSessionSignals(s.id);
+    const session = {
       ...s,
       id: normalizeSessionId(s.id),
       title: s.title ? toWellFormed(s.title) : s.title,
@@ -38178,7 +38307,12 @@ function enrichSessionsForUpload(sessions, userId, workspaceId) {
       workspace_id: workspaceId,
       metadata: null
     };
-  });
+    if (signals) {
+      session.signals = signals;
+    }
+    enriched.push(session);
+  }
+  return enriched;
 }
 function enrichMessagesForUpload(messages, userId) {
   const filteredMessages = messages.filter((m) => m.session_id);
@@ -38285,7 +38419,7 @@ async function uploadChatData(supabase, session, dataControls) {
     const uniqueSessions = deduplicateSessions(categories.valid);
     const allMessagesToUpload = [...messagePartition.valid, ...messagePartition.orphaned];
     const uniqueMessages = deduplicateMessages(allMessagesToUpload);
-    const sessionsToUpload = enrichSessionsForUpload(uniqueSessions, session.userId, session.workspaceId || null);
+    const sessionsToUpload = await enrichSessionsForUpload(uniqueSessions, session.userId, session.workspaceId || null);
     const uploadedSessionIds = new Set(sessionsToUpload.map((s) => s.id));
     const orphanedSessionIds = new Set(messagePartition.orphaned.map((m) => normalizeSessionId(m.session_id)).filter((id) => !!id));
     const allValidSessionIds = new Set([...uploadedSessionIds, ...orphanedSessionIds]);
@@ -38652,6 +38786,14 @@ async function syncAllData(supabase, session, dataControls) {
         errorType: "upload_failed"
       };
     }
+    try {
+      const signalsSynced = await syncSessionSignals(supabase);
+      if (signalsSynced > 0) {
+        logger.info(`Synced signals for ${signalsSynced} session(s)`);
+      }
+    } catch (error46) {
+      logger.warn("Signal sync failed:", error46);
+    }
     logger.info("✓ Sync completed successfully");
     return {
       success: true,
@@ -38683,6 +38825,29 @@ async function syncAllData(supabase, session, dataControls) {
       errorType
     };
   }
+}
+
+// src/utils/state-cleanup.ts
+import { readdir as readdir4, stat as stat4, unlink as unlink8 } from "node:fs/promises";
+import { join as join6 } from "node:path";
+var STALE_STATE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+async function cleanupStaleStateFiles() {
+  try {
+    const entries = await readdir4(STATE_DIR);
+    const cutoff = Date.now() - STALE_STATE_AGE_MS;
+    for (const entry of entries) {
+      if (!entry.endsWith(".json") || entry.endsWith(".lock"))
+        continue;
+      try {
+        const filePath = join6(STATE_DIR, entry);
+        const fileStat = await stat4(filePath);
+        if (fileStat.mtimeMs < cutoff) {
+          await unlink8(filePath);
+          logger.debug(`Cleaned up stale state file: ${entry}`);
+        }
+      } catch {}
+    }
+  } catch {}
 }
 
 // src/sync-daemon.ts
@@ -38726,6 +38891,7 @@ async function runDaemon() {
   syncLogger.info(`PID: ${process.pid}`);
   syncLogger.info(`Sync interval: ${SYNC_INTERVAL_MS}ms (${SYNC_INTERVAL_MS / 1000}s)`);
   await syncLogger.cleanupOldLogs();
+  await cleanupStaleStateFiles();
   await initializeQueue();
   await writePidFile(process.pid);
   try {
@@ -38794,7 +38960,16 @@ async function syncCycle() {
     const stats = await getQueueStats();
     const totalItems = stats.events + stats.sessions + stats.messages;
     if (totalItems === 0) {
-      syncLogger.debug("No data to sync, skipping");
+      if (supabase) {
+        try {
+          const synced = await syncSessionSignals(supabase);
+          if (synced > 0) {
+            syncLogger.info(`Synced signals for ${synced} session(s) (no queue data)`);
+          }
+        } catch (error46) {
+          syncLogger.error("Signal-only sync failed", error46);
+        }
+      }
       return;
     }
     syncLogger.info(`Starting sync: ${stats.events} events, ${stats.sessions} sessions, ${stats.messages} messages`);

@@ -21860,6 +21860,13 @@ var workspaceEvents = {
       invitedEmails: exports_external2.array(exports_external2.string()),
       invitedCount: exports_external2.number()
     })
+  },
+  linkInvitationCreated: {
+    name: "Link Invitation Created",
+    schema: exports_external2.object({
+      workspaceId: exports_external2.string(),
+      teamId: exports_external2.string()
+    })
   }
 };
 
@@ -27098,6 +27105,9 @@ function extractToolUseResult(entry, sessionId) {
       file_path: result.filePath,
       timestamp: entry.timestamp || new Date().toISOString()
     };
+    if (entry.permissionMode) {
+      toolUse.permission_mode = entry.permissionMode;
+    }
     if (result.structuredPatch || result.oldString !== undefined || result.newString !== undefined) {
       const rawDiff = {
         old_string: result.oldString,
@@ -27260,6 +27270,9 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
                 if (role === "assistant" && entry.message.model) {
                   metadata.modelName = entry.message.model;
                 }
+                if (entry.permissionMode) {
+                  metadata.permission_mode = entry.permissionMode;
+                }
                 messages.push({
                   id: entry.uuid,
                   session_id: sessionId,
@@ -27287,6 +27300,8 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
             if (contentBlock.type === "tool_use") {
               const extractedToolUses = await extractToolUse(contentBlock, sessionId, entry.timestamp);
               for (const toolUse of extractedToolUses) {
+                if (entry.permissionMode)
+                  toolUse.permission_mode = entry.permissionMode;
                 toolUses.push(toolUse);
                 logger.debug(`Extracted tool use at line ${lineNumber + 1}: ${toolUse.tool_name} on ${toolUse.file_path}`);
               }
@@ -28538,7 +28553,7 @@ class PrivacyService {
 init_logger();
 
 // src/privacy/node-fs-adapter.ts
-import { readFile as readFile6, readdir as readdir5, stat as stat4 } from "node:fs/promises";
+import { readdir as readdir5, readFile as readFile6, stat as stat4 } from "node:fs/promises";
 function createNodeFsAdapter(workspaceRoot) {
   return {
     async readFile(path2) {
@@ -28976,7 +28991,8 @@ async function queueToolUseEvents(toolUses, sessionId, projectDir) {
       payload: {
         tool_name: toolUse.tool_name,
         session_id: sessionId,
-        diff: toolUse.diff
+        diff: toolUse.diff,
+        ...toolUse.permission_mode ? { permission_mode: toolUse.permission_mode } : {}
       }
     };
     await enqueueEvent(event);
@@ -29005,6 +29021,233 @@ function isFolderExcluded(folderPath, settings) {
 
 // src/hooks/delayed-extractor-cli.ts
 init_logger();
+
+// src/utils/signal-state.ts
+import { readFile as readFile9, writeFile as writeFile8 } from "node:fs/promises";
+import { join as join8 } from "node:path";
+init_constants();
+init_fs_utils();
+init_logger();
+
+// src/utils/signal-scanner.ts
+import { createReadStream as createReadStream3 } from "node:fs";
+import { createInterface as createInterface3 } from "node:readline";
+var EMPTY_SIGNALS = {
+  mcp_usage: {},
+  skill_usage: {},
+  agent_usage: {},
+  builtin_usage: {},
+  unknown_usage: {},
+  image_count: 0
+};
+function newDelta() {
+  return {
+    mcp_usage: new Map,
+    skill_usage: new Map,
+    agent_usage: new Map,
+    builtin_usage: new Map,
+    unknown_usage: new Map,
+    unrecognizedToolNames: new Set,
+    imageCount: 0
+  };
+}
+var KNOWN_BUILTIN_NAMES = new Set([
+  "Bash",
+  "Read",
+  "Edit",
+  "Write",
+  "Glob",
+  "Grep",
+  "WebFetch",
+  "WebSearch",
+  "LSP",
+  "NotebookEdit"
+]);
+var KNOWN_TOOL_NAMES = new Set([...KNOWN_BUILTIN_NAMES, "Task", "Agent", "Skill"]);
+function categorizeTool(name, input) {
+  if (name.startsWith("mcp__"))
+    return "mcp";
+  if (name === "Task" || name === "Agent")
+    return "agent";
+  if (name === "Skill")
+    return "skill";
+  if (KNOWN_BUILTIN_NAMES.has(name))
+    return "builtin";
+  if (input) {
+    if ("subagent_type" in input)
+      return "agent";
+    if ("skill" in input)
+      return "skill";
+    if ("command" in input)
+      return "builtin";
+    if ("url" in input)
+      return "builtin";
+  }
+  return "unknown";
+}
+function incrementMap(map2, key) {
+  map2.set(key, (map2.get(key) ?? 0) + 1);
+}
+var SKILL_DIR_REGEX = /\/skills\/([^\s/]+)/;
+function processTextBlock(block, delta) {
+  const text = block.text;
+  if (typeof text !== "string")
+    return;
+  if (!text.includes("Base directory for this skill:"))
+    return;
+  const match = text.match(SKILL_DIR_REGEX);
+  if (match) {
+    incrementMap(delta.skill_usage, match[1]);
+  }
+}
+function processToolUse(block, delta) {
+  const name = block.name;
+  if (!name)
+    return;
+  const input = block.input;
+  const category = categorizeTool(name, input);
+  if (!KNOWN_TOOL_NAMES.has(name) && !name.startsWith("mcp__")) {
+    delta.unrecognizedToolNames.add(name);
+  }
+  switch (category) {
+    case "mcp":
+      incrementMap(delta.mcp_usage, name);
+      break;
+    case "agent": {
+      const subagentType = typeof input?.subagent_type === "string" ? input.subagent_type : name;
+      incrementMap(delta.agent_usage, subagentType);
+      break;
+    }
+    case "skill":
+      break;
+    case "builtin":
+      incrementMap(delta.builtin_usage, name);
+      break;
+    case "unknown":
+      incrementMap(delta.unknown_usage, name);
+      break;
+  }
+}
+function processToolResult(block, delta) {
+  if (!Array.isArray(block.content))
+    return;
+  for (const nested of block.content) {
+    if (nested && typeof nested === "object") {
+      processBlock(nested, delta);
+    }
+  }
+}
+function processBlock(block, delta) {
+  switch (block.type) {
+    case "tool_use":
+      return processToolUse(block, delta);
+    case "text":
+      return processTextBlock(block, delta);
+    case "image":
+      delta.imageCount++;
+      break;
+    case "tool_result":
+      return processToolResult(block, delta);
+  }
+}
+async function scanSignalsDelta(filePath, fromLine) {
+  const delta = newDelta();
+  let lineNumber = 0;
+  let lastSuccessfulLine = fromLine - 1;
+  try {
+    const stream = createReadStream3(filePath, { encoding: "utf-8" });
+    const rl = createInterface3({ input: stream, crlfDelay: Number.POSITIVE_INFINITY });
+    for await (const line of rl) {
+      if (lineNumber < fromLine) {
+        lineNumber++;
+        continue;
+      }
+      const trimmed = line.trim();
+      if (!trimmed) {
+        lineNumber++;
+        continue;
+      }
+      try {
+        const entry = JSON.parse(trimmed);
+        const message = entry.message;
+        if (message && Array.isArray(message.content)) {
+          for (const block of message.content) {
+            if (block && typeof block === "object") {
+              processBlock(block, delta);
+            }
+          }
+        }
+        lastSuccessfulLine = lineNumber;
+      } catch {}
+      lineNumber++;
+    }
+  } catch {}
+  return { delta, newLastReadLine: lastSuccessfulLine + 1 };
+}
+function mergeUsageMap(prev, delta) {
+  const merged = { ...prev };
+  for (const [name, count] of delta) {
+    merged[name] = (merged[name] ?? 0) + count;
+  }
+  return merged;
+}
+function mergeSignals(previous, delta) {
+  return {
+    mcp_usage: mergeUsageMap(previous.mcp_usage, delta.mcp_usage),
+    skill_usage: mergeUsageMap(previous.skill_usage, delta.skill_usage),
+    agent_usage: mergeUsageMap(previous.agent_usage, delta.agent_usage),
+    builtin_usage: mergeUsageMap(previous.builtin_usage, delta.builtin_usage),
+    unknown_usage: mergeUsageMap(previous.unknown_usage, delta.unknown_usage),
+    image_count: previous.image_count + delta.imageCount
+  };
+}
+
+// src/utils/signal-state.ts
+function getSignalStatePath(sessionId) {
+  return join8(STATE_DIR, `signals-${sessionId}.json`);
+}
+async function readStateFromFile(stateFile) {
+  try {
+    const content = await readFile9(stateFile, "utf-8");
+    return JSON.parse(content);
+  } catch {
+    return { lastReadLine: 0, totals: EMPTY_SIGNALS };
+  }
+}
+async function writeStateToFile(stateFile, state) {
+  await ensureDirectory(STATE_DIR);
+  await writeFile8(stateFile, JSON.stringify(state), "utf-8");
+}
+async function updateSessionSignals(conversationFile, sessionId) {
+  try {
+    const session = await getValidSession();
+    if (!session) {
+      logger.debug("Not authenticated, skipping session signals update");
+      return;
+    }
+    const stateFile = getSignalStatePath(sessionId);
+    await withFileLock(stateFile, async () => {
+      const state = await readStateFromFile(stateFile);
+      const { delta, newLastReadLine } = await scanSignalsDelta(conversationFile, state.lastReadLine);
+      const updatedTotals = mergeSignals(state.totals, delta);
+      const existingUnrecognized = state.unrecognizedToolNames ?? [];
+      const newUnrecognized = [
+        ...new Set([...existingUnrecognized, ...delta.unrecognizedToolNames])
+      ];
+      await writeStateToFile(stateFile, {
+        lastReadLine: newLastReadLine,
+        totals: updatedTotals,
+        unrecognizedToolNames: newUnrecognized.length > 0 ? newUnrecognized : undefined
+      });
+      const totalCalls = Object.values(updatedTotals.mcp_usage).reduce((s, n) => s + n, 0) + Object.values(updatedTotals.skill_usage).reduce((s, n) => s + n, 0) + Object.values(updatedTotals.agent_usage).reduce((s, n) => s + n, 0) + Object.values(updatedTotals.builtin_usage).reduce((s, n) => s + n, 0) + Object.values(updatedTotals.unknown_usage).reduce((s, n) => s + n, 0);
+      logger.debug(`Updated session signals: ${totalCalls} total tool calls`);
+    });
+  } catch (error46) {
+    logger.warn("Failed to update session signals:", error46);
+  }
+}
+
+// src/hooks/delayed-extractor-cli.ts
 async function main() {
   const sessionId = process.argv[2];
   const conversationFile = process.argv[3];
@@ -29044,6 +29287,7 @@ async function main() {
       process.exit(0);
     }
     await queueSessionData(sessionId, extractionResult.messages, extractionResult.toolUses, fileStats, projectDir || "", conversationFile, extractionResult.newLastReadLine, extractionResult.lastMessageIndex, extractionResult.isNewSession);
+    await updateSessionSignals(conversationFile, sessionId);
   } catch (error46) {
     logger.error("Failed to perform delayed extraction:", error46);
     process.exit(0);

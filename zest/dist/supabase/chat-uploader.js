@@ -17608,6 +17608,13 @@ var workspaceEvents = {
       invitedEmails: exports_external.array(exports_external.string()),
       invitedCount: exports_external.number()
     })
+  },
+  linkInvitationCreated: {
+    name: "Link Invitation Created",
+    schema: exports_external.object({
+      workspaceId: exports_external.string(),
+      teamId: exports_external.string()
+    })
   }
 };
 
@@ -22025,6 +22032,70 @@ function normalizeSessionId(sessionId) {
   return v5_default(sessionId, ZEST_SESSION_NAMESPACE);
 }
 
+// src/utils/signal-state.ts
+import { readFile as readFile4, writeFile as writeFile4 } from "node:fs/promises";
+import { join as join5 } from "node:path";
+
+// src/utils/signal-scanner.ts
+var EMPTY_SIGNALS = {
+  mcp_usage: {},
+  skill_usage: {},
+  agent_usage: {},
+  builtin_usage: {},
+  unknown_usage: {},
+  image_count: 0
+};
+var KNOWN_BUILTIN_NAMES = new Set([
+  "Bash",
+  "Read",
+  "Edit",
+  "Write",
+  "Glob",
+  "Grep",
+  "WebFetch",
+  "WebSearch",
+  "LSP",
+  "NotebookEdit"
+]);
+var KNOWN_TOOL_NAMES = new Set([...KNOWN_BUILTIN_NAMES, "Task", "Agent", "Skill"]);
+
+// src/utils/signal-state.ts
+function getSignalStatePath(sessionId) {
+  return join5(STATE_DIR, `signals-${sessionId}.json`);
+}
+async function readStateFromFile(stateFile) {
+  try {
+    const content = await readFile4(stateFile, "utf-8");
+    return JSON.parse(content);
+  } catch {
+    return { lastReadLine: 0, totals: EMPTY_SIGNALS };
+  }
+}
+async function readSessionSignals(sessionId) {
+  const stateFile = getSignalStatePath(sessionId);
+  try {
+    return await withFileLock(stateFile, async () => {
+      const state = await readStateFromFile(stateFile);
+      return hasSignalData(state.totals) ? state.totals : null;
+    });
+  } catch {
+    return null;
+  }
+}
+function hasSignalData(signals) {
+  for (const key of Object.keys(EMPTY_SIGNALS)) {
+    const value = signals[key];
+    if (typeof value === "number") {
+      if (value !== 0)
+        return true;
+    } else if (typeof value === "object" && value !== null && value !== undefined) {
+      if (Object.keys(value).length > 0)
+        return true;
+    }
+  }
+  return false;
+}
+
 // src/supabase/chat-uploader.ts
 function getMaxMessageIndexPerSession(messages) {
   const maxIndices = new Map;
@@ -22145,13 +22216,15 @@ function deduplicateMessages(messages) {
   }
   return Array.from(messageMap.values());
 }
-function enrichSessionsForUpload(sessions, userId, workspaceId) {
-  const filteredSessions = sessions.filter((s) => s.id);
+async function enrichSessionsForUpload(sessions, userId, workspaceId) {
+  const filteredSessions = sessions.filter((s) => !!s.id);
   if (filteredSessions.length < sessions.length) {
     logger.warn(`Filtered out ${sessions.length - filteredSessions.length} sessions without IDs`);
   }
-  return filteredSessions.map((s) => {
-    return {
+  const enriched = [];
+  for (const s of filteredSessions) {
+    const signals = await readSessionSignals(s.id);
+    const session = {
       ...s,
       id: normalizeSessionId(s.id),
       title: s.title ? toWellFormed(s.title) : s.title,
@@ -22162,7 +22235,12 @@ function enrichSessionsForUpload(sessions, userId, workspaceId) {
       workspace_id: workspaceId,
       metadata: null
     };
-  });
+    if (signals) {
+      session.signals = signals;
+    }
+    enriched.push(session);
+  }
+  return enriched;
 }
 function enrichMessagesForUpload(messages, userId) {
   const filteredMessages = messages.filter((m) => m.session_id);
@@ -22269,7 +22347,7 @@ async function uploadChatData(supabase, session, dataControls) {
     const uniqueSessions = deduplicateSessions(categories.valid);
     const allMessagesToUpload = [...messagePartition.valid, ...messagePartition.orphaned];
     const uniqueMessages = deduplicateMessages(allMessagesToUpload);
-    const sessionsToUpload = enrichSessionsForUpload(uniqueSessions, session.userId, session.workspaceId || null);
+    const sessionsToUpload = await enrichSessionsForUpload(uniqueSessions, session.userId, session.workspaceId || null);
     const uploadedSessionIds = new Set(sessionsToUpload.map((s) => s.id));
     const orphanedSessionIds = new Set(messagePartition.orphaned.map((m) => normalizeSessionId(m.session_id)).filter((id) => !!id));
     const allValidSessionIds = new Set([...uploadedSessionIds, ...orphanedSessionIds]);
