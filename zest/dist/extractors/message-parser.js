@@ -1340,6 +1340,9 @@ function extractToolUseResult(entry, sessionId) {
       file_path: result.filePath,
       timestamp: entry.timestamp || new Date().toISOString()
     };
+    if (entry.permissionMode) {
+      toolUse.permission_mode = entry.permissionMode;
+    }
     if (result.structuredPatch || result.oldString !== undefined || result.newString !== undefined) {
       const rawDiff = {
         old_string: result.oldString,
@@ -1500,6 +1503,9 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
                 if (role === "assistant" && entry.message.model) {
                   metadata.modelName = entry.message.model;
                 }
+                if (entry.permissionMode) {
+                  metadata.permission_mode = entry.permissionMode;
+                }
                 messages.push({
                   id: entry.uuid,
                   session_id: sessionId,
@@ -1527,6 +1533,8 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
             if (contentBlock.type === "tool_use") {
               const extractedToolUses = await extractToolUse(contentBlock, sessionId, entry.timestamp);
               for (const toolUse of extractedToolUses) {
+                if (entry.permissionMode)
+                  toolUse.permission_mode = entry.permissionMode;
                 toolUses.push(toolUse);
                 logger.debug(`Extracted tool use at line ${lineNumber + 1}: ${toolUse.tool_name} on ${toolUse.file_path}`);
               }

@@ -18140,6 +18140,13 @@ var workspaceEvents = {
       invitedEmails: exports_external.array(exports_external.string()),
       invitedCount: exports_external.number()
     })
+  },
+  linkInvitationCreated: {
+    name: "Link Invitation Created",
+    schema: exports_external.object({
+      workspaceId: exports_external.string(),
+      teamId: exports_external.string()
+    })
   }
 };
 
@@ -27009,6 +27016,9 @@ function extractToolUseResult(entry, sessionId) {
       file_path: result.filePath,
       timestamp: entry.timestamp || new Date().toISOString()
     };
+    if (entry.permissionMode) {
+      toolUse.permission_mode = entry.permissionMode;
+    }
     if (result.structuredPatch || result.oldString !== undefined || result.newString !== undefined) {
       const rawDiff = {
         old_string: result.oldString,
@@ -27171,6 +27181,9 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
                 if (role === "assistant" && entry.message.model) {
                   metadata.modelName = entry.message.model;
                 }
+                if (entry.permissionMode) {
+                  metadata.permission_mode = entry.permissionMode;
+                }
                 messages.push({
                   id: entry.uuid,
                   session_id: sessionId,
@@ -27198,6 +27211,8 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
             if (contentBlock.type === "tool_use") {
               const extractedToolUses = await extractToolUse(contentBlock, sessionId, entry.timestamp);
               for (const toolUse of extractedToolUses) {
+                if (entry.permissionMode)
+                  toolUse.permission_mode = entry.permissionMode;
                 toolUses.push(toolUse);
                 logger.debug(`Extracted tool use at line ${lineNumber + 1}: ${toolUse.tool_name} on ${toolUse.file_path}`);
               }
@@ -28449,7 +28464,7 @@ class PrivacyService {
 init_logger();
 
 // src/privacy/node-fs-adapter.ts
-import { readFile as readFile4, readdir as readdir3, stat as stat3 } from "node:fs/promises";
+import { readdir as readdir3, readFile as readFile4, stat as stat3 } from "node:fs/promises";
 function createNodeFsAdapter(workspaceRoot) {
   return {
     async readFile(path2) {
@@ -29091,7 +29106,8 @@ async function queueToolUseEvents(toolUses, sessionId, projectDir) {
       payload: {
         tool_name: toolUse.tool_name,
         session_id: sessionId,
-        diff: toolUse.diff
+        diff: toolUse.diff,
+        ...toolUse.permission_mode ? { permission_mode: toolUse.permission_mode } : {}
       }
     };
     await enqueueEvent(event);
