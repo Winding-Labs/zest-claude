@@ -5166,11 +5166,11 @@ var require_tslib = __commonJS((exports2, module) => {
     };
     __awaiter = function(thisArg, _arguments, P, generator) {
       function adopt(value) {
-        return value instanceof P ? value : new P(function(resolve) {
-          resolve(value);
+        return value instanceof P ? value : new P(function(resolve2) {
+          resolve2(value);
         });
       }
-      return new (P || (P = Promise))(function(resolve, reject) {
+      return new (P || (P = Promise))(function(resolve2, reject) {
         function fulfilled(value) {
           try {
             step(generator.next(value));
@@ -5186,7 +5186,7 @@ var require_tslib = __commonJS((exports2, module) => {
           }
         }
         function step(result) {
-          result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
+          result.done ? resolve2(result.value) : adopt(result.value).then(fulfilled, rejected);
         }
         step((generator = generator.apply(thisArg, _arguments || [])).next());
       });
@@ -5415,14 +5415,14 @@ var require_tslib = __commonJS((exports2, module) => {
       }, i);
       function verb(n) {
         i[n] = o[n] && function(v) {
-          return new Promise(function(resolve, reject) {
-            v = o[n](v), settle(resolve, reject, v.done, v.value);
+          return new Promise(function(resolve2, reject) {
+            v = o[n](v), settle(resolve2, reject, v.done, v.value);
           });
         };
       }
-      function settle(resolve, reject, d, v) {
+      function settle(resolve2, reject, d, v) {
         Promise.resolve(v).then(function(v2) {
-          resolve({ value: v2, done: d });
+          resolve2({ value: v2, done: d });
         }, reject);
       }
     };
@@ -5553,13 +5553,13 @@ var require_tslib = __commonJS((exports2, module) => {
       }
       return next();
     };
-    __rewriteRelativeImportExtension = function(path, preserveJsx) {
-      if (typeof path === "string" && /^\.\.?\//.test(path)) {
-        return path.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
+    __rewriteRelativeImportExtension = function(path2, preserveJsx) {
+      if (typeof path2 === "string" && /^\.\.?\//.test(path2)) {
+        return path2.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
           return tsx ? preserveJsx ? ".jsx" : ".js" : d && (!ext || !cm) ? m : d + ext + "." + cm.toLowerCase() + "js";
         });
       }
-      return path;
+      return path2;
     };
     exporter("__extends", __extends);
     exporter("__assign", __assign);
@@ -5977,11 +5977,11 @@ var require_tslib2 = __commonJS((exports2, module) => {
     };
     __awaiter = function(thisArg, _arguments, P, generator) {
       function adopt(value) {
-        return value instanceof P ? value : new P(function(resolve) {
-          resolve(value);
+        return value instanceof P ? value : new P(function(resolve2) {
+          resolve2(value);
         });
       }
-      return new (P || (P = Promise))(function(resolve, reject) {
+      return new (P || (P = Promise))(function(resolve2, reject) {
         function fulfilled(value) {
           try {
             step(generator.next(value));
@@ -5997,7 +5997,7 @@ var require_tslib2 = __commonJS((exports2, module) => {
           }
         }
         function step(result) {
-          result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
+          result.done ? resolve2(result.value) : adopt(result.value).then(fulfilled, rejected);
         }
         step((generator = generator.apply(thisArg, _arguments || [])).next());
       });
@@ -6226,14 +6226,14 @@ var require_tslib2 = __commonJS((exports2, module) => {
       }, i);
       function verb(n) {
         i[n] = o[n] && function(v) {
-          return new Promise(function(resolve, reject) {
-            v = o[n](v), settle(resolve, reject, v.done, v.value);
+          return new Promise(function(resolve2, reject) {
+            v = o[n](v), settle(resolve2, reject, v.done, v.value);
           });
         };
       }
-      function settle(resolve, reject, d, v) {
+      function settle(resolve2, reject, d, v) {
         Promise.resolve(v).then(function(v2) {
-          resolve({ value: v2, done: d });
+          resolve2({ value: v2, done: d });
         }, reject);
       }
     };
@@ -6364,13 +6364,13 @@ var require_tslib2 = __commonJS((exports2, module) => {
       }
       return next();
     };
-    __rewriteRelativeImportExtension = function(path, preserveJsx) {
-      if (typeof path === "string" && /^\.\.?\//.test(path)) {
-        return path.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
+    __rewriteRelativeImportExtension = function(path2, preserveJsx) {
+      if (typeof path2 === "string" && /^\.\.?\//.test(path2)) {
+        return path2.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
           return tsx ? preserveJsx ? ".jsx" : ".js" : d && (!ext || !cm) ? m : d + ext + "." + cm.toLowerCase() + "js";
         });
       }
-      return path;
+      return path2;
     };
     exporter("__extends", __extends);
     exporter("__assign", __assign);
@@ -7427,15 +7427,15 @@ var require_RealtimeChannel = __commonJS((exports2) => {
           }
         }
       } else {
-        return new Promise((resolve) => {
+        return new Promise((resolve2) => {
           var _a2, _b2, _c;
           const push = this._push(args.type, args, opts.timeout || this.timeout);
           if (args.type === "broadcast" && !((_c = (_b2 = (_a2 = this.params) === null || _a2 === undefined ? undefined : _a2.config) === null || _b2 === undefined ? undefined : _b2.broadcast) === null || _c === undefined ? undefined : _c.ack)) {
-            resolve("ok");
+            resolve2("ok");
           }
-          push.receive("ok", () => resolve("ok"));
-          push.receive("error", () => resolve("error"));
-          push.receive("timeout", () => resolve("timed out"));
+          push.receive("ok", () => resolve2("ok"));
+          push.receive("error", () => resolve2("error"));
+          push.receive("timeout", () => resolve2("timed out"));
         });
       }
     }
@@ -7450,16 +7450,16 @@ var require_RealtimeChannel = __commonJS((exports2) => {
       };
       this.joinPush.destroy();
       let leavePush = null;
-      return new Promise((resolve) => {
+      return new Promise((resolve2) => {
         leavePush = new push_1.default(this, constants_1.CHANNEL_EVENTS.leave, {}, timeout);
         leavePush.receive("ok", () => {
           onClose();
-          resolve("ok");
+          resolve2("ok");
         }).receive("timeout", () => {
           onClose();
-          resolve("timed out");
+          resolve2("timed out");
         }).receive("error", () => {
-          resolve("error");
+          resolve2("error");
         });
         leavePush.send();
         if (!this._canPush()) {
@@ -7519,8 +7519,8 @@ var require_RealtimeChannel = __commonJS((exports2) => {
     _trigger(type, payload, ref) {
       var _a, _b;
       const typeLower = type.toLocaleLowerCase();
-      const { close, error: error46, leave, join: join6 } = constants_1.CHANNEL_EVENTS;
-      const events = [close, error46, leave, join6];
+      const { close, error: error46, leave, join: join7 } = constants_1.CHANNEL_EVENTS;
+      const events = [close, error46, leave, join7];
       if (ref && events.indexOf(typeLower) >= 0 && ref !== this._joinRef()) {
         return;
       }
@@ -8441,11 +8441,11 @@ var require_tslib3 = __commonJS((exports2, module) => {
     };
     __awaiter = function(thisArg, _arguments, P, generator) {
       function adopt(value) {
-        return value instanceof P ? value : new P(function(resolve) {
-          resolve(value);
+        return value instanceof P ? value : new P(function(resolve2) {
+          resolve2(value);
         });
       }
-      return new (P || (P = Promise))(function(resolve, reject) {
+      return new (P || (P = Promise))(function(resolve2, reject) {
         function fulfilled(value) {
           try {
             step(generator.next(value));
@@ -8461,7 +8461,7 @@ var require_tslib3 = __commonJS((exports2, module) => {
           }
         }
         function step(result) {
-          result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
+          result.done ? resolve2(result.value) : adopt(result.value).then(fulfilled, rejected);
         }
         step((generator = generator.apply(thisArg, _arguments || [])).next());
       });
@@ -8690,14 +8690,14 @@ var require_tslib3 = __commonJS((exports2, module) => {
       }, i);
       function verb(n) {
         i[n] = o[n] && function(v) {
-          return new Promise(function(resolve, reject) {
-            v = o[n](v), settle(resolve, reject, v.done, v.value);
+          return new Promise(function(resolve2, reject) {
+            v = o[n](v), settle(resolve2, reject, v.done, v.value);
           });
         };
       }
-      function settle(resolve, reject, d, v) {
+      function settle(resolve2, reject, d, v) {
         Promise.resolve(v).then(function(v2) {
-          resolve({ value: v2, done: d });
+          resolve2({ value: v2, done: d });
         }, reject);
       }
     };
@@ -8828,13 +8828,13 @@ var require_tslib3 = __commonJS((exports2, module) => {
       }
       return next();
     };
-    __rewriteRelativeImportExtension = function(path, preserveJsx) {
-      if (typeof path === "string" && /^\.\.?\//.test(path)) {
-        return path.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
+    __rewriteRelativeImportExtension = function(path2, preserveJsx) {
+      if (typeof path2 === "string" && /^\.\.?\//.test(path2)) {
+        return path2.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
           return tsx ? preserveJsx ? ".jsx" : ".js" : d && (!ext || !cm) ? m : d + ext + "." + cm.toLowerCase() + "js";
         });
       }
-      return path;
+      return path2;
     };
     exporter("__extends", __extends);
     exporter("__assign", __assign);
@@ -13146,7 +13146,6 @@ var require_main4 = __commonJS((exports2) => {
 
 // src/analytics/events.ts
 var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
-var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
 var SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed";
 var SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted";
 var SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed";
@@ -13155,10 +13154,8 @@ var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
 var FILE_LOCK_TIMEOUT = "file_lock_timeout";
 var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
 var SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed";
-var SUPABASE_SESSION_SET_FAILED = "supabase_session_set_failed";
-var SUPABASE_SESSION_REFRESH_PERSIST_FAILED = "supabase_session_refresh_persist_failed";
-var AUTH_SESSION_RACE_RECOVERY = "auth_session_race_recovery";
-var AUTH_SESSION_RACE_RECOVERY_FAILED = "auth_session_race_recovery_failed";
+var SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed";
+var SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed";
 function getErrorCategory(errorType) {
   if (errorType.startsWith("auth_"))
     return "auth";
@@ -29307,8 +29304,7 @@ function createServerAnalytics(posthogApiKey, options) {
   };
 }
 // src/auth/session-manager.ts
-import { readFile, unlink as unlink2, writeFile } from "node:fs/promises";
-import { dirname as dirname3 } from "node:path";
+import { readFile as readFile3, unlink as unlink4, writeFile as writeFile3 } from "node:fs/promises";
 
 // src/analytics/properties.ts
 import { basename } from "node:path";
@@ -29377,6 +29373,19 @@ var NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
 var STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
 var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
 
+// src/utils/file-lock.ts
+import { readdir as readdir2, readFile as readFile2, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
+import { dirname as dirname4 } from "node:path";
+
+// src/utils/daemon-manager.ts
+import { readFile, stat as stat2, unlink as unlink2, writeFile } from "node:fs/promises";
+import { dirname as dirname3, join as join3 } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// src/utils/logger.ts
+import { appendFile } from "node:fs/promises";
+import { dirname as dirname2 } from "node:path";
+
 // src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
 async function ensureDirectory(dirPath) {
@@ -29386,10 +29395,6 @@ async function ensureDirectory(dirPath) {
     await mkdir(dirPath, { recursive: true, mode: 448 });
   }
 }
-
-// src/utils/logger.ts
-import { appendFile } from "node:fs/promises";
-import { dirname as dirname2 } from "node:path";
 
 // src/utils/log-rotation.ts
 import { readdir, unlink } from "node:fs/promises";
@@ -29495,13 +29500,120 @@ class Logger {
 }
 var logger = new Logger;
 
+// src/utils/daemon-manager.ts
+var DAEMON_RESTART_LOCK = join3(CLAUDE_ZEST_DIR, "daemon-restart.lock");
+var __filename2 = fileURLToPath(import.meta.url);
+var __dirname2 = dirname3(__filename2);
+function isProcessRunning(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function getDaemonPid() {
+  try {
+    const pidData = await readFile(DAEMON_PID_FILE, "utf-8");
+    const pid = Number.parseInt(pidData.trim(), 10);
+    if (Number.isNaN(pid)) {
+      return null;
+    }
+    return isProcessRunning(pid) ? pid : null;
+  } catch {
+    return null;
+  }
+}
+
+// src/utils/file-lock.ts
+var activeLockFiles = new Set;
+function isLockStale(lockInfo) {
+  return !isProcessRunning(lockInfo.pid);
+}
+async function acquireFileLock(filePath, depth = 0) {
+  if (depth > 3)
+    return false;
+  const lockFile = `${filePath}.lock`;
+  const lockInfo = {
+    pid: process.pid,
+    timestamp: Date.now()
+  };
+  try {
+    await ensureDirectory(dirname4(lockFile));
+    await writeFile2(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
+    activeLockFiles.add(lockFile);
+    return true;
+  } catch (error46) {
+    if (error46.code !== "EEXIST") {
+      const errCode = error46.code;
+      if (errCode === "ENOENT" || errCode === "EACCES") {
+        logger.error(`Failed to create lock file ${lockFile}:`, error46);
+        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
+          ...buildFileSystemProperties({
+            filePath: lockFile,
+            operation: "lock",
+            errnoCode: errCode
+          })
+        });
+      }
+      throw error46;
+    }
+    try {
+      const content = await readFile2(lockFile, "utf8");
+      const existingLock = JSON.parse(content);
+      if (isLockStale(existingLock)) {
+        logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
+        await unlink3(lockFile).catch(() => {});
+        return acquireFileLock(filePath, depth + 1);
+      }
+    } catch {
+      logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
+      await unlink3(lockFile).catch(() => {});
+      return acquireFileLock(filePath, depth + 1);
+    }
+    return false;
+  }
+}
+async function releaseFileLock(filePath) {
+  const lockFile = `${filePath}.lock`;
+  activeLockFiles.delete(lockFile);
+  await unlink3(lockFile).catch(() => {});
+}
+async function withFileLock(filePath, fn) {
+  let retries = 0;
+  while (!await acquireFileLock(filePath)) {
+    if (++retries >= LOCK_MAX_RETRIES) {
+      const error46 = new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
+      captureException(error46, FILE_LOCK_TIMEOUT, "file-lock", {
+        ...buildFileSystemProperties({ filePath, operation: "lock" }),
+        retries,
+        max_retries: LOCK_MAX_RETRIES,
+        retry_delay_ms: LOCK_RETRY_MS
+      });
+      throw error46;
+    }
+    await new Promise((resolve) => setTimeout(resolve, LOCK_RETRY_MS));
+  }
+  try {
+    return await fn();
+  } finally {
+    await releaseFileLock(filePath);
+  }
+}
+
 // src/auth/session-manager.ts
+function isSessionStructureValid(session) {
+  return Boolean(session.accessToken && session.refreshToken && session.userId && session.email);
+}
+function isRefreshTokenExpired(session) {
+  return Boolean(session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now());
+}
 async function loadSessionFile() {
   try {
-    const content = await readFile(SESSION_FILE, "utf-8");
+    const content = await readFile3(SESSION_FILE, "utf-8");
     const session = JSON.parse(content);
-    if (!session.accessToken || !session.refreshToken || !session.userId || !session.email) {
-      logger.warn("Invalid session structure, clearing session");
+    if (!isSessionStructureValid(session)) {
+      logger.warn("Invalid session structure, clearing corrupt file");
       await clearSession();
       return null;
     }
@@ -29523,46 +29635,9 @@ async function loadSessionFile() {
     return null;
   }
 }
-async function loadSession() {
-  return loadSessionFile();
-}
-async function saveSession(session) {
-  try {
-    await ensureDirectory(dirname3(SESSION_FILE));
-    await writeFile(SESSION_FILE, JSON.stringify(session, null, 2), {
-      encoding: "utf-8",
-      mode: 384
-    });
-    logger.info("Session saved successfully");
-  } catch (error46) {
-    logger.error("Failed to save session", error46);
-    if (error46 instanceof Error) {
-      captureException(error46, AUTH_SESSION_SAVE_FAILED, "session-manager", {
-        ...buildFileSystemProperties({
-          filePath: SESSION_FILE,
-          operation: "write",
-          errnoCode: error46.code
-        })
-      });
-    }
-    throw error46;
-  }
-}
-async function clearSessionIfStale(usedRefreshToken) {
-  const current = await loadSessionFile();
-  if (!current) {
-    return true;
-  }
-  if (current.refreshToken !== usedRefreshToken) {
-    logger.info("clearSessionIfStale: on-disk refresh token differs — concurrent refresh succeeded, preserving session");
-    return false;
-  }
-  await clearSession();
-  return true;
-}
 async function clearSession() {
   try {
-    await unlink2(SESSION_FILE);
+    await unlink4(SESSION_FILE);
     logger.info("Session cleared successfully");
   } catch (error46) {
     if (error46.code === "ENOENT") {
@@ -29578,7 +29653,7 @@ async function getValidSession() {
     logger.debug("getValidSession: No session found");
     return null;
   }
-  if (session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now()) {
+  if (isRefreshTokenExpired(session)) {
     logger.warn("getValidSession: Refresh token expired, user must re-authenticate");
     await clearSession();
     return null;
@@ -29588,10 +29663,10 @@ async function getValidSession() {
 
 // src/utils/plugin-version.ts
 import { readFileSync } from "node:fs";
-import { join as join3 } from "node:path";
+import { join as join4 } from "node:path";
 function getPluginVersion() {
   try {
-    const marketplacePluginPath = join3(CLAUDE_INSTALL_DIR, "plugins", "marketplaces", "zest-marketplace", "zest", ".claude-plugin", "plugin.json");
+    const marketplacePluginPath = join4(CLAUDE_INSTALL_DIR, "plugins", "marketplaces", "zest-marketplace", "zest", ".claude-plugin", "plugin.json");
     const pluginJson = JSON.parse(readFileSync(marketplacePluginPath, "utf-8"));
     if (pluginJson.version && typeof pluginJson.version === "string") {
       logger.debug("Read plugin version from marketplace plugin.json", {
@@ -29617,7 +29692,7 @@ async function getAnalyticsClient() {
   if (!analyticsClient) {
     analyticsClient = createServerAnalytics(POSTHOG_API_KEY);
     try {
-      const session = await loadSession();
+      const session = await loadSessionFile();
       if (session) {
         cachedSession = session;
       }
@@ -29669,28 +29744,10 @@ async function captureException(error46, errorType, errorSource, additionalPrope
     logger.debug("Failed to capture exception in PostHog", captureError);
   }
 }
-async function capture(eventName, properties) {
-  try {
-    const client = await getAnalyticsClient();
-    if (!client)
-      return;
-    client.track({
-      distinctId: cachedSession?.userId ?? "anonymous",
-      event: eventName,
-      properties: {
-        ...buildStandardProperties(),
-        ...buildUserProperties(),
-        ...properties
-      }
-    });
-  } catch (error46) {
-    logger.debug("Failed to capture event in PostHog", error46);
-  }
-}
 
 // src/utils/queue-manager.ts
-import { appendFile as appendFile2, readFile as readFile3, unlink as unlink4, writeFile as writeFile3 } from "node:fs/promises";
-import { dirname as dirname6 } from "node:path";
+import { appendFile as appendFile2, readFile as readFile4, unlink as unlink5, writeFile as writeFile4 } from "node:fs/promises";
+import { dirname as dirname5 } from "node:path";
 
 // ../../packages/privacy-redaction/src/config/defaults.ts
 var DEFAULT_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -30029,99 +30086,6 @@ var ALL_BUILT_IN_RULES = [
   ...LOCK_FILE_RULES,
   ...BINARY_MEDIA_RULES
 ];
-// src/utils/file-lock.ts
-import { readdir as readdir2, readFile as readFile2, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
-import { dirname as dirname5 } from "node:path";
-
-// src/utils/daemon-manager.ts
-import { dirname as dirname4, join as join4 } from "node:path";
-import { fileURLToPath } from "node:url";
-var DAEMON_RESTART_LOCK = join4(CLAUDE_ZEST_DIR, "daemon-restart.lock");
-var __filename2 = fileURLToPath(import.meta.url);
-var __dirname2 = dirname4(__filename2);
-function isProcessRunning(pid) {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// src/utils/file-lock.ts
-var activeLockFiles = new Set;
-function isLockStale(lockInfo) {
-  return !isProcessRunning(lockInfo.pid);
-}
-async function acquireFileLock(filePath) {
-  const lockFile = `${filePath}.lock`;
-  const lockInfo = {
-    pid: process.pid,
-    timestamp: Date.now()
-  };
-  try {
-    await ensureDirectory(dirname5(lockFile));
-    await writeFile2(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
-    activeLockFiles.add(lockFile);
-    return true;
-  } catch (error46) {
-    if (error46.code !== "EEXIST") {
-      const errCode = error46.code;
-      if (errCode === "ENOENT" || errCode === "EACCES") {
-        logger.error(`Failed to create lock file ${lockFile}:`, error46);
-        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
-          ...buildFileSystemProperties({
-            filePath: lockFile,
-            operation: "lock",
-            errnoCode: errCode
-          })
-        });
-      }
-      throw error46;
-    }
-    try {
-      const content = await readFile2(lockFile, "utf8");
-      const existingLock = JSON.parse(content);
-      if (isLockStale(existingLock)) {
-        logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
-        await unlink3(lockFile).catch(() => {});
-        return acquireFileLock(filePath);
-      }
-    } catch {
-      logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
-      await unlink3(lockFile).catch(() => {});
-      return acquireFileLock(filePath);
-    }
-    return false;
-  }
-}
-async function releaseFileLock(filePath) {
-  const lockFile = `${filePath}.lock`;
-  activeLockFiles.delete(lockFile);
-  await unlink3(lockFile).catch(() => {});
-}
-async function withFileLock(filePath, fn) {
-  let retries = 0;
-  while (!await acquireFileLock(filePath)) {
-    if (++retries >= LOCK_MAX_RETRIES) {
-      const error46 = new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
-      captureException(error46, FILE_LOCK_TIMEOUT, "file-lock", {
-        ...buildFileSystemProperties({ filePath, operation: "lock" }),
-        retries,
-        max_retries: LOCK_MAX_RETRIES,
-        retry_delay_ms: LOCK_RETRY_MS
-      });
-      throw error46;
-    }
-    await new Promise((resolve) => setTimeout(resolve, LOCK_RETRY_MS));
-  }
-  try {
-    return await fn();
-  } finally {
-    await releaseFileLock(filePath);
-  }
-}
-
 // src/utils/string-utils.ts
 function toWellFormed(str) {
   return str.toWellFormed?.() ?? str;
@@ -30130,7 +30094,7 @@ function toWellFormed(str) {
 // src/utils/queue-manager.ts
 async function readJsonl(filePath) {
   try {
-    const content = await readFile3(filePath, "utf8");
+    const content = await readFile4(filePath, "utf8");
     const lines = content.trim().split(`
 `).filter(Boolean);
     const results = [];
@@ -30160,7 +30124,7 @@ async function readJsonl(filePath) {
 }
 async function countLines(filePath) {
   try {
-    const content = await readFile3(filePath, "utf8");
+    const content = await readFile4(filePath, "utf8");
     const lines = content.trim().split(`
 `).filter(Boolean);
     return lines.length;
@@ -30190,11 +30154,11 @@ async function atomicUpdateQueue(queueFile, transform2) {
     await withFileLock(queueFile, async () => {
       const currentItems = await readJsonl(queueFile);
       const newItems = transform2(currentItems);
-      await ensureDirectory(dirname6(queueFile));
+      await ensureDirectory(dirname5(queueFile));
       const content = newItems.map((item) => JSON.stringify(item, sanitizingReplacer)).join(`
 `) + (newItems.length > 0 ? `
 ` : "");
-      await writeFile3(queueFile, content, "utf8");
+      await writeFile4(queueFile, content, "utf8");
       logger.debug(`Atomically updated queue file: ${queueFile} (${currentItems.length} → ${newItems.length} items)`);
     });
   } catch (error46) {
@@ -30339,11 +30303,11 @@ async function clearSyncError() {
 }
 
 // src/utils/sync-metrics-manager.ts
-import { readFile as readFile4, writeFile as writeFile4 } from "node:fs/promises";
-import { dirname as dirname7 } from "node:path";
+import { readFile as readFile5, writeFile as writeFile5 } from "node:fs/promises";
+import { dirname as dirname6 } from "node:path";
 async function readMetrics() {
   try {
-    const content = await readFile4(SYNC_METRICS_FILE, "utf8");
+    const content = await readFile5(SYNC_METRICS_FILE, "utf8");
     const lines = content.trim().split(`
 `).filter(Boolean);
     const results = [];
@@ -30363,11 +30327,11 @@ async function readMetrics() {
   }
 }
 async function writeMetrics(entries) {
-  await ensureDirectory(dirname7(SYNC_METRICS_FILE));
+  await ensureDirectory(dirname6(SYNC_METRICS_FILE));
   const content = entries.map((entry) => JSON.stringify(entry)).join(`
 `) + (entries.length > 0 ? `
 ` : "");
-  await writeFile4(SYNC_METRICS_FILE, content, "utf8");
+  await writeFile5(SYNC_METRICS_FILE, content, "utf8");
 }
 async function recordSyncMetric(entry) {
   try {
@@ -30479,8 +30443,119 @@ function normalizeSessionId(sessionId) {
 }
 
 // src/utils/signal-state.ts
-import { readFile as readFile5, writeFile as writeFile5 } from "node:fs/promises";
+import { readFile as readFile6, writeFile as writeFile6 } from "node:fs/promises";
+import { join as join6 } from "node:path";
+
+// src/extractors/toolkit-metadata-extractor.ts
 import { join as join5 } from "node:path";
+// ../../packages/utils/src/date-range.ts
+var PERIOD_TYPE_LABELS = {
+  ["today" /* Today */]: "Today",
+  ["this_week" /* ThisWeek */]: "This Week",
+  ["this_month" /* ThisMonth */]: "This Month"
+};
+var PERIOD_SUMMARY_LABELS = {
+  ["today" /* Today */]: "Daily Summary",
+  ["this_week" /* ThisWeek */]: "Weekly Summary",
+  ["this_month" /* ThisMonth */]: "Monthly Summary",
+  custom: "Custom Period"
+};
+// ../../packages/utils/src/frontmatter.ts
+var FRONTMATTER_KEYS = new Set(["name", "description"]);
+// ../../packages/utils/src/mcp-registry.ts
+var cache = new Map;
+// ../../packages/utils/src/git-utils.ts
+import { exec, execSync } from "node:child_process";
+import * as path from "node:path";
+import { promisify } from "node:util";
+var execAsync = promisify(exec);
+var UNKNOWN_PROJECT = {
+  projectId: "unknown",
+  projectName: "unknown"
+};
+var PROJECT_ID_NAMESPACE = "e1f3b3c4-0b7a-4c1e-8a7b-9f3c0e1d2a3b";
+function generateProjectId(input) {
+  return v5_default(input, PROJECT_ID_NAMESPACE);
+}
+function extractNameFromRemoteUrl(remoteUrl) {
+  const orgRepoMatch = remoteUrl.match(/[/:]([^/:.]+\/[^/]+?)(\.git)?$/);
+  if (orgRepoMatch?.[1]) {
+    return orgRepoMatch[1];
+  }
+  const repoMatch = remoteUrl.match(/\/([^/]+?)(\.git)?$/);
+  if (repoMatch?.[1]) {
+    return repoMatch[1];
+  }
+  return null;
+}
+function extractProjectName(workingDirectory) {
+  try {
+    try {
+      const remoteUrl = execSync("git config --get remote.origin.url", {
+        cwd: workingDirectory,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 5000
+      }).trim();
+      if (remoteUrl) {
+        const name = extractNameFromRemoteUrl(remoteUrl);
+        if (name) {
+          return name;
+        }
+      }
+    } catch {}
+    try {
+      const repoRoot = execSync("git rev-parse --show-toplevel", {
+        cwd: workingDirectory,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 5000
+      }).trim();
+      if (repoRoot) {
+        return path.basename(repoRoot);
+      }
+    } catch {}
+    return path.basename(workingDirectory);
+  } catch {
+    return null;
+  }
+}
+function isGitRepository(workingDirectory) {
+  try {
+    execSync("git rev-parse --is-inside-work-tree", {
+      cwd: workingDirectory,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout: 5000
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+function getProjectInfoSync(workingDirectory) {
+  try {
+    if (!isGitRepository(workingDirectory)) {
+      return UNKNOWN_PROJECT;
+    }
+    const projectName = extractProjectName(workingDirectory);
+    if (!projectName) {
+      return UNKNOWN_PROJECT;
+    }
+    const absolutePath = path.resolve(workingDirectory);
+    const projectId = generateProjectId(absolutePath);
+    return {
+      projectId,
+      projectName
+    };
+  } catch {
+    return UNKNOWN_PROJECT;
+  }
+}
+// src/extractors/toolkit-metadata-extractor.ts
+var SKILLS_DIR = join5(CLAUDE_INSTALL_DIR, "skills");
+var AGENTS_DIR = join5(CLAUDE_INSTALL_DIR, "agents");
+var INSTALLED_PLUGINS_FILE = join5(CLAUDE_INSTALL_DIR, "plugins", "installed_plugins.json");
 
 // src/utils/signal-scanner.ts
 var EMPTY_SIGNALS = {
@@ -30507,11 +30582,11 @@ var KNOWN_TOOL_NAMES = new Set([...KNOWN_BUILTIN_NAMES, "Task", "Agent", "Skill"
 
 // src/utils/signal-state.ts
 function getSignalStatePath(sessionId) {
-  return join5(STATE_DIR, `signals-${sessionId}.json`);
+  return join6(STATE_DIR, `signals-${sessionId}.json`);
 }
 async function readStateFromFile(stateFile) {
   try {
-    const content = await readFile5(stateFile, "utf-8");
+    const content = await readFile6(stateFile, "utf-8");
     return JSON.parse(content);
   } catch {
     return { lastReadLine: 0, totals: EMPTY_SIGNALS };
@@ -30876,7 +30951,7 @@ async function uploadChatDataWithRetry(supabase, session, dataControls, maxRetri
       if (attempt < maxRetries) {
         const delay = backoffMs * attempt;
         logger.debug(`Retrying in ${delay}ms...`);
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await new Promise((resolve2) => setTimeout(resolve2, delay));
       }
     }
   }
@@ -31556,8 +31631,8 @@ var IcebergError = class extends Error {
     return this.status === 419;
   }
 };
-function buildUrl(baseUrl, path, query) {
-  const url2 = new URL(path, baseUrl);
+function buildUrl(baseUrl, path2, query) {
+  const url2 = new URL(path2, baseUrl);
   if (query) {
     for (const [key, value] of Object.entries(query)) {
       if (value !== undefined) {
@@ -31587,12 +31662,12 @@ function createFetchClient(options) {
   return {
     async request({
       method,
-      path,
+      path: path2,
       query,
       body,
       headers
     }) {
-      const url2 = buildUrl(options.baseUrl, path, query);
+      const url2 = buildUrl(options.baseUrl, path2, query);
       const authHeaders = await buildAuthHeaders(options.auth);
       const res = await fetchFn(url2, {
         method,
@@ -31992,14 +32067,14 @@ var _getRequestParams$1 = (method, options, parameters, body) => {
   return _objectSpread2(_objectSpread2({}, params), parameters);
 };
 async function _handleRequest$1(fetcher, method, url2, options, parameters, body) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve2, reject) => {
     fetcher(url2, _getRequestParams$1(method, options, parameters, body)).then((result) => {
       if (!result.ok)
         throw result;
       if (options === null || options === undefined ? undefined : options.noResolveJson)
         return result;
       return result.json();
-    }).then((data) => resolve(data)).catch((error46) => handleError$1(error46, reject, options));
+    }).then((data) => resolve2(data)).catch((error46) => handleError$1(error46, reject, options));
   });
 }
 async function get(fetcher, url2, options, parameters) {
@@ -32114,7 +32189,7 @@ var StorageFileApi = class {
     this.shouldThrowOnError = true;
     return this;
   }
-  async uploadOrUpdate(method, path, fileBody, fileOptions) {
+  async uploadOrUpdate(method, path2, fileBody, fileOptions) {
     var _this = this;
     try {
       let body;
@@ -32144,7 +32219,7 @@ var StorageFileApi = class {
       }
       if (fileOptions === null || fileOptions === undefined ? undefined : fileOptions.headers)
         headers = _objectSpread2(_objectSpread2({}, headers), fileOptions.headers);
-      const cleanPath = _this._removeEmptyFolders(path);
+      const cleanPath = _this._removeEmptyFolders(path2);
       const _path = _this._getFinalPath(cleanPath);
       const data = await (method == "PUT" ? put : post$1)(_this.fetch, `${_this.url}/object/${_path}`, body, _objectSpread2({ headers }, (options === null || options === undefined ? undefined : options.duplex) ? { duplex: options.duplex } : {}));
       return {
@@ -32166,12 +32241,12 @@ var StorageFileApi = class {
       throw error46;
     }
   }
-  async upload(path, fileBody, fileOptions) {
-    return this.uploadOrUpdate("POST", path, fileBody, fileOptions);
+  async upload(path2, fileBody, fileOptions) {
+    return this.uploadOrUpdate("POST", path2, fileBody, fileOptions);
   }
-  async uploadToSignedUrl(path, token, fileBody, fileOptions) {
+  async uploadToSignedUrl(path2, token, fileBody, fileOptions) {
     var _this3 = this;
-    const cleanPath = _this3._removeEmptyFolders(path);
+    const cleanPath = _this3._removeEmptyFolders(path2);
     const _path = _this3._getFinalPath(cleanPath);
     const url2 = new URL(_this3.url + `/object/upload/sign/${_path}`);
     url2.searchParams.set("token", token);
@@ -32209,10 +32284,10 @@ var StorageFileApi = class {
       throw error46;
     }
   }
-  async createSignedUploadUrl(path, options) {
+  async createSignedUploadUrl(path2, options) {
     var _this4 = this;
     try {
-      let _path = _this4._getFinalPath(path);
+      let _path = _this4._getFinalPath(path2);
       const headers = _objectSpread2({}, _this4.headers);
       if (options === null || options === undefined ? undefined : options.upsert)
         headers["x-upsert"] = "true";
@@ -32224,7 +32299,7 @@ var StorageFileApi = class {
       return {
         data: {
           signedUrl: url2.toString(),
-          path,
+          path: path2,
           token
         },
         error: null
@@ -32240,8 +32315,8 @@ var StorageFileApi = class {
       throw error46;
     }
   }
-  async update(path, fileBody, fileOptions) {
-    return this.uploadOrUpdate("PUT", path, fileBody, fileOptions);
+  async update(path2, fileBody, fileOptions) {
+    return this.uploadOrUpdate("PUT", path2, fileBody, fileOptions);
   }
   async move(fromPath, toPath, options) {
     var _this6 = this;
@@ -32289,10 +32364,10 @@ var StorageFileApi = class {
       throw error46;
     }
   }
-  async createSignedUrl(path, expiresIn, options) {
+  async createSignedUrl(path2, expiresIn, options) {
     var _this8 = this;
     try {
-      let _path = _this8._getFinalPath(path);
+      let _path = _this8._getFinalPath(path2);
       let data = await post$1(_this8.fetch, `${_this8.url}/object/sign/${_path}`, _objectSpread2({ expiresIn }, (options === null || options === undefined ? undefined : options.transform) ? { transform: options.transform } : {}), { headers: _this8.headers });
       const downloadQueryParam = (options === null || options === undefined ? undefined : options.download) ? `&download=${options.download === true ? "" : options.download}` : "";
       data = { signedUrl: encodeURI(`${_this8.url}${data.signedURL}${downloadQueryParam}`) };
@@ -32334,20 +32409,20 @@ var StorageFileApi = class {
       throw error46;
     }
   }
-  download(path, options) {
+  download(path2, options) {
     const renderPath = typeof (options === null || options === undefined ? undefined : options.transform) !== "undefined" ? "render/image/authenticated" : "object";
     const transformationQuery = this.transformOptsToQueryString((options === null || options === undefined ? undefined : options.transform) || {});
     const queryString = transformationQuery ? `?${transformationQuery}` : "";
-    const _path = this._getFinalPath(path);
+    const _path = this._getFinalPath(path2);
     const downloadFn = () => get(this.fetch, `${this.url}/${renderPath}/${_path}${queryString}`, {
       headers: this.headers,
       noResolveJson: true
     });
     return new BlobDownloadBuilder(downloadFn, this.shouldThrowOnError);
   }
-  async info(path) {
+  async info(path2) {
     var _this10 = this;
-    const _path = _this10._getFinalPath(path);
+    const _path = _this10._getFinalPath(path2);
     try {
       return {
         data: recursiveToCamel(await get(_this10.fetch, `${_this10.url}/object/info/${_path}`, { headers: _this10.headers })),
@@ -32364,9 +32439,9 @@ var StorageFileApi = class {
       throw error46;
     }
   }
-  async exists(path) {
+  async exists(path2) {
     var _this11 = this;
-    const _path = _this11._getFinalPath(path);
+    const _path = _this11._getFinalPath(path2);
     try {
       await head(_this11.fetch, `${_this11.url}/object/${_path}`, { headers: _this11.headers });
       return {
@@ -32387,8 +32462,8 @@ var StorageFileApi = class {
       throw error46;
     }
   }
-  getPublicUrl(path, options) {
-    const _path = this._getFinalPath(path);
+  getPublicUrl(path2, options) {
+    const _path = this._getFinalPath(path2);
     const _queryString = [];
     const downloadQueryParam = (options === null || options === undefined ? undefined : options.download) ? `download=${options.download === true ? "" : options.download}` : "";
     if (downloadQueryParam !== "")
@@ -32420,10 +32495,10 @@ var StorageFileApi = class {
       throw error46;
     }
   }
-  async list(path, options, parameters) {
+  async list(path2, options, parameters) {
     var _this13 = this;
     try {
-      const body = _objectSpread2(_objectSpread2(_objectSpread2({}, DEFAULT_SEARCH_OPTIONS), options), {}, { prefix: path || "" });
+      const body = _objectSpread2(_objectSpread2(_objectSpread2({}, DEFAULT_SEARCH_OPTIONS), options), {}, { prefix: path2 || "" });
       return {
         data: await post$1(_this13.fetch, `${_this13.url}/object/list/${_this13.bucketId}`, body, { headers: _this13.headers }, parameters),
         error: null
@@ -32466,11 +32541,11 @@ var StorageFileApi = class {
       return Buffer.from(data).toString("base64");
     return btoa(data);
   }
-  _getFinalPath(path) {
-    return `${this.bucketId}/${path.replace(/^\/+/, "")}`;
+  _getFinalPath(path2) {
+    return `${this.bucketId}/${path2.replace(/^\/+/, "")}`;
   }
-  _removeEmptyFolders(path) {
-    return path.replace(/^\/|\/$/g, "").replace(/\/+/g, "/");
+  _removeEmptyFolders(path2) {
+    return path2.replace(/^\/|\/$/g, "").replace(/\/+/g, "/");
   }
   transformOptsToQueryString(transform2) {
     const params = [];
@@ -32860,7 +32935,7 @@ var _getRequestParams = (method, options, parameters, body) => {
   return _objectSpread2(_objectSpread2({}, params), parameters);
 };
 async function _handleRequest(fetcher, method, url2, options, parameters, body) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve2, reject) => {
     fetcher(url2, _getRequestParams(method, options, parameters, body)).then((result) => {
       if (!result.ok)
         throw result;
@@ -32870,7 +32945,7 @@ async function _handleRequest(fetcher, method, url2, options, parameters, body) 
       if (!contentType || !contentType.includes("application/json"))
         return {};
       return result.json();
-    }).then((data) => resolve(data)).catch((error46) => handleError(error46, reject, options));
+    }).then((data) => resolve2(data)).catch((error46) => handleError(error46, reject, options));
   });
 }
 async function post(fetcher, url2, body, options, parameters) {
@@ -33559,133 +33634,249 @@ function shouldShowDeprecationWarning() {
 if (shouldShowDeprecationWarning())
   console.warn("⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217");
 
-// src/supabase/client.ts
-function createSupabaseClientInstance() {
-  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: true
-    }
-  });
-}
-async function persistRefreshedSession(supabaseSession) {
+// src/supabase/session-storage-adapter.ts
+import { readFile as readFile7, unlink as unlink6, writeFile as writeFile7 } from "node:fs/promises";
+import { dirname as dirname7 } from "node:path";
+
+// src/utils/jwt.ts
+function getJwtExpiresAt(token) {
   try {
-    await withFileLock(SESSION_FILE, async () => {
-      const currentSession = await loadSessionFile();
-      if (!currentSession) {
-        logger.warn("No current session found during refresh, skipping persistence");
+    const parts = token.split(".");
+    if (parts.length !== 3)
+      return;
+    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
+    return typeof payload.exp === "number" ? payload.exp : undefined;
+  } catch {
+    return;
+  }
+}
+
+// src/supabase/session-storage-adapter.ts
+var consecutiveWriteFailures = 0;
+function createSessionStorageAdapter(isRemovalAllowed) {
+  return {
+    async getItem(key) {
+      if (key.endsWith("-code-verifier")) {
+        return null;
+      }
+      try {
+        const content = await readFile7(SESSION_FILE, "utf-8");
+        const session = JSON.parse(content);
+        if (!isSessionStructureValid(session)) {
+          logger.warn("Storage adapter: invalid session structure, clearing corrupt file");
+          await clearSession();
+          return null;
+        }
+        if (isRefreshTokenExpired(session)) {
+          logger.warn("Storage adapter: refresh token expired");
+          return null;
+        }
+        const expiresAt = getJwtExpiresAt(session.accessToken);
+        const now = Math.floor(Date.now() / 1000);
+        const effectiveExpiresAt = expiresAt ?? 0;
+        const gotrueSession = {
+          access_token: session.accessToken,
+          refresh_token: session.refreshToken,
+          expires_at: effectiveExpiresAt,
+          expires_in: expiresAt ? Math.max(0, expiresAt - now) : 0,
+          token_type: "bearer",
+          user: {
+            id: session.userId,
+            email: session.email,
+            app_metadata: {},
+            user_metadata: {},
+            aud: "authenticated",
+            created_at: ""
+          }
+        };
+        return JSON.stringify(gotrueSession);
+      } catch (error46) {
+        if (error46.code === "ENOENT") {
+          return null;
+        }
+        if (error46 instanceof SyntaxError) {
+          logger.warn("Storage adapter: corrupt session.json, clearing");
+          await clearSession().catch(() => {});
+          return null;
+        }
+        logger.error("Storage adapter: failed to read session", error46);
+        if (error46 instanceof Error) {
+          captureException(error46, SUPABASE_SESSION_READ_FAILED, "session-storage-adapter", {
+            ...buildFileSystemProperties({
+              filePath: SESSION_FILE,
+              operation: "read",
+              errnoCode: error46.code
+            })
+          });
+        }
+        return null;
+      }
+    },
+    async setItem(key, value) {
+      if (key.endsWith("-code-verifier")) {
         return;
       }
-      const updatedSession = {
-        ...currentSession,
-        accessToken: supabaseSession.access_token,
-        refreshToken: supabaseSession.refresh_token,
-        userId: supabaseSession.user.id,
-        email: supabaseSession.user.email || currentSession.email
-      };
-      await saveSession(updatedSession);
-      logger.info("Session persisted after TOKEN_REFRESHED event");
-    });
-  } catch (error46) {
-    logger.error("Failed to persist refreshed session", error46);
-    if (error46 instanceof Error) {
-      captureException(error46, SUPABASE_SESSION_REFRESH_PERSIST_FAILED, "supabase/client", {
-        session_file: SESSION_FILE
-      });
-    }
-  }
-}
-async function setClientSession(client, session) {
-  const { error: error46 } = await client.auth.setSession({
-    access_token: session.accessToken,
-    refresh_token: session.refreshToken
-  });
-  if (error46) {
-    logger.error(`Failed to set Supabase session: ${error46.message}`);
-    const isAlreadyUsed = error46.code === "refresh_token_already_used";
-    const isInvalidRefreshToken = isAlreadyUsed || error46.message.includes("Invalid Refresh Token") || error46.code === "refresh_token_not_found" || error46.code === "session_not_found" || error46.code === "session_expired";
-    captureException(error46, SUPABASE_SESSION_SET_FAILED, "supabase/client", {
-      is_invalid_refresh_token: isInvalidRefreshToken,
-      error_code: error46.code,
-      error_status: error46.status
-    });
-    if (isAlreadyUsed) {
-      const freshSession = await loadSessionFile();
-      if (freshSession && freshSession.refreshToken !== session.refreshToken) {
-        logger.info("refresh_token_already_used: concurrent refresh detected, retrying with fresh session");
-        const { error: retryError } = await client.auth.setSession({
-          access_token: freshSession.accessToken,
-          refresh_token: freshSession.refreshToken
-        });
-        if (!retryError) {
-          capture(AUTH_SESSION_RACE_RECOVERY, { error_code: error46.code });
-          logger.info("Race recovery successful — session restored from concurrent refresh");
+      try {
+        const gotrueSession = JSON.parse(value);
+        if (!gotrueSession.access_token || !gotrueSession.refresh_token || !gotrueSession.user?.id) {
+          logger.warn("Storage adapter: invalid GoTrueClient session structure, skipping write");
           return;
         }
-        captureException(retryError, AUTH_SESSION_RACE_RECOVERY_FAILED, "supabase/client", {
-          error_code: retryError.code,
-          original_error_code: error46.code
+        await withFileLock(SESSION_FILE, async () => {
+          let workspaceId;
+          let workspaceName;
+          let existingRefreshToken;
+          let refreshTokenExpiresAt;
+          let existingEmail;
+          try {
+            const existingContent = await readFile7(SESSION_FILE, "utf-8");
+            const existing = JSON.parse(existingContent);
+            workspaceId = existing.workspaceId;
+            workspaceName = existing.workspaceName;
+            existingRefreshToken = existing.refreshToken;
+            refreshTokenExpiresAt = existing.refreshTokenExpiresAt;
+            existingEmail = existing.email;
+          } catch {}
+          const tokenRotated = existingRefreshToken && existingRefreshToken !== gotrueSession.refresh_token;
+          const updatedSession = {
+            accessToken: gotrueSession.access_token,
+            refreshToken: gotrueSession.refresh_token,
+            refreshTokenExpiresAt: tokenRotated ? undefined : refreshTokenExpiresAt,
+            userId: gotrueSession.user.id,
+            email: gotrueSession.user.email || existingEmail || "",
+            workspaceId,
+            workspaceName
+          };
+          await ensureDirectory(dirname7(SESSION_FILE));
+          await writeFile7(SESSION_FILE, JSON.stringify(updatedSession, null, 2), {
+            encoding: "utf-8",
+            mode: 384
+          });
+          logger.debug("Storage adapter: session persisted via setItem");
         });
-        logger.warn(`Race recovery failed: ${retryError.message}`);
+        consecutiveWriteFailures = 0;
+      } catch (error46) {
+        consecutiveWriteFailures++;
+        logger.error("Storage adapter: failed to write session", error46);
+        if (consecutiveWriteFailures >= 3) {
+          logger.warn(`Storage adapter: ${consecutiveWriteFailures} consecutive write failures — session may not survive daemon restart`);
+        }
+        if (error46 instanceof Error) {
+          captureException(error46, SUPABASE_SESSION_WRITE_FAILED, "session-storage-adapter", {
+            ...buildFileSystemProperties({
+              filePath: SESSION_FILE,
+              operation: "write",
+              errnoCode: error46.code
+            }),
+            consecutive_failures: consecutiveWriteFailures
+          });
+        }
       }
-      logger.warn("refresh_token_already_used: no concurrent refresh found, clearing session");
-      await clearSessionIfStale(session.refreshToken);
-      throw error46;
+    },
+    async removeItem(key) {
+      if (key.endsWith("-code-verifier")) {
+        return;
+      }
+      if (isRemovalAllowed && !isRemovalAllowed()) {
+        logger.debug("Storage adapter: removal blocked (preserving tokens for recovery)");
+        return;
+      }
+      try {
+        await unlink6(SESSION_FILE);
+        logger.debug("Storage adapter: session removed via removeItem");
+      } catch (error46) {
+        if (error46.code === "ENOENT") {
+          return;
+        }
+        logger.error("Storage adapter: failed to remove session", error46);
+      }
     }
-    if (isInvalidRefreshToken) {
-      logger.warn("Invalid refresh token, clearing session");
-      await clearSession();
-    }
-    throw error46;
-  }
-  logger.debug("Supabase session set successfully");
+  };
 }
-async function loadValidSession() {
-  const session = await loadSessionFile();
-  if (!session) {
-    logger.debug("No session available, skipping Supabase client creation");
-    return null;
-  }
-  if (session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now()) {
-    logger.warn("Refresh token expired, user must re-authenticate");
-    await clearSession();
-    return null;
-  }
-  return session;
+
+// src/supabase/client.ts
+function createSupabaseClientInstance(config2) {
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: config2.autoRefreshToken,
+      detectSessionInUrl: false,
+      storage: config2.storage
+    }
+  });
 }
 async function createOnDemandClient() {
+  let dispose;
   try {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       logger.warn("Supabase configuration missing (URL or anon key)");
       return null;
     }
-    const session = await loadValidSession();
+    const storage = createSessionStorageAdapter(() => false);
+    const client = createSupabaseClientInstance({
+      autoRefreshToken: false,
+      storage
+    });
+    dispose = async () => {
+      try {
+        await client.removeAllChannels();
+      } catch (error46) {
+        logger.warn(`Error removing on-demand channels: ${error46.message}`);
+      }
+      logger.debug("On-demand Supabase client disposed");
+    };
+    const {
+      data: { session }
+    } = await client.auth.getSession();
     if (!session) {
+      await dispose();
       return null;
     }
-    const client = createSupabaseClientInstance();
-    await setClientSession(client, session);
-    const { data } = client.auth.onAuthStateChange(async (event, supabaseSession) => {
-      logger.debug(`On-demand auth state change: ${event}`);
-      if (event === "TOKEN_REFRESHED" && supabaseSession) {
-        await persistRefreshedSession(supabaseSession);
+    const now = Math.floor(Date.now() / 1000);
+    if (session.expires_at != null && session.expires_at < now) {
+      const freshSession = await loadSessionFile();
+      if (freshSession && freshSession.accessToken !== session.access_token) {
+        logger.debug("On-demand client: daemon already refreshed, reloading session");
+        await client.auth.setSession({
+          access_token: freshSession.accessToken,
+          refresh_token: freshSession.refreshToken
+        });
+        return { client, dispose };
       }
-    });
-    const unsubscribe = data.subscription.unsubscribe;
-    logger.debug("On-demand Supabase client created");
-    return {
-      client,
-      dispose: async () => {
-        unsubscribe();
-        try {
-          await client.removeAllChannels();
-        } catch (error46) {
-          logger.warn(`Error removing on-demand channels: ${error46.message}`);
+      const daemonPid = await getDaemonPid();
+      if (daemonPid) {
+        await new Promise((resolve2) => setTimeout(() => resolve2(), 200));
+        const retrySession = await loadSessionFile();
+        if (retrySession && retrySession.accessToken !== session.access_token) {
+          logger.debug("On-demand client: daemon refreshed during wait, reloading session");
+          await client.auth.setSession({
+            access_token: retrySession.accessToken,
+            refresh_token: retrySession.refreshToken
+          });
+          return { client, dispose };
         }
-        logger.debug("On-demand Supabase client disposed");
       }
-    };
+      const { data: refreshData, error: refreshError } = await client.auth.refreshSession();
+      if (refreshError || !refreshData.session) {
+        const recoverySession = await loadSessionFile();
+        if (recoverySession && recoverySession.accessToken !== session.access_token) {
+          logger.debug("On-demand client: refresh failed but daemon wrote new tokens, recovering");
+          await client.auth.setSession({
+            access_token: recoverySession.accessToken,
+            refresh_token: recoverySession.refreshToken
+          });
+          return { client, dispose };
+        }
+        logger.warn(`On-demand client: access token expired and refresh failed${refreshError ? `: ${refreshError.message}` : ""}`);
+        await dispose();
+        return null;
+      }
+    }
+    logger.debug("On-demand Supabase client created");
+    return { client, dispose };
   } catch (error46) {
+    if (dispose)
+      await dispose();
     logger.error("Failed to create on-demand Supabase client", error46);
     if (error46 instanceof Error) {
       captureException(error46, SUPABASE_CLIENT_INIT_FAILED, "supabase/client", {
@@ -34249,8 +34440,8 @@ function getErrorMap2() {
 }
 // ../../node_modules/.bun/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path, errorMaps, issueData } = params;
-  const fullPath = [...path, ...issueData.path || []];
+  const { data, path: path2, errorMaps, issueData } = params;
+  const fullPath = [...path2, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -34362,11 +34553,11 @@ var errorUtil;
 
 // ../../node_modules/.bun/zod@3.25.76/node_modules/zod/v3/types.js
 class ParseInputLazyPath {
-  constructor(parent, value, path, key) {
+  constructor(parent, value, path2, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path;
+    this._path = path2;
     this._key = key;
   }
   get path() {
@@ -37846,96 +38037,6 @@ class DataControlsProvider {
 
 // src/supabase/events-uploader.ts
 import { fileURLToPath as fileURLToPath2 } from "node:url";
-
-// ../../packages/utils/src/git-utils.ts
-import { exec, execSync } from "node:child_process";
-import * as path from "node:path";
-import { promisify } from "node:util";
-var execAsync = promisify(exec);
-var UNKNOWN_PROJECT = {
-  projectId: "unknown",
-  projectName: "unknown"
-};
-var PROJECT_ID_NAMESPACE = "e1f3b3c4-0b7a-4c1e-8a7b-9f3c0e1d2a3b";
-function generateProjectId(input) {
-  return v5_default(input, PROJECT_ID_NAMESPACE);
-}
-function extractNameFromRemoteUrl(remoteUrl) {
-  const orgRepoMatch = remoteUrl.match(/[/:]([^/:.]+\/[^/]+?)(\.git)?$/);
-  if (orgRepoMatch?.[1]) {
-    return orgRepoMatch[1];
-  }
-  const repoMatch = remoteUrl.match(/\/([^/]+?)(\.git)?$/);
-  if (repoMatch?.[1]) {
-    return repoMatch[1];
-  }
-  return null;
-}
-function extractProjectName(workingDirectory) {
-  try {
-    try {
-      const remoteUrl = execSync("git config --get remote.origin.url", {
-        cwd: workingDirectory,
-        encoding: "utf-8",
-        stdio: ["pipe", "pipe", "pipe"],
-        timeout: 5000
-      }).trim();
-      if (remoteUrl) {
-        const name = extractNameFromRemoteUrl(remoteUrl);
-        if (name) {
-          return name;
-        }
-      }
-    } catch {}
-    try {
-      const repoRoot = execSync("git rev-parse --show-toplevel", {
-        cwd: workingDirectory,
-        encoding: "utf-8",
-        stdio: ["pipe", "pipe", "pipe"],
-        timeout: 5000
-      }).trim();
-      if (repoRoot) {
-        return path.basename(repoRoot);
-      }
-    } catch {}
-    return path.basename(workingDirectory);
-  } catch {
-    return null;
-  }
-}
-function isGitRepository(workingDirectory) {
-  try {
-    execSync("git rev-parse --is-inside-work-tree", {
-      cwd: workingDirectory,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-      timeout: 5000
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
-function getProjectInfoSync(workingDirectory) {
-  try {
-    if (!isGitRepository(workingDirectory)) {
-      return UNKNOWN_PROJECT;
-    }
-    const projectName = extractProjectName(workingDirectory);
-    if (!projectName) {
-      return UNKNOWN_PROJECT;
-    }
-    const absolutePath = path.resolve(workingDirectory);
-    const projectId = generateProjectId(absolutePath);
-    return {
-      projectId,
-      projectName
-    };
-  } catch {
-    return UNKNOWN_PROJECT;
-  }
-}
-// src/supabase/events-uploader.ts
 var UNKNOWN_PROJECT2 = {
   projectId: "unknown",
   projectName: "unknown"
@@ -38086,7 +38187,7 @@ async function uploadEventsWithRetry(supabase, session, dataControls, maxRetries
 }
 
 // src/supabase/signal-syncer.ts
-import { readdir as readdir3, unlink as unlink5 } from "node:fs/promises";
+import { readdir as readdir3, unlink as unlink7 } from "node:fs/promises";
 var SIGNAL_FILE_PREFIX = "signals-";
 var SIGNAL_FILE_SUFFIX = ".json";
 async function scanSignalStateFiles() {
@@ -38124,7 +38225,7 @@ async function syncSessionSignals(supabase) {
         }
         if (state.final) {
           try {
-            await unlink5(stateFile);
+            await unlink7(stateFile);
             logger.debug(`Cleaned up final signal state: ${sessionId}`);
           } catch {}
         }

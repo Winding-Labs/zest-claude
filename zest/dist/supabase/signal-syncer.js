@@ -21302,12 +21302,15 @@ class Logger {
 var logger = new Logger;
 
 // src/auth/session-manager.ts
+function isSessionStructureValid(session) {
+  return Boolean(session.accessToken && session.refreshToken && session.userId && session.email);
+}
 async function loadSessionFile() {
   try {
     const content = await readFile(SESSION_FILE, "utf-8");
     const session = JSON.parse(content);
-    if (!session.accessToken || !session.refreshToken || !session.userId || !session.email) {
-      logger.warn("Invalid session structure, clearing session");
+    if (!isSessionStructureValid(session)) {
+      logger.warn("Invalid session structure, clearing corrupt file");
       await clearSession();
       return null;
     }
@@ -21328,9 +21331,6 @@ async function loadSessionFile() {
     }
     return null;
   }
-}
-async function loadSession() {
-  return loadSessionFile();
 }
 async function clearSession() {
   try {
@@ -21376,7 +21376,7 @@ async function getAnalyticsClient() {
   if (!analyticsClient) {
     analyticsClient = createServerAnalytics(POSTHOG_API_KEY);
     try {
-      const session = await loadSession();
+      const session = await loadSessionFile();
       if (session) {
         cachedSession = session;
       }
@@ -21449,7 +21449,9 @@ var activeLockFiles = new Set;
 function isLockStale(lockInfo) {
   return !isProcessRunning(lockInfo.pid);
 }
-async function acquireFileLock(filePath) {
+async function acquireFileLock(filePath, depth = 0) {
+  if (depth > 3)
+    return false;
   const lockFile = `${filePath}.lock`;
   const lockInfo = {
     pid: process.pid,
@@ -21481,12 +21483,12 @@ async function acquireFileLock(filePath) {
       if (isLockStale(existingLock)) {
         logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
         await unlink3(lockFile).catch(() => {});
-        return acquireFileLock(filePath);
+        return acquireFileLock(filePath, depth + 1);
       }
     } catch {
       logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
       await unlink3(lockFile).catch(() => {});
-      return acquireFileLock(filePath);
+      return acquireFileLock(filePath, depth + 1);
     }
     return false;
   }
@@ -21610,7 +21612,34 @@ function normalizeSessionId(sessionId) {
 
 // src/utils/signal-state.ts
 import { readFile as readFile3, writeFile as writeFile3 } from "node:fs/promises";
+import { join as join6 } from "node:path";
+
+// src/extractors/toolkit-metadata-extractor.ts
 import { join as join5 } from "node:path";
+// ../../packages/utils/src/date-range.ts
+var PERIOD_TYPE_LABELS = {
+  ["today" /* Today */]: "Today",
+  ["this_week" /* ThisWeek */]: "This Week",
+  ["this_month" /* ThisMonth */]: "This Month"
+};
+var PERIOD_SUMMARY_LABELS = {
+  ["today" /* Today */]: "Daily Summary",
+  ["this_week" /* ThisWeek */]: "Weekly Summary",
+  ["this_month" /* ThisMonth */]: "Monthly Summary",
+  custom: "Custom Period"
+};
+// ../../packages/utils/src/frontmatter.ts
+var FRONTMATTER_KEYS = new Set(["name", "description"]);
+// ../../packages/utils/src/mcp-registry.ts
+var cache = new Map;
+// ../../packages/utils/src/git-utils.ts
+import { exec, execSync } from "node:child_process";
+import { promisify } from "node:util";
+var execAsync = promisify(exec);
+// src/extractors/toolkit-metadata-extractor.ts
+var SKILLS_DIR = join5(CLAUDE_INSTALL_DIR, "skills");
+var AGENTS_DIR = join5(CLAUDE_INSTALL_DIR, "agents");
+var INSTALLED_PLUGINS_FILE = join5(CLAUDE_INSTALL_DIR, "plugins", "installed_plugins.json");
 
 // src/utils/signal-scanner.ts
 var EMPTY_SIGNALS = {
@@ -21637,7 +21666,7 @@ var KNOWN_TOOL_NAMES = new Set([...KNOWN_BUILTIN_NAMES, "Task", "Agent", "Skill"
 
 // src/utils/signal-state.ts
 function getSignalStatePath(sessionId) {
-  return join5(STATE_DIR, `signals-${sessionId}.json`);
+  return join6(STATE_DIR, `signals-${sessionId}.json`);
 }
 async function readStateFromFile(stateFile) {
   try {

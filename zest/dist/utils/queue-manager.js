@@ -21131,7 +21131,7 @@ function createServerAnalytics(posthogApiKey, options) {
   };
 }
 // src/auth/session-manager.ts
-import { readFile, unlink as unlink2, writeFile } from "node:fs/promises";
+import { readFile as readFile2, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
 
 // src/analytics/properties.ts
 import { basename } from "node:path";
@@ -21182,6 +21182,18 @@ var NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
 var STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
 var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
 
+// src/utils/file-lock.ts
+import { readdir as readdir2, readFile, unlink as unlink2, writeFile } from "node:fs/promises";
+import { dirname as dirname4 } from "node:path";
+
+// src/utils/daemon-manager.ts
+import { dirname as dirname3, join as join3 } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// src/utils/logger.ts
+import { appendFile } from "node:fs/promises";
+import { dirname as dirname2 } from "node:path";
+
 // src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
 async function ensureDirectory(dirPath) {
@@ -21191,10 +21203,6 @@ async function ensureDirectory(dirPath) {
     await mkdir(dirPath, { recursive: true, mode: 448 });
   }
 }
-
-// src/utils/logger.ts
-import { appendFile } from "node:fs/promises";
-import { dirname as dirname2 } from "node:path";
 
 // src/utils/log-rotation.ts
 import { readdir, unlink } from "node:fs/promises";
@@ -21300,13 +21308,105 @@ class Logger {
 }
 var logger = new Logger;
 
+// src/utils/daemon-manager.ts
+var DAEMON_RESTART_LOCK = join3(CLAUDE_ZEST_DIR, "daemon-restart.lock");
+var __filename2 = fileURLToPath(import.meta.url);
+var __dirname2 = dirname3(__filename2);
+function isProcessRunning(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// src/utils/file-lock.ts
+var activeLockFiles = new Set;
+function isLockStale(lockInfo) {
+  return !isProcessRunning(lockInfo.pid);
+}
+async function acquireFileLock(filePath, depth = 0) {
+  if (depth > 3)
+    return false;
+  const lockFile = `${filePath}.lock`;
+  const lockInfo = {
+    pid: process.pid,
+    timestamp: Date.now()
+  };
+  try {
+    await ensureDirectory(dirname4(lockFile));
+    await writeFile(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
+    activeLockFiles.add(lockFile);
+    return true;
+  } catch (error46) {
+    if (error46.code !== "EEXIST") {
+      const errCode = error46.code;
+      if (errCode === "ENOENT" || errCode === "EACCES") {
+        logger.error(`Failed to create lock file ${lockFile}:`, error46);
+        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
+          ...buildFileSystemProperties({
+            filePath: lockFile,
+            operation: "lock",
+            errnoCode: errCode
+          })
+        });
+      }
+      throw error46;
+    }
+    try {
+      const content = await readFile(lockFile, "utf8");
+      const existingLock = JSON.parse(content);
+      if (isLockStale(existingLock)) {
+        logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
+        await unlink2(lockFile).catch(() => {});
+        return acquireFileLock(filePath, depth + 1);
+      }
+    } catch {
+      logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
+      await unlink2(lockFile).catch(() => {});
+      return acquireFileLock(filePath, depth + 1);
+    }
+    return false;
+  }
+}
+async function releaseFileLock(filePath) {
+  const lockFile = `${filePath}.lock`;
+  activeLockFiles.delete(lockFile);
+  await unlink2(lockFile).catch(() => {});
+}
+async function withFileLock(filePath, fn) {
+  let retries = 0;
+  while (!await acquireFileLock(filePath)) {
+    if (++retries >= LOCK_MAX_RETRIES) {
+      const error46 = new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
+      captureException(error46, FILE_LOCK_TIMEOUT, "file-lock", {
+        ...buildFileSystemProperties({ filePath, operation: "lock" }),
+        retries,
+        max_retries: LOCK_MAX_RETRIES,
+        retry_delay_ms: LOCK_RETRY_MS
+      });
+      throw error46;
+    }
+    await new Promise((resolve) => setTimeout(resolve, LOCK_RETRY_MS));
+  }
+  try {
+    return await fn();
+  } finally {
+    await releaseFileLock(filePath);
+  }
+}
+
 // src/auth/session-manager.ts
+function isSessionStructureValid(session) {
+  return Boolean(session.accessToken && session.refreshToken && session.userId && session.email);
+}
 async function loadSessionFile() {
   try {
-    const content = await readFile(SESSION_FILE, "utf-8");
+    const content = await readFile2(SESSION_FILE, "utf-8");
     const session = JSON.parse(content);
-    if (!session.accessToken || !session.refreshToken || !session.userId || !session.email) {
-      logger.warn("Invalid session structure, clearing session");
+    if (!isSessionStructureValid(session)) {
+      logger.warn("Invalid session structure, clearing corrupt file");
       await clearSession();
       return null;
     }
@@ -21328,12 +21428,9 @@ async function loadSessionFile() {
     return null;
   }
 }
-async function loadSession() {
-  return loadSessionFile();
-}
 async function clearSession() {
   try {
-    await unlink2(SESSION_FILE);
+    await unlink3(SESSION_FILE);
     logger.info("Session cleared successfully");
   } catch (error46) {
     if (error46.code === "ENOENT") {
@@ -21346,10 +21443,10 @@ async function clearSession() {
 
 // src/utils/plugin-version.ts
 import { readFileSync } from "node:fs";
-import { join as join3 } from "node:path";
+import { join as join4 } from "node:path";
 function getPluginVersion() {
   try {
-    const marketplacePluginPath = join3(CLAUDE_INSTALL_DIR, "plugins", "marketplaces", "zest-marketplace", "zest", ".claude-plugin", "plugin.json");
+    const marketplacePluginPath = join4(CLAUDE_INSTALL_DIR, "plugins", "marketplaces", "zest-marketplace", "zest", ".claude-plugin", "plugin.json");
     const pluginJson = JSON.parse(readFileSync(marketplacePluginPath, "utf-8"));
     if (pluginJson.version && typeof pluginJson.version === "string") {
       logger.debug("Read plugin version from marketplace plugin.json", {
@@ -21375,7 +21472,7 @@ async function getAnalyticsClient() {
   if (!analyticsClient) {
     analyticsClient = createServerAnalytics(POSTHOG_API_KEY);
     try {
-      const session = await loadSession();
+      const session = await loadSessionFile();
       if (session) {
         cachedSession = session;
       }
@@ -22634,11 +22731,11 @@ class PrivacyService {
   }
 }
 // src/privacy/node-fs-adapter.ts
-import { readdir as readdir2, readFile as readFile2, stat as stat2 } from "node:fs/promises";
+import { readdir as readdir3, readFile as readFile3, stat as stat2 } from "node:fs/promises";
 function createNodeFsAdapter(workspaceRoot) {
   return {
     async readFile(path) {
-      return readFile2(path, "utf-8");
+      return readFile3(path, "utf-8");
     },
     async fileExists(path) {
       try {
@@ -22649,7 +22746,7 @@ function createNodeFsAdapter(workspaceRoot) {
       }
     },
     async readDir(path) {
-      return readdir2(path);
+      return readdir3(path);
     },
     getWorkspaceRoot() {
       return workspaceRoot;
@@ -22784,99 +22881,6 @@ function getPrivacyManager() {
     privacyManagerInstance = new PrivacyManager;
   }
   return privacyManagerInstance;
-}
-
-// src/utils/file-lock.ts
-import { readdir as readdir3, readFile as readFile3, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
-import { dirname as dirname4 } from "node:path";
-
-// src/utils/daemon-manager.ts
-import { dirname as dirname3, join as join4 } from "node:path";
-import { fileURLToPath } from "node:url";
-var DAEMON_RESTART_LOCK = join4(CLAUDE_ZEST_DIR, "daemon-restart.lock");
-var __filename2 = fileURLToPath(import.meta.url);
-var __dirname2 = dirname3(__filename2);
-function isProcessRunning(pid) {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// src/utils/file-lock.ts
-var activeLockFiles = new Set;
-function isLockStale(lockInfo) {
-  return !isProcessRunning(lockInfo.pid);
-}
-async function acquireFileLock(filePath) {
-  const lockFile = `${filePath}.lock`;
-  const lockInfo = {
-    pid: process.pid,
-    timestamp: Date.now()
-  };
-  try {
-    await ensureDirectory(dirname4(lockFile));
-    await writeFile2(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
-    activeLockFiles.add(lockFile);
-    return true;
-  } catch (error46) {
-    if (error46.code !== "EEXIST") {
-      const errCode = error46.code;
-      if (errCode === "ENOENT" || errCode === "EACCES") {
-        logger.error(`Failed to create lock file ${lockFile}:`, error46);
-        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
-          ...buildFileSystemProperties({
-            filePath: lockFile,
-            operation: "lock",
-            errnoCode: errCode
-          })
-        });
-      }
-      throw error46;
-    }
-    try {
-      const content = await readFile3(lockFile, "utf8");
-      const existingLock = JSON.parse(content);
-      if (isLockStale(existingLock)) {
-        logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
-        await unlink3(lockFile).catch(() => {});
-        return acquireFileLock(filePath);
-      }
-    } catch {
-      logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
-      await unlink3(lockFile).catch(() => {});
-      return acquireFileLock(filePath);
-    }
-    return false;
-  }
-}
-async function releaseFileLock(filePath) {
-  const lockFile = `${filePath}.lock`;
-  activeLockFiles.delete(lockFile);
-  await unlink3(lockFile).catch(() => {});
-}
-async function withFileLock(filePath, fn) {
-  let retries = 0;
-  while (!await acquireFileLock(filePath)) {
-    if (++retries >= LOCK_MAX_RETRIES) {
-      const error46 = new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
-      captureException(error46, FILE_LOCK_TIMEOUT, "file-lock", {
-        ...buildFileSystemProperties({ filePath, operation: "lock" }),
-        retries,
-        max_retries: LOCK_MAX_RETRIES,
-        retry_delay_ms: LOCK_RETRY_MS
-      });
-      throw error46;
-    }
-    await new Promise((resolve) => setTimeout(resolve, LOCK_RETRY_MS));
-  }
-  try {
-    return await fn();
-  } finally {
-    await releaseFileLock(filePath);
-  }
 }
 
 // src/utils/string-utils.ts

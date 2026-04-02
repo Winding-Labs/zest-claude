@@ -4974,12 +4974,14 @@ var require_main = __commonJS((exports) => {
 });
 
 // src/auth/session-manager.ts
-import { readFile, unlink as unlink2, writeFile } from "node:fs/promises";
-import { dirname as dirname3 } from "node:path";
+import { readFile as readFile2, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
+import { dirname as dirname5 } from "node:path";
 
 // src/analytics/events.ts
 var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
 var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
+var FILE_LOCK_TIMEOUT = "file_lock_timeout";
+var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
 function getErrorCategory(errorType) {
   if (errorType.startsWith("auth_"))
     return "auth";
@@ -21148,6 +21150,8 @@ var SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
 var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
 var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
 var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
+var LOCK_RETRY_MS = 50;
+var LOCK_MAX_RETRIES = 300;
 var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
 var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
 var LOG_RETENTION_DAYS = 7;
@@ -21311,7 +21315,7 @@ async function getAnalyticsClient() {
   if (!analyticsClient) {
     analyticsClient = createServerAnalytics(POSTHOG_API_KEY);
     try {
-      const session = await loadSession();
+      const session = await loadSessionFile();
       if (session) {
         cachedSession = session;
       }
@@ -21375,13 +21379,114 @@ function buildFileSystemProperties(options) {
   };
 }
 
+// src/utils/file-lock.ts
+import { readdir as readdir2, readFile, unlink as unlink2, writeFile } from "node:fs/promises";
+import { dirname as dirname4 } from "node:path";
+
+// src/utils/daemon-manager.ts
+import { dirname as dirname3, join as join4 } from "node:path";
+import { fileURLToPath } from "node:url";
+var DAEMON_RESTART_LOCK = join4(CLAUDE_ZEST_DIR, "daemon-restart.lock");
+var __filename2 = fileURLToPath(import.meta.url);
+var __dirname2 = dirname3(__filename2);
+function isProcessRunning(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// src/utils/file-lock.ts
+var activeLockFiles = new Set;
+function isLockStale(lockInfo) {
+  return !isProcessRunning(lockInfo.pid);
+}
+async function acquireFileLock(filePath, depth = 0) {
+  if (depth > 3)
+    return false;
+  const lockFile = `${filePath}.lock`;
+  const lockInfo = {
+    pid: process.pid,
+    timestamp: Date.now()
+  };
+  try {
+    await ensureDirectory(dirname4(lockFile));
+    await writeFile(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
+    activeLockFiles.add(lockFile);
+    return true;
+  } catch (error46) {
+    if (error46.code !== "EEXIST") {
+      const errCode = error46.code;
+      if (errCode === "ENOENT" || errCode === "EACCES") {
+        logger.error(`Failed to create lock file ${lockFile}:`, error46);
+        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
+          ...buildFileSystemProperties({
+            filePath: lockFile,
+            operation: "lock",
+            errnoCode: errCode
+          })
+        });
+      }
+      throw error46;
+    }
+    try {
+      const content = await readFile(lockFile, "utf8");
+      const existingLock = JSON.parse(content);
+      if (isLockStale(existingLock)) {
+        logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
+        await unlink2(lockFile).catch(() => {});
+        return acquireFileLock(filePath, depth + 1);
+      }
+    } catch {
+      logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
+      await unlink2(lockFile).catch(() => {});
+      return acquireFileLock(filePath, depth + 1);
+    }
+    return false;
+  }
+}
+async function releaseFileLock(filePath) {
+  const lockFile = `${filePath}.lock`;
+  activeLockFiles.delete(lockFile);
+  await unlink2(lockFile).catch(() => {});
+}
+async function withFileLock(filePath, fn) {
+  let retries = 0;
+  while (!await acquireFileLock(filePath)) {
+    if (++retries >= LOCK_MAX_RETRIES) {
+      const error46 = new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
+      captureException(error46, FILE_LOCK_TIMEOUT, "file-lock", {
+        ...buildFileSystemProperties({ filePath, operation: "lock" }),
+        retries,
+        max_retries: LOCK_MAX_RETRIES,
+        retry_delay_ms: LOCK_RETRY_MS
+      });
+      throw error46;
+    }
+    await new Promise((resolve) => setTimeout(resolve, LOCK_RETRY_MS));
+  }
+  try {
+    return await fn();
+  } finally {
+    await releaseFileLock(filePath);
+  }
+}
+
 // src/auth/session-manager.ts
+function isSessionStructureValid(session) {
+  return Boolean(session.accessToken && session.refreshToken && session.userId && session.email);
+}
+function isRefreshTokenExpired(session) {
+  return Boolean(session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now());
+}
 async function loadSessionFile() {
   try {
-    const content = await readFile(SESSION_FILE, "utf-8");
+    const content = await readFile2(SESSION_FILE, "utf-8");
     const session = JSON.parse(content);
-    if (!session.accessToken || !session.refreshToken || !session.userId || !session.email) {
-      logger.warn("Invalid session structure, clearing session");
+    if (!isSessionStructureValid(session)) {
+      logger.warn("Invalid session structure, clearing corrupt file");
       await clearSession();
       return null;
     }
@@ -21403,15 +21508,14 @@ async function loadSessionFile() {
     return null;
   }
 }
-async function loadSession() {
-  return loadSessionFile();
-}
 async function saveSession(session) {
   try {
-    await ensureDirectory(dirname3(SESSION_FILE));
-    await writeFile(SESSION_FILE, JSON.stringify(session, null, 2), {
-      encoding: "utf-8",
-      mode: 384
+    await withFileLock(SESSION_FILE, async () => {
+      await ensureDirectory(dirname5(SESSION_FILE));
+      await writeFile2(SESSION_FILE, JSON.stringify(session, null, 2), {
+        encoding: "utf-8",
+        mode: 384
+      });
     });
     logger.info("Session saved successfully");
   } catch (error46) {
@@ -21428,21 +21532,9 @@ async function saveSession(session) {
     throw error46;
   }
 }
-async function clearSessionIfStale(usedRefreshToken) {
-  const current = await loadSessionFile();
-  if (!current) {
-    return true;
-  }
-  if (current.refreshToken !== usedRefreshToken) {
-    logger.info("clearSessionIfStale: on-disk refresh token differs — concurrent refresh succeeded, preserving session");
-    return false;
-  }
-  await clearSession();
-  return true;
-}
 async function clearSession() {
   try {
-    await unlink2(SESSION_FILE);
+    await unlink3(SESSION_FILE);
     logger.info("Session cleared successfully");
   } catch (error46) {
     if (error46.code === "ENOENT") {
@@ -21452,34 +21544,80 @@ async function clearSession() {
     throw error46;
   }
 }
-async function isAuthenticated() {
-  const session = await loadSessionFile();
-  if (!session)
-    return false;
-  if (session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now()) {
-    return false;
-  }
-  return true;
-}
 async function getValidSession() {
   const session = await loadSessionFile();
   if (!session) {
     logger.debug("getValidSession: No session found");
     return null;
   }
-  if (session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now()) {
+  if (isRefreshTokenExpired(session)) {
     logger.warn("getValidSession: Refresh token expired, user must re-authenticate");
     await clearSession();
     return null;
   }
   return session;
 }
+async function reconcileWorkspaceName(session, workspaces) {
+  if (!session.workspaceId)
+    return session.workspaceName;
+  const current = workspaces.find((ws) => ws.id === session.workspaceId);
+  if (!current)
+    return session.workspaceName;
+  if (current.name !== session.workspaceName) {
+    try {
+      await updateWorkspaceInSession(current.id, current.name);
+    } catch (error46) {
+      logger.debug("Failed to update workspace name in session (non-critical)", error46);
+    }
+  }
+  return current.name;
+}
+async function updateWorkspaceInSession(workspaceId, workspaceName) {
+  try {
+    await withFileLock(SESSION_FILE, async () => {
+      let content;
+      try {
+        content = await readFile2(SESSION_FILE, "utf-8");
+      } catch (readError) {
+        if (readError.code === "ENOENT") {
+          logger.debug("Cannot update workspace: session file does not exist");
+          return;
+        }
+        throw readError;
+      }
+      const session = JSON.parse(content);
+      if (!isSessionStructureValid(session)) {
+        throw new Error("Cannot update workspace: session file has invalid structure");
+      }
+      session.workspaceId = workspaceId;
+      session.workspaceName = workspaceName;
+      await writeFile2(SESSION_FILE, JSON.stringify(session, null, 2), {
+        encoding: "utf-8",
+        mode: 384
+      });
+    });
+    logger.info("Workspace metadata updated in session");
+  } catch (error46) {
+    logger.error("Failed to update workspace in session", error46);
+    if (error46 instanceof Error) {
+      captureException(error46, AUTH_SESSION_SAVE_FAILED, "session-manager", {
+        ...buildFileSystemProperties({
+          filePath: SESSION_FILE,
+          operation: "write",
+          errnoCode: error46.code
+        })
+      });
+    }
+    throw error46;
+  }
+}
 export {
+  updateWorkspaceInSession,
   saveSession,
+  reconcileWorkspaceName,
   loadSessionFile,
-  loadSession,
-  isAuthenticated,
+  isSessionStructureValid,
+  isRefreshTokenExpired,
   getValidSession,
-  clearSessionIfStale,
   clearSession
 };

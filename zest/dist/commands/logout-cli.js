@@ -21124,7 +21124,7 @@ function createServerAnalytics(posthogApiKey, options) {
   };
 }
 // src/auth/session-manager.ts
-import { readFile, unlink as unlink2, writeFile } from "node:fs/promises";
+import { readFile as readFile2, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
 
 // src/analytics/properties.ts
 import { basename } from "node:path";
@@ -21172,6 +21172,15 @@ var NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
 var STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
 var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
 
+// src/utils/daemon-manager.ts
+import { readFile, stat as stat2, unlink as unlink2, writeFile } from "node:fs/promises";
+import { dirname as dirname3, join as join3 } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// src/utils/logger.ts
+import { appendFile } from "node:fs/promises";
+import { dirname as dirname2 } from "node:path";
+
 // src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
 async function ensureDirectory(dirPath) {
@@ -21181,10 +21190,6 @@ async function ensureDirectory(dirPath) {
     await mkdir(dirPath, { recursive: true, mode: 448 });
   }
 }
-
-// src/utils/logger.ts
-import { appendFile } from "node:fs/promises";
-import { dirname as dirname2 } from "node:path";
 
 // src/utils/log-rotation.ts
 import { readdir, unlink } from "node:fs/promises";
@@ -21290,13 +21295,73 @@ class Logger {
 }
 var logger = new Logger;
 
+// src/utils/daemon-manager.ts
+var DAEMON_RESTART_LOCK = join3(CLAUDE_ZEST_DIR, "daemon-restart.lock");
+var __filename2 = fileURLToPath(import.meta.url);
+var __dirname2 = dirname3(__filename2);
+function isProcessRunning(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function stopDaemon() {
+  try {
+    const pid = await getDaemonPid();
+    if (pid) {
+      try {
+        process.kill(pid, "SIGTERM");
+      } catch {}
+      for (let i = 0;i < 10; i++) {
+        if (!isProcessRunning(pid))
+          break;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      if (isProcessRunning(pid)) {
+        try {
+          process.kill(pid, "SIGKILL");
+          logger.warn("Daemon did not exit after SIGTERM, sent SIGKILL");
+        } catch {}
+      }
+    }
+    await cleanupPidFile();
+  } catch (error46) {
+    logger.warn("Error stopping daemon:", error46);
+  }
+}
+async function cleanupPidFile() {
+  try {
+    await unlink2(DAEMON_PID_FILE);
+  } catch {}
+}
+async function getDaemonPid() {
+  try {
+    const pidData = await readFile(DAEMON_PID_FILE, "utf-8");
+    const pid = Number.parseInt(pidData.trim(), 10);
+    if (Number.isNaN(pid)) {
+      return null;
+    }
+    return isProcessRunning(pid) ? pid : null;
+  } catch {
+    return null;
+  }
+}
+
+// src/utils/file-lock.ts
+var activeLockFiles = new Set;
+
 // src/auth/session-manager.ts
+function isSessionStructureValid(session) {
+  return Boolean(session.accessToken && session.refreshToken && session.userId && session.email);
+}
 async function loadSessionFile() {
   try {
-    const content = await readFile(SESSION_FILE, "utf-8");
+    const content = await readFile2(SESSION_FILE, "utf-8");
     const session = JSON.parse(content);
-    if (!session.accessToken || !session.refreshToken || !session.userId || !session.email) {
-      logger.warn("Invalid session structure, clearing session");
+    if (!isSessionStructureValid(session)) {
+      logger.warn("Invalid session structure, clearing corrupt file");
       await clearSession();
       return null;
     }
@@ -21318,12 +21383,9 @@ async function loadSessionFile() {
     return null;
   }
 }
-async function loadSession() {
-  return loadSessionFile();
-}
 async function clearSession() {
   try {
-    await unlink2(SESSION_FILE);
+    await unlink3(SESSION_FILE);
     logger.info("Session cleared successfully");
   } catch (error46) {
     if (error46.code === "ENOENT") {
@@ -21336,10 +21398,10 @@ async function clearSession() {
 
 // src/utils/plugin-version.ts
 import { readFileSync } from "node:fs";
-import { join as join3 } from "node:path";
+import { join as join4 } from "node:path";
 function getPluginVersion() {
   try {
-    const marketplacePluginPath = join3(CLAUDE_INSTALL_DIR, "plugins", "marketplaces", "zest-marketplace", "zest", ".claude-plugin", "plugin.json");
+    const marketplacePluginPath = join4(CLAUDE_INSTALL_DIR, "plugins", "marketplaces", "zest-marketplace", "zest", ".claude-plugin", "plugin.json");
     const pluginJson = JSON.parse(readFileSync(marketplacePluginPath, "utf-8"));
     if (pluginJson.version && typeof pluginJson.version === "string") {
       logger.debug("Read plugin version from marketplace plugin.json", {
@@ -21365,7 +21427,7 @@ async function getAnalyticsClient() {
   if (!analyticsClient) {
     analyticsClient = createServerAnalytics(POSTHOG_API_KEY);
     try {
-      const session = await loadSession();
+      const session = await loadSessionFile();
       if (session) {
         cachedSession = session;
       }
@@ -21418,19 +21480,10 @@ async function captureException(error46, errorType, errorSource, additionalPrope
   }
 }
 
-// src/utils/daemon-manager.ts
-import { dirname as dirname3, join as join4 } from "node:path";
-import { fileURLToPath } from "node:url";
-var DAEMON_RESTART_LOCK = join4(CLAUDE_ZEST_DIR, "daemon-restart.lock");
-var __filename2 = fileURLToPath(import.meta.url);
-var __dirname2 = dirname3(__filename2);
-
-// src/utils/file-lock.ts
-var activeLockFiles = new Set;
-
 // src/auth/authentication.ts
 async function logout() {
   try {
+    await stopDaemon();
     await clearSession();
     logger.info("Logged out successfully");
   } catch (error46) {
@@ -21442,7 +21495,7 @@ async function logout() {
 // src/commands/logout-cli.ts
 async function main() {
   try {
-    const session = await loadSession();
+    const session = await loadSessionFile();
     if (!session) {
       console.log("ℹ️  Not authenticated");
       return;

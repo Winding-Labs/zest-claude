@@ -13151,7 +13151,6 @@ import { dirname as dirname8 } from "node:path";
 
 // src/analytics/events.ts
 var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
-var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
 var SYNC_NOT_AUTHENTICATED = "sync_not_authenticated";
 var SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed";
 var SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted";
@@ -13165,10 +13164,8 @@ var API_PROFILE_UPDATE_FAILED = "api_profile_update_failed";
 var API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed";
 var API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed";
 var SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed";
-var SUPABASE_SESSION_SET_FAILED = "supabase_session_set_failed";
-var SUPABASE_SESSION_REFRESH_PERSIST_FAILED = "supabase_session_refresh_persist_failed";
-var AUTH_SESSION_RACE_RECOVERY = "auth_session_race_recovery";
-var AUTH_SESSION_RACE_RECOVERY_FAILED = "auth_session_race_recovery_failed";
+var SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed";
+var SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed";
 function getErrorCategory(errorType) {
   if (errorType.startsWith("auth_"))
     return "auth";
@@ -29317,8 +29314,7 @@ function createServerAnalytics(posthogApiKey, options) {
   };
 }
 // src/auth/session-manager.ts
-import { readFile, unlink as unlink2, writeFile } from "node:fs/promises";
-import { dirname as dirname3 } from "node:path";
+import { readFile as readFile4, unlink as unlink5, writeFile as writeFile4 } from "node:fs/promises";
 
 // src/analytics/properties.ts
 import { basename } from "node:path";
@@ -29403,6 +29399,23 @@ var FIRST_DATA_THRESHOLD_MESSAGES = 5;
 var STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
 var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
 
+// src/utils/file-lock.ts
+import { unlinkSync } from "node:fs";
+import { readdir as readdir2, readFile as readFile3, unlink as unlink4, writeFile as writeFile3 } from "node:fs/promises";
+import { dirname as dirname4 } from "node:path";
+
+// src/utils/daemon-manager.ts
+import { readFile as readFile2, stat as stat2, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
+import { dirname as dirname3, join as join3 } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// src/utils/claude-instances.ts
+import { readFile, rename, unlink as unlink2, writeFile } from "node:fs/promises";
+
+// src/utils/logger.ts
+import { appendFile } from "node:fs/promises";
+import { dirname as dirname2 } from "node:path";
+
 // src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
 async function ensureDirectory(dirPath) {
@@ -29412,10 +29425,6 @@ async function ensureDirectory(dirPath) {
     await mkdir(dirPath, { recursive: true, mode: 448 });
   }
 }
-
-// src/utils/logger.ts
-import { appendFile } from "node:fs/promises";
-import { dirname as dirname2 } from "node:path";
 
 // src/utils/log-rotation.ts
 import { readdir, unlink } from "node:fs/promises";
@@ -29525,13 +29534,226 @@ class Logger {
 }
 var logger = new Logger;
 
+// src/utils/claude-instances.ts
+async function getTrackedPids() {
+  try {
+    const data = await readFile(CLAUDE_INSTANCES_FILE, "utf-8");
+    const registry2 = JSON.parse(data);
+    if (!Array.isArray(registry2.pids)) {
+      logger.warn("Claude instances file has invalid format, treating as empty");
+      return [];
+    }
+    return registry2.pids;
+  } catch (error46) {
+    if (error46 instanceof Error && "code" in error46) {
+      const code = error46.code;
+      if (code === "ENOENT") {
+        return [];
+      }
+    }
+    logger.warn("Failed to read Claude instances file, treating as empty:", error46);
+    return [];
+  }
+}
+async function writeTrackedPids(pids) {
+  const registry2 = { pids };
+  const content = JSON.stringify(registry2, null, 2);
+  const tempFile = `${CLAUDE_INSTANCES_FILE}.tmp`;
+  try {
+    await writeFile(tempFile, content, "utf-8");
+    await rename(tempFile, CLAUDE_INSTANCES_FILE);
+  } catch (error46) {
+    logger.error("Failed to write Claude instances file:", error46);
+    try {
+      await unlink2(tempFile);
+    } catch {}
+    throw error46;
+  }
+}
+async function getAlivePidsAndPrune() {
+  try {
+    return await withFileLock(CLAUDE_INSTANCES_FILE, async () => {
+      const pids = await getTrackedPids();
+      const alivePids = pids.filter((pid) => isProcessRunning(pid));
+      if (alivePids.length !== pids.length) {
+        await writeTrackedPids(alivePids);
+        const removedCount = pids.length - alivePids.length;
+        logger.debug(`Pruned ${removedCount} dead Claude instance PID(s)`);
+      }
+      return alivePids;
+    });
+  } catch (error46) {
+    logger.error("Failed to prune dead PIDs:", error46);
+    return [];
+  }
+}
+
+// src/utils/daemon-manager.ts
+var DAEMON_RESTART_LOCK = join3(CLAUDE_ZEST_DIR, "daemon-restart.lock");
+var __filename2 = fileURLToPath(import.meta.url);
+var __dirname2 = dirname3(__filename2);
+function isProcessRunning(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function writePidFile(pid) {
+  try {
+    await ensureDirectory(dirname3(DAEMON_PID_FILE));
+    await writeFile2(DAEMON_PID_FILE, pid.toString(), "utf-8");
+    logger.debug(`Wrote PID ${pid} to daemon.pid`);
+  } catch (error46) {
+    logger.error("Failed to write PID file:", error46);
+  }
+}
+var shutdownTimerId = null;
+function cancelShutdownTimer() {
+  if (shutdownTimerId !== null) {
+    clearTimeout(shutdownTimerId);
+    shutdownTimerId = null;
+    logger.info("Claude Code reopened; cancelling daemon shutdown timer");
+  }
+}
+function startShutdownTimer() {
+  if (shutdownTimerId !== null) {
+    return;
+  }
+  logger.info(`All Claude Code instances closed; daemon will shut down in ${DAEMON_INACTIVITY_TIMEOUT_MS / 1000 / 60} minutes unless reopened`);
+  shutdownTimerId = setTimeout(async () => {
+    logger.info(`All Claude Code instances have been closed for ${DAEMON_INACTIVITY_TIMEOUT_MS / 1000 / 60} minutes; shutting down daemon`);
+    await shutdownAnalytics();
+    process.exit(0);
+  }, DAEMON_INACTIVITY_TIMEOUT_MS);
+}
+async function checkClaudeInstancesAndManageShutdown() {
+  const trackedPids = await getTrackedPids();
+  const alivePids = await getAlivePidsAndPrune();
+  const deadPids = trackedPids.filter((pid) => !alivePids.includes(pid));
+  const anyClaudeRunning = alivePids.length > 0;
+  logger.debug(`Claude instances check: tracked=${JSON.stringify(trackedPids)}, alive=${JSON.stringify(alivePids)}, dead=${JSON.stringify(deadPids)}, shutdownTimerActive=${shutdownTimerId !== null}`);
+  if (anyClaudeRunning) {
+    cancelShutdownTimer();
+  } else {
+    startShutdownTimer();
+  }
+}
+
+// src/utils/file-lock.ts
+var activeLockFiles = new Set;
+function isLockStale(lockInfo) {
+  return !isProcessRunning(lockInfo.pid);
+}
+async function acquireFileLock(filePath, depth = 0) {
+  if (depth > 3)
+    return false;
+  const lockFile = `${filePath}.lock`;
+  const lockInfo = {
+    pid: process.pid,
+    timestamp: Date.now()
+  };
+  try {
+    await ensureDirectory(dirname4(lockFile));
+    await writeFile3(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
+    activeLockFiles.add(lockFile);
+    return true;
+  } catch (error46) {
+    if (error46.code !== "EEXIST") {
+      const errCode = error46.code;
+      if (errCode === "ENOENT" || errCode === "EACCES") {
+        logger.error(`Failed to create lock file ${lockFile}:`, error46);
+        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
+          ...buildFileSystemProperties({
+            filePath: lockFile,
+            operation: "lock",
+            errnoCode: errCode
+          })
+        });
+      }
+      throw error46;
+    }
+    try {
+      const content = await readFile3(lockFile, "utf8");
+      const existingLock = JSON.parse(content);
+      if (isLockStale(existingLock)) {
+        logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
+        await unlink4(lockFile).catch(() => {});
+        return acquireFileLock(filePath, depth + 1);
+      }
+    } catch {
+      logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
+      await unlink4(lockFile).catch(() => {});
+      return acquireFileLock(filePath, depth + 1);
+    }
+    return false;
+  }
+}
+async function releaseFileLock(filePath) {
+  const lockFile = `${filePath}.lock`;
+  activeLockFiles.delete(lockFile);
+  await unlink4(lockFile).catch(() => {});
+}
+function cleanupLockFiles() {
+  for (const lockFile of activeLockFiles) {
+    try {
+      unlinkSync(lockFile);
+    } catch {}
+  }
+  activeLockFiles.clear();
+}
+var cleanupRegistered = false;
+function setupLockCleanup() {
+  if (cleanupRegistered)
+    return;
+  cleanupRegistered = true;
+  process.on("exit", cleanupLockFiles);
+  process.on("SIGINT", () => {
+    cleanupLockFiles();
+    process.exit(0);
+  });
+  process.on("SIGTERM", () => {
+    cleanupLockFiles();
+    process.exit(0);
+  });
+  logger.debug("Lock cleanup handlers registered");
+}
+async function withFileLock(filePath, fn) {
+  let retries = 0;
+  while (!await acquireFileLock(filePath)) {
+    if (++retries >= LOCK_MAX_RETRIES) {
+      const error46 = new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
+      captureException(error46, FILE_LOCK_TIMEOUT, "file-lock", {
+        ...buildFileSystemProperties({ filePath, operation: "lock" }),
+        retries,
+        max_retries: LOCK_MAX_RETRIES,
+        retry_delay_ms: LOCK_RETRY_MS
+      });
+      throw error46;
+    }
+    await new Promise((resolve) => setTimeout(resolve, LOCK_RETRY_MS));
+  }
+  try {
+    return await fn();
+  } finally {
+    await releaseFileLock(filePath);
+  }
+}
+
 // src/auth/session-manager.ts
+function isSessionStructureValid(session) {
+  return Boolean(session.accessToken && session.refreshToken && session.userId && session.email);
+}
+function isRefreshTokenExpired(session) {
+  return Boolean(session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now());
+}
 async function loadSessionFile() {
   try {
-    const content = await readFile(SESSION_FILE, "utf-8");
+    const content = await readFile4(SESSION_FILE, "utf-8");
     const session = JSON.parse(content);
-    if (!session.accessToken || !session.refreshToken || !session.userId || !session.email) {
-      logger.warn("Invalid session structure, clearing session");
+    if (!isSessionStructureValid(session)) {
+      logger.warn("Invalid session structure, clearing corrupt file");
       await clearSession();
       return null;
     }
@@ -29553,46 +29775,9 @@ async function loadSessionFile() {
     return null;
   }
 }
-async function loadSession() {
-  return loadSessionFile();
-}
-async function saveSession(session) {
-  try {
-    await ensureDirectory(dirname3(SESSION_FILE));
-    await writeFile(SESSION_FILE, JSON.stringify(session, null, 2), {
-      encoding: "utf-8",
-      mode: 384
-    });
-    logger.info("Session saved successfully");
-  } catch (error46) {
-    logger.error("Failed to save session", error46);
-    if (error46 instanceof Error) {
-      captureException(error46, AUTH_SESSION_SAVE_FAILED, "session-manager", {
-        ...buildFileSystemProperties({
-          filePath: SESSION_FILE,
-          operation: "write",
-          errnoCode: error46.code
-        })
-      });
-    }
-    throw error46;
-  }
-}
-async function clearSessionIfStale(usedRefreshToken) {
-  const current = await loadSessionFile();
-  if (!current) {
-    return true;
-  }
-  if (current.refreshToken !== usedRefreshToken) {
-    logger.info("clearSessionIfStale: on-disk refresh token differs — concurrent refresh succeeded, preserving session");
-    return false;
-  }
-  await clearSession();
-  return true;
-}
 async function clearSession() {
   try {
-    await unlink2(SESSION_FILE);
+    await unlink5(SESSION_FILE);
     logger.info("Session cleared successfully");
   } catch (error46) {
     if (error46.code === "ENOENT") {
@@ -29608,7 +29793,7 @@ async function getValidSession() {
     logger.debug("getValidSession: No session found");
     return null;
   }
-  if (session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now()) {
+  if (isRefreshTokenExpired(session)) {
     logger.warn("getValidSession: Refresh token expired, user must re-authenticate");
     await clearSession();
     return null;
@@ -29642,10 +29827,10 @@ function getClaudeCodeVersion() {
 
 // src/utils/plugin-version.ts
 import { readFileSync } from "node:fs";
-import { join as join3 } from "node:path";
+import { join as join4 } from "node:path";
 function getPluginVersion() {
   try {
-    const marketplacePluginPath = join3(CLAUDE_INSTALL_DIR, "plugins", "marketplaces", "zest-marketplace", "zest", ".claude-plugin", "plugin.json");
+    const marketplacePluginPath = join4(CLAUDE_INSTALL_DIR, "plugins", "marketplaces", "zest-marketplace", "zest", ".claude-plugin", "plugin.json");
     const pluginJson = JSON.parse(readFileSync(marketplacePluginPath, "utf-8"));
     if (pluginJson.version && typeof pluginJson.version === "string") {
       logger.debug("Read plugin version from marketplace plugin.json", {
@@ -29671,7 +29856,7 @@ async function getAnalyticsClient() {
   if (!analyticsClient) {
     analyticsClient = createServerAnalytics(POSTHOG_API_KEY);
     try {
-      const session = await loadSession();
+      const session = await loadSessionFile();
       if (session) {
         cachedSession = session;
       }
@@ -29723,24 +29908,6 @@ async function captureException(error46, errorType, errorSource, additionalPrope
     logger.debug("Failed to capture exception in PostHog", captureError);
   }
 }
-async function capture(eventName, properties) {
-  try {
-    const client = await getAnalyticsClient();
-    if (!client)
-      return;
-    client.track({
-      distinctId: cachedSession?.userId ?? "anonymous",
-      event: eventName,
-      properties: {
-        ...buildStandardProperties(),
-        ...buildUserProperties(),
-        ...properties
-      }
-    });
-  } catch (error46) {
-    logger.debug("Failed to capture event in PostHog", error46);
-  }
-}
 async function trackExtensionInstalled(userId, version3) {
   try {
     const client = await getAnalyticsClient();
@@ -29777,7 +29944,7 @@ async function shutdownAnalytics() {
 }
 
 // src/config/settings.ts
-import { readFile as readFile2, writeFile as writeFile2 } from "node:fs/promises";
+import { readFile as readFile5, writeFile as writeFile5 } from "node:fs/promises";
 
 // ../../node_modules/.bun/zod@3.25.76/node_modules/zod/v3/external.js
 var exports_external2 = {};
@@ -33785,7 +33952,7 @@ var DEFAULT_SETTINGS = {
 };
 async function loadSettings() {
   try {
-    const content = await readFile2(SETTINGS_FILE, "utf-8");
+    const content = await readFile5(SETTINGS_FILE, "utf-8");
     const rawSettings = JSON.parse(content);
     const validated = UserSettingsSchema.parse(rawSettings);
     return { ...DEFAULT_SETTINGS, ...validated };
@@ -33848,224 +34015,6 @@ async function countMessagesForSessions(supabase, sessionIds) {
 
 // src/utils/status-cache-manager.ts
 import { readFileSync as readFileSync2, writeFileSync } from "node:fs";
-
-// src/utils/file-lock.ts
-import { unlinkSync } from "node:fs";
-import { readdir as readdir2, readFile as readFile5, unlink as unlink5, writeFile as writeFile5 } from "node:fs/promises";
-import { dirname as dirname5 } from "node:path";
-
-// src/utils/daemon-manager.ts
-import { readFile as readFile4, stat as stat2, unlink as unlink4, writeFile as writeFile4 } from "node:fs/promises";
-import { dirname as dirname4, join as join4 } from "node:path";
-import { fileURLToPath } from "node:url";
-
-// src/utils/claude-instances.ts
-import { readFile as readFile3, rename, unlink as unlink3, writeFile as writeFile3 } from "node:fs/promises";
-async function getTrackedPids() {
-  try {
-    const data = await readFile3(CLAUDE_INSTANCES_FILE, "utf-8");
-    const registry2 = JSON.parse(data);
-    if (!Array.isArray(registry2.pids)) {
-      logger.warn("Claude instances file has invalid format, treating as empty");
-      return [];
-    }
-    return registry2.pids;
-  } catch (error46) {
-    if (error46 instanceof Error && "code" in error46) {
-      const code = error46.code;
-      if (code === "ENOENT") {
-        return [];
-      }
-    }
-    logger.warn("Failed to read Claude instances file, treating as empty:", error46);
-    return [];
-  }
-}
-async function writeTrackedPids(pids) {
-  const registry2 = { pids };
-  const content = JSON.stringify(registry2, null, 2);
-  const tempFile = `${CLAUDE_INSTANCES_FILE}.tmp`;
-  try {
-    await writeFile3(tempFile, content, "utf-8");
-    await rename(tempFile, CLAUDE_INSTANCES_FILE);
-  } catch (error46) {
-    logger.error("Failed to write Claude instances file:", error46);
-    try {
-      await unlink3(tempFile);
-    } catch {}
-    throw error46;
-  }
-}
-async function getAlivePidsAndPrune() {
-  try {
-    return await withFileLock(CLAUDE_INSTANCES_FILE, async () => {
-      const pids = await getTrackedPids();
-      const alivePids = pids.filter((pid) => isProcessRunning(pid));
-      if (alivePids.length !== pids.length) {
-        await writeTrackedPids(alivePids);
-        const removedCount = pids.length - alivePids.length;
-        logger.debug(`Pruned ${removedCount} dead Claude instance PID(s)`);
-      }
-      return alivePids;
-    });
-  } catch (error46) {
-    logger.error("Failed to prune dead PIDs:", error46);
-    return [];
-  }
-}
-
-// src/utils/daemon-manager.ts
-var DAEMON_RESTART_LOCK = join4(CLAUDE_ZEST_DIR, "daemon-restart.lock");
-var __filename2 = fileURLToPath(import.meta.url);
-var __dirname2 = dirname4(__filename2);
-function isProcessRunning(pid) {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-async function writePidFile(pid) {
-  try {
-    await ensureDirectory(dirname4(DAEMON_PID_FILE));
-    await writeFile4(DAEMON_PID_FILE, pid.toString(), "utf-8");
-    logger.debug(`Wrote PID ${pid} to daemon.pid`);
-  } catch (error46) {
-    logger.error("Failed to write PID file:", error46);
-  }
-}
-var shutdownTimerId = null;
-function cancelShutdownTimer() {
-  if (shutdownTimerId !== null) {
-    clearTimeout(shutdownTimerId);
-    shutdownTimerId = null;
-    logger.info("Claude Code reopened; cancelling daemon shutdown timer");
-  }
-}
-function startShutdownTimer() {
-  if (shutdownTimerId !== null) {
-    return;
-  }
-  logger.info(`All Claude Code instances closed; daemon will shut down in ${DAEMON_INACTIVITY_TIMEOUT_MS / 1000 / 60} minutes unless reopened`);
-  shutdownTimerId = setTimeout(async () => {
-    logger.info(`All Claude Code instances have been closed for ${DAEMON_INACTIVITY_TIMEOUT_MS / 1000 / 60} minutes; shutting down daemon`);
-    await shutdownAnalytics();
-    process.exit(0);
-  }, DAEMON_INACTIVITY_TIMEOUT_MS);
-}
-async function checkClaudeInstancesAndManageShutdown() {
-  const trackedPids = await getTrackedPids();
-  const alivePids = await getAlivePidsAndPrune();
-  const deadPids = trackedPids.filter((pid) => !alivePids.includes(pid));
-  const anyClaudeRunning = alivePids.length > 0;
-  logger.debug(`Claude instances check: tracked=${JSON.stringify(trackedPids)}, alive=${JSON.stringify(alivePids)}, dead=${JSON.stringify(deadPids)}, shutdownTimerActive=${shutdownTimerId !== null}`);
-  if (anyClaudeRunning) {
-    cancelShutdownTimer();
-  } else {
-    startShutdownTimer();
-  }
-}
-
-// src/utils/file-lock.ts
-var activeLockFiles = new Set;
-function isLockStale(lockInfo) {
-  return !isProcessRunning(lockInfo.pid);
-}
-async function acquireFileLock(filePath) {
-  const lockFile = `${filePath}.lock`;
-  const lockInfo = {
-    pid: process.pid,
-    timestamp: Date.now()
-  };
-  try {
-    await ensureDirectory(dirname5(lockFile));
-    await writeFile5(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
-    activeLockFiles.add(lockFile);
-    return true;
-  } catch (error46) {
-    if (error46.code !== "EEXIST") {
-      const errCode = error46.code;
-      if (errCode === "ENOENT" || errCode === "EACCES") {
-        logger.error(`Failed to create lock file ${lockFile}:`, error46);
-        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
-          ...buildFileSystemProperties({
-            filePath: lockFile,
-            operation: "lock",
-            errnoCode: errCode
-          })
-        });
-      }
-      throw error46;
-    }
-    try {
-      const content = await readFile5(lockFile, "utf8");
-      const existingLock = JSON.parse(content);
-      if (isLockStale(existingLock)) {
-        logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
-        await unlink5(lockFile).catch(() => {});
-        return acquireFileLock(filePath);
-      }
-    } catch {
-      logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
-      await unlink5(lockFile).catch(() => {});
-      return acquireFileLock(filePath);
-    }
-    return false;
-  }
-}
-async function releaseFileLock(filePath) {
-  const lockFile = `${filePath}.lock`;
-  activeLockFiles.delete(lockFile);
-  await unlink5(lockFile).catch(() => {});
-}
-function cleanupLockFiles() {
-  for (const lockFile of activeLockFiles) {
-    try {
-      unlinkSync(lockFile);
-    } catch {}
-  }
-  activeLockFiles.clear();
-}
-var cleanupRegistered = false;
-function setupLockCleanup() {
-  if (cleanupRegistered)
-    return;
-  cleanupRegistered = true;
-  process.on("exit", cleanupLockFiles);
-  process.on("SIGINT", () => {
-    cleanupLockFiles();
-    process.exit(0);
-  });
-  process.on("SIGTERM", () => {
-    cleanupLockFiles();
-    process.exit(0);
-  });
-  logger.debug("Lock cleanup handlers registered");
-}
-async function withFileLock(filePath, fn) {
-  let retries = 0;
-  while (!await acquireFileLock(filePath)) {
-    if (++retries >= LOCK_MAX_RETRIES) {
-      const error46 = new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
-      captureException(error46, FILE_LOCK_TIMEOUT, "file-lock", {
-        ...buildFileSystemProperties({ filePath, operation: "lock" }),
-        retries,
-        max_retries: LOCK_MAX_RETRIES,
-        retry_delay_ms: LOCK_RETRY_MS
-      });
-      throw error46;
-    }
-    await new Promise((resolve) => setTimeout(resolve, LOCK_RETRY_MS));
-  }
-  try {
-    return await fn();
-  } finally {
-    await releaseFileLock(filePath);
-  }
-}
-
-// src/utils/status-cache-manager.ts
 var DEFAULT_VERSION_CHECK = {
   updateAvailable: false,
   currentVersion: "unknown",
@@ -37080,130 +37029,221 @@ function shouldShowDeprecationWarning() {
 if (shouldShowDeprecationWarning())
   console.warn("⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217");
 
-// src/supabase/client.ts
-function createSupabaseClientInstance() {
-  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: true
-    }
-  });
-}
-async function persistRefreshedSession(supabaseSession) {
+// src/supabase/session-storage-adapter.ts
+import { readFile as readFile6, unlink as unlink6, writeFile as writeFile6 } from "node:fs/promises";
+import { dirname as dirname5 } from "node:path";
+
+// src/utils/jwt.ts
+function getJwtExpiresAt(token) {
   try {
-    await withFileLock(SESSION_FILE, async () => {
-      const currentSession = await loadSessionFile();
-      if (!currentSession) {
-        logger.warn("No current session found during refresh, skipping persistence");
+    const parts = token.split(".");
+    if (parts.length !== 3)
+      return;
+    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
+    return typeof payload.exp === "number" ? payload.exp : undefined;
+  } catch {
+    return;
+  }
+}
+
+// src/supabase/session-storage-adapter.ts
+var consecutiveWriteFailures = 0;
+function createSessionStorageAdapter(isRemovalAllowed) {
+  return {
+    async getItem(key) {
+      if (key.endsWith("-code-verifier")) {
+        return null;
+      }
+      try {
+        const content = await readFile6(SESSION_FILE, "utf-8");
+        const session = JSON.parse(content);
+        if (!isSessionStructureValid(session)) {
+          logger.warn("Storage adapter: invalid session structure, clearing corrupt file");
+          await clearSession();
+          return null;
+        }
+        if (isRefreshTokenExpired(session)) {
+          logger.warn("Storage adapter: refresh token expired");
+          return null;
+        }
+        const expiresAt = getJwtExpiresAt(session.accessToken);
+        const now = Math.floor(Date.now() / 1000);
+        const effectiveExpiresAt = expiresAt ?? 0;
+        const gotrueSession = {
+          access_token: session.accessToken,
+          refresh_token: session.refreshToken,
+          expires_at: effectiveExpiresAt,
+          expires_in: expiresAt ? Math.max(0, expiresAt - now) : 0,
+          token_type: "bearer",
+          user: {
+            id: session.userId,
+            email: session.email,
+            app_metadata: {},
+            user_metadata: {},
+            aud: "authenticated",
+            created_at: ""
+          }
+        };
+        return JSON.stringify(gotrueSession);
+      } catch (error46) {
+        if (error46.code === "ENOENT") {
+          return null;
+        }
+        if (error46 instanceof SyntaxError) {
+          logger.warn("Storage adapter: corrupt session.json, clearing");
+          await clearSession().catch(() => {});
+          return null;
+        }
+        logger.error("Storage adapter: failed to read session", error46);
+        if (error46 instanceof Error) {
+          captureException(error46, SUPABASE_SESSION_READ_FAILED, "session-storage-adapter", {
+            ...buildFileSystemProperties({
+              filePath: SESSION_FILE,
+              operation: "read",
+              errnoCode: error46.code
+            })
+          });
+        }
+        return null;
+      }
+    },
+    async setItem(key, value) {
+      if (key.endsWith("-code-verifier")) {
         return;
       }
-      const updatedSession = {
-        ...currentSession,
-        accessToken: supabaseSession.access_token,
-        refreshToken: supabaseSession.refresh_token,
-        userId: supabaseSession.user.id,
-        email: supabaseSession.user.email || currentSession.email
-      };
-      await saveSession(updatedSession);
-      logger.info("Session persisted after TOKEN_REFRESHED event");
-    });
-  } catch (error46) {
-    logger.error("Failed to persist refreshed session", error46);
-    if (error46 instanceof Error) {
-      captureException(error46, SUPABASE_SESSION_REFRESH_PERSIST_FAILED, "supabase/client", {
-        session_file: SESSION_FILE
-      });
-    }
-  }
-}
-async function setClientSession(client, session) {
-  const { error: error46 } = await client.auth.setSession({
-    access_token: session.accessToken,
-    refresh_token: session.refreshToken
-  });
-  if (error46) {
-    logger.error(`Failed to set Supabase session: ${error46.message}`);
-    const isAlreadyUsed = error46.code === "refresh_token_already_used";
-    const isInvalidRefreshToken = isAlreadyUsed || error46.message.includes("Invalid Refresh Token") || error46.code === "refresh_token_not_found" || error46.code === "session_not_found" || error46.code === "session_expired";
-    captureException(error46, SUPABASE_SESSION_SET_FAILED, "supabase/client", {
-      is_invalid_refresh_token: isInvalidRefreshToken,
-      error_code: error46.code,
-      error_status: error46.status
-    });
-    if (isAlreadyUsed) {
-      const freshSession = await loadSessionFile();
-      if (freshSession && freshSession.refreshToken !== session.refreshToken) {
-        logger.info("refresh_token_already_used: concurrent refresh detected, retrying with fresh session");
-        const { error: retryError } = await client.auth.setSession({
-          access_token: freshSession.accessToken,
-          refresh_token: freshSession.refreshToken
-        });
-        if (!retryError) {
-          capture(AUTH_SESSION_RACE_RECOVERY, { error_code: error46.code });
-          logger.info("Race recovery successful — session restored from concurrent refresh");
+      try {
+        const gotrueSession = JSON.parse(value);
+        if (!gotrueSession.access_token || !gotrueSession.refresh_token || !gotrueSession.user?.id) {
+          logger.warn("Storage adapter: invalid GoTrueClient session structure, skipping write");
           return;
         }
-        captureException(retryError, AUTH_SESSION_RACE_RECOVERY_FAILED, "supabase/client", {
-          error_code: retryError.code,
-          original_error_code: error46.code
+        await withFileLock(SESSION_FILE, async () => {
+          let workspaceId;
+          let workspaceName;
+          let existingRefreshToken;
+          let refreshTokenExpiresAt;
+          let existingEmail;
+          try {
+            const existingContent = await readFile6(SESSION_FILE, "utf-8");
+            const existing = JSON.parse(existingContent);
+            workspaceId = existing.workspaceId;
+            workspaceName = existing.workspaceName;
+            existingRefreshToken = existing.refreshToken;
+            refreshTokenExpiresAt = existing.refreshTokenExpiresAt;
+            existingEmail = existing.email;
+          } catch {}
+          const tokenRotated = existingRefreshToken && existingRefreshToken !== gotrueSession.refresh_token;
+          const updatedSession = {
+            accessToken: gotrueSession.access_token,
+            refreshToken: gotrueSession.refresh_token,
+            refreshTokenExpiresAt: tokenRotated ? undefined : refreshTokenExpiresAt,
+            userId: gotrueSession.user.id,
+            email: gotrueSession.user.email || existingEmail || "",
+            workspaceId,
+            workspaceName
+          };
+          await ensureDirectory(dirname5(SESSION_FILE));
+          await writeFile6(SESSION_FILE, JSON.stringify(updatedSession, null, 2), {
+            encoding: "utf-8",
+            mode: 384
+          });
+          logger.debug("Storage adapter: session persisted via setItem");
         });
-        logger.warn(`Race recovery failed: ${retryError.message}`);
+        consecutiveWriteFailures = 0;
+      } catch (error46) {
+        consecutiveWriteFailures++;
+        logger.error("Storage adapter: failed to write session", error46);
+        if (consecutiveWriteFailures >= 3) {
+          logger.warn(`Storage adapter: ${consecutiveWriteFailures} consecutive write failures — session may not survive daemon restart`);
+        }
+        if (error46 instanceof Error) {
+          captureException(error46, SUPABASE_SESSION_WRITE_FAILED, "session-storage-adapter", {
+            ...buildFileSystemProperties({
+              filePath: SESSION_FILE,
+              operation: "write",
+              errnoCode: error46.code
+            }),
+            consecutive_failures: consecutiveWriteFailures
+          });
+        }
       }
-      logger.warn("refresh_token_already_used: no concurrent refresh found, clearing session");
-      await clearSessionIfStale(session.refreshToken);
-      throw error46;
+    },
+    async removeItem(key) {
+      if (key.endsWith("-code-verifier")) {
+        return;
+      }
+      if (isRemovalAllowed && !isRemovalAllowed()) {
+        logger.debug("Storage adapter: removal blocked (preserving tokens for recovery)");
+        return;
+      }
+      try {
+        await unlink6(SESSION_FILE);
+        logger.debug("Storage adapter: session removed via removeItem");
+      } catch (error46) {
+        if (error46.code === "ENOENT") {
+          return;
+        }
+        logger.error("Storage adapter: failed to remove session", error46);
+      }
     }
-    if (isInvalidRefreshToken) {
-      logger.warn("Invalid refresh token, clearing session");
-      await clearSession();
-    }
-    throw error46;
-  }
-  logger.debug("Supabase session set successfully");
+  };
 }
-async function loadValidSession() {
-  const session = await loadSessionFile();
-  if (!session) {
-    logger.debug("No session available, skipping Supabase client creation");
-    return null;
-  }
-  if (session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now()) {
-    logger.warn("Refresh token expired, user must re-authenticate");
-    await clearSession();
-    return null;
-  }
-  return session;
+
+// src/supabase/client.ts
+function createSupabaseClientInstance(config2) {
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: config2.autoRefreshToken,
+      detectSessionInUrl: false,
+      storage: config2.storage
+    }
+  });
 }
 var daemonClient = null;
 var daemonAuthUnsubscribe = null;
 var daemonDestroying = false;
+var daemonStorage = null;
 async function getDaemonClient() {
   try {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       logger.warn("Supabase configuration missing (URL or anon key)");
       return null;
     }
-    const session = await loadValidSession();
-    if (!session) {
-      if (daemonClient) {
-        await destroyDaemonClient();
-      }
-      return null;
-    }
     if (!daemonClient) {
-      daemonClient = createSupabaseClientInstance();
-      await setClientSession(daemonClient, session);
-      const { data } = daemonClient.auth.onAuthStateChange(async (event, supabaseSession) => {
+      if (!daemonStorage) {
+        daemonStorage = createSessionStorageAdapter(() => false);
+      }
+      const client = createSupabaseClientInstance({
+        autoRefreshToken: true,
+        storage: daemonStorage
+      });
+      const { data } = client.auth.onAuthStateChange(async (event, _session) => {
         logger.debug(`Daemon auth state change: ${event}`);
-        if (event === "TOKEN_REFRESHED" && supabaseSession) {
-          await persistRefreshedSession(supabaseSession);
-        } else if (event === "SIGNED_OUT") {
-          logger.warn("Received SIGNED_OUT event from Supabase, destroying daemon client");
+        if (event === "SIGNED_OUT") {
+          logger.warn("Implicit SIGNED_OUT (failed refresh), tokens preserved by removal guard");
           await destroyDaemonClient();
         }
       });
       daemonAuthUnsubscribe = data.subscription.unsubscribe;
-      logger.debug("Daemon Supabase singleton client created with auto-refresh enabled");
+      const {
+        data: { session: session2 }
+      } = await client.auth.getSession();
+      if (!session2) {
+        daemonAuthUnsubscribe();
+        daemonAuthUnsubscribe = null;
+        client.auth.stopAutoRefresh();
+        return null;
+      }
+      daemonClient = client;
+      logger.debug("Daemon Supabase singleton client created with storage adapter");
+    }
+    const {
+      data: { session }
+    } = await daemonClient.auth.getSession();
+    if (!session) {
+      await destroyDaemonClient();
+      return null;
     }
     return daemonClient;
   } catch (error46) {
@@ -37229,6 +37269,7 @@ async function destroyDaemonClient() {
       daemonAuthUnsubscribe = null;
     }
     if (daemonClient) {
+      daemonClient.auth.stopAutoRefresh();
       try {
         await daemonClient.removeAllChannels();
         logger.debug("Daemon Supabase client channels removed");
@@ -37464,7 +37505,7 @@ async function updateClaudeCodeMetadata(supabase, userId, version5) {
 }
 
 // src/supabase/signal-syncer.ts
-import { readdir as readdir3, unlink as unlink6 } from "node:fs/promises";
+import { readdir as readdir3, unlink as unlink7 } from "node:fs/promises";
 // ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/sha1.js
 import { createHash } from "node:crypto";
 function sha1(bytes) {
@@ -37557,8 +37598,119 @@ function normalizeSessionId(sessionId) {
 }
 
 // src/utils/signal-state.ts
-import { readFile as readFile6, writeFile as writeFile6 } from "node:fs/promises";
+import { readFile as readFile7, writeFile as writeFile7 } from "node:fs/promises";
+import { join as join6 } from "node:path";
+
+// src/extractors/toolkit-metadata-extractor.ts
 import { join as join5 } from "node:path";
+// ../../packages/utils/src/date-range.ts
+var PERIOD_TYPE_LABELS = {
+  ["today" /* Today */]: "Today",
+  ["this_week" /* ThisWeek */]: "This Week",
+  ["this_month" /* ThisMonth */]: "This Month"
+};
+var PERIOD_SUMMARY_LABELS = {
+  ["today" /* Today */]: "Daily Summary",
+  ["this_week" /* ThisWeek */]: "Weekly Summary",
+  ["this_month" /* ThisMonth */]: "Monthly Summary",
+  custom: "Custom Period"
+};
+// ../../packages/utils/src/frontmatter.ts
+var FRONTMATTER_KEYS = new Set(["name", "description"]);
+// ../../packages/utils/src/mcp-registry.ts
+var cache = new Map;
+// ../../packages/utils/src/git-utils.ts
+import { exec, execSync as execSync2 } from "node:child_process";
+import * as path from "node:path";
+import { promisify } from "node:util";
+var execAsync = promisify(exec);
+var UNKNOWN_PROJECT = {
+  projectId: "unknown",
+  projectName: "unknown"
+};
+var PROJECT_ID_NAMESPACE = "e1f3b3c4-0b7a-4c1e-8a7b-9f3c0e1d2a3b";
+function generateProjectId(input) {
+  return v5_default(input, PROJECT_ID_NAMESPACE);
+}
+function extractNameFromRemoteUrl(remoteUrl) {
+  const orgRepoMatch = remoteUrl.match(/[/:]([^/:.]+\/[^/]+?)(\.git)?$/);
+  if (orgRepoMatch?.[1]) {
+    return orgRepoMatch[1];
+  }
+  const repoMatch = remoteUrl.match(/\/([^/]+?)(\.git)?$/);
+  if (repoMatch?.[1]) {
+    return repoMatch[1];
+  }
+  return null;
+}
+function extractProjectName(workingDirectory) {
+  try {
+    try {
+      const remoteUrl = execSync2("git config --get remote.origin.url", {
+        cwd: workingDirectory,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 5000
+      }).trim();
+      if (remoteUrl) {
+        const name = extractNameFromRemoteUrl(remoteUrl);
+        if (name) {
+          return name;
+        }
+      }
+    } catch {}
+    try {
+      const repoRoot = execSync2("git rev-parse --show-toplevel", {
+        cwd: workingDirectory,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 5000
+      }).trim();
+      if (repoRoot) {
+        return path.basename(repoRoot);
+      }
+    } catch {}
+    return path.basename(workingDirectory);
+  } catch {
+    return null;
+  }
+}
+function isGitRepository(workingDirectory) {
+  try {
+    execSync2("git rev-parse --is-inside-work-tree", {
+      cwd: workingDirectory,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout: 5000
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+function getProjectInfoSync(workingDirectory) {
+  try {
+    if (!isGitRepository(workingDirectory)) {
+      return UNKNOWN_PROJECT;
+    }
+    const projectName = extractProjectName(workingDirectory);
+    if (!projectName) {
+      return UNKNOWN_PROJECT;
+    }
+    const absolutePath = path.resolve(workingDirectory);
+    const projectId = generateProjectId(absolutePath);
+    return {
+      projectId,
+      projectName
+    };
+  } catch {
+    return UNKNOWN_PROJECT;
+  }
+}
+// src/extractors/toolkit-metadata-extractor.ts
+var SKILLS_DIR = join5(CLAUDE_INSTALL_DIR, "skills");
+var AGENTS_DIR = join5(CLAUDE_INSTALL_DIR, "agents");
+var INSTALLED_PLUGINS_FILE = join5(CLAUDE_INSTALL_DIR, "plugins", "installed_plugins.json");
 
 // src/utils/signal-scanner.ts
 var EMPTY_SIGNALS = {
@@ -37585,11 +37737,11 @@ var KNOWN_TOOL_NAMES = new Set([...KNOWN_BUILTIN_NAMES, "Task", "Agent", "Skill"
 
 // src/utils/signal-state.ts
 function getSignalStatePath(sessionId) {
-  return join5(STATE_DIR, `signals-${sessionId}.json`);
+  return join6(STATE_DIR, `signals-${sessionId}.json`);
 }
 async function readStateFromFile(stateFile) {
   try {
-    const content = await readFile6(stateFile, "utf-8");
+    const content = await readFile7(stateFile, "utf-8");
     return JSON.parse(content);
   } catch {
     return { lastReadLine: 0, totals: EMPTY_SIGNALS };
@@ -37658,7 +37810,7 @@ async function syncSessionSignals(supabase) {
         }
         if (state.final) {
           try {
-            await unlink6(stateFile);
+            await unlink7(stateFile);
             logger.debug(`Cleaned up final signal state: ${sessionId}`);
           } catch {}
         }
@@ -37674,7 +37826,7 @@ async function syncSessionSignals(supabase) {
 }
 
 // src/utils/queue-manager.ts
-import { appendFile as appendFile2, readFile as readFile7, unlink as unlink7, writeFile as writeFile7 } from "node:fs/promises";
+import { appendFile as appendFile2, readFile as readFile8, unlink as unlink8, writeFile as writeFile8 } from "node:fs/promises";
 import { dirname as dirname6 } from "node:path";
 
 // ../../packages/privacy-redaction/src/config/defaults.ts
@@ -38022,7 +38174,7 @@ function toWellFormed(str) {
 // src/utils/queue-manager.ts
 async function readJsonl(filePath) {
   try {
-    const content = await readFile7(filePath, "utf8");
+    const content = await readFile8(filePath, "utf8");
     const lines = content.trim().split(`
 `).filter(Boolean);
     const results = [];
@@ -38052,7 +38204,7 @@ async function readJsonl(filePath) {
 }
 async function countLines(filePath) {
   try {
-    const content = await readFile7(filePath, "utf8");
+    const content = await readFile8(filePath, "utf8");
     const lines = content.trim().split(`
 `).filter(Boolean);
     return lines.length;
@@ -38086,7 +38238,7 @@ async function atomicUpdateQueue(queueFile, transform2) {
       const content = newItems.map((item) => JSON.stringify(item, sanitizingReplacer)).join(`
 `) + (newItems.length > 0 ? `
 ` : "");
-      await writeFile7(queueFile, content, "utf8");
+      await writeFile8(queueFile, content, "utf8");
       logger.debug(`Atomically updated queue file: ${queueFile} (${currentItems.length} → ${newItems.length} items)`);
     });
   } catch (error46) {
@@ -38119,11 +38271,11 @@ async function initializeQueue() {
 }
 
 // src/utils/sync-metrics-manager.ts
-import { readFile as readFile8, writeFile as writeFile8 } from "node:fs/promises";
+import { readFile as readFile9, writeFile as writeFile9 } from "node:fs/promises";
 import { dirname as dirname7 } from "node:path";
 async function readMetrics() {
   try {
-    const content = await readFile8(SYNC_METRICS_FILE, "utf8");
+    const content = await readFile9(SYNC_METRICS_FILE, "utf8");
     const lines = content.trim().split(`
 `).filter(Boolean);
     const results = [];
@@ -38147,7 +38299,7 @@ async function writeMetrics(entries) {
   const content = entries.map((entry) => JSON.stringify(entry)).join(`
 `) + (entries.length > 0 ? `
 ` : "");
-  await writeFile8(SYNC_METRICS_FILE, content, "utf8");
+  await writeFile9(SYNC_METRICS_FILE, content, "utf8");
 }
 async function recordSyncMetric(entry) {
   try {
@@ -38502,7 +38654,7 @@ async function uploadChatDataWithRetry(supabase, session, dataControls, maxRetri
       if (attempt < maxRetries) {
         const delay = backoffMs * attempt;
         logger.debug(`Retrying in ${delay}ms...`);
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await new Promise((resolve2) => setTimeout(resolve2, delay));
       }
     }
   }
@@ -38512,96 +38664,6 @@ async function uploadChatDataWithRetry(supabase, session, dataControls, maxRetri
 
 // src/supabase/events-uploader.ts
 import { fileURLToPath as fileURLToPath2 } from "node:url";
-
-// ../../packages/utils/src/git-utils.ts
-import { exec, execSync as execSync2 } from "node:child_process";
-import * as path from "node:path";
-import { promisify } from "node:util";
-var execAsync = promisify(exec);
-var UNKNOWN_PROJECT = {
-  projectId: "unknown",
-  projectName: "unknown"
-};
-var PROJECT_ID_NAMESPACE = "e1f3b3c4-0b7a-4c1e-8a7b-9f3c0e1d2a3b";
-function generateProjectId(input) {
-  return v5_default(input, PROJECT_ID_NAMESPACE);
-}
-function extractNameFromRemoteUrl(remoteUrl) {
-  const orgRepoMatch = remoteUrl.match(/[/:]([^/:.]+\/[^/]+?)(\.git)?$/);
-  if (orgRepoMatch?.[1]) {
-    return orgRepoMatch[1];
-  }
-  const repoMatch = remoteUrl.match(/\/([^/]+?)(\.git)?$/);
-  if (repoMatch?.[1]) {
-    return repoMatch[1];
-  }
-  return null;
-}
-function extractProjectName(workingDirectory) {
-  try {
-    try {
-      const remoteUrl = execSync2("git config --get remote.origin.url", {
-        cwd: workingDirectory,
-        encoding: "utf-8",
-        stdio: ["pipe", "pipe", "pipe"],
-        timeout: 5000
-      }).trim();
-      if (remoteUrl) {
-        const name = extractNameFromRemoteUrl(remoteUrl);
-        if (name) {
-          return name;
-        }
-      }
-    } catch {}
-    try {
-      const repoRoot = execSync2("git rev-parse --show-toplevel", {
-        cwd: workingDirectory,
-        encoding: "utf-8",
-        stdio: ["pipe", "pipe", "pipe"],
-        timeout: 5000
-      }).trim();
-      if (repoRoot) {
-        return path.basename(repoRoot);
-      }
-    } catch {}
-    return path.basename(workingDirectory);
-  } catch {
-    return null;
-  }
-}
-function isGitRepository(workingDirectory) {
-  try {
-    execSync2("git rev-parse --is-inside-work-tree", {
-      cwd: workingDirectory,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-      timeout: 5000
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
-function getProjectInfoSync(workingDirectory) {
-  try {
-    if (!isGitRepository(workingDirectory)) {
-      return UNKNOWN_PROJECT;
-    }
-    const projectName = extractProjectName(workingDirectory);
-    if (!projectName) {
-      return UNKNOWN_PROJECT;
-    }
-    const absolutePath = path.resolve(workingDirectory);
-    const projectId = generateProjectId(absolutePath);
-    return {
-      projectId,
-      projectName
-    };
-  } catch {
-    return UNKNOWN_PROJECT;
-  }
-}
-// src/supabase/events-uploader.ts
 var UNKNOWN_PROJECT2 = {
   projectId: "unknown",
   projectName: "unknown"
@@ -38828,8 +38890,8 @@ async function syncAllData(supabase, session, dataControls) {
 }
 
 // src/utils/state-cleanup.ts
-import { readdir as readdir4, stat as stat4, unlink as unlink8 } from "node:fs/promises";
-import { join as join6 } from "node:path";
+import { readdir as readdir4, stat as stat4, unlink as unlink9 } from "node:fs/promises";
+import { join as join7 } from "node:path";
 var STALE_STATE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 async function cleanupStaleStateFiles() {
   try {
@@ -38839,10 +38901,10 @@ async function cleanupStaleStateFiles() {
       if (!entry.endsWith(".json") || entry.endsWith(".lock"))
         continue;
       try {
-        const filePath = join6(STATE_DIR, entry);
+        const filePath = join7(STATE_DIR, entry);
         const fileStat = await stat4(filePath);
         if (fileStat.mtimeMs < cutoff) {
-          await unlink8(filePath);
+          await unlink9(filePath);
           logger.debug(`Cleaned up stale state file: ${entry}`);
         }
       } catch {}
