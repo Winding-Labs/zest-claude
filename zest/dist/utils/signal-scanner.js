@@ -1,6 +1,40 @@
 // src/utils/signal-scanner.ts
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
+// ../../packages/utils/src/date-range.ts
+var PERIOD_TYPE_LABELS = {
+  ["today" /* Today */]: "Today",
+  ["this_week" /* ThisWeek */]: "This Week",
+  ["this_month" /* ThisMonth */]: "This Month"
+};
+var PERIOD_SUMMARY_LABELS = {
+  ["today" /* Today */]: "Daily Summary",
+  ["this_week" /* ThisWeek */]: "Weekly Summary",
+  ["this_month" /* ThisMonth */]: "Monthly Summary",
+  custom: "Custom Period"
+};
+// ../../packages/utils/src/frontmatter.ts
+var FRONTMATTER_KEYS = new Set(["name", "description"]);
+// ../../packages/utils/src/signal-helpers.ts
+function incrementMap(map, key) {
+  map.set(key, (map.get(key) ?? 0) + 1);
+}
+var CMD_TAG_START = "<command-name>/";
+var CMD_TAG_END = "</command-name>";
+function extractCommandName(text) {
+  const start = text.indexOf(CMD_TAG_START);
+  if (start === -1)
+    return;
+  const nameStart = start + CMD_TAG_START.length;
+  const end = text.indexOf(CMD_TAG_END, nameStart);
+  if (end === -1)
+    return;
+  const name = text.slice(nameStart, end);
+  return name.length > 0 ? name : undefined;
+}
+// ../../packages/utils/src/mcp-registry.ts
+var cache = new Map;
+// src/utils/signal-scanner.ts
 var EMPTY_SIGNALS = {
   mcp_usage: {},
   skill_usage: {},
@@ -54,9 +88,6 @@ function categorizeTool(name, input) {
   }
   return "unknown";
 }
-function incrementMap(map, key) {
-  map.set(key, (map.get(key) ?? 0) + 1);
-}
 var SKILL_DIR_REGEX = /\/skills\/([^\s/]+)/;
 function processTextBlock(block, delta) {
   const text = block.text;
@@ -87,8 +118,13 @@ function processToolUse(block, delta) {
       incrementMap(delta.agent_usage, subagentType);
       break;
     }
-    case "skill":
+    case "skill": {
+      const skillName = typeof input?.skill === "string" ? input.skill : undefined;
+      if (skillName) {
+        incrementMap(delta.skill_usage, skillName);
+      }
       break;
+    }
     case "builtin":
       incrementMap(delta.builtin_usage, name);
       break;
@@ -139,10 +175,18 @@ async function scanSignalsDelta(filePath, fromLine) {
       try {
         const entry = JSON.parse(trimmed);
         const message = entry.message;
-        if (message && Array.isArray(message.content)) {
-          for (const block of message.content) {
-            if (block && typeof block === "object") {
-              processBlock(block, delta);
+        if (message) {
+          const content = message.content;
+          if (Array.isArray(content)) {
+            for (const block of content) {
+              if (block && typeof block === "object") {
+                processBlock(block, delta);
+              }
+            }
+          } else if (typeof content === "string") {
+            const cmdName = extractCommandName(content);
+            if (cmdName) {
+              incrementMap(delta.skill_usage, cmdName);
             }
           }
         }

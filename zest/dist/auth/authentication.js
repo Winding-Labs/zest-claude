@@ -7519,8 +7519,8 @@ var require_RealtimeChannel = __commonJS((exports2) => {
     _trigger(type, payload, ref) {
       var _a, _b;
       const typeLower = type.toLocaleLowerCase();
-      const { close, error: error46, leave, join: join4 } = constants_1.CHANNEL_EVENTS;
-      const events = [close, error46, leave, join4];
+      const { close, error: error46, leave, join: join5 } = constants_1.CHANNEL_EVENTS;
+      const events = [close, error46, leave, join5];
       if (ref && events.indexOf(typeLower) >= 0 && ref !== this._joinRef()) {
         return;
       }
@@ -13640,10 +13640,8 @@ var API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed";
 var API_PROFILE_UPDATE_FAILED = "api_profile_update_failed";
 var API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed";
 var SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed";
-var SUPABASE_SESSION_SET_FAILED = "supabase_session_set_failed";
-var SUPABASE_SESSION_REFRESH_PERSIST_FAILED = "supabase_session_refresh_persist_failed";
-var AUTH_SESSION_RACE_RECOVERY = "auth_session_race_recovery";
-var AUTH_SESSION_RACE_RECOVERY_FAILED = "auth_session_race_recovery_failed";
+var SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed";
+var SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed";
 function getErrorCategory(errorType) {
   if (errorType.startsWith("auth_"))
     return "auth";
@@ -29792,8 +29790,8 @@ function createServerAnalytics(posthogApiKey, options) {
   };
 }
 // src/auth/session-manager.ts
-import { readFile, unlink as unlink2, writeFile } from "node:fs/promises";
-import { dirname as dirname3 } from "node:path";
+import { readFile as readFile3, unlink as unlink4, writeFile as writeFile3 } from "node:fs/promises";
+import { dirname as dirname5 } from "node:path";
 
 // src/analytics/properties.ts
 import { basename } from "node:path";
@@ -29861,6 +29859,19 @@ var NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
 var STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
 var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
 
+// src/utils/file-lock.ts
+import { readdir as readdir2, readFile as readFile2, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
+import { dirname as dirname4 } from "node:path";
+
+// src/utils/daemon-manager.ts
+import { readFile, stat as stat2, unlink as unlink2, writeFile } from "node:fs/promises";
+import { dirname as dirname3, join as join3 } from "node:path";
+import { fileURLToPath as fileURLToPath2 } from "node:url";
+
+// src/utils/logger.ts
+import { appendFile } from "node:fs/promises";
+import { dirname as dirname2 } from "node:path";
+
 // src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
 async function ensureDirectory(dirPath) {
@@ -29870,10 +29881,6 @@ async function ensureDirectory(dirPath) {
     await mkdir(dirPath, { recursive: true, mode: 448 });
   }
 }
-
-// src/utils/logger.ts
-import { appendFile } from "node:fs/promises";
-import { dirname as dirname2 } from "node:path";
 
 // src/utils/log-rotation.ts
 import { readdir, unlink } from "node:fs/promises";
@@ -29979,13 +29986,149 @@ class Logger {
 }
 var logger = new Logger;
 
+// src/utils/daemon-manager.ts
+var DAEMON_RESTART_LOCK = join3(CLAUDE_ZEST_DIR, "daemon-restart.lock");
+var __filename2 = fileURLToPath2(import.meta.url);
+var __dirname3 = dirname3(__filename2);
+function isProcessRunning(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function stopDaemon() {
+  try {
+    const pid = await getDaemonPid();
+    if (pid) {
+      try {
+        process.kill(pid, "SIGTERM");
+      } catch {}
+      for (let i = 0;i < 10; i++) {
+        if (!isProcessRunning(pid))
+          break;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      if (isProcessRunning(pid)) {
+        try {
+          process.kill(pid, "SIGKILL");
+          logger.warn("Daemon did not exit after SIGTERM, sent SIGKILL");
+        } catch {}
+      }
+    }
+    await cleanupPidFile();
+  } catch (error46) {
+    logger.warn("Error stopping daemon:", error46);
+  }
+}
+async function cleanupPidFile() {
+  try {
+    await unlink2(DAEMON_PID_FILE);
+  } catch {}
+}
+async function getDaemonPid() {
+  try {
+    const pidData = await readFile(DAEMON_PID_FILE, "utf-8");
+    const pid = Number.parseInt(pidData.trim(), 10);
+    if (Number.isNaN(pid)) {
+      return null;
+    }
+    return isProcessRunning(pid) ? pid : null;
+  } catch {
+    return null;
+  }
+}
+
+// src/utils/file-lock.ts
+var activeLockFiles = new Set;
+function isLockStale(lockInfo) {
+  return !isProcessRunning(lockInfo.pid);
+}
+async function acquireFileLock(filePath, depth = 0) {
+  if (depth > 3)
+    return false;
+  const lockFile = `${filePath}.lock`;
+  const lockInfo = {
+    pid: process.pid,
+    timestamp: Date.now()
+  };
+  try {
+    await ensureDirectory(dirname4(lockFile));
+    await writeFile2(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
+    activeLockFiles.add(lockFile);
+    return true;
+  } catch (error46) {
+    if (error46.code !== "EEXIST") {
+      const errCode = error46.code;
+      if (errCode === "ENOENT" || errCode === "EACCES") {
+        logger.error(`Failed to create lock file ${lockFile}:`, error46);
+        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
+          ...buildFileSystemProperties({
+            filePath: lockFile,
+            operation: "lock",
+            errnoCode: errCode
+          })
+        });
+      }
+      throw error46;
+    }
+    try {
+      const content = await readFile2(lockFile, "utf8");
+      const existingLock = JSON.parse(content);
+      if (isLockStale(existingLock)) {
+        logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
+        await unlink3(lockFile).catch(() => {});
+        return acquireFileLock(filePath, depth + 1);
+      }
+    } catch {
+      logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
+      await unlink3(lockFile).catch(() => {});
+      return acquireFileLock(filePath, depth + 1);
+    }
+    return false;
+  }
+}
+async function releaseFileLock(filePath) {
+  const lockFile = `${filePath}.lock`;
+  activeLockFiles.delete(lockFile);
+  await unlink3(lockFile).catch(() => {});
+}
+async function withFileLock(filePath, fn) {
+  let retries = 0;
+  while (!await acquireFileLock(filePath)) {
+    if (++retries >= LOCK_MAX_RETRIES) {
+      const error46 = new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
+      captureException(error46, FILE_LOCK_TIMEOUT, "file-lock", {
+        ...buildFileSystemProperties({ filePath, operation: "lock" }),
+        retries,
+        max_retries: LOCK_MAX_RETRIES,
+        retry_delay_ms: LOCK_RETRY_MS
+      });
+      throw error46;
+    }
+    await new Promise((resolve) => setTimeout(resolve, LOCK_RETRY_MS));
+  }
+  try {
+    return await fn();
+  } finally {
+    await releaseFileLock(filePath);
+  }
+}
+
 // src/auth/session-manager.ts
+function isSessionStructureValid(session) {
+  return Boolean(session.accessToken && session.refreshToken && session.userId && session.email);
+}
+function isRefreshTokenExpired(session) {
+  return Boolean(session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now());
+}
 async function loadSessionFile() {
   try {
-    const content = await readFile(SESSION_FILE, "utf-8");
+    const content = await readFile3(SESSION_FILE, "utf-8");
     const session = JSON.parse(content);
-    if (!session.accessToken || !session.refreshToken || !session.userId || !session.email) {
-      logger.warn("Invalid session structure, clearing session");
+    if (!isSessionStructureValid(session)) {
+      logger.warn("Invalid session structure, clearing corrupt file");
       await clearSession();
       return null;
     }
@@ -30007,15 +30150,14 @@ async function loadSessionFile() {
     return null;
   }
 }
-async function loadSession() {
-  return loadSessionFile();
-}
 async function saveSession(session) {
   try {
-    await ensureDirectory(dirname3(SESSION_FILE));
-    await writeFile(SESSION_FILE, JSON.stringify(session, null, 2), {
-      encoding: "utf-8",
-      mode: 384
+    await withFileLock(SESSION_FILE, async () => {
+      await ensureDirectory(dirname5(SESSION_FILE));
+      await writeFile3(SESSION_FILE, JSON.stringify(session, null, 2), {
+        encoding: "utf-8",
+        mode: 384
+      });
     });
     logger.info("Session saved successfully");
   } catch (error46) {
@@ -30032,27 +30174,54 @@ async function saveSession(session) {
     throw error46;
   }
 }
-async function clearSessionIfStale(usedRefreshToken) {
-  const current = await loadSessionFile();
-  if (!current) {
-    return true;
-  }
-  if (current.refreshToken !== usedRefreshToken) {
-    logger.info("clearSessionIfStale: on-disk refresh token differs — concurrent refresh succeeded, preserving session");
-    return false;
-  }
-  await clearSession();
-  return true;
-}
 async function clearSession() {
   try {
-    await unlink2(SESSION_FILE);
+    await unlink4(SESSION_FILE);
     logger.info("Session cleared successfully");
   } catch (error46) {
     if (error46.code === "ENOENT") {
       return;
     }
     logger.error("Failed to clear session", error46);
+    throw error46;
+  }
+}
+async function updateWorkspaceInSession(workspaceId, workspaceName) {
+  try {
+    await withFileLock(SESSION_FILE, async () => {
+      let content;
+      try {
+        content = await readFile3(SESSION_FILE, "utf-8");
+      } catch (readError) {
+        if (readError.code === "ENOENT") {
+          logger.debug("Cannot update workspace: session file does not exist");
+          return;
+        }
+        throw readError;
+      }
+      const session = JSON.parse(content);
+      if (!isSessionStructureValid(session)) {
+        throw new Error("Cannot update workspace: session file has invalid structure");
+      }
+      session.workspaceId = workspaceId;
+      session.workspaceName = workspaceName;
+      await writeFile3(SESSION_FILE, JSON.stringify(session, null, 2), {
+        encoding: "utf-8",
+        mode: 384
+      });
+    });
+    logger.info("Workspace metadata updated in session");
+  } catch (error46) {
+    logger.error("Failed to update workspace in session", error46);
+    if (error46 instanceof Error) {
+      captureException(error46, AUTH_SESSION_SAVE_FAILED, "session-manager", {
+        ...buildFileSystemProperties({
+          filePath: SESSION_FILE,
+          operation: "write",
+          errnoCode: error46.code
+        })
+      });
+    }
     throw error46;
   }
 }
@@ -30083,10 +30252,10 @@ function getClaudeCodeVersion() {
 
 // src/utils/plugin-version.ts
 import { readFileSync } from "node:fs";
-import { join as join3 } from "node:path";
+import { join as join4 } from "node:path";
 function getPluginVersion() {
   try {
-    const marketplacePluginPath = join3(CLAUDE_INSTALL_DIR, "plugins", "marketplaces", "zest-marketplace", "zest", ".claude-plugin", "plugin.json");
+    const marketplacePluginPath = join4(CLAUDE_INSTALL_DIR, "plugins", "marketplaces", "zest-marketplace", "zest", ".claude-plugin", "plugin.json");
     const pluginJson = JSON.parse(readFileSync(marketplacePluginPath, "utf-8"));
     if (pluginJson.version && typeof pluginJson.version === "string") {
       logger.debug("Read plugin version from marketplace plugin.json", {
@@ -30112,7 +30281,7 @@ async function getAnalyticsClient() {
   if (!analyticsClient) {
     analyticsClient = createServerAnalytics(POSTHOG_API_KEY);
     try {
-      const session = await loadSession();
+      const session = await loadSessionFile();
       if (session) {
         cachedSession = session;
       }
@@ -30162,24 +30331,6 @@ async function captureException(error46, errorType, errorSource, additionalPrope
     });
   } catch (captureError) {
     logger.debug("Failed to capture exception in PostHog", captureError);
-  }
-}
-async function capture(eventName, properties) {
-  try {
-    const client = await getAnalyticsClient();
-    if (!client)
-      return;
-    client.track({
-      distinctId: cachedSession?.userId ?? "anonymous",
-      event: eventName,
-      properties: {
-        ...buildStandardProperties(),
-        ...buildUserProperties(),
-        ...properties
-      }
-    });
-  } catch (error46) {
-    logger.debug("Failed to capture event in PostHog", error46);
   }
 }
 async function trackExtensionInstalled(userId, version3) {
@@ -32892,226 +33043,249 @@ function shouldShowDeprecationWarning() {
 if (shouldShowDeprecationWarning())
   console.warn("⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217");
 
-// src/utils/file-lock.ts
-import { readdir as readdir2, readFile as readFile2, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
-import { dirname as dirname5 } from "node:path";
+// src/supabase/session-storage-adapter.ts
+import { readFile as readFile4, unlink as unlink5, writeFile as writeFile4 } from "node:fs/promises";
+import { dirname as dirname6 } from "node:path";
 
-// src/utils/daemon-manager.ts
-import { dirname as dirname4, join as join4 } from "node:path";
-import { fileURLToPath as fileURLToPath2 } from "node:url";
-var DAEMON_RESTART_LOCK = join4(CLAUDE_ZEST_DIR, "daemon-restart.lock");
-var __filename2 = fileURLToPath2(import.meta.url);
-var __dirname3 = dirname4(__filename2);
-function isProcessRunning(pid) {
+// src/utils/jwt.ts
+function getJwtExpiresAt(token) {
   try {
-    process.kill(pid, 0);
-    return true;
+    const parts = token.split(".");
+    if (parts.length !== 3)
+      return;
+    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
+    return typeof payload.exp === "number" ? payload.exp : undefined;
   } catch {
-    return false;
+    return;
   }
 }
 
-// src/utils/file-lock.ts
-var activeLockFiles = new Set;
-function isLockStale(lockInfo) {
-  return !isProcessRunning(lockInfo.pid);
-}
-async function acquireFileLock(filePath) {
-  const lockFile = `${filePath}.lock`;
-  const lockInfo = {
-    pid: process.pid,
-    timestamp: Date.now()
-  };
-  try {
-    await ensureDirectory(dirname5(lockFile));
-    await writeFile2(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
-    activeLockFiles.add(lockFile);
-    return true;
-  } catch (error46) {
-    if (error46.code !== "EEXIST") {
-      const errCode = error46.code;
-      if (errCode === "ENOENT" || errCode === "EACCES") {
-        logger.error(`Failed to create lock file ${lockFile}:`, error46);
-        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
-          ...buildFileSystemProperties({
-            filePath: lockFile,
-            operation: "lock",
-            errnoCode: errCode
-          })
+// src/supabase/session-storage-adapter.ts
+var consecutiveWriteFailures = 0;
+function createSessionStorageAdapter(isRemovalAllowed) {
+  return {
+    async getItem(key) {
+      if (key.endsWith("-code-verifier")) {
+        return null;
+      }
+      try {
+        const content = await readFile4(SESSION_FILE, "utf-8");
+        const session = JSON.parse(content);
+        if (!isSessionStructureValid(session)) {
+          logger.warn("Storage adapter: invalid session structure, clearing corrupt file");
+          await clearSession();
+          return null;
+        }
+        if (isRefreshTokenExpired(session)) {
+          logger.warn("Storage adapter: refresh token expired");
+          return null;
+        }
+        const expiresAt = getJwtExpiresAt(session.accessToken);
+        const now = Math.floor(Date.now() / 1000);
+        const effectiveExpiresAt = expiresAt ?? 0;
+        const gotrueSession = {
+          access_token: session.accessToken,
+          refresh_token: session.refreshToken,
+          expires_at: effectiveExpiresAt,
+          expires_in: expiresAt ? Math.max(0, expiresAt - now) : 0,
+          token_type: "bearer",
+          user: {
+            id: session.userId,
+            email: session.email,
+            app_metadata: {},
+            user_metadata: {},
+            aud: "authenticated",
+            created_at: ""
+          }
+        };
+        return JSON.stringify(gotrueSession);
+      } catch (error46) {
+        if (error46.code === "ENOENT") {
+          return null;
+        }
+        if (error46 instanceof SyntaxError) {
+          logger.warn("Storage adapter: corrupt session.json, clearing");
+          await clearSession().catch(() => {});
+          return null;
+        }
+        logger.error("Storage adapter: failed to read session", error46);
+        if (error46 instanceof Error) {
+          captureException(error46, SUPABASE_SESSION_READ_FAILED, "session-storage-adapter", {
+            ...buildFileSystemProperties({
+              filePath: SESSION_FILE,
+              operation: "read",
+              errnoCode: error46.code
+            })
+          });
+        }
+        return null;
+      }
+    },
+    async setItem(key, value) {
+      if (key.endsWith("-code-verifier")) {
+        return;
+      }
+      try {
+        const gotrueSession = JSON.parse(value);
+        if (!gotrueSession.access_token || !gotrueSession.refresh_token || !gotrueSession.user?.id) {
+          logger.warn("Storage adapter: invalid GoTrueClient session structure, skipping write");
+          return;
+        }
+        await withFileLock(SESSION_FILE, async () => {
+          let workspaceId;
+          let workspaceName;
+          let existingRefreshToken;
+          let refreshTokenExpiresAt;
+          let existingEmail;
+          try {
+            const existingContent = await readFile4(SESSION_FILE, "utf-8");
+            const existing = JSON.parse(existingContent);
+            workspaceId = existing.workspaceId;
+            workspaceName = existing.workspaceName;
+            existingRefreshToken = existing.refreshToken;
+            refreshTokenExpiresAt = existing.refreshTokenExpiresAt;
+            existingEmail = existing.email;
+          } catch {}
+          const tokenRotated = existingRefreshToken && existingRefreshToken !== gotrueSession.refresh_token;
+          const updatedSession = {
+            accessToken: gotrueSession.access_token,
+            refreshToken: gotrueSession.refresh_token,
+            refreshTokenExpiresAt: tokenRotated ? undefined : refreshTokenExpiresAt,
+            userId: gotrueSession.user.id,
+            email: gotrueSession.user.email || existingEmail || "",
+            workspaceId,
+            workspaceName
+          };
+          await ensureDirectory(dirname6(SESSION_FILE));
+          await writeFile4(SESSION_FILE, JSON.stringify(updatedSession, null, 2), {
+            encoding: "utf-8",
+            mode: 384
+          });
+          logger.debug("Storage adapter: session persisted via setItem");
         });
+        consecutiveWriteFailures = 0;
+      } catch (error46) {
+        consecutiveWriteFailures++;
+        logger.error("Storage adapter: failed to write session", error46);
+        if (consecutiveWriteFailures >= 3) {
+          logger.warn(`Storage adapter: ${consecutiveWriteFailures} consecutive write failures — session may not survive daemon restart`);
+        }
+        if (error46 instanceof Error) {
+          captureException(error46, SUPABASE_SESSION_WRITE_FAILED, "session-storage-adapter", {
+            ...buildFileSystemProperties({
+              filePath: SESSION_FILE,
+              operation: "write",
+              errnoCode: error46.code
+            }),
+            consecutive_failures: consecutiveWriteFailures
+          });
+        }
       }
-      throw error46;
-    }
-    try {
-      const content = await readFile2(lockFile, "utf8");
-      const existingLock = JSON.parse(content);
-      if (isLockStale(existingLock)) {
-        logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
-        await unlink3(lockFile).catch(() => {});
-        return acquireFileLock(filePath);
+    },
+    async removeItem(key) {
+      if (key.endsWith("-code-verifier")) {
+        return;
       }
-    } catch {
-      logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
-      await unlink3(lockFile).catch(() => {});
-      return acquireFileLock(filePath);
+      if (isRemovalAllowed && !isRemovalAllowed()) {
+        logger.debug("Storage adapter: removal blocked (preserving tokens for recovery)");
+        return;
+      }
+      try {
+        await unlink5(SESSION_FILE);
+        logger.debug("Storage adapter: session removed via removeItem");
+      } catch (error46) {
+        if (error46.code === "ENOENT") {
+          return;
+        }
+        logger.error("Storage adapter: failed to remove session", error46);
+      }
     }
-    return false;
-  }
-}
-async function releaseFileLock(filePath) {
-  const lockFile = `${filePath}.lock`;
-  activeLockFiles.delete(lockFile);
-  await unlink3(lockFile).catch(() => {});
-}
-async function withFileLock(filePath, fn) {
-  let retries = 0;
-  while (!await acquireFileLock(filePath)) {
-    if (++retries >= LOCK_MAX_RETRIES) {
-      const error46 = new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
-      captureException(error46, FILE_LOCK_TIMEOUT, "file-lock", {
-        ...buildFileSystemProperties({ filePath, operation: "lock" }),
-        retries,
-        max_retries: LOCK_MAX_RETRIES,
-        retry_delay_ms: LOCK_RETRY_MS
-      });
-      throw error46;
-    }
-    await new Promise((resolve) => setTimeout(resolve, LOCK_RETRY_MS));
-  }
-  try {
-    return await fn();
-  } finally {
-    await releaseFileLock(filePath);
-  }
+  };
 }
 
 // src/supabase/client.ts
-function createSupabaseClientInstance() {
+function createSupabaseClientInstance(config2) {
   return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
-      persistSession: false,
-      autoRefreshToken: true
+      persistSession: true,
+      autoRefreshToken: config2.autoRefreshToken,
+      detectSessionInUrl: false,
+      storage: config2.storage
     }
   });
-}
-async function persistRefreshedSession(supabaseSession) {
-  try {
-    await withFileLock(SESSION_FILE, async () => {
-      const currentSession = await loadSessionFile();
-      if (!currentSession) {
-        logger.warn("No current session found during refresh, skipping persistence");
-        return;
-      }
-      const updatedSession = {
-        ...currentSession,
-        accessToken: supabaseSession.access_token,
-        refreshToken: supabaseSession.refresh_token,
-        userId: supabaseSession.user.id,
-        email: supabaseSession.user.email || currentSession.email
-      };
-      await saveSession(updatedSession);
-      logger.info("Session persisted after TOKEN_REFRESHED event");
-    });
-  } catch (error46) {
-    logger.error("Failed to persist refreshed session", error46);
-    if (error46 instanceof Error) {
-      captureException(error46, SUPABASE_SESSION_REFRESH_PERSIST_FAILED, "supabase/client", {
-        session_file: SESSION_FILE
-      });
-    }
-  }
-}
-async function setClientSession(client, session) {
-  const { error: error46 } = await client.auth.setSession({
-    access_token: session.accessToken,
-    refresh_token: session.refreshToken
-  });
-  if (error46) {
-    logger.error(`Failed to set Supabase session: ${error46.message}`);
-    const isAlreadyUsed = error46.code === "refresh_token_already_used";
-    const isInvalidRefreshToken = isAlreadyUsed || error46.message.includes("Invalid Refresh Token") || error46.code === "refresh_token_not_found" || error46.code === "session_not_found" || error46.code === "session_expired";
-    captureException(error46, SUPABASE_SESSION_SET_FAILED, "supabase/client", {
-      is_invalid_refresh_token: isInvalidRefreshToken,
-      error_code: error46.code,
-      error_status: error46.status
-    });
-    if (isAlreadyUsed) {
-      const freshSession = await loadSessionFile();
-      if (freshSession && freshSession.refreshToken !== session.refreshToken) {
-        logger.info("refresh_token_already_used: concurrent refresh detected, retrying with fresh session");
-        const { error: retryError } = await client.auth.setSession({
-          access_token: freshSession.accessToken,
-          refresh_token: freshSession.refreshToken
-        });
-        if (!retryError) {
-          capture(AUTH_SESSION_RACE_RECOVERY, { error_code: error46.code });
-          logger.info("Race recovery successful — session restored from concurrent refresh");
-          return;
-        }
-        captureException(retryError, AUTH_SESSION_RACE_RECOVERY_FAILED, "supabase/client", {
-          error_code: retryError.code,
-          original_error_code: error46.code
-        });
-        logger.warn(`Race recovery failed: ${retryError.message}`);
-      }
-      logger.warn("refresh_token_already_used: no concurrent refresh found, clearing session");
-      await clearSessionIfStale(session.refreshToken);
-      throw error46;
-    }
-    if (isInvalidRefreshToken) {
-      logger.warn("Invalid refresh token, clearing session");
-      await clearSession();
-    }
-    throw error46;
-  }
-  logger.debug("Supabase session set successfully");
-}
-async function loadValidSession() {
-  const session = await loadSessionFile();
-  if (!session) {
-    logger.debug("No session available, skipping Supabase client creation");
-    return null;
-  }
-  if (session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now()) {
-    logger.warn("Refresh token expired, user must re-authenticate");
-    await clearSession();
-    return null;
-  }
-  return session;
 }
 async function createOnDemandClient() {
+  let dispose;
   try {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       logger.warn("Supabase configuration missing (URL or anon key)");
       return null;
     }
-    const session = await loadValidSession();
+    const storage = createSessionStorageAdapter(() => false);
+    const client = createSupabaseClientInstance({
+      autoRefreshToken: false,
+      storage
+    });
+    dispose = async () => {
+      try {
+        await client.removeAllChannels();
+      } catch (error46) {
+        logger.warn(`Error removing on-demand channels: ${error46.message}`);
+      }
+      logger.debug("On-demand Supabase client disposed");
+    };
+    const {
+      data: { session }
+    } = await client.auth.getSession();
     if (!session) {
+      await dispose();
       return null;
     }
-    const client = createSupabaseClientInstance();
-    await setClientSession(client, session);
-    const { data } = client.auth.onAuthStateChange(async (event, supabaseSession) => {
-      logger.debug(`On-demand auth state change: ${event}`);
-      if (event === "TOKEN_REFRESHED" && supabaseSession) {
-        await persistRefreshedSession(supabaseSession);
+    const now = Math.floor(Date.now() / 1000);
+    if (session.expires_at != null && session.expires_at < now) {
+      const freshSession = await loadSessionFile();
+      if (freshSession && freshSession.accessToken !== session.access_token) {
+        logger.debug("On-demand client: daemon already refreshed, reloading session");
+        await client.auth.setSession({
+          access_token: freshSession.accessToken,
+          refresh_token: freshSession.refreshToken
+        });
+        return { client, dispose };
       }
-    });
-    const unsubscribe = data.subscription.unsubscribe;
-    logger.debug("On-demand Supabase client created");
-    return {
-      client,
-      dispose: async () => {
-        unsubscribe();
-        try {
-          await client.removeAllChannels();
-        } catch (error46) {
-          logger.warn(`Error removing on-demand channels: ${error46.message}`);
+      const daemonPid = await getDaemonPid();
+      if (daemonPid) {
+        await new Promise((resolve) => setTimeout(() => resolve(), 200));
+        const retrySession = await loadSessionFile();
+        if (retrySession && retrySession.accessToken !== session.access_token) {
+          logger.debug("On-demand client: daemon refreshed during wait, reloading session");
+          await client.auth.setSession({
+            access_token: retrySession.accessToken,
+            refresh_token: retrySession.refreshToken
+          });
+          return { client, dispose };
         }
-        logger.debug("On-demand Supabase client disposed");
       }
-    };
+      const { data: refreshData, error: refreshError } = await client.auth.refreshSession();
+      if (refreshError || !refreshData.session) {
+        const recoverySession = await loadSessionFile();
+        if (recoverySession && recoverySession.accessToken !== session.access_token) {
+          logger.debug("On-demand client: refresh failed but daemon wrote new tokens, recovering");
+          await client.auth.setSession({
+            access_token: recoverySession.accessToken,
+            refresh_token: recoverySession.refreshToken
+          });
+          return { client, dispose };
+        }
+        logger.warn(`On-demand client: access token expired and refresh failed${refreshError ? `: ${refreshError.message}` : ""}`);
+        await dispose();
+        return null;
+      }
+    }
+    logger.debug("On-demand Supabase client created");
+    return { client, dispose };
   } catch (error46) {
+    if (dispose)
+      await dispose();
     logger.error("Failed to create on-demand Supabase client", error46);
     if (error46 instanceof Error) {
       captureException(error46, SUPABASE_CLIENT_INIT_FAILED, "supabase/client", {
@@ -33373,7 +33547,7 @@ async function updateProfileMetadata(supabase, userId) {
 }
 async function selectDefaultWorkspace(supabase) {
   try {
-    const session = await loadSession();
+    const session = await loadSessionFile();
     if (!session) {
       logger.warn("No session found when loading workspace info");
       return;
@@ -33390,8 +33564,11 @@ async function selectDefaultWorkspace(supabase) {
     if (session.workspaceId) {
       const selectedWorkspace = workspaces.find((w) => w.id === session.workspaceId);
       if (selectedWorkspace) {
-        session.workspaceName = selectedWorkspace.name;
-        await saveSession(session);
+        try {
+          await updateWorkspaceInSession(selectedWorkspace.id, selectedWorkspace.name);
+        } catch (error46) {
+          logger.debug("Failed to update workspace name in session (non-critical)", error46);
+        }
         if (workspaces.length === 1) {
           console.log(`\uD83C\uDFE2 Workspace: ${selectedWorkspace.name}`);
         } else {
@@ -33410,9 +33587,11 @@ async function selectDefaultWorkspace(supabase) {
     }
     workspaces.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     const fallbackWorkspace = workspaces[0];
-    session.workspaceId = fallbackWorkspace.id;
-    session.workspaceName = fallbackWorkspace.name;
-    await saveSession(session);
+    try {
+      await updateWorkspaceInSession(fallbackWorkspace.id, fallbackWorkspace.name);
+    } catch (error46) {
+      logger.debug("Failed to update workspace name in session (non-critical)", error46);
+    }
     console.log(`\uD83C\uDFE2 Workspace: ${fallbackWorkspace.name} (default)`);
     if (workspaces.length > 1) {
       console.log(`   ${workspaces.length - 1} other workspace(s) available`);
@@ -33433,6 +33612,7 @@ async function selectDefaultWorkspace(supabase) {
 }
 async function logout() {
   try {
+    await stopDaemon();
     await clearSession();
     logger.info("Logged out successfully");
   } catch (error46) {

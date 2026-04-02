@@ -21301,12 +21301,15 @@ class Logger {
 var logger = new Logger;
 
 // src/auth/session-manager.ts
+function isSessionStructureValid(session) {
+  return Boolean(session.accessToken && session.refreshToken && session.userId && session.email);
+}
 async function loadSessionFile() {
   try {
     const content = await readFile(SESSION_FILE, "utf-8");
     const session = JSON.parse(content);
-    if (!session.accessToken || !session.refreshToken || !session.userId || !session.email) {
-      logger.warn("Invalid session structure, clearing session");
+    if (!isSessionStructureValid(session)) {
+      logger.warn("Invalid session structure, clearing corrupt file");
       await clearSession();
       return null;
     }
@@ -21327,9 +21330,6 @@ async function loadSessionFile() {
     }
     return null;
   }
-}
-async function loadSession() {
-  return loadSessionFile();
 }
 async function clearSession() {
   try {
@@ -21375,7 +21375,7 @@ async function getAnalyticsClient() {
   if (!analyticsClient) {
     analyticsClient = createServerAnalytics(POSTHOG_API_KEY);
     try {
-      const session = await loadSession();
+      const session = await loadSessionFile();
       if (session) {
         cachedSession = session;
       }
@@ -21448,7 +21448,9 @@ var activeLockFiles = new Set;
 function isLockStale(lockInfo) {
   return !isProcessRunning(lockInfo.pid);
 }
-async function acquireFileLock(filePath) {
+async function acquireFileLock(filePath, depth = 0) {
+  if (depth > 3)
+    return false;
   const lockFile = `${filePath}.lock`;
   const lockInfo = {
     pid: process.pid,
@@ -21480,12 +21482,12 @@ async function acquireFileLock(filePath) {
       if (isLockStale(existingLock)) {
         logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
         await unlink3(lockFile).catch(() => {});
-        return acquireFileLock(filePath);
+        return acquireFileLock(filePath, depth + 1);
       }
     } catch {
       logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
       await unlink3(lockFile).catch(() => {});
-      return acquireFileLock(filePath);
+      return acquireFileLock(filePath, depth + 1);
     }
     return false;
   }

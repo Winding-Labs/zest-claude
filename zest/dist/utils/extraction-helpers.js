@@ -5155,8 +5155,8 @@ __export(exports_deletion_cache, {
   cleanupOldCache: () => cleanupOldCache,
   cacheFileForDeletion: () => cacheFileForDeletion
 });
-import { readdir as readdir2, readFile as readFile3, rm, stat as stat2, writeFile as writeFile3 } from "node:fs/promises";
-import { join as join4 } from "node:path";
+import { readdir as readdir3, readFile as readFile4, rm, stat as stat2, writeFile as writeFile4 } from "node:fs/promises";
+import { join as join5 } from "node:path";
 function getCacheKey(filePath, sessionId) {
   const hash2 = Buffer.from(filePath).toString("base64").replace(/[/+=]/g, "_");
   return `${sessionId}_${hash2}.json`;
@@ -5171,8 +5171,8 @@ async function cacheFileForDeletion(filePath, content, sessionId) {
       sessionId
     };
     const cacheKey = getCacheKey(filePath, sessionId);
-    const cachePath = join4(DELETION_CACHE_DIR, cacheKey);
-    await writeFile3(cachePath, JSON.stringify(cached2, null, 2), "utf-8");
+    const cachePath = join5(DELETION_CACHE_DIR, cacheKey);
+    await writeFile4(cachePath, JSON.stringify(cached2, null, 2), "utf-8");
     logger.debug(`Cached file content: ${filePath} (${content.length} chars)`);
   } catch (error46) {
     logger.error(`Failed to cache file for deletion: ${filePath}`, error46);
@@ -5181,9 +5181,9 @@ async function cacheFileForDeletion(filePath, content, sessionId) {
 async function getCachedFileContent(filePath, sessionId) {
   try {
     const cacheKey = getCacheKey(filePath, sessionId);
-    const cachePath = join4(DELETION_CACHE_DIR, cacheKey);
+    const cachePath = join5(DELETION_CACHE_DIR, cacheKey);
     try {
-      const content = await readFile3(cachePath, "utf-8");
+      const content = await readFile4(cachePath, "utf-8");
       const cached2 = JSON.parse(content);
       const age = Date.now() - cached2.timestamp;
       if (age > DELETION_CACHE_TTL_MS) {
@@ -5206,11 +5206,11 @@ async function getCachedFileContent(filePath, sessionId) {
 async function cleanupOldCache() {
   try {
     await ensureDirectory(DELETION_CACHE_DIR);
-    const files = await readdir2(DELETION_CACHE_DIR);
+    const files = await readdir3(DELETION_CACHE_DIR);
     const now = Date.now();
     for (const file2 of files) {
       try {
-        const filePath = join4(DELETION_CACHE_DIR, file2);
+        const filePath = join5(DELETION_CACHE_DIR, file2);
         const stats = await stat2(filePath);
         const age = now - stats.mtimeMs;
         if (age > DELETION_CACHE_TTL_MS) {
@@ -5235,7 +5235,20 @@ var init_deletion_cache = __esm(() => {
 import { randomUUID } from "node:crypto";
 import { realpath, stat as stat5 } from "node:fs/promises";
 import { basename as basename3, join as join7 } from "node:path";
-
+// ../../packages/utils/src/date-range.ts
+var PERIOD_TYPE_LABELS = {
+  ["today" /* Today */]: "Today",
+  ["this_week" /* ThisWeek */]: "This Week",
+  ["this_month" /* ThisMonth */]: "This Month"
+};
+var PERIOD_SUMMARY_LABELS = {
+  ["today" /* Today */]: "Daily Summary",
+  ["this_week" /* ThisWeek */]: "Weekly Summary",
+  ["this_month" /* ThisMonth */]: "Monthly Summary",
+  custom: "Custom Period"
+};
+// ../../packages/utils/src/frontmatter.ts
+var FRONTMATTER_KEYS = new Set(["name", "description"]);
 // ../../packages/utils/src/language-utils.ts
 var languageMap = {
   ts: "typescript",
@@ -5321,18 +5334,8 @@ function getLanguageFromPath(filePath) {
   const ext = filePath.split(".").pop()?.toLowerCase();
   return languageMap[ext || ""] || "plaintext";
 }
-// ../../packages/utils/src/date-range.ts
-var PERIOD_TYPE_LABELS = {
-  ["today" /* Today */]: "Today",
-  ["this_week" /* ThisWeek */]: "This Week",
-  ["this_month" /* ThisMonth */]: "This Month"
-};
-var PERIOD_SUMMARY_LABELS = {
-  ["today" /* Today */]: "Daily Summary",
-  ["this_week" /* ThisWeek */]: "Weekly Summary",
-  ["this_month" /* ThisMonth */]: "Monthly Summary",
-  custom: "Custom Period"
-};
+// ../../packages/utils/src/mcp-registry.ts
+var cache = new Map;
 // ../../packages/utils/src/git-utils.ts
 import { exec, execSync } from "node:child_process";
 import * as path from "node:path";
@@ -20175,8 +20178,8 @@ async function addSourceContext(frames) {
     const ranges = makeLineReaderRanges(filesToLineRanges);
     if (ranges.every((r) => rangeExistsInContentCache(file2, r)))
       continue;
-    const cache = emplace(LRU_FILE_CONTENTS_CACHE, file2, {});
-    readlinePromises.push(getContextLinesFromFile(file2, ranges, cache));
+    const cache2 = emplace(LRU_FILE_CONTENTS_CACHE, file2, {});
+    readlinePromises.push(getContextLinesFromFile(file2, ranges, cache2));
   }
   await Promise.all(readlinePromises).catch(() => {});
   if (frames && frames.length > 0)
@@ -20234,10 +20237,10 @@ function getContextLinesFromFile(path2, ranges, output) {
     });
   });
 }
-function addSourceContextToFrames(frames, cache) {
+function addSourceContextToFrames(frames, cache2) {
   for (const frame of frames)
     if (frame.filename && frame.context_line === undefined && typeof frame.lineno == "number") {
-      const contents = cache.get(frame.filename);
+      const contents = cache2.get(frame.filename);
       if (contents === undefined)
         continue;
       addContextToFrame(frame.lineno, frame, contents);
@@ -21659,7 +21662,7 @@ function createServerAnalytics(posthogApiKey, options) {
   };
 }
 // src/auth/session-manager.ts
-import { readFile, unlink as unlink2, writeFile } from "node:fs/promises";
+import { readFile as readFile2, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
 
 // src/analytics/properties.ts
 import { basename as basename2 } from "node:path";
@@ -21674,14 +21677,129 @@ function buildFileSystemProperties(options) {
 
 // src/auth/session-manager.ts
 init_constants();
+
+// src/utils/file-lock.ts
+import { readdir as readdir2, readFile, unlink as unlink2, writeFile } from "node:fs/promises";
+import { dirname as dirname4 } from "node:path";
+init_constants();
+
+// src/utils/daemon-manager.ts
+import { dirname as dirname3, join as join3 } from "node:path";
+import { fileURLToPath } from "node:url";
+init_constants();
+
+// src/utils/claude-instances.ts
+init_constants();
+init_logger();
+
+// src/utils/daemon-manager.ts
 init_fs_utils();
 init_logger();
+var DAEMON_RESTART_LOCK = join3(CLAUDE_ZEST_DIR, "daemon-restart.lock");
+var __filename2 = fileURLToPath(import.meta.url);
+var __dirname2 = dirname3(__filename2);
+function isProcessRunning(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// src/utils/file-lock.ts
+init_fs_utils();
+init_logger();
+var activeLockFiles = new Set;
+function isLockStale(lockInfo) {
+  return !isProcessRunning(lockInfo.pid);
+}
+async function acquireFileLock(filePath, depth = 0) {
+  if (depth > 3)
+    return false;
+  const lockFile = `${filePath}.lock`;
+  const lockInfo = {
+    pid: process.pid,
+    timestamp: Date.now()
+  };
+  try {
+    await ensureDirectory(dirname4(lockFile));
+    await writeFile(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
+    activeLockFiles.add(lockFile);
+    return true;
+  } catch (error46) {
+    if (error46.code !== "EEXIST") {
+      const errCode = error46.code;
+      if (errCode === "ENOENT" || errCode === "EACCES") {
+        logger.error(`Failed to create lock file ${lockFile}:`, error46);
+        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
+          ...buildFileSystemProperties({
+            filePath: lockFile,
+            operation: "lock",
+            errnoCode: errCode
+          })
+        });
+      }
+      throw error46;
+    }
+    try {
+      const content = await readFile(lockFile, "utf8");
+      const existingLock = JSON.parse(content);
+      if (isLockStale(existingLock)) {
+        logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
+        await unlink2(lockFile).catch(() => {});
+        return acquireFileLock(filePath, depth + 1);
+      }
+    } catch {
+      logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
+      await unlink2(lockFile).catch(() => {});
+      return acquireFileLock(filePath, depth + 1);
+    }
+    return false;
+  }
+}
+async function releaseFileLock(filePath) {
+  const lockFile = `${filePath}.lock`;
+  activeLockFiles.delete(lockFile);
+  await unlink2(lockFile).catch(() => {});
+}
+async function withFileLock(filePath, fn) {
+  let retries = 0;
+  while (!await acquireFileLock(filePath)) {
+    if (++retries >= LOCK_MAX_RETRIES) {
+      const error46 = new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
+      captureException(error46, FILE_LOCK_TIMEOUT, "file-lock", {
+        ...buildFileSystemProperties({ filePath, operation: "lock" }),
+        retries,
+        max_retries: LOCK_MAX_RETRIES,
+        retry_delay_ms: LOCK_RETRY_MS
+      });
+      throw error46;
+    }
+    await new Promise((resolve2) => setTimeout(resolve2, LOCK_RETRY_MS));
+  }
+  try {
+    return await fn();
+  } finally {
+    await releaseFileLock(filePath);
+  }
+}
+
+// src/auth/session-manager.ts
+init_fs_utils();
+init_logger();
+function isSessionStructureValid(session) {
+  return Boolean(session.accessToken && session.refreshToken && session.userId && session.email);
+}
+function isRefreshTokenExpired(session) {
+  return Boolean(session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now());
+}
 async function loadSessionFile() {
   try {
-    const content = await readFile(SESSION_FILE, "utf-8");
+    const content = await readFile2(SESSION_FILE, "utf-8");
     const session = JSON.parse(content);
-    if (!session.accessToken || !session.refreshToken || !session.userId || !session.email) {
-      logger.warn("Invalid session structure, clearing session");
+    if (!isSessionStructureValid(session)) {
+      logger.warn("Invalid session structure, clearing corrupt file");
       await clearSession();
       return null;
     }
@@ -21703,12 +21821,9 @@ async function loadSessionFile() {
     return null;
   }
 }
-async function loadSession() {
-  return loadSessionFile();
-}
 async function clearSession() {
   try {
-    await unlink2(SESSION_FILE);
+    await unlink3(SESSION_FILE);
     logger.info("Session cleared successfully");
   } catch (error46) {
     if (error46.code === "ENOENT") {
@@ -21724,7 +21839,7 @@ async function getValidSession() {
     logger.debug("getValidSession: No session found");
     return null;
   }
-  if (session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now()) {
+  if (isRefreshTokenExpired(session)) {
     logger.warn("getValidSession: Refresh token expired, user must re-authenticate");
     await clearSession();
     return null;
@@ -21745,10 +21860,10 @@ init_logger();
 init_constants();
 init_logger();
 import { readFileSync } from "node:fs";
-import { join as join3 } from "node:path";
+import { join as join4 } from "node:path";
 function getPluginVersion() {
   try {
-    const marketplacePluginPath = join3(CLAUDE_INSTALL_DIR, "plugins", "marketplaces", "zest-marketplace", "zest", ".claude-plugin", "plugin.json");
+    const marketplacePluginPath = join4(CLAUDE_INSTALL_DIR, "plugins", "marketplaces", "zest-marketplace", "zest", ".claude-plugin", "plugin.json");
     const pluginJson = JSON.parse(readFileSync(marketplacePluginPath, "utf-8"));
     if (pluginJson.version && typeof pluginJson.version === "string") {
       logger.debug("Read plugin version from marketplace plugin.json", {
@@ -21774,7 +21889,7 @@ async function getAnalyticsClient() {
   if (!analyticsClient) {
     analyticsClient = createServerAnalytics(POSTHOG_API_KEY);
     try {
-      const session = await loadSession();
+      const session = await loadSessionFile();
       if (session) {
         cachedSession = session;
       }
@@ -21831,7 +21946,7 @@ async function captureException(error46, errorType, errorSource, additionalPrope
 init_constants();
 
 // src/config/settings.ts
-import { readFile as readFile2, writeFile as writeFile2 } from "node:fs/promises";
+import { readFile as readFile3, writeFile as writeFile3 } from "node:fs/promises";
 
 // ../../node_modules/.bun/zod@3.25.76/node_modules/zod/v3/external.js
 var exports_external2 = {};
@@ -25842,7 +25957,7 @@ var DEFAULT_SETTINGS = {
 };
 async function loadSettings() {
   try {
-    const content = await readFile2(SETTINGS_FILE, "utf-8");
+    const content = await readFile3(SETTINGS_FILE, "utf-8");
     const rawSettings = JSON.parse(content);
     const validated = UserSettingsSchema.parse(rawSettings);
     return { ...DEFAULT_SETTINGS, ...validated };
@@ -28464,11 +28579,11 @@ class PrivacyService {
 init_logger();
 
 // src/privacy/node-fs-adapter.ts
-import { readdir as readdir3, readFile as readFile4, stat as stat3 } from "node:fs/promises";
+import { readdir as readdir4, readFile as readFile5, stat as stat3 } from "node:fs/promises";
 function createNodeFsAdapter(workspaceRoot) {
   return {
     async readFile(path2) {
-      return readFile4(path2, "utf-8");
+      return readFile5(path2, "utf-8");
     },
     async fileExists(path2) {
       try {
@@ -28479,7 +28594,7 @@ function createNodeFsAdapter(workspaceRoot) {
       }
     },
     async readDir(path2) {
-      return readdir3(path2);
+      return readdir4(path2);
     },
     getWorkspaceRoot() {
       return workspaceRoot;
@@ -28623,113 +28738,6 @@ init_logger();
 import { appendFile as appendFile2, readFile as readFile6, unlink as unlink4, writeFile as writeFile5 } from "node:fs/promises";
 import { dirname as dirname5 } from "node:path";
 init_constants();
-
-// src/utils/file-lock.ts
-import { readdir as readdir4, readFile as readFile5, unlink as unlink3, writeFile as writeFile4 } from "node:fs/promises";
-import { dirname as dirname4 } from "node:path";
-init_constants();
-
-// src/utils/daemon-manager.ts
-import { dirname as dirname3, join as join5 } from "node:path";
-import { fileURLToPath } from "node:url";
-init_constants();
-
-// src/utils/claude-instances.ts
-init_constants();
-init_logger();
-
-// src/utils/daemon-manager.ts
-init_fs_utils();
-init_logger();
-var DAEMON_RESTART_LOCK = join5(CLAUDE_ZEST_DIR, "daemon-restart.lock");
-var __filename2 = fileURLToPath(import.meta.url);
-var __dirname2 = dirname3(__filename2);
-function isProcessRunning(pid) {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// src/utils/file-lock.ts
-init_fs_utils();
-init_logger();
-var activeLockFiles = new Set;
-function isLockStale(lockInfo) {
-  return !isProcessRunning(lockInfo.pid);
-}
-async function acquireFileLock(filePath) {
-  const lockFile = `${filePath}.lock`;
-  const lockInfo = {
-    pid: process.pid,
-    timestamp: Date.now()
-  };
-  try {
-    await ensureDirectory(dirname4(lockFile));
-    await writeFile4(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
-    activeLockFiles.add(lockFile);
-    return true;
-  } catch (error46) {
-    if (error46.code !== "EEXIST") {
-      const errCode = error46.code;
-      if (errCode === "ENOENT" || errCode === "EACCES") {
-        logger.error(`Failed to create lock file ${lockFile}:`, error46);
-        captureException(error46, FILE_LOCK_CREATE_FAILED, "file-lock", {
-          ...buildFileSystemProperties({
-            filePath: lockFile,
-            operation: "lock",
-            errnoCode: errCode
-          })
-        });
-      }
-      throw error46;
-    }
-    try {
-      const content = await readFile5(lockFile, "utf8");
-      const existingLock = JSON.parse(content);
-      if (isLockStale(existingLock)) {
-        logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
-        await unlink3(lockFile).catch(() => {});
-        return acquireFileLock(filePath);
-      }
-    } catch {
-      logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
-      await unlink3(lockFile).catch(() => {});
-      return acquireFileLock(filePath);
-    }
-    return false;
-  }
-}
-async function releaseFileLock(filePath) {
-  const lockFile = `${filePath}.lock`;
-  activeLockFiles.delete(lockFile);
-  await unlink3(lockFile).catch(() => {});
-}
-async function withFileLock(filePath, fn) {
-  let retries = 0;
-  while (!await acquireFileLock(filePath)) {
-    if (++retries >= LOCK_MAX_RETRIES) {
-      const error46 = new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
-      captureException(error46, FILE_LOCK_TIMEOUT, "file-lock", {
-        ...buildFileSystemProperties({ filePath, operation: "lock" }),
-        retries,
-        max_retries: LOCK_MAX_RETRIES,
-        retry_delay_ms: LOCK_RETRY_MS
-      });
-      throw error46;
-    }
-    await new Promise((resolve2) => setTimeout(resolve2, LOCK_RETRY_MS));
-  }
-  try {
-    return await fn();
-  } finally {
-    await releaseFileLock(filePath);
-  }
-}
-
-// src/utils/queue-manager.ts
 init_fs_utils();
 init_logger();
 async function readJsonl(filePath) {

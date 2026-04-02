@@ -1,7 +1,6 @@
 // src/analytics/events.ts
 var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed";
 var AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed";
-var AUTH_TOKEN_REFRESH_FAILED = "auth_token_refresh_failed";
 var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
 var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
 var SYNC_NOT_AUTHENTICATED = "sync_not_authenticated";
@@ -26,10 +25,8 @@ var API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed";
 var API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed";
 var API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed";
 var SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed";
-var SUPABASE_SESSION_SET_FAILED = "supabase_session_set_failed";
-var SUPABASE_SESSION_REFRESH_PERSIST_FAILED = "supabase_session_refresh_persist_failed";
-var AUTH_SESSION_RACE_RECOVERY = "auth_session_race_recovery";
-var AUTH_SESSION_RACE_RECOVERY_FAILED = "auth_session_race_recovery_failed";
+var SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed";
+var SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed";
 function getErrorCategory(errorType) {
   if (errorType.startsWith("auth_"))
     return "auth";
@@ -52,8 +49,8 @@ export {
   SYNC_EVENTS_UPLOAD_FAILED,
   SYNC_EVENTS_RETRY_EXHAUSTED,
   SYNC_CHAT_UPLOAD_FAILED,
-  SUPABASE_SESSION_SET_FAILED,
-  SUPABASE_SESSION_REFRESH_PERSIST_FAILED,
+  SUPABASE_SESSION_WRITE_FAILED,
+  SUPABASE_SESSION_READ_FAILED,
   SUPABASE_CLIENT_INIT_FAILED,
   QUEUE_WRITE_FAILED,
   QUEUE_READ_CORRUPTED,
@@ -64,10 +61,7 @@ export {
   DAEMON_SYNC_CYCLE_FAILED,
   DAEMON_START_FAILED,
   DAEMON_RESTART_FAILED,
-  AUTH_TOKEN_REFRESH_FAILED,
   AUTH_SESSION_SAVE_FAILED,
-  AUTH_SESSION_RACE_RECOVERY_FAILED,
-  AUTH_SESSION_RACE_RECOVERY,
   AUTH_SESSION_LOAD_FAILED,
   AUTH_DEVICE_CODE_POLLING_FAILED,
   AUTH_DEVICE_CODE_INITIATION_FAILED,

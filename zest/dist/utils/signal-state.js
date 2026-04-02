@@ -4974,11 +4974,11 @@ var require_main = __commonJS((exports) => {
 });
 
 // src/utils/signal-state.ts
-import { readFile as readFile3, writeFile as writeFile3 } from "node:fs/promises";
-import { join as join5 } from "node:path";
+import { readFile as readFile4, writeFile as writeFile3 } from "node:fs/promises";
+import { join as join6 } from "node:path";
 
 // src/auth/session-manager.ts
-import { readFile, unlink as unlink2, writeFile } from "node:fs/promises";
+import { readFile as readFile2, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
 
 // src/analytics/events.ts
 var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
@@ -21317,7 +21317,7 @@ async function getAnalyticsClient() {
   if (!analyticsClient) {
     analyticsClient = createServerAnalytics(POSTHOG_API_KEY);
     try {
-      const session = await loadSession();
+      const session = await loadSessionFile();
       if (session) {
         cachedSession = session;
       }
@@ -21381,65 +21381,8 @@ function buildFileSystemProperties(options) {
   };
 }
 
-// src/auth/session-manager.ts
-async function loadSessionFile() {
-  try {
-    const content = await readFile(SESSION_FILE, "utf-8");
-    const session = JSON.parse(content);
-    if (!session.accessToken || !session.refreshToken || !session.userId || !session.email) {
-      logger.warn("Invalid session structure, clearing session");
-      await clearSession();
-      return null;
-    }
-    return session;
-  } catch (error46) {
-    if (error46.code === "ENOENT") {
-      return null;
-    }
-    logger.error("Failed to load session file", error46);
-    if (error46 instanceof Error) {
-      captureException(error46, AUTH_SESSION_LOAD_FAILED, "session-manager", {
-        ...buildFileSystemProperties({
-          filePath: SESSION_FILE,
-          operation: "read",
-          errnoCode: error46.code
-        })
-      });
-    }
-    return null;
-  }
-}
-async function loadSession() {
-  return loadSessionFile();
-}
-async function clearSession() {
-  try {
-    await unlink2(SESSION_FILE);
-    logger.info("Session cleared successfully");
-  } catch (error46) {
-    if (error46.code === "ENOENT") {
-      return;
-    }
-    logger.error("Failed to clear session", error46);
-    throw error46;
-  }
-}
-async function getValidSession() {
-  const session = await loadSessionFile();
-  if (!session) {
-    logger.debug("getValidSession: No session found");
-    return null;
-  }
-  if (session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now()) {
-    logger.warn("getValidSession: Refresh token expired, user must re-authenticate");
-    await clearSession();
-    return null;
-  }
-  return session;
-}
-
 // src/utils/file-lock.ts
-import { readdir as readdir2, readFile as readFile2, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
+import { readdir as readdir2, readFile, unlink as unlink2, writeFile } from "node:fs/promises";
 import { dirname as dirname4 } from "node:path";
 
 // src/utils/daemon-manager.ts
@@ -21462,7 +21405,9 @@ var activeLockFiles = new Set;
 function isLockStale(lockInfo) {
   return !isProcessRunning(lockInfo.pid);
 }
-async function acquireFileLock(filePath) {
+async function acquireFileLock(filePath, depth = 0) {
+  if (depth > 3)
+    return false;
   const lockFile = `${filePath}.lock`;
   const lockInfo = {
     pid: process.pid,
@@ -21470,7 +21415,7 @@ async function acquireFileLock(filePath) {
   };
   try {
     await ensureDirectory(dirname4(lockFile));
-    await writeFile2(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
+    await writeFile(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
     activeLockFiles.add(lockFile);
     return true;
   } catch (error46) {
@@ -21489,17 +21434,17 @@ async function acquireFileLock(filePath) {
       throw error46;
     }
     try {
-      const content = await readFile2(lockFile, "utf8");
+      const content = await readFile(lockFile, "utf8");
       const existingLock = JSON.parse(content);
       if (isLockStale(existingLock)) {
         logger.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
-        await unlink3(lockFile).catch(() => {});
-        return acquireFileLock(filePath);
+        await unlink2(lockFile).catch(() => {});
+        return acquireFileLock(filePath, depth + 1);
       }
     } catch {
       logger.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
-      await unlink3(lockFile).catch(() => {});
-      return acquireFileLock(filePath);
+      await unlink2(lockFile).catch(() => {});
+      return acquireFileLock(filePath, depth + 1);
     }
     return false;
   }
@@ -21507,7 +21452,7 @@ async function acquireFileLock(filePath) {
 async function releaseFileLock(filePath) {
   const lockFile = `${filePath}.lock`;
   activeLockFiles.delete(lockFile);
-  await unlink3(lockFile).catch(() => {});
+  await unlink2(lockFile).catch(() => {});
 }
 async function withFileLock(filePath, fn) {
   let retries = 0;
@@ -21529,6 +21474,406 @@ async function withFileLock(filePath, fn) {
   } finally {
     await releaseFileLock(filePath);
   }
+}
+
+// src/auth/session-manager.ts
+function isSessionStructureValid(session) {
+  return Boolean(session.accessToken && session.refreshToken && session.userId && session.email);
+}
+function isRefreshTokenExpired(session) {
+  return Boolean(session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now());
+}
+async function loadSessionFile() {
+  try {
+    const content = await readFile2(SESSION_FILE, "utf-8");
+    const session = JSON.parse(content);
+    if (!isSessionStructureValid(session)) {
+      logger.warn("Invalid session structure, clearing corrupt file");
+      await clearSession();
+      return null;
+    }
+    return session;
+  } catch (error46) {
+    if (error46.code === "ENOENT") {
+      return null;
+    }
+    logger.error("Failed to load session file", error46);
+    if (error46 instanceof Error) {
+      captureException(error46, AUTH_SESSION_LOAD_FAILED, "session-manager", {
+        ...buildFileSystemProperties({
+          filePath: SESSION_FILE,
+          operation: "read",
+          errnoCode: error46.code
+        })
+      });
+    }
+    return null;
+  }
+}
+async function clearSession() {
+  try {
+    await unlink3(SESSION_FILE);
+    logger.info("Session cleared successfully");
+  } catch (error46) {
+    if (error46.code === "ENOENT") {
+      return;
+    }
+    logger.error("Failed to clear session", error46);
+    throw error46;
+  }
+}
+async function getValidSession() {
+  const session = await loadSessionFile();
+  if (!session) {
+    logger.debug("getValidSession: No session found");
+    return null;
+  }
+  if (isRefreshTokenExpired(session)) {
+    logger.warn("getValidSession: Refresh token expired, user must re-authenticate");
+    await clearSession();
+    return null;
+  }
+  return session;
+}
+
+// src/extractors/toolkit-metadata-extractor.ts
+import { join as join5 } from "node:path";
+// ../../packages/utils/src/date-range.ts
+var PERIOD_TYPE_LABELS = {
+  ["today" /* Today */]: "Today",
+  ["this_week" /* ThisWeek */]: "This Week",
+  ["this_month" /* ThisMonth */]: "This Month"
+};
+var PERIOD_SUMMARY_LABELS = {
+  ["today" /* Today */]: "Daily Summary",
+  ["this_week" /* ThisWeek */]: "Weekly Summary",
+  ["this_month" /* ThisMonth */]: "Monthly Summary",
+  custom: "Custom Period"
+};
+// ../../packages/utils/src/frontmatter.ts
+var FRONTMATTER_KEYS = new Set(["name", "description"]);
+function parseYamlLine(line) {
+  const cleaned = line.trim();
+  const colonIdx = cleaned.indexOf(":");
+  if (colonIdx === -1)
+    return null;
+  const key = cleaned.slice(0, colonIdx).trim();
+  if (!FRONTMATTER_KEYS.has(key))
+    return null;
+  let value = cleaned.slice(colonIdx + 1).trim();
+  if (!value)
+    return null;
+  if (value.startsWith('"') && value.endsWith('"') || value.startsWith("'") && value.endsWith("'")) {
+    value = value.slice(1, -1);
+  } else {
+    const commentIdx = value.indexOf(" #");
+    if (commentIdx !== -1) {
+      value = value.slice(0, commentIdx).trimEnd();
+    }
+  }
+  return value ? [key, value] : null;
+}
+function parseFrontmatter(content) {
+  const result = { name: null, description: null, body: null };
+  const trimmed = content.trimStart();
+  if (!trimmed.startsWith("---"))
+    return result;
+  const endIdx = trimmed.indexOf(`
+---`, 3);
+  if (endIdx === -1)
+    return result;
+  const yamlBlock = trimmed.slice(3, endIdx);
+  for (const line of yamlBlock.split(`
+`)) {
+    const parsed = parseYamlLine(line);
+    if (parsed) {
+      result[parsed[0]] = parsed[1];
+    }
+  }
+  const bodyStart = endIdx + 4;
+  const rawBody = trimmed.slice(bodyStart).trim();
+  result.body = rawBody || null;
+  return result;
+}
+// ../../packages/utils/src/signal-helpers.ts
+function incrementMap(map2, key) {
+  map2.set(key, (map2.get(key) ?? 0) + 1);
+}
+var CMD_TAG_START = "<command-name>/";
+var CMD_TAG_END = "</command-name>";
+function extractCommandName(text) {
+  const start = text.indexOf(CMD_TAG_START);
+  if (start === -1)
+    return;
+  const nameStart = start + CMD_TAG_START.length;
+  const end = text.indexOf(CMD_TAG_END, nameStart);
+  if (end === -1)
+    return;
+  const name = text.slice(nameStart, end);
+  return name.length > 0 ? name : undefined;
+}
+// ../../packages/utils/src/mcp-registry.ts
+var REGISTRY_URL = "https://registry.modelcontextprotocol.io/v0.1/servers";
+var cache = new Map;
+function extractMcpServerName(toolName) {
+  if (toolName.startsWith("mcp__")) {
+    const parts = toolName.split("__");
+    return parts[1] ?? toolName;
+  }
+  if (toolName.startsWith("mcp-")) {
+    const withoutPrefix = toolName.slice(4);
+    const firstHyphen = withoutPrefix.indexOf("-");
+    if (firstHyphen > 0) {
+      return withoutPrefix.slice(0, firstHyphen);
+    }
+    return withoutPrefix;
+  }
+  return toolName;
+}
+function buildSearchQueries(name) {
+  const queries = [name];
+  const parts = name.split("-");
+  for (let i = parts.length - 1;i >= 1; i--) {
+    queries.push(parts.slice(0, i).join("-"));
+  }
+  return queries;
+}
+function isPlausibleMatch(registryName, searchTerm) {
+  const lower = registryName.toLowerCase();
+  if (lower.includes(searchTerm.toLowerCase()))
+    return true;
+  for (const segment of searchTerm.split("-")) {
+    if (segment.length >= 3 && lower.includes(segment.toLowerCase()))
+      return true;
+  }
+  return false;
+}
+async function searchRegistry(searchName) {
+  const queries = buildSearchQueries(searchName);
+  for (const query of queries) {
+    const url2 = `${REGISTRY_URL}?search=${encodeURIComponent(query)}`;
+    const response = await fetch(url2, {
+      signal: AbortSignal.timeout(5000)
+    });
+    if (!response.ok)
+      continue;
+    const data = await response.json();
+    if (!Array.isArray(data?.servers))
+      continue;
+    const servers = data.servers;
+    if (servers.length === 0)
+      continue;
+    const match = servers.find((s) => isPlausibleMatch(s.server.name, searchName));
+    if (match?.server.description) {
+      return match.server.description;
+    }
+  }
+  return null;
+}
+async function lookupMcpDescription(serverName) {
+  const searchName = extractMcpServerName(serverName);
+  if (cache.has(searchName)) {
+    return cache.get(searchName) ?? null;
+  }
+  try {
+    const description = await searchRegistry(searchName);
+    cache.set(searchName, description);
+    return description;
+  } catch {
+    return null;
+  }
+}
+async function lookupMcpDescriptions(toolNames) {
+  const result = {};
+  const serverGroups = new Map;
+  for (const toolName of toolNames) {
+    const serverName = extractMcpServerName(toolName);
+    const group = serverGroups.get(serverName) ?? [];
+    group.push(toolName);
+    serverGroups.set(serverName, group);
+  }
+  const entries = Array.from(serverGroups.entries());
+  for (let i = 0;i < entries.length; i += 5) {
+    const batch = entries.slice(i, i + 5);
+    const results = await Promise.all(batch.map(async ([serverName, originalNames]) => {
+      const description = await lookupMcpDescription(serverName);
+      return { originalNames, description };
+    }));
+    for (const { originalNames, description } of results) {
+      for (const name of originalNames) {
+        result[name] = description;
+      }
+    }
+  }
+  return result;
+}
+// ../../packages/utils/src/toolkit-signals.ts
+function extractToolNamesFromSignals(signals) {
+  return {
+    skills: Object.keys(signals.skill_usage ?? {}),
+    agents: Object.keys(signals.agent_usage ?? {}),
+    mcpServers: Object.keys(signals.mcp_usage ?? {})
+  };
+}
+// ../../packages/utils/src/git-utils.ts
+import { exec, execSync } from "node:child_process";
+import { promisify } from "node:util";
+var execAsync = promisify(exec);
+// ../../packages/utils/src/safe-fs.ts
+import { readdir as readdir3, readFile as readFile3 } from "node:fs/promises";
+async function safeReadFile(filePath) {
+  try {
+    return await readFile3(filePath, "utf-8");
+  } catch {
+    return null;
+  }
+}
+async function safeReadDir(dirPath) {
+  try {
+    return await readdir3(dirPath, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+}
+// src/extractors/toolkit-metadata-extractor.ts
+var SKILLS_DIR = join5(CLAUDE_INSTALL_DIR, "skills");
+var AGENTS_DIR = join5(CLAUDE_INSTALL_DIR, "agents");
+var INSTALLED_PLUGINS_FILE = join5(CLAUDE_INSTALL_DIR, "plugins", "installed_plugins.json");
+async function buildSkillIndex(projectDir) {
+  const index = new Map;
+  if (projectDir) {
+    const projectSkillsDir = join5(projectDir, ".claude", "skills");
+    const projectEntries = await safeReadDir(projectSkillsDir);
+    for (const entry of projectEntries) {
+      if (!entry.isDirectory())
+        continue;
+      const skillFile = join5(projectSkillsDir, entry.name, "SKILL.md");
+      const content = await safeReadFile(skillFile);
+      if (!content)
+        continue;
+      const fm = parseFrontmatter(content);
+      index.set(entry.name, { description: fm.description, category: "skill" });
+    }
+  }
+  const userEntries = await safeReadDir(SKILLS_DIR);
+  for (const entry of userEntries) {
+    if (!entry.isDirectory())
+      continue;
+    if (index.has(entry.name))
+      continue;
+    const skillFile = join5(SKILLS_DIR, entry.name, "SKILL.md");
+    const content = await safeReadFile(skillFile);
+    if (!content)
+      continue;
+    const fm = parseFrontmatter(content);
+    index.set(entry.name, { description: fm.description, category: "skill" });
+  }
+  const pluginsContent = await safeReadFile(INSTALLED_PLUGINS_FILE);
+  if (pluginsContent) {
+    try {
+      const registry2 = JSON.parse(pluginsContent);
+      if (registry2.plugins) {
+        for (const [registryKey, installations] of Object.entries(registry2.plugins)) {
+          if (!installations?.length)
+            continue;
+          const install = installations[0];
+          const pluginName = registryKey.split("@")[0];
+          const skillsDir = join5(install.installPath, "skills");
+          const skillEntries = await safeReadDir(skillsDir);
+          for (const entry of skillEntries) {
+            if (!entry.isDirectory())
+              continue;
+            const qualifiedName = pluginName ? `${pluginName}:${entry.name}` : entry.name;
+            if (index.has(qualifiedName))
+              continue;
+            const skillFile = join5(skillsDir, entry.name, "SKILL.md");
+            const content = await safeReadFile(skillFile);
+            if (!content)
+              continue;
+            const fm = parseFrontmatter(content);
+            index.set(qualifiedName, { description: fm.description, category: "skill" });
+          }
+          const commandsDir = join5(install.installPath, "commands");
+          const cmdEntries = await safeReadDir(commandsDir);
+          for (const entry of cmdEntries) {
+            if (!entry.isFile() || !entry.name.endsWith(".md"))
+              continue;
+            const cmdName = entry.name.replace(/\.md$/, "");
+            const qualifiedName = pluginName ? `${pluginName}:${cmdName}` : cmdName;
+            if (index.has(qualifiedName))
+              continue;
+            const cmdFile = join5(commandsDir, entry.name);
+            const content = await safeReadFile(cmdFile);
+            if (!content)
+              continue;
+            const fm = parseFrontmatter(content);
+            index.set(qualifiedName, { description: fm.description, category: "skill" });
+          }
+        }
+      }
+    } catch (error46) {
+      logger.debug("Failed to parse installed_plugins.json for skill lookup", error46);
+    }
+  }
+  return index;
+}
+async function buildAgentIndex(projectDir) {
+  const index = new Map;
+  if (projectDir) {
+    await scanAgentsDir(join5(projectDir, ".claude", "agents"), index);
+  }
+  await scanAgentsDir(AGENTS_DIR, index);
+  return index;
+}
+async function scanAgentsDir(dir, index) {
+  const entries = await safeReadDir(dir);
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith(".md"))
+      continue;
+    const id = entry.name.replace(/\.md$/, "");
+    if (index.has(id))
+      continue;
+    const agentFile = join5(dir, entry.name);
+    const content = await safeReadFile(agentFile);
+    if (!content)
+      continue;
+    const fm = parseFrontmatter(content);
+    index.set(id, { description: fm.description, category: "agent" });
+  }
+}
+async function lookupToolMetadata(toolNames, projectDir) {
+  const result = {};
+  const totalNames = toolNames.skills.length + toolNames.agents.length + toolNames.mcpServers.length;
+  if (totalNames === 0)
+    return result;
+  try {
+    const [skillIndex, agentIndex] = await Promise.all([
+      toolNames.skills.length > 0 ? buildSkillIndex(projectDir) : new Map,
+      toolNames.agents.length > 0 ? buildAgentIndex(projectDir) : new Map
+    ]);
+    for (const name of toolNames.skills) {
+      const entry = skillIndex.get(name);
+      if (entry)
+        result[name] = entry;
+    }
+    for (const name of toolNames.agents) {
+      const entry = agentIndex.get(name);
+      if (entry)
+        result[name] = entry;
+    }
+    if (toolNames.mcpServers.length > 0) {
+      const mcpDescriptions = await lookupMcpDescriptions(toolNames.mcpServers);
+      for (const name of toolNames.mcpServers) {
+        result[name] = {
+          description: mcpDescriptions[name] ?? null,
+          category: "mcp_server"
+        };
+      }
+    }
+  } catch (error46) {
+    logger.warn("Failed to look up tool metadata:", error46);
+  }
+  return result;
 }
 
 // src/utils/signal-scanner.ts
@@ -21587,9 +21932,6 @@ function categorizeTool(name, input) {
   }
   return "unknown";
 }
-function incrementMap(map2, key) {
-  map2.set(key, (map2.get(key) ?? 0) + 1);
-}
 var SKILL_DIR_REGEX = /\/skills\/([^\s/]+)/;
 function processTextBlock(block, delta) {
   const text = block.text;
@@ -21620,8 +21962,13 @@ function processToolUse(block, delta) {
       incrementMap(delta.agent_usage, subagentType);
       break;
     }
-    case "skill":
+    case "skill": {
+      const skillName = typeof input?.skill === "string" ? input.skill : undefined;
+      if (skillName) {
+        incrementMap(delta.skill_usage, skillName);
+      }
       break;
+    }
     case "builtin":
       incrementMap(delta.builtin_usage, name);
       break;
@@ -21672,10 +22019,18 @@ async function scanSignalsDelta(filePath, fromLine) {
       try {
         const entry = JSON.parse(trimmed);
         const message = entry.message;
-        if (message && Array.isArray(message.content)) {
-          for (const block of message.content) {
-            if (block && typeof block === "object") {
-              processBlock(block, delta);
+        if (message) {
+          const content = message.content;
+          if (Array.isArray(content)) {
+            for (const block of content) {
+              if (block && typeof block === "object") {
+                processBlock(block, delta);
+              }
+            }
+          } else if (typeof content === "string") {
+            const cmdName = extractCommandName(content);
+            if (cmdName) {
+              incrementMap(delta.skill_usage, cmdName);
             }
           }
         }
@@ -21706,11 +22061,11 @@ function mergeSignals(previous, delta) {
 
 // src/utils/signal-state.ts
 function getSignalStatePath(sessionId) {
-  return join5(STATE_DIR, `signals-${sessionId}.json`);
+  return join6(STATE_DIR, `signals-${sessionId}.json`);
 }
 async function readStateFromFile(stateFile) {
   try {
-    const content = await readFile3(stateFile, "utf-8");
+    const content = await readFile4(stateFile, "utf-8");
     return JSON.parse(content);
   } catch {
     return { lastReadLine: 0, totals: EMPTY_SIGNALS };
@@ -21769,6 +22124,8 @@ async function updateSessionSignals(conversationFile, sessionId) {
       return;
     }
     const stateFile = getSignalStatePath(sessionId);
+    const projectDir = process.env.CLAUDE_PROJECT_DIR;
+    let newNames = null;
     await withFileLock(stateFile, async () => {
       const state = await readStateFromFile(stateFile);
       const { delta, newLastReadLine } = await scanSignalsDelta(conversationFile, state.lastReadLine);
@@ -21777,14 +22134,48 @@ async function updateSessionSignals(conversationFile, sessionId) {
       const newUnrecognized = [
         ...new Set([...existingUnrecognized, ...delta.unrecognizedToolNames])
       ];
+      const existingMetadata = state.totals.tool_metadata ?? {};
+      const allToolNames = extractToolNamesFromSignals(updatedTotals);
+      const pending = {
+        skills: allToolNames.skills.filter((n) => !existingMetadata[n]),
+        agents: allToolNames.agents.filter((n) => !existingMetadata[n]),
+        mcpServers: allToolNames.mcpServers.filter((n) => !existingMetadata[n])
+      };
+      if (pending.skills.length + pending.agents.length + pending.mcpServers.length > 0) {
+        newNames = pending;
+      }
+      const totalsWithMetadata = { ...updatedTotals };
+      if (Object.keys(existingMetadata).length > 0) {
+        totalsWithMetadata.tool_metadata = existingMetadata;
+      }
       await writeStateToFile(stateFile, {
         lastReadLine: newLastReadLine,
-        totals: updatedTotals,
-        unrecognizedToolNames: newUnrecognized.length > 0 ? newUnrecognized : undefined
+        totals: totalsWithMetadata,
+        unrecognizedToolNames: newUnrecognized.length > 0 ? newUnrecognized : undefined,
+        projectDir: state.projectDir ?? projectDir
       });
       const totalCalls = Object.values(updatedTotals.mcp_usage).reduce((s, n) => s + n, 0) + Object.values(updatedTotals.skill_usage).reduce((s, n) => s + n, 0) + Object.values(updatedTotals.agent_usage).reduce((s, n) => s + n, 0) + Object.values(updatedTotals.builtin_usage).reduce((s, n) => s + n, 0) + Object.values(updatedTotals.unknown_usage).reduce((s, n) => s + n, 0);
       logger.debug(`Updated session signals: ${totalCalls} total tool calls`);
     });
+    if (newNames) {
+      let newMetadata = null;
+      try {
+        const result = await lookupToolMetadata(newNames, projectDir);
+        if (Object.keys(result).length > 0) {
+          newMetadata = result;
+        }
+      } catch (error46) {
+        logger.debug("Failed to enrich tool metadata:", error46);
+      }
+      if (newMetadata) {
+        await withFileLock(stateFile, async () => {
+          const state = await readStateFromFile(stateFile);
+          const merged = { ...state.totals.tool_metadata ?? {}, ...newMetadata };
+          state.totals.tool_metadata = merged;
+          await writeStateToFile(stateFile, state);
+        });
+      }
+    }
   } catch (error46) {
     logger.warn("Failed to update session signals:", error46);
   }
@@ -21792,13 +22183,41 @@ async function updateSessionSignals(conversationFile, sessionId) {
 async function markSignalsFinal(sessionId) {
   const stateFile = getSignalStatePath(sessionId);
   try {
+    let pendingMcpNames = null;
+    let savedProjectDir;
     await withFileLock(stateFile, async () => {
       const state = await readStateFromFile(stateFile);
       if (!hasSignalData(state.totals) && state.lastReadLine === 0) {
         return;
       }
+      const allToolNames = extractToolNamesFromSignals(state.totals);
+      const existingMetadata = state.totals.tool_metadata ?? {};
+      const missing = allToolNames.mcpServers.filter((n) => !existingMetadata[n]);
+      if (missing.length > 0) {
+        pendingMcpNames = missing;
+        savedProjectDir = state.projectDir;
+      }
       await writeStateToFile(stateFile, { ...state, final: true });
     });
+    if (pendingMcpNames) {
+      let mcpMetadata = null;
+      try {
+        const result = await lookupToolMetadata({ skills: [], agents: [], mcpServers: pendingMcpNames }, savedProjectDir);
+        if (Object.keys(result).length > 0) {
+          mcpMetadata = result;
+        }
+      } catch (error46) {
+        logger.debug("Failed to enrich MCP tool metadata at finalization:", error46);
+      }
+      if (mcpMetadata) {
+        await withFileLock(stateFile, async () => {
+          const state = await readStateFromFile(stateFile);
+          const merged = { ...state.totals.tool_metadata ?? {}, ...mcpMetadata };
+          state.totals.tool_metadata = merged;
+          await writeStateToFile(stateFile, state);
+        });
+      }
+    }
   } catch {}
 }
 export {
