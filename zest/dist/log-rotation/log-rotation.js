@@ -1,10 +1,3 @@
-// src/utils/claude-version.ts
-import { execSync } from "node:child_process";
-
-// src/utils/logger.ts
-import { appendFile } from "node:fs/promises";
-import { dirname } from "node:path";
-
 // ../../packages/claude-common/src/log-rotation/log-rotation.ts
 import { readdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
@@ -211,95 +204,9 @@ var logRotation = createLogRotation({
   retentionDays: LOG_RETENTION_DAYS
 });
 var { cleanupStaleLogs, forceCleanupStaleLogs } = logRotation;
-
-// src/utils/fs-utils.ts
-import { mkdir as mkdir2, stat as stat2 } from "node:fs/promises";
-async function ensureDirectory2(dirPath) {
-  try {
-    await stat2(dirPath);
-  } catch {
-    await mkdir2(dirPath, { recursive: true, mode: 448 });
-  }
-}
-
-// src/utils/logger.ts
-class Logger {
-  minLevel = "info";
-  logPrefix;
-  levels = {
-    debug: 0,
-    info: 1,
-    warn: 2,
-    error: 3
-  };
-  constructor(logPrefix = "plugin") {
-    this.logPrefix = logPrefix;
-  }
-  setLevel(level) {
-    this.minLevel = level;
-  }
-  async writeToFile(message) {
-    try {
-      const logFilePath = getDatedLogPath2(this.logPrefix);
-      await ensureDirectory2(dirname(logFilePath));
-      const timestamp = new Date().toISOString();
-      await appendFile(logFilePath, `[${timestamp}] ${message}
-`, "utf-8");
-      cleanupStaleLogs(this.logPrefix);
-    } catch (error) {
-      console.error("Failed to write to log file:", error);
-    }
-  }
-  shouldLog(level) {
-    return this.levels[level] >= this.levels[this.minLevel];
-  }
-  debug(message, ...args) {
-    if (this.shouldLog("debug")) {
-      this.writeToFile(`DEBUG: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  info(message, ...args) {
-    if (this.shouldLog("info")) {
-      this.writeToFile(`INFO: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  warn(message, ...args) {
-    if (this.shouldLog("warn")) {
-      console.warn(`[Zest:Warn] ${message}`, ...args);
-      this.writeToFile(`WARN: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  error(message, error) {
-    if (this.shouldLog("error")) {
-      console.error(`[Zest:Error] ${message}`);
-      this.writeToFile(`ERROR: ${message} ${error instanceof Error ? error.stack : JSON.stringify(error)}`);
-    }
-  }
-}
-var logger = new Logger;
-
-// src/utils/claude-version.ts
-var cachedVersion;
-function getClaudeCodeVersion() {
-  if (cachedVersion !== undefined) {
-    return cachedVersion;
-  }
-  try {
-    const output = execSync("claude --version", {
-      timeout: 2000,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-      windowsHide: true
-    });
-    const version = output.trim().split(" ")[0];
-    cachedVersion = version || undefined;
-    logger.debug("Detected Claude Code version", { version: cachedVersion });
-  } catch (error) {
-    logger.debug("Could not detect Claude Code version", error);
-    cachedVersion = undefined;
-  }
-  return cachedVersion;
-}
 export {
-  getClaudeCodeVersion
+  getDatedLogPath2 as getDatedLogPath,
+  getDateString,
+  forceCleanupStaleLogs,
+  cleanupStaleLogs
 };
