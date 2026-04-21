@@ -13,89 +13,42 @@ var __export = (target, all) => {
     });
 };
 
-// src/supabase/session-storage-adapter.ts
-import { readFile as readFile3, unlink as unlink4, writeFile as writeFile3 } from "node:fs/promises";
-import { dirname as dirname6 } from "node:path";
+// src/analytics/trackers.ts
+import { release as release2 } from "node:os";
 
-// ../../packages/claude-common/src/analytics/events.ts
-var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed";
-var AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed";
-var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
-var AUTH_SESSION_CLEAR_FAILED = "auth_session_clear_failed";
-var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
-var SYNC_NOT_AUTHENTICATED = "sync_not_authenticated";
-var SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed";
-var SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted";
-var SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed";
-var SYNC_NETWORK_ERROR = "sync_network_error";
-var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
-var QUEUE_WRITE_FAILED = "queue_write_failed";
-var FILE_LOCK_TIMEOUT = "file_lock_timeout";
-var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
-var NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed";
-var EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found";
-var EXTRACTION_SESSION_FAILED = "extraction_session_failed";
-var DAEMON_START_FAILED = "daemon_start_failed";
-var DAEMON_RESTART_FAILED = "daemon_restart_failed";
-var DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed";
-var API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed";
-var API_PROFILE_UPDATE_FAILED = "api_profile_update_failed";
-var API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed";
-var API_STANDUP_TEAM_FETCH_FAILED = "api_standup_team_fetch_failed";
-var API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed";
-var API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed";
-var API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed";
-var SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed";
-var SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed";
-var SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed";
-var ERROR_TYPES = [
-  AUTH_DEVICE_CODE_INITIATION_FAILED,
-  AUTH_DEVICE_CODE_POLLING_FAILED,
-  AUTH_SESSION_CLEAR_FAILED,
-  AUTH_SESSION_LOAD_FAILED,
-  AUTH_SESSION_SAVE_FAILED,
-  SYNC_NOT_AUTHENTICATED,
-  SYNC_EVENTS_UPLOAD_FAILED,
-  SYNC_EVENTS_RETRY_EXHAUSTED,
-  SYNC_CHAT_UPLOAD_FAILED,
-  SYNC_NETWORK_ERROR,
-  QUEUE_READ_CORRUPTED,
-  QUEUE_WRITE_FAILED,
-  FILE_LOCK_TIMEOUT,
-  FILE_LOCK_CREATE_FAILED,
-  NOTIFICATION_STATE_WRITE_FAILED,
-  EXTRACTION_PROJECT_DIR_NOT_FOUND,
-  EXTRACTION_SESSION_FAILED,
-  DAEMON_START_FAILED,
-  DAEMON_RESTART_FAILED,
-  DAEMON_SYNC_CYCLE_FAILED,
-  API_WORKSPACE_FETCH_FAILED,
-  API_PROFILE_UPDATE_FAILED,
-  API_PROFILE_METADATA_PREFETCH_FAILED,
-  API_STANDUP_TEAM_FETCH_FAILED,
-  API_STANDUP_PROMPT_FETCH_FAILED,
-  API_STANDUP_GENERATION_FAILED,
-  API_DATA_CONTROLS_FETCH_FAILED,
-  SUPABASE_CLIENT_INIT_FAILED,
-  SUPABASE_SESSION_READ_FAILED,
-  SUPABASE_SESSION_WRITE_FAILED
-];
-var errorTypeSet = new Set(ERROR_TYPES);
-function getErrorCategory(errorType) {
-  if (errorType.startsWith("auth_"))
-    return "auth";
-  if (errorType.startsWith("sync_"))
-    return "sync";
-  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("notification_") || errorType.startsWith("extraction_"))
-    return "filesystem";
-  if (errorType.startsWith("daemon_"))
-    return "daemon";
-  if (errorType.startsWith("api_"))
-    return "api";
-  if (errorType.startsWith("supabase_"))
-    return "supabase";
-  return "api";
-}
+// ../../packages/analytics/src/events.ts
+var EVENTS = {
+  USER_CREATED: "User Created",
+  WORKSPACE_CREATED: "Workspace Created",
+  EXTENSION_INSTALL_CLICKED: "Extension Install Clicked",
+  EXTENSION_GUIDE_VIEWED: "Extension Guide Viewed",
+  EXTENSION_INSTALLED: "Extension Installed",
+  FIRST_DATA_SENT: "First Data Sent",
+  ONBOARDING_STEP_COMPLETED: "Onboarding Step Completed",
+  NAV_LINK_CLICKED: "Nav Link Clicked",
+  WORKSPACE_SWITCHED: "Workspace Switched",
+  TEAM_SWITCHED: "Team Switched",
+  STANDUP_GENERATED: "Standup Generated",
+  STANDUP_VIEWED: "Standup Viewed",
+  STANDUP_SHARED: "Standup Shared",
+  TEAM_STANDUP_GENERATED: "Team Standup Generated",
+  TEAM_STANDUP_VIEWED: "Team Standup Viewed",
+  MY_METRICS_VIEWED: "My Metrics Viewed",
+  LEADERBOARD_VIEWED: "Leaderboard Viewed",
+  TIMELINE_VIEWED: "Timeline Viewed",
+  METRICS_CARD_CLICKED: "Metrics Card Clicked",
+  USER_INVITED: "User Invited",
+  INVITE_LINK_CREATED: "Invite Link Created",
+  TEAM_CREATED: "Team Created",
+  WORKSPACE_SETTINGS_VIEWED: "Workspace Settings Viewed",
+  TEAM_SETTINGS_VIEWED: "Team Settings Viewed",
+  CLI_SIGNED_IN: "CLI Signed In",
+  ADMIN_IMPERSONATION_STARTED: "Admin Impersonation Started",
+  ADMIN_IMPERSONATION_ENDED: "Admin Impersonation Ended"
+};
+var GA4_EVENT_MAP = {
+  [EVENTS.USER_CREATED]: "sign_up"
+};
 
 // ../../packages/claude-common/src/analytics/properties.ts
 import { basename } from "node:path";
@@ -125,6 +78,333 @@ function buildFileSystemProperties(options) {
     operation: options.operation,
     ...options.errnoCode && { errno_code: options.errnoCode }
   };
+}
+
+// src/utils/claude-version.ts
+import { execSync } from "node:child_process";
+
+// src/utils/logger.ts
+import { appendFile } from "node:fs/promises";
+import { dirname } from "node:path";
+
+// ../../packages/claude-common/src/log-rotation/log-rotation.ts
+import { readdir, unlink } from "node:fs/promises";
+import { join } from "node:path";
+
+// ../../packages/claude-common/src/utils/fs-utils.ts
+import { mkdir, stat } from "node:fs/promises";
+async function ensureDirectory(dirPath) {
+  try {
+    await stat(dirPath);
+  } catch {
+    await mkdir(dirPath, { recursive: true, mode: 448 });
+  }
+}
+
+// ../../packages/claude-common/src/log-rotation/log-rotation.ts
+var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
+function getDateString() {
+  return new Date().toISOString().split("T")[0];
+}
+function getDatedLogPath(logsDir, logPrefix) {
+  const dateStr = getDateString();
+  return join(logsDir, `${logPrefix}-${dateStr}.log`);
+}
+function parseDateFromFilename(filename, logPrefix) {
+  const pattern = new RegExp(`^${logPrefix}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
+  const match = filename.match(pattern);
+  if (!match) {
+    return null;
+  }
+  const date = new Date(match[1] + "T00:00:00Z");
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+function createLogRotation(config) {
+  const { logsDir, retentionDays, logger } = config;
+  const lastCleanupTime = {};
+  async function cleanupStaleLogs(logPrefix) {
+    const now = Date.now();
+    const lastCleanup = lastCleanupTime[logPrefix] || 0;
+    if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
+      return;
+    }
+    lastCleanupTime[logPrefix] = now;
+    try {
+      await ensureDirectory(logsDir);
+      const files = await readdir(logsDir);
+      const cutoffDate = new Date(now - retentionDays * 24 * 60 * 60 * 1000);
+      for (const file of files) {
+        const fileDate = parseDateFromFilename(file, logPrefix);
+        if (fileDate && fileDate < cutoffDate) {
+          const filePath = join(logsDir, file);
+          try {
+            await unlink(filePath);
+          } catch (error) {
+            logger?.error(`Failed to delete old log file ${file}`, error);
+          }
+        }
+      }
+    } catch (error) {
+      logger?.error("Failed to cleanup old logs", error);
+    }
+  }
+  async function forceCleanupStaleLogs(logPrefix) {
+    lastCleanupTime[logPrefix] = 0;
+    await cleanupStaleLogs(logPrefix);
+  }
+  return { cleanupStaleLogs, forceCleanupStaleLogs };
+}
+
+// src/config/constants.ts
+import { homedir } from "node:os";
+import { join as join2 } from "node:path";
+var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join2(homedir(), ".claude");
+var CLAUDE_PROJECTS_DIR = join2(CLAUDE_INSTALL_DIR, "projects");
+var CLAUDE_SETTINGS_FILE = join2(CLAUDE_INSTALL_DIR, "settings.json");
+var CLAUDE_ZEST_DIR = join2(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
+var QUEUE_DIR = join2(CLAUDE_ZEST_DIR, "queue");
+var LOGS_DIR = join2(CLAUDE_ZEST_DIR, "logs");
+var STATE_DIR = join2(CLAUDE_ZEST_DIR, "state");
+var DELETION_CACHE_DIR = join2(CLAUDE_ZEST_DIR, "cache", "deletions");
+var SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join2(CLAUDE_ZEST_DIR, "session.json");
+var SETTINGS_FILE = join2(CLAUDE_ZEST_DIR, "settings.json");
+var DAEMON_PID_FILE = join2(CLAUDE_ZEST_DIR, "daemon.pid");
+var CLAUDE_INSTANCES_FILE = join2(CLAUDE_ZEST_DIR, "claude-instances.json");
+var STATUSLINE_SCRIPT_PATH = join2(CLAUDE_ZEST_DIR, "statusline.mjs");
+var STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join2(CLAUDE_ZEST_DIR, "status-cache.json");
+var SYNC_METRICS_FILE = join2(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
+var EVENTS_QUEUE_FILE = join2(QUEUE_DIR, "events.jsonl");
+var SESSIONS_QUEUE_FILE = join2(QUEUE_DIR, "chat-sessions.jsonl");
+var MESSAGES_QUEUE_FILE = join2(QUEUE_DIR, "chat-messages.jsonl");
+var LOCK_RETRY_MS = 50;
+var LOCK_MAX_RETRIES = 300;
+var DEBOUNCE_DIR = join2(CLAUDE_ZEST_DIR, "debounce");
+var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
+var LOG_RETENTION_DAYS = 7;
+var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
+var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+var POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ";
+var CLAUDE_BUILTIN_COMMANDS = new Set([
+  "add-dir",
+  "agents",
+  "allowed-tools",
+  "android",
+  "app",
+  "autofix-pr",
+  "bashes",
+  "branch",
+  "btw",
+  "bug",
+  "checkpoint",
+  "chrome",
+  "clear",
+  "color",
+  "compact",
+  "config",
+  "context",
+  "continue",
+  "copy",
+  "cost",
+  "desktop",
+  "diff",
+  "doctor",
+  "effort",
+  "exit",
+  "export",
+  "extra-usage",
+  "fast",
+  "feedback",
+  "fork",
+  "help",
+  "hooks",
+  "ide",
+  "init",
+  "insights",
+  "install-github-app",
+  "install-slack-app",
+  "ios",
+  "keybindings",
+  "login",
+  "logout",
+  "mcp",
+  "memory",
+  "mobile",
+  "model",
+  "new",
+  "output-style",
+  "passes",
+  "permissions",
+  "plan",
+  "plugin",
+  "powerup",
+  "pr-comments",
+  "privacy-settings",
+  "quit",
+  "rc",
+  "release-notes",
+  "reload-plugins",
+  "remote-control",
+  "remote-env",
+  "rename",
+  "reset",
+  "resume",
+  "review",
+  "rewind",
+  "sandbox",
+  "schedule",
+  "security-review",
+  "settings",
+  "setup-bedrock",
+  "skills",
+  "stats",
+  "status",
+  "statusline",
+  "stickers",
+  "tasks",
+  "teleport",
+  "terminal-setup",
+  "theme",
+  "todos",
+  "tp",
+  "ultraplan",
+  "upgrade",
+  "usage",
+  "vim",
+  "voice",
+  "web-setup"
+]);
+var EXCLUDED_COMMAND_PATTERNS = [
+  new RegExp(`^\\/(${[...CLAUDE_BUILTIN_COMMANDS].join("|")})\\b`, "i"),
+  /^\/zest[^:\s]*:/i,
+  /<command-name>\/zest[^<]*<\/command-name>/i,
+  /node\s+.*\/dist\/commands\/.*-cli\.js/i
+];
+var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
+var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+var DAEMON_WARMUP_GRACE_MS = 3 * 1000;
+var NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
+var STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
+var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
+
+// src/log-rotation/log-rotation.ts
+function getDatedLogPath2(logPrefix) {
+  return getDatedLogPath(LOGS_DIR, logPrefix);
+}
+var logRotation = createLogRotation({
+  logsDir: LOGS_DIR,
+  retentionDays: LOG_RETENTION_DAYS
+});
+var { cleanupStaleLogs, forceCleanupStaleLogs } = logRotation;
+
+// src/utils/fs-utils.ts
+import { mkdir as mkdir2, stat as stat2 } from "node:fs/promises";
+async function ensureDirectory2(dirPath) {
+  try {
+    await stat2(dirPath);
+  } catch {
+    await mkdir2(dirPath, { recursive: true, mode: 448 });
+  }
+}
+
+// src/utils/logger.ts
+class Logger {
+  minLevel = "info";
+  logPrefix;
+  levels = {
+    debug: 0,
+    info: 1,
+    warn: 2,
+    error: 3
+  };
+  constructor(logPrefix = "plugin") {
+    this.logPrefix = logPrefix;
+  }
+  setLevel(level) {
+    this.minLevel = level;
+  }
+  async writeToFile(message) {
+    try {
+      const logFilePath = getDatedLogPath2(this.logPrefix);
+      await ensureDirectory2(dirname(logFilePath));
+      const timestamp = new Date().toISOString();
+      await appendFile(logFilePath, `[${timestamp}] ${message}
+`, "utf-8");
+      cleanupStaleLogs(this.logPrefix);
+    } catch (error) {
+      console.error("Failed to write to log file:", error);
+    }
+  }
+  shouldLog(level) {
+    return this.levels[level] >= this.levels[this.minLevel];
+  }
+  debug(message, ...args) {
+    if (this.shouldLog("debug")) {
+      this.writeToFile(`DEBUG: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  info(message, ...args) {
+    if (this.shouldLog("info")) {
+      this.writeToFile(`INFO: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  warn(message, ...args) {
+    if (this.shouldLog("warn")) {
+      console.warn(`[Zest:Warn] ${message}`, ...args);
+      this.writeToFile(`WARN: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  error(message, error) {
+    if (this.shouldLog("error")) {
+      console.error(`[Zest:Error] ${message}`);
+      this.writeToFile(`ERROR: ${message} ${error instanceof Error ? error.stack : JSON.stringify(error)}`);
+    }
+  }
+}
+var logger = new Logger;
+
+// src/utils/claude-version.ts
+var cachedVersion;
+function getClaudeCodeVersion() {
+  if (cachedVersion !== undefined) {
+    return cachedVersion;
+  }
+  try {
+    const output = execSync("claude --version", {
+      timeout: 2000,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+      windowsHide: true
+    });
+    const version = output.trim().split(" ")[0];
+    cachedVersion = version || undefined;
+    logger.debug("Detected Claude Code version", { version: cachedVersion });
+  } catch (error) {
+    logger.debug("Could not detect Claude Code version", error);
+    cachedVersion = undefined;
+  }
+  return cachedVersion;
+}
+
+// src/utils/plugin-version.ts
+import { readFileSync } from "node:fs";
+import { join as join3 } from "node:path";
+function getPluginVersion() {
+  try {
+    const marketplacePluginPath = join3(CLAUDE_INSTALL_DIR, "plugins", "marketplaces", "zest-marketplace", "zest", ".claude-plugin", "plugin.json");
+    const pluginJson = JSON.parse(readFileSync(marketplacePluginPath, "utf-8"));
+    if (pluginJson.version && typeof pluginJson.version === "string") {
+      logger.debug("Read plugin version from marketplace plugin.json", {
+        version: pluginJson.version
+      });
+      return pluginJson.version;
+    }
+    logger.warn("Version field not found in marketplace plugin.json");
+    return "unknown";
+  } catch (error) {
+    logger.warn("Failed to read plugin version from marketplace plugin.json", error);
+    return "unknown";
+  }
 }
 
 // ../../packages/analytics/src/client.ts
@@ -200,40 +480,6 @@ class Analytics {
   }
 }
 
-// ../../packages/analytics/src/events.ts
-var EVENTS = {
-  USER_CREATED: "User Created",
-  WORKSPACE_CREATED: "Workspace Created",
-  EXTENSION_INSTALL_CLICKED: "Extension Install Clicked",
-  EXTENSION_GUIDE_VIEWED: "Extension Guide Viewed",
-  EXTENSION_INSTALLED: "Extension Installed",
-  FIRST_DATA_SENT: "First Data Sent",
-  ONBOARDING_STEP_COMPLETED: "Onboarding Step Completed",
-  NAV_LINK_CLICKED: "Nav Link Clicked",
-  WORKSPACE_SWITCHED: "Workspace Switched",
-  TEAM_SWITCHED: "Team Switched",
-  STANDUP_GENERATED: "Standup Generated",
-  STANDUP_VIEWED: "Standup Viewed",
-  STANDUP_SHARED: "Standup Shared",
-  TEAM_STANDUP_GENERATED: "Team Standup Generated",
-  TEAM_STANDUP_VIEWED: "Team Standup Viewed",
-  MY_METRICS_VIEWED: "My Metrics Viewed",
-  LEADERBOARD_VIEWED: "Leaderboard Viewed",
-  TIMELINE_VIEWED: "Timeline Viewed",
-  METRICS_CARD_CLICKED: "Metrics Card Clicked",
-  USER_INVITED: "User Invited",
-  INVITE_LINK_CREATED: "Invite Link Created",
-  TEAM_CREATED: "Team Created",
-  WORKSPACE_SETTINGS_VIEWED: "Workspace Settings Viewed",
-  TEAM_SETTINGS_VIEWED: "Team Settings Viewed",
-  CLI_SIGNED_IN: "CLI Signed In",
-  ADMIN_IMPERSONATION_STARTED: "Admin Impersonation Started",
-  ADMIN_IMPERSONATION_ENDED: "Admin Impersonation Ended"
-};
-var GA4_EVENT_MAP = {
-  [EVENTS.USER_CREATED]: "sign_up"
-};
-
 // ../../packages/analytics/src/utils.ts
 function toSnakeCase(str) {
   return str.replace(/([A-Z])/g, " $1").trim().toLowerCase().replace(/\s+/g, "_");
@@ -282,7 +528,7 @@ class GA4ServerProvider {
 }
 
 // ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/extensions/error-tracking/modifiers/module.node.mjs
-import { dirname, posix, sep } from "path";
+import { dirname as dirname2, posix, sep } from "path";
 function createModulerModifier() {
   const getModuleFromFileName = createGetModuleFromFilename();
   return async (frames) => {
@@ -291,7 +537,7 @@ function createModulerModifier() {
     return frames;
   };
 }
-function createGetModuleFromFilename(basePath = process.argv[1] ? dirname(process.argv[1]) : process.cwd(), isWindows = sep === "\\") {
+function createGetModuleFromFilename(basePath = process.argv[1] ? dirname2(process.argv[1]) : process.cwd(), isWindows = sep === "\\") {
   const normalizedBase = isWindows ? normalizeWindowsPath(basePath) : basePath;
   return (filename) => {
     if (!filename)
@@ -722,23 +968,23 @@ function isPlainObject(candidate) {
 }
 
 // ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/utils/number-utils.mjs
-function clampToRange(value, min, max, logger, fallbackValue) {
+function clampToRange(value, min, max, logger2, fallbackValue) {
   if (min > max) {
-    logger.warn("min cannot be greater than max.");
+    logger2.warn("min cannot be greater than max.");
     min = max;
   }
   if (isNumber(value))
     if (value > max) {
-      logger.warn(" cannot be  greater than max: " + max + ". Using max value instead.");
+      logger2.warn(" cannot be  greater than max: " + max + ". Using max value instead.");
       return max;
     } else {
       if (!(value < min))
         return value;
-      logger.warn(" cannot be less than min: " + min + ". Using min value instead.");
+      logger2.warn(" cannot be less than min: " + min + ". Using min value instead.");
       return min;
     }
-  logger.warn(" must be a number. using max or fallback. max: " + max + ", fallback: " + fallbackValue);
-  return clampToRange(fallbackValue || max, min, max, logger);
+  logger2.warn(" must be a number. using max or fallback. max: " + max + ", fallback: " + fallbackValue);
+  return clampToRange(fallbackValue || max, min, max, logger2);
 }
 
 // ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/utils/bucketed-rate-limiter.mjs
@@ -919,7 +1165,7 @@ var _createLogger = (prefix, maybeCall, consoleLike) => {
       consoleMethod(prefix, ...args);
     });
   }
-  const logger = {
+  const logger2 = {
     info: (...args) => {
       _log("log", ...args);
     },
@@ -934,7 +1180,7 @@ var _createLogger = (prefix, maybeCall, consoleLike) => {
     },
     createLogger: (additionalPrefix) => _createLogger(`${prefix} ${additionalPrefix}`, maybeCall, consoleLike)
   };
-  return logger;
+  return logger2;
 };
 function createLogger(prefix, maybeCall) {
   return _createLogger(prefix, maybeCall, createConsole());
@@ -3818,9 +4064,89 @@ function createServerAnalytics(configOrApiKey, legacyOptions) {
   return new Analytics(providers);
 }
 
+// ../../packages/claude-common/src/analytics/events.ts
+var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed";
+var AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed";
+var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
+var AUTH_SESSION_CLEAR_FAILED = "auth_session_clear_failed";
+var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
+var SYNC_NOT_AUTHENTICATED = "sync_not_authenticated";
+var SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed";
+var SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted";
+var SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed";
+var SYNC_NETWORK_ERROR = "sync_network_error";
+var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
+var QUEUE_WRITE_FAILED = "queue_write_failed";
+var FILE_LOCK_TIMEOUT = "file_lock_timeout";
+var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
+var NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed";
+var EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found";
+var EXTRACTION_SESSION_FAILED = "extraction_session_failed";
+var DAEMON_START_FAILED = "daemon_start_failed";
+var DAEMON_RESTART_FAILED = "daemon_restart_failed";
+var DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed";
+var API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed";
+var API_PROFILE_UPDATE_FAILED = "api_profile_update_failed";
+var API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed";
+var API_STANDUP_TEAM_FETCH_FAILED = "api_standup_team_fetch_failed";
+var API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed";
+var API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed";
+var API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed";
+var SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed";
+var SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed";
+var SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed";
+var ERROR_TYPES = [
+  AUTH_DEVICE_CODE_INITIATION_FAILED,
+  AUTH_DEVICE_CODE_POLLING_FAILED,
+  AUTH_SESSION_CLEAR_FAILED,
+  AUTH_SESSION_LOAD_FAILED,
+  AUTH_SESSION_SAVE_FAILED,
+  SYNC_NOT_AUTHENTICATED,
+  SYNC_EVENTS_UPLOAD_FAILED,
+  SYNC_EVENTS_RETRY_EXHAUSTED,
+  SYNC_CHAT_UPLOAD_FAILED,
+  SYNC_NETWORK_ERROR,
+  QUEUE_READ_CORRUPTED,
+  QUEUE_WRITE_FAILED,
+  FILE_LOCK_TIMEOUT,
+  FILE_LOCK_CREATE_FAILED,
+  NOTIFICATION_STATE_WRITE_FAILED,
+  EXTRACTION_PROJECT_DIR_NOT_FOUND,
+  EXTRACTION_SESSION_FAILED,
+  DAEMON_START_FAILED,
+  DAEMON_RESTART_FAILED,
+  DAEMON_SYNC_CYCLE_FAILED,
+  API_WORKSPACE_FETCH_FAILED,
+  API_PROFILE_UPDATE_FAILED,
+  API_PROFILE_METADATA_PREFETCH_FAILED,
+  API_STANDUP_TEAM_FETCH_FAILED,
+  API_STANDUP_PROMPT_FETCH_FAILED,
+  API_STANDUP_GENERATION_FAILED,
+  API_DATA_CONTROLS_FETCH_FAILED,
+  SUPABASE_CLIENT_INIT_FAILED,
+  SUPABASE_SESSION_READ_FAILED,
+  SUPABASE_SESSION_WRITE_FAILED
+];
+var errorTypeSet = new Set(ERROR_TYPES);
+function getErrorCategory(errorType) {
+  if (errorType.startsWith("auth_"))
+    return "auth";
+  if (errorType.startsWith("sync_"))
+    return "sync";
+  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("notification_") || errorType.startsWith("extraction_"))
+    return "filesystem";
+  if (errorType.startsWith("daemon_"))
+    return "daemon";
+  if (errorType.startsWith("api_"))
+    return "api";
+  if (errorType.startsWith("supabase_"))
+    return "supabase";
+  return "api";
+}
+
 // ../../packages/claude-common/src/analytics/index.ts
 function createAnalyticsClient(config) {
-  const { posthogApiKey, errorSourcePrefix, logger } = config;
+  const { posthogApiKey, errorSourcePrefix, logger: logger2 } = config;
   if (!posthogApiKey) {
     return null;
   }
@@ -3836,7 +4162,7 @@ function createAnalyticsClient(config) {
         };
         client.captureException(error, userId, context);
       } catch (e) {
-        logger?.debug("Failed to capture exception in PostHog", e);
+        logger2?.debug("Failed to capture exception in PostHog", e);
       }
     },
     capture(distinctId, eventName, properties) {
@@ -3847,14 +4173,14 @@ function createAnalyticsClient(config) {
           properties
         });
       } catch (e) {
-        logger?.debug("Failed to capture event in PostHog", e);
+        logger2?.debug("Failed to capture event in PostHog", e);
       }
     },
     async shutdown() {
       try {
         await client.dispose();
       } catch (e) {
-        logger?.debug("Error shutting down analytics", e);
+        logger2?.debug("Error shutting down analytics", e);
       }
     }
   };
@@ -3862,20 +4188,8 @@ function createAnalyticsClient(config) {
 
 // ../../packages/claude-common/src/utils/file-lock.ts
 import { unlinkSync } from "node:fs";
-import { readdir, readFile, unlink, writeFile } from "node:fs/promises";
-import { dirname as dirname2 } from "node:path";
-
-// ../../packages/claude-common/src/utils/fs-utils.ts
-import { mkdir, stat } from "node:fs/promises";
-async function ensureDirectory(dirPath) {
-  try {
-    await stat(dirPath);
-  } catch {
-    await mkdir(dirPath, { recursive: true, mode: 448 });
-  }
-}
-
-// ../../packages/claude-common/src/utils/file-lock.ts
+import { readdir as readdir2, readFile, unlink as unlink2, writeFile } from "node:fs/promises";
+import { dirname as dirname3 } from "node:path";
 var DEFAULT_LOCK_RETRY_MS = 50;
 var DEFAULT_LOCK_MAX_RETRIES = 300;
 function defaultIsProcessRunning(pid) {
@@ -3901,7 +4215,7 @@ async function acquireFileLock(filePath, isRunning, options, activeLockFiles, de
     timestamp: Date.now()
   };
   try {
-    await ensureDirectory(dirname2(lockFile));
+    await ensureDirectory(dirname3(lockFile));
     await writeFile(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
     activeLockFiles?.add(lockFile);
     return true;
@@ -3925,12 +4239,12 @@ async function acquireFileLock(filePath, isRunning, options, activeLockFiles, de
       const existingLock = JSON.parse(content);
       if (isLockStale(existingLock, isRunning)) {
         options.logger?.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
-        await unlink(lockFile).catch(() => {});
+        await unlink2(lockFile).catch(() => {});
         return acquireFileLock(filePath, isRunning, options, activeLockFiles, depth + 1);
       }
     } catch {
       options.logger?.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
-      await unlink(lockFile).catch(() => {});
+      await unlink2(lockFile).catch(() => {});
       return acquireFileLock(filePath, isRunning, options, activeLockFiles, depth + 1);
     }
     return false;
@@ -3939,18 +4253,18 @@ async function acquireFileLock(filePath, isRunning, options, activeLockFiles, de
 async function releaseFileLock(filePath, activeLockFiles) {
   const lockFile = `${filePath}.lock`;
   activeLockFiles?.delete(lockFile);
-  await unlink(lockFile).catch(() => {});
+  await unlink2(lockFile).catch(() => {});
 }
 function createFileLock(config) {
   const {
-    logger,
+    logger: logger2,
     onCaptureException,
     lockRetryMs = DEFAULT_LOCK_RETRY_MS,
     lockMaxRetries = DEFAULT_LOCK_MAX_RETRIES,
     lockDir
   } = config;
   const isRunning = config.isProcessRunning ?? defaultIsProcessRunning;
-  const options = { logger, onCaptureException, isProcessRunning: isRunning, lockRetryMs, lockMaxRetries };
+  const options = { logger: logger2, onCaptureException, isProcessRunning: isRunning, lockRetryMs, lockMaxRetries };
   const activeLockFiles = new Set;
   async function withFileLockInstance(filePath, fn) {
     let retries = 0;
@@ -3983,11 +4297,11 @@ function createFileLock(config) {
   }
   async function cleanupStaleLocks() {
     if (!lockDir) {
-      logger?.debug("No lockDir configured, skipping stale lock cleanup");
+      logger2?.debug("No lockDir configured, skipping stale lock cleanup");
       return;
     }
     try {
-      const files = await readdir(lockDir).catch(() => []);
+      const files = await readdir2(lockDir).catch(() => []);
       const lockFiles = files.filter((f) => f.endsWith(".lock"));
       for (const lockFileName of lockFiles) {
         const lockFile = `${lockDir}/${lockFileName}`;
@@ -3995,16 +4309,16 @@ function createFileLock(config) {
           const content = await readFile(lockFile, "utf8");
           const lockInfo = JSON.parse(content);
           if (!isRunning(lockInfo.pid)) {
-            await unlink(lockFile);
-            logger?.info(`Cleaned up stale lock file: ${lockFileName} (PID ${lockInfo.pid} is dead)`);
+            await unlink2(lockFile);
+            logger2?.info(`Cleaned up stale lock file: ${lockFileName} (PID ${lockInfo.pid} is dead)`);
           }
         } catch {
-          await unlink(lockFile).catch(() => {});
-          logger?.info(`Removed corrupted lock file: ${lockFileName}`);
+          await unlink2(lockFile).catch(() => {});
+          logger2?.info(`Removed corrupted lock file: ${lockFileName}`);
         }
       }
     } catch (error) {
-      logger?.debug("Failed to clean up stale locks:", error);
+      logger2?.debug("Failed to clean up stale locks:", error);
     }
   }
   return {
@@ -4019,8 +4333,8 @@ function resolveFileLock(callback) {
 }
 
 // ../../packages/claude-common/src/auth/session-io.ts
-import { mkdir as mkdir2, readFile as readFile2, unlink as unlink2, writeFile as writeFile2 } from "node:fs/promises";
-import { dirname as dirname3 } from "node:path";
+import { mkdir as mkdir3, readFile as readFile2, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
+import { dirname as dirname4 } from "node:path";
 async function readSessionFile(filePath) {
   try {
     const content = await readFile2(filePath, "utf-8");
@@ -4033,7 +4347,7 @@ async function readSessionFile(filePath) {
   }
 }
 async function writeSessionFile(filePath, session) {
-  await mkdir2(dirname3(filePath), { recursive: true });
+  await mkdir3(dirname4(filePath), { recursive: true });
   await writeFile2(filePath, JSON.stringify(session, null, 2), {
     encoding: "utf-8",
     mode: 384
@@ -4041,7 +4355,7 @@ async function writeSessionFile(filePath, session) {
 }
 async function deleteSessionFile(filePath) {
   try {
-    await unlink2(filePath);
+    await unlink3(filePath);
   } catch (error) {
     if (error.code === "ENOENT") {
       return;
@@ -4058,7 +4372,7 @@ function isRefreshTokenExpired(session) {
 
 // ../../packages/claude-common/src/auth/session-manager.ts
 function createSessionManager(config) {
-  const { sessionFilePath, logger, onError } = config;
+  const { sessionFilePath, logger: logger2, onError } = config;
   const withFileLock = resolveFileLock(config.withFileLock);
   async function loadSession() {
     try {
@@ -4066,13 +4380,13 @@ function createSessionManager(config) {
       if (!session)
         return null;
       if (!isSessionStructureValid(session)) {
-        logger?.warn("Invalid session structure, clearing session");
+        logger2?.warn("Invalid session structure, clearing session");
         await clearSession();
         return null;
       }
       return session;
     } catch (error) {
-      logger?.error("Failed to load session file", error);
+      logger2?.error("Failed to load session file", error);
       if (error instanceof Error)
         onError?.(error, "load");
       return null;
@@ -4083,9 +4397,9 @@ function createSessionManager(config) {
       await withFileLock(sessionFilePath, async () => {
         await writeSessionFile(sessionFilePath, session);
       });
-      logger?.info("Session saved successfully");
+      logger2?.info("Session saved successfully");
     } catch (error) {
-      logger?.error("Failed to save session", error);
+      logger2?.error("Failed to save session", error);
       if (error instanceof Error)
         onError?.(error, "save");
       throw error;
@@ -4094,9 +4408,9 @@ function createSessionManager(config) {
   async function clearSession() {
     try {
       await deleteSessionFile(sessionFilePath);
-      logger?.info("Session cleared successfully");
+      logger2?.info("Session cleared successfully");
     } catch (error) {
-      logger?.error("Failed to clear session", error);
+      logger2?.error("Failed to clear session", error);
       if (error instanceof Error)
         onError?.(error, "clear");
       throw error;
@@ -4105,11 +4419,11 @@ function createSessionManager(config) {
   async function getValidSession() {
     const session = await loadSession();
     if (!session) {
-      logger?.debug("getValidSession: No session found");
+      logger2?.debug("getValidSession: No session found");
       return null;
     }
     if (isRefreshTokenExpired(session)) {
-      logger?.warn("getValidSession: Refresh token expired, user must re-authenticate");
+      logger2?.warn("getValidSession: Refresh token expired, user must re-authenticate");
       await clearSession();
       return null;
     }
@@ -4125,7 +4439,7 @@ function createSessionManager(config) {
       try {
         await updateWorkspaceInSession(current.id, current.name);
       } catch (error) {
-        logger?.debug("Failed to update workspace name in session (non-critical)", error);
+        logger2?.debug("Failed to update workspace name in session (non-critical)", error);
       }
     }
     return current.name;
@@ -4135,7 +4449,7 @@ function createSessionManager(config) {
       await withFileLock(sessionFilePath, async () => {
         const session = await readSessionFile(sessionFilePath);
         if (!session) {
-          logger?.debug("Cannot update workspace: session file does not exist");
+          logger2?.debug("Cannot update workspace: session file does not exist");
           return;
         }
         if (!isSessionStructureValid(session)) {
@@ -4145,9 +4459,9 @@ function createSessionManager(config) {
         session.workspaceName = workspaceName;
         await writeSessionFile(sessionFilePath, session);
       });
-      logger?.info("Workspace metadata updated in session");
+      logger2?.info("Workspace metadata updated in session");
     } catch (error) {
-      logger?.error("Failed to update workspace in session", error);
+      logger2?.error("Failed to update workspace in session", error);
       if (error instanceof Error)
         onError?.(error, "save");
       throw error;
@@ -4158,7 +4472,7 @@ function createSessionManager(config) {
     if (current && current.refreshToken === staleRefreshToken) {
       await clearSession();
     } else {
-      logger?.info("Session refresh token changed on disk, skipping clear");
+      logger2?.info("Session refresh token changed on disk, skipping clear");
     }
   }
   return {
@@ -4172,282 +4486,10 @@ function createSessionManager(config) {
     getSessionFilePath: () => sessionFilePath
   };
 }
-
-// src/config/constants.ts
-import { homedir } from "node:os";
-import { join } from "node:path";
-var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
-var CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
-var CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
-var CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
-var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
-var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
-var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
-var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-var SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
-var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
-var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
-var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
-var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
-var STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
-var SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
-var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
-var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
-var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
-var LOCK_RETRY_MS = 50;
-var LOCK_MAX_RETRIES = 300;
-var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
-var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
-var LOG_RETENTION_DAYS = 7;
-var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
-var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
-var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-var SUPABASE_URL = "https://api.meetzest.com";
-var POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ";
-var CLAUDE_BUILTIN_COMMANDS = new Set([
-  "add-dir",
-  "agents",
-  "allowed-tools",
-  "android",
-  "app",
-  "autofix-pr",
-  "bashes",
-  "branch",
-  "btw",
-  "bug",
-  "checkpoint",
-  "chrome",
-  "clear",
-  "color",
-  "compact",
-  "config",
-  "context",
-  "continue",
-  "copy",
-  "cost",
-  "desktop",
-  "diff",
-  "doctor",
-  "effort",
-  "exit",
-  "export",
-  "extra-usage",
-  "fast",
-  "feedback",
-  "fork",
-  "help",
-  "hooks",
-  "ide",
-  "init",
-  "insights",
-  "install-github-app",
-  "install-slack-app",
-  "ios",
-  "keybindings",
-  "login",
-  "logout",
-  "mcp",
-  "memory",
-  "mobile",
-  "model",
-  "new",
-  "output-style",
-  "passes",
-  "permissions",
-  "plan",
-  "plugin",
-  "powerup",
-  "pr-comments",
-  "privacy-settings",
-  "quit",
-  "rc",
-  "release-notes",
-  "reload-plugins",
-  "remote-control",
-  "remote-env",
-  "rename",
-  "reset",
-  "resume",
-  "review",
-  "rewind",
-  "sandbox",
-  "schedule",
-  "security-review",
-  "settings",
-  "setup-bedrock",
-  "skills",
-  "stats",
-  "status",
-  "statusline",
-  "stickers",
-  "tasks",
-  "teleport",
-  "terminal-setup",
-  "theme",
-  "todos",
-  "tp",
-  "ultraplan",
-  "upgrade",
-  "usage",
-  "vim",
-  "voice",
-  "web-setup"
-]);
-var EXCLUDED_COMMAND_PATTERNS = [
-  new RegExp(`^\\/(${[...CLAUDE_BUILTIN_COMMANDS].join("|")})\\b`, "i"),
-  /^\/zest[^:\s]*:/i,
-  /<command-name>\/zest[^<]*<\/command-name>/i,
-  /node\s+.*\/dist\/commands\/.*-cli\.js/i
-];
-var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
-var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
-var DAEMON_WARMUP_GRACE_MS = 3 * 1000;
-var NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
-var STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
-var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
-
 // src/utils/daemon-manager.ts
-import { dirname as dirname5, join as join3 } from "node:path";
+import { dirname as dirname5, join as join4 } from "node:path";
 import { fileURLToPath } from "node:url";
-
-// src/utils/logger.ts
-import { appendFile } from "node:fs/promises";
-import { dirname as dirname4 } from "node:path";
-
-// ../../packages/claude-common/src/log-rotation/log-rotation.ts
-import { readdir as readdir2, unlink as unlink3 } from "node:fs/promises";
-import { join as join2 } from "node:path";
-var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
-function getDateString() {
-  return new Date().toISOString().split("T")[0];
-}
-function getDatedLogPath(logsDir, logPrefix) {
-  const dateStr = getDateString();
-  return join2(logsDir, `${logPrefix}-${dateStr}.log`);
-}
-function parseDateFromFilename(filename, logPrefix) {
-  const pattern = new RegExp(`^${logPrefix}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
-  const match = filename.match(pattern);
-  if (!match) {
-    return null;
-  }
-  const date = new Date(match[1] + "T00:00:00Z");
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-function createLogRotation(config) {
-  const { logsDir, retentionDays, logger } = config;
-  const lastCleanupTime = {};
-  async function cleanupStaleLogs(logPrefix) {
-    const now = Date.now();
-    const lastCleanup = lastCleanupTime[logPrefix] || 0;
-    if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
-      return;
-    }
-    lastCleanupTime[logPrefix] = now;
-    try {
-      await ensureDirectory(logsDir);
-      const files = await readdir2(logsDir);
-      const cutoffDate = new Date(now - retentionDays * 24 * 60 * 60 * 1000);
-      for (const file of files) {
-        const fileDate = parseDateFromFilename(file, logPrefix);
-        if (fileDate && fileDate < cutoffDate) {
-          const filePath = join2(logsDir, file);
-          try {
-            await unlink3(filePath);
-          } catch (error) {
-            logger?.error(`Failed to delete old log file ${file}`, error);
-          }
-        }
-      }
-    } catch (error) {
-      logger?.error("Failed to cleanup old logs", error);
-    }
-  }
-  async function forceCleanupStaleLogs(logPrefix) {
-    lastCleanupTime[logPrefix] = 0;
-    await cleanupStaleLogs(logPrefix);
-  }
-  return { cleanupStaleLogs, forceCleanupStaleLogs };
-}
-
-// src/log-rotation/log-rotation.ts
-function getDatedLogPath2(logPrefix) {
-  return getDatedLogPath(LOGS_DIR, logPrefix);
-}
-var logRotation = createLogRotation({
-  logsDir: LOGS_DIR,
-  retentionDays: LOG_RETENTION_DAYS
-});
-var { cleanupStaleLogs, forceCleanupStaleLogs } = logRotation;
-
-// src/utils/fs-utils.ts
-import { mkdir as mkdir3, stat as stat2 } from "node:fs/promises";
-async function ensureDirectory2(dirPath) {
-  try {
-    await stat2(dirPath);
-  } catch {
-    await mkdir3(dirPath, { recursive: true, mode: 448 });
-  }
-}
-
-// src/utils/logger.ts
-class Logger {
-  minLevel = "info";
-  logPrefix;
-  levels = {
-    debug: 0,
-    info: 1,
-    warn: 2,
-    error: 3
-  };
-  constructor(logPrefix = "plugin") {
-    this.logPrefix = logPrefix;
-  }
-  setLevel(level) {
-    this.minLevel = level;
-  }
-  async writeToFile(message) {
-    try {
-      const logFilePath = getDatedLogPath2(this.logPrefix);
-      await ensureDirectory2(dirname4(logFilePath));
-      const timestamp = new Date().toISOString();
-      await appendFile(logFilePath, `[${timestamp}] ${message}
-`, "utf-8");
-      cleanupStaleLogs(this.logPrefix);
-    } catch (error) {
-      console.error("Failed to write to log file:", error);
-    }
-  }
-  shouldLog(level) {
-    return this.levels[level] >= this.levels[this.minLevel];
-  }
-  debug(message, ...args) {
-    if (this.shouldLog("debug")) {
-      this.writeToFile(`DEBUG: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  info(message, ...args) {
-    if (this.shouldLog("info")) {
-      this.writeToFile(`INFO: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  warn(message, ...args) {
-    if (this.shouldLog("warn")) {
-      console.warn(`[Zest:Warn] ${message}`, ...args);
-      this.writeToFile(`WARN: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  error(message, error) {
-    if (this.shouldLog("error")) {
-      console.error(`[Zest:Error] ${message}`);
-      this.writeToFile(`ERROR: ${message} ${error instanceof Error ? error.stack : JSON.stringify(error)}`);
-    }
-  }
-}
-var logger = new Logger;
-
-// src/utils/daemon-manager.ts
-var DAEMON_RESTART_LOCK = join3(CLAUDE_ZEST_DIR, "daemon-restart.lock");
+var DAEMON_RESTART_LOCK = join4(CLAUDE_ZEST_DIR, "daemon-restart.lock");
 var __filename2 = fileURLToPath(import.meta.url);
 var __dirname2 = dirname5(__filename2);
 function isProcessRunning(pid) {
@@ -4501,27 +4543,6 @@ var {
 } = sessionManager;
 var loadSessionFile = loadSession;
 
-// src/utils/plugin-version.ts
-import { readFileSync } from "node:fs";
-import { join as join4 } from "node:path";
-function getPluginVersion() {
-  try {
-    const marketplacePluginPath = join4(CLAUDE_INSTALL_DIR, "plugins", "marketplaces", "zest-marketplace", "zest", ".claude-plugin", "plugin.json");
-    const pluginJson = JSON.parse(readFileSync(marketplacePluginPath, "utf-8"));
-    if (pluginJson.version && typeof pluginJson.version === "string") {
-      logger.debug("Read plugin version from marketplace plugin.json", {
-        version: pluginJson.version
-      });
-      return pluginJson.version;
-    }
-    logger.warn("Version field not found in marketplace plugin.json");
-    return "unknown";
-  } catch (error) {
-    logger.warn("Failed to read plugin version from marketplace plugin.json", error);
-    return "unknown";
-  }
-}
-
 // src/analytics/client.ts
 var analyticsClient = null;
 var cachedSession = null;
@@ -4563,185 +4584,56 @@ async function captureException(error, errorType, errorSource, additionalPropert
     logger.debug("Failed to capture exception in PostHog", e);
   }
 }
-// src/utils/jwt.ts
-function decodeJwtPayload(token) {
+async function shutdownAnalytics() {
   try {
-    const parts = token.split(".");
-    if (parts.length !== 3)
-      return;
-    return JSON.parse(Buffer.from(parts[1], "base64url").toString());
-  } catch {
-    return;
+    if (analyticsClient) {
+      await analyticsClient.shutdown();
+      analyticsClient = null;
+      logger.debug("Analytics client shut down successfully");
+    }
+  } catch (error) {
+    logger.debug("Error shutting down analytics client", error);
   }
 }
-function getJwtExpiresAt(token) {
-  const payload = decodeJwtPayload(token);
-  return payload && typeof payload.exp === "number" ? payload.exp : undefined;
-}
-function getJwtIssuer(token) {
-  const payload = decodeJwtPayload(token);
-  return payload && typeof payload.iss === "string" ? payload.iss : undefined;
-}
-function validateJwtIssuer(token, supabaseUrl) {
-  const issuer = getJwtIssuer(token);
-  if (!issuer)
-    return { valid: true };
-  const expected = `${supabaseUrl}/auth/v1`;
-  if (issuer === expected)
-    return { valid: true };
-  return { valid: false, actual: issuer, expected };
-}
 
-// src/supabase/session-storage-adapter.ts
-var consecutiveWriteFailures = 0;
-function createSessionStorageAdapter(isRemovalAllowed) {
-  return {
-    async getItem(key) {
-      if (key.endsWith("-code-verifier")) {
-        return null;
-      }
-      try {
-        const content = await readFile3(SESSION_FILE, "utf-8");
-        const session = JSON.parse(content);
-        if (!isSessionStructureValid(session)) {
-          logger.warn("Storage adapter: invalid session structure, clearing corrupt file");
-          await clearSession();
-          return null;
-        }
-        if (isRefreshTokenExpired(session)) {
-          logger.warn("Storage adapter: refresh token expired");
-          return null;
-        }
-        if (SUPABASE_URL) {
-          const issuerCheck = validateJwtIssuer(session.accessToken, SUPABASE_URL);
-          if (!issuerCheck.valid) {
-            logger.warn(`Storage adapter: session token issued by ${issuerCheck.actual}, expected ${issuerCheck.expected} — clearing mismatched session`);
-            await clearSession();
-            return null;
-          }
-        }
-        const expiresAt = getJwtExpiresAt(session.accessToken);
-        const now = Math.floor(Date.now() / 1000);
-        const effectiveExpiresAt = expiresAt ?? 0;
-        const gotrueSession = {
-          access_token: session.accessToken,
-          refresh_token: session.refreshToken,
-          expires_at: effectiveExpiresAt,
-          expires_in: expiresAt ? Math.max(0, expiresAt - now) : 0,
-          token_type: "bearer",
-          user: {
-            id: session.userId,
-            email: session.email,
-            app_metadata: {},
-            user_metadata: {},
-            aud: "authenticated",
-            created_at: ""
-          }
-        };
-        return JSON.stringify(gotrueSession);
-      } catch (error) {
-        if (error.code === "ENOENT") {
-          return null;
-        }
-        if (error instanceof SyntaxError) {
-          logger.warn("Storage adapter: corrupt session.json, clearing");
-          await clearSession().catch(() => {});
-          return null;
-        }
-        logger.error("Storage adapter: failed to read session", error);
-        if (error instanceof Error) {
-          captureException(error, SUPABASE_SESSION_READ_FAILED, "session-storage-adapter", {
-            ...buildFileSystemProperties({
-              filePath: SESSION_FILE,
-              operation: "read",
-              errnoCode: error.code
-            })
-          });
-        }
-        return null;
-      }
-    },
-    async setItem(key, value) {
-      if (key.endsWith("-code-verifier")) {
-        return;
-      }
-      try {
-        const gotrueSession = JSON.parse(value);
-        if (!gotrueSession.access_token || !gotrueSession.refresh_token || !gotrueSession.user?.id) {
-          logger.warn("Storage adapter: invalid GoTrueClient session structure, skipping write");
-          return;
-        }
-        await withFileLock(SESSION_FILE, async () => {
-          let workspaceId;
-          let workspaceName;
-          let existingRefreshToken;
-          let refreshTokenExpiresAt;
-          let existingEmail;
-          try {
-            const existingContent = await readFile3(SESSION_FILE, "utf-8");
-            const existing = JSON.parse(existingContent);
-            workspaceId = existing.workspaceId;
-            workspaceName = existing.workspaceName;
-            existingRefreshToken = existing.refreshToken;
-            refreshTokenExpiresAt = existing.refreshTokenExpiresAt;
-            existingEmail = existing.email;
-          } catch {}
-          const tokenRotated = existingRefreshToken && existingRefreshToken !== gotrueSession.refresh_token;
-          const updatedSession = {
-            accessToken: gotrueSession.access_token,
-            refreshToken: gotrueSession.refresh_token,
-            refreshTokenExpiresAt: tokenRotated ? undefined : refreshTokenExpiresAt,
-            userId: gotrueSession.user.id,
-            email: gotrueSession.user.email || existingEmail || "",
-            workspaceId,
-            workspaceName
-          };
-          await ensureDirectory2(dirname6(SESSION_FILE));
-          await writeFile3(SESSION_FILE, JSON.stringify(updatedSession, null, 2), {
-            encoding: "utf-8",
-            mode: 384
-          });
-          logger.debug("Storage adapter: session persisted via setItem");
-        });
-        consecutiveWriteFailures = 0;
-      } catch (error) {
-        consecutiveWriteFailures++;
-        logger.error("Storage adapter: failed to write session", error);
-        if (consecutiveWriteFailures >= 3) {
-          logger.warn(`Storage adapter: ${consecutiveWriteFailures} consecutive write failures — session may not survive daemon restart`);
-        }
-        if (error instanceof Error) {
-          captureException(error, SUPABASE_SESSION_WRITE_FAILED, "session-storage-adapter", {
-            ...buildFileSystemProperties({
-              filePath: SESSION_FILE,
-              operation: "write",
-              errnoCode: error.code
-            }),
-            consecutive_failures: consecutiveWriteFailures
-          });
-        }
-      }
-    },
-    async removeItem(key) {
-      if (key.endsWith("-code-verifier")) {
-        return;
-      }
-      if (isRemovalAllowed && !isRemovalAllowed()) {
-        logger.debug("Storage adapter: removal blocked (preserving tokens for recovery)");
-        return;
-      }
-      try {
-        await unlink4(SESSION_FILE);
-        logger.debug("Storage adapter: session removed via removeItem");
-      } catch (error) {
-        if (error.code === "ENOENT") {
-          return;
-        }
-        logger.error("Storage adapter: failed to remove session", error);
-      }
-    }
-  };
+// src/analytics/trackers.ts
+async function trackCliSignedIn(userId) {
+  try {
+    const client = await getAnalyticsClient();
+    if (!client)
+      return;
+    client.capture(userId, EVENTS.CLI_SIGNED_IN, {
+      plugin_version: getPluginVersion(),
+      claude_code_version: getClaudeCodeVersion(),
+      node_version: process.version,
+      os_platform: process.platform,
+      os_version: release2()
+    });
+    await shutdownAnalytics();
+    logger.debug("CLI sign-in tracked", { userId });
+  } catch (error) {
+    logger.debug("Failed to track CLI sign-in", error);
+  }
+}
+async function trackExtensionInstalled(userId, version2) {
+  try {
+    const client = await getAnalyticsClient();
+    if (!client)
+      return;
+    client.capture(userId, EVENTS.EXTENSION_INSTALLED, {
+      extensionType: "claudeCode",
+      version: version2,
+      claude_code_version: getClaudeCodeVersion(),
+      ...buildStandardProperties(getPluginVersion()),
+      ...buildUserProperties(null)
+    });
+    await shutdownAnalytics();
+    logger.debug("Extension installed event tracked", { userId });
+  } catch (error) {
+    logger.debug("Failed to track extension installed event", error);
+  }
 }
 export {
-  createSessionStorageAdapter
+  trackExtensionInstalled,
+  trackCliSignedIn
 };
