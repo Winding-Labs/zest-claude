@@ -35,22 +35,6 @@ function parseYamlLine(line) {
   }
   return value ? [key, value] : null;
 }
-function extractHeadingDescription(content) {
-  const lines = content.split(`
-`);
-  for (let i = 0;i < lines.length && i < 10; i++) {
-    const line = lines[i].trim();
-    if (!line.startsWith("#"))
-      continue;
-    const heading = line.replace(/^#+\s*/, "");
-    const separatorMatch = heading.match(/\s[—–-]\s(.+)/);
-    if (separatorMatch)
-      return separatorMatch[1].trim();
-    if (heading.length > 3)
-      return heading;
-  }
-  return null;
-}
 function parseFrontmatter(content) {
   const result = { name: null, description: null, body: null };
   const trimmed = content.trimStart();
@@ -61,27 +45,11 @@ function parseFrontmatter(content) {
   if (endIdx === -1)
     return result;
   const yamlBlock = trimmed.slice(3, endIdx);
-  const lines = yamlBlock.split(`
-`);
-  for (let i = 0;i < lines.length; i++) {
-    const parsed = parseYamlLine(lines[i]);
-    if (!parsed)
-      continue;
-    const [key, value] = parsed;
-    if (value === ">" || value === "|") {
-      const continuationLines = [];
-      while (i + 1 < lines.length) {
-        const next = lines[i + 1];
-        if (next.length > 0 && !next.startsWith(" ") && !next.startsWith("\t"))
-          break;
-        continuationLines.push(next.trim());
-        i++;
-      }
-      const joined = value === ">" ? continuationLines.join(" ") : continuationLines.join(`
-`);
-      result[key] = joined.trim() || null;
-    } else {
-      result[key] = value;
+  for (const line of yamlBlock.split(`
+`)) {
+    const parsed = parseYamlLine(line);
+    if (parsed) {
+      result[parsed[0]] = parsed[1];
     }
   }
   const bodyStart = endIdx + 4;
@@ -557,12 +525,6 @@ async function safeReadDir(dirPath) {
     return [];
   }
 }
-function isDirEntry(entry) {
-  return entry.isDirectory() || entry.isSymbolicLink();
-}
-function isFileEntry(entry, ext) {
-  return (entry.isFile() || entry.isSymbolicLink()) && entry.name.endsWith(ext);
-}
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -696,11 +658,7 @@ var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
 import { appendFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
-// ../../packages/claude-common/src/log-rotation/log-rotation.ts
-import { readdir as readdir2, unlink } from "node:fs/promises";
-import { join as join2 } from "node:path";
-
-// ../../packages/claude-common/src/utils/fs-utils.ts
+// src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
 async function ensureDirectory(dirPath) {
   try {
@@ -710,14 +668,17 @@ async function ensureDirectory(dirPath) {
   }
 }
 
-// ../../packages/claude-common/src/log-rotation/log-rotation.ts
+// src/utils/log-rotation.ts
+import { readdir as readdir2, unlink } from "node:fs/promises";
+import { join as join2 } from "node:path";
 var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
+var lastCleanupTime = {};
 function getDateString() {
   return new Date().toISOString().split("T")[0];
 }
-function getDatedLogPath(logsDir, logPrefix) {
+function getDatedLogPath(logPrefix) {
   const dateStr = getDateString();
-  return join2(logsDir, `${logPrefix}-${dateStr}.log`);
+  return join2(LOGS_DIR, `${logPrefix}-${dateStr}.log`);
 }
 function parseDateFromFilename(filename, logPrefix) {
   const pattern = new RegExp(`^${logPrefix}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
@@ -728,59 +689,30 @@ function parseDateFromFilename(filename, logPrefix) {
   const date = new Date(match[1] + "T00:00:00Z");
   return Number.isNaN(date.getTime()) ? null : date;
 }
-function createLogRotation(config) {
-  const { logsDir, retentionDays, logger } = config;
-  const lastCleanupTime = {};
-  async function cleanupStaleLogs(logPrefix) {
-    const now = Date.now();
-    const lastCleanup = lastCleanupTime[logPrefix] || 0;
-    if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
-      return;
-    }
-    lastCleanupTime[logPrefix] = now;
-    try {
-      await ensureDirectory(logsDir);
-      const files = await readdir2(logsDir);
-      const cutoffDate = new Date(now - retentionDays * 24 * 60 * 60 * 1000);
-      for (const file of files) {
-        const fileDate = parseDateFromFilename(file, logPrefix);
-        if (fileDate && fileDate < cutoffDate) {
-          const filePath = join2(logsDir, file);
-          try {
-            await unlink(filePath);
-          } catch (error) {
-            logger?.error(`Failed to delete old log file ${file}`, error);
-          }
+async function cleanupStaleLogs(logPrefix) {
+  const now = Date.now();
+  const lastCleanup = lastCleanupTime[logPrefix] || 0;
+  if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
+    return;
+  }
+  lastCleanupTime[logPrefix] = now;
+  try {
+    await ensureDirectory(LOGS_DIR);
+    const files = await readdir2(LOGS_DIR);
+    const cutoffDate = new Date(now - LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    for (const file of files) {
+      const fileDate = parseDateFromFilename(file, logPrefix);
+      if (fileDate && fileDate < cutoffDate) {
+        const filePath = join2(LOGS_DIR, file);
+        try {
+          await unlink(filePath);
+        } catch (error) {
+          logger.error(`Failed to delete old log file ${file}`, error);
         }
       }
-    } catch (error) {
-      logger?.error("Failed to cleanup old logs", error);
     }
-  }
-  async function forceCleanupStaleLogs(logPrefix) {
-    lastCleanupTime[logPrefix] = 0;
-    await cleanupStaleLogs(logPrefix);
-  }
-  return { cleanupStaleLogs, forceCleanupStaleLogs };
-}
-
-// src/log-rotation/log-rotation.ts
-function getDatedLogPath2(logPrefix) {
-  return getDatedLogPath(LOGS_DIR, logPrefix);
-}
-var logRotation = createLogRotation({
-  logsDir: LOGS_DIR,
-  retentionDays: LOG_RETENTION_DAYS
-});
-var { cleanupStaleLogs, forceCleanupStaleLogs } = logRotation;
-
-// src/utils/fs-utils.ts
-import { mkdir as mkdir2, stat as stat2 } from "node:fs/promises";
-async function ensureDirectory2(dirPath) {
-  try {
-    await stat2(dirPath);
-  } catch {
-    await mkdir2(dirPath, { recursive: true, mode: 448 });
+  } catch (error) {
+    logger.error("Failed to cleanup old logs", error);
   }
 }
 
@@ -802,8 +734,8 @@ class Logger {
   }
   async writeToFile(message) {
     try {
-      const logFilePath = getDatedLogPath2(this.logPrefix);
-      await ensureDirectory2(dirname(logFilePath));
+      const logFilePath = getDatedLogPath(this.logPrefix);
+      await ensureDirectory(dirname(logFilePath));
       const timestamp = new Date().toISOString();
       await appendFile(logFilePath, `[${timestamp}] ${message}
 `, "utf-8");
@@ -833,7 +765,7 @@ class Logger {
   }
   error(message, error) {
     if (this.shouldLog("error")) {
-      console.error(`[Zest:Error] ${message}`);
+      console.error(`[Zest:Error] ${message}`, error);
       this.writeToFile(`ERROR: ${message} ${error instanceof Error ? error.stack : JSON.stringify(error)}`);
     }
   }
@@ -844,62 +776,53 @@ var logger = new Logger;
 var SKILLS_DIR = join3(CLAUDE_INSTALL_DIR, "skills");
 var AGENTS_DIR = join3(CLAUDE_INSTALL_DIR, "agents");
 var INSTALLED_PLUGINS_FILE = join3(CLAUDE_INSTALL_DIR, "plugins", "installed_plugins.json");
-var MAX_SCAN_DEPTH = 10;
-async function scanSkillsDir(dir, index, pluginPrefix, relativeDir = "", depth = 0) {
-  if (depth >= MAX_SCAN_DEPTH)
-    return;
-  const entries = await safeReadDir(dir);
-  for (const entry of entries) {
-    if (!isDirEntry(entry))
+function extractHeadingDescription(content) {
+  const lines = content.split(`
+`);
+  for (let i = 0;i < lines.length && i < 10; i++) {
+    const line = lines[i].trim();
+    if (!line.startsWith("#"))
       continue;
-    const childRelative = relativeDir ? `${relativeDir}/${entry.name}` : entry.name;
-    const id = pluginPrefix ? `${pluginPrefix}:${childRelative}` : childRelative;
-    const skillFile = join3(dir, entry.name, "SKILL.md");
-    const content = await safeReadFile(skillFile);
-    if (content) {
-      if (!index.has(id)) {
-        const fm = parseFrontmatter(content);
-        const description = fm.description ?? extractHeadingDescription(content);
-        if (description) {
-          index.set(id, { description, category: "skill" });
-        }
-      }
-      continue;
-    }
-    await scanSkillsDir(join3(dir, entry.name), index, pluginPrefix, childRelative, depth + 1);
+    const heading = line.replace(/^#+\s*/, "");
+    const separatorMatch = heading.match(/\s[—–-]\s(.+)/);
+    if (separatorMatch)
+      return separatorMatch[1].trim();
+    if (heading.length > 3)
+      return heading;
   }
-}
-async function scanCommandsDir(dir, index, pluginPrefix, relativeDir = "", depth = 0) {
-  if (depth >= MAX_SCAN_DEPTH)
-    return;
-  const entries = await safeReadDir(dir);
-  for (const entry of entries) {
-    if (isDirEntry(entry) && !entry.isFile()) {
-      const childRelative = relativeDir ? `${relativeDir}/${entry.name}` : entry.name;
-      await scanCommandsDir(join3(dir, entry.name), index, pluginPrefix, childRelative, depth + 1);
-      continue;
-    }
-    if (!isFileEntry(entry, ".md"))
-      continue;
-    const baseName = entry.name.replace(/\.md$/, "");
-    const relativeName = relativeDir ? `${relativeDir}/${baseName}` : baseName;
-    const id = pluginPrefix ? `${pluginPrefix}:${relativeName}` : relativeName;
-    if (index.has(id))
-      continue;
-    const content = await safeReadFile(join3(dir, entry.name));
-    if (!content)
-      continue;
-    const fm = parseFrontmatter(content);
-    const description = fm.description ?? extractHeadingDescription(content);
-    index.set(id, { description, category: "skill" });
-  }
+  return null;
 }
 async function buildSkillIndex(projectDir) {
   const index = new Map;
   if (projectDir) {
-    await scanSkillsDir(join3(projectDir, ".claude", "skills"), index);
+    const projectSkillsDir = join3(projectDir, ".claude", "skills");
+    const projectEntries = await safeReadDir(projectSkillsDir);
+    for (const entry of projectEntries) {
+      if (!entry.isDirectory())
+        continue;
+      const skillFile = join3(projectSkillsDir, entry.name, "SKILL.md");
+      const content = await safeReadFile(skillFile);
+      if (!content)
+        continue;
+      const fm = parseFrontmatter(content);
+      const description = fm.description ?? extractHeadingDescription(content);
+      index.set(entry.name, { description, category: "skill" });
+    }
   }
-  await scanSkillsDir(SKILLS_DIR, index);
+  const userEntries = await safeReadDir(SKILLS_DIR);
+  for (const entry of userEntries) {
+    if (!entry.isDirectory())
+      continue;
+    if (index.has(entry.name))
+      continue;
+    const skillFile = join3(SKILLS_DIR, entry.name, "SKILL.md");
+    const content = await safeReadFile(skillFile);
+    if (!content)
+      continue;
+    const fm = parseFrontmatter(content);
+    const description = fm.description ?? extractHeadingDescription(content);
+    index.set(entry.name, { description, category: "skill" });
+  }
   const pluginsContent = await safeReadFile(INSTALLED_PLUGINS_FILE);
   if (pluginsContent) {
     try {
@@ -910,8 +833,39 @@ async function buildSkillIndex(projectDir) {
             continue;
           const install = installations[0];
           const pluginName = registryKey.split("@")[0];
-          await scanSkillsDir(join3(install.installPath, "skills"), index, pluginName);
-          await scanCommandsDir(join3(install.installPath, "commands"), index, pluginName);
+          const skillsDir = join3(install.installPath, "skills");
+          const skillEntries = await safeReadDir(skillsDir);
+          for (const entry of skillEntries) {
+            if (!entry.isDirectory())
+              continue;
+            const qualifiedName = pluginName ? `${pluginName}:${entry.name}` : entry.name;
+            if (index.has(qualifiedName))
+              continue;
+            const skillFile = join3(skillsDir, entry.name, "SKILL.md");
+            const content = await safeReadFile(skillFile);
+            if (!content)
+              continue;
+            const fm = parseFrontmatter(content);
+            const description = fm.description ?? extractHeadingDescription(content);
+            index.set(qualifiedName, { description, category: "skill" });
+          }
+          const commandsDir = join3(install.installPath, "commands");
+          const cmdEntries = await safeReadDir(commandsDir);
+          for (const entry of cmdEntries) {
+            if (!entry.isFile() || !entry.name.endsWith(".md"))
+              continue;
+            const cmdName = entry.name.replace(/\.md$/, "");
+            const qualifiedName = pluginName ? `${pluginName}:${cmdName}` : cmdName;
+            if (index.has(qualifiedName))
+              continue;
+            const cmdFile = join3(commandsDir, entry.name);
+            const content = await safeReadFile(cmdFile);
+            if (!content)
+              continue;
+            const fm = parseFrontmatter(content);
+            const description = fm.description ?? extractHeadingDescription(content);
+            index.set(qualifiedName, { description, category: "skill" });
+          }
         }
       }
     } catch (error) {
@@ -945,37 +899,22 @@ async function buildAgentIndex(projectDir) {
   }
   return index;
 }
-async function scanAgentsDir(dir, index, pluginPrefix, relativeDir = "", depth = 0) {
-  if (depth >= MAX_SCAN_DEPTH)
-    return;
+async function scanAgentsDir(dir, index, pluginPrefix) {
   const entries = await safeReadDir(dir);
   for (const entry of entries) {
-    if (isDirEntry(entry) && !entry.isFile()) {
-      const childRelative = relativeDir ? `${relativeDir}/${entry.name}` : entry.name;
-      await scanAgentsDir(join3(dir, entry.name), index, pluginPrefix, childRelative, depth + 1);
-      continue;
-    }
-    if (!isFileEntry(entry, ".md"))
+    if (!entry.isFile() || !entry.name.endsWith(".md"))
       continue;
     const baseName = entry.name.replace(/\.md$/, "");
-    const relativeName = relativeDir ? `${relativeDir}/${baseName}` : baseName;
-    const id = pluginPrefix ? `${pluginPrefix}:${relativeName}` : relativeName;
+    const id = pluginPrefix ? `${pluginPrefix}:${baseName}` : baseName;
+    if (index.has(id))
+      continue;
     const agentFile = join3(dir, entry.name);
     const content = await safeReadFile(agentFile);
     if (!content)
       continue;
     const fm = parseFrontmatter(content);
     const description = fm.description ?? extractHeadingDescription(content);
-    if (!description)
-      continue;
-    const entry_data = { description, category: "agent" };
-    const displayName = typeof fm.name === "string" ? fm.name : undefined;
-    if (displayName && !index.has(displayName)) {
-      index.set(displayName, entry_data);
-    }
-    if (!index.has(id)) {
-      index.set(id, entry_data);
-    }
+    index.set(id, { description, category: "agent" });
   }
 }
 async function lookupToolMetadata(toolNames, projectDir) {
