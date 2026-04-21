@@ -1,33 +1,15 @@
 // src/utils/jwt.ts
-function decodeJwtPayload(token) {
+function getJwtExpiresAt(token) {
   try {
     const parts = token.split(".");
     if (parts.length !== 3)
       return;
-    return JSON.parse(Buffer.from(parts[1], "base64url").toString());
+    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
+    return typeof payload.exp === "number" ? payload.exp : undefined;
   } catch {
     return;
   }
 }
-function getJwtExpiresAt(token) {
-  const payload = decodeJwtPayload(token);
-  return payload && typeof payload.exp === "number" ? payload.exp : undefined;
-}
-function getJwtIssuer(token) {
-  const payload = decodeJwtPayload(token);
-  return payload && typeof payload.iss === "string" ? payload.iss : undefined;
-}
-function validateJwtIssuer(token, supabaseUrl) {
-  const issuer = getJwtIssuer(token);
-  if (!issuer)
-    return { valid: true };
-  const expected = `${supabaseUrl}/auth/v1`;
-  if (issuer === expected)
-    return { valid: true };
-  return { valid: false, actual: issuer, expected };
-}
 export {
-  validateJwtIssuer,
-  getJwtIssuer,
   getJwtExpiresAt
 };

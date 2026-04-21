@@ -1,5 +1,5 @@
 // src/utils/deletion-cache.ts
-import { readdir as readdir2, readFile, rm, stat as stat3, writeFile } from "node:fs/promises";
+import { readdir as readdir2, readFile, rm, stat as stat2, writeFile } from "node:fs/promises";
 import { join as join3 } from "node:path";
 
 // src/config/constants.ts
@@ -145,28 +145,17 @@ async function ensureDirectory(dirPath) {
 import { appendFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
-// ../../packages/claude-common/src/log-rotation/log-rotation.ts
+// src/utils/log-rotation.ts
 import { readdir, unlink } from "node:fs/promises";
 import { join as join2 } from "node:path";
-
-// ../../packages/claude-common/src/utils/fs-utils.ts
-import { mkdir as mkdir2, stat as stat2 } from "node:fs/promises";
-async function ensureDirectory2(dirPath) {
-  try {
-    await stat2(dirPath);
-  } catch {
-    await mkdir2(dirPath, { recursive: true, mode: 448 });
-  }
-}
-
-// ../../packages/claude-common/src/log-rotation/log-rotation.ts
 var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
+var lastCleanupTime = {};
 function getDateString() {
   return new Date().toISOString().split("T")[0];
 }
-function getDatedLogPath(logsDir, logPrefix) {
+function getDatedLogPath(logPrefix) {
   const dateStr = getDateString();
-  return join2(logsDir, `${logPrefix}-${dateStr}.log`);
+  return join2(LOGS_DIR, `${logPrefix}-${dateStr}.log`);
 }
 function parseDateFromFilename(filename, logPrefix) {
   const pattern = new RegExp(`^${logPrefix}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
@@ -177,51 +166,32 @@ function parseDateFromFilename(filename, logPrefix) {
   const date = new Date(match[1] + "T00:00:00Z");
   return Number.isNaN(date.getTime()) ? null : date;
 }
-function createLogRotation(config) {
-  const { logsDir, retentionDays, logger } = config;
-  const lastCleanupTime = {};
-  async function cleanupStaleLogs(logPrefix) {
-    const now = Date.now();
-    const lastCleanup = lastCleanupTime[logPrefix] || 0;
-    if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
-      return;
-    }
-    lastCleanupTime[logPrefix] = now;
-    try {
-      await ensureDirectory2(logsDir);
-      const files = await readdir(logsDir);
-      const cutoffDate = new Date(now - retentionDays * 24 * 60 * 60 * 1000);
-      for (const file of files) {
-        const fileDate = parseDateFromFilename(file, logPrefix);
-        if (fileDate && fileDate < cutoffDate) {
-          const filePath = join2(logsDir, file);
-          try {
-            await unlink(filePath);
-          } catch (error) {
-            logger?.error(`Failed to delete old log file ${file}`, error);
-          }
+async function cleanupStaleLogs(logPrefix) {
+  const now = Date.now();
+  const lastCleanup = lastCleanupTime[logPrefix] || 0;
+  if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
+    return;
+  }
+  lastCleanupTime[logPrefix] = now;
+  try {
+    await ensureDirectory(LOGS_DIR);
+    const files = await readdir(LOGS_DIR);
+    const cutoffDate = new Date(now - LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    for (const file of files) {
+      const fileDate = parseDateFromFilename(file, logPrefix);
+      if (fileDate && fileDate < cutoffDate) {
+        const filePath = join2(LOGS_DIR, file);
+        try {
+          await unlink(filePath);
+        } catch (error) {
+          logger.error(`Failed to delete old log file ${file}`, error);
         }
       }
-    } catch (error) {
-      logger?.error("Failed to cleanup old logs", error);
     }
+  } catch (error) {
+    logger.error("Failed to cleanup old logs", error);
   }
-  async function forceCleanupStaleLogs(logPrefix) {
-    lastCleanupTime[logPrefix] = 0;
-    await cleanupStaleLogs(logPrefix);
-  }
-  return { cleanupStaleLogs, forceCleanupStaleLogs };
 }
-
-// src/log-rotation/log-rotation.ts
-function getDatedLogPath2(logPrefix) {
-  return getDatedLogPath(LOGS_DIR, logPrefix);
-}
-var logRotation = createLogRotation({
-  logsDir: LOGS_DIR,
-  retentionDays: LOG_RETENTION_DAYS
-});
-var { cleanupStaleLogs, forceCleanupStaleLogs } = logRotation;
 
 // src/utils/logger.ts
 class Logger {
@@ -241,7 +211,7 @@ class Logger {
   }
   async writeToFile(message) {
     try {
-      const logFilePath = getDatedLogPath2(this.logPrefix);
+      const logFilePath = getDatedLogPath(this.logPrefix);
       await ensureDirectory(dirname(logFilePath));
       const timestamp = new Date().toISOString();
       await appendFile(logFilePath, `[${timestamp}] ${message}
@@ -272,7 +242,7 @@ class Logger {
   }
   error(message, error) {
     if (this.shouldLog("error")) {
-      console.error(`[Zest:Error] ${message}`);
+      console.error(`[Zest:Error] ${message}`, error);
       this.writeToFile(`ERROR: ${message} ${error instanceof Error ? error.stack : JSON.stringify(error)}`);
     }
   }
@@ -334,7 +304,7 @@ async function cleanupOldCache() {
     for (const file of files) {
       try {
         const filePath = join3(DELETION_CACHE_DIR, file);
-        const stats = await stat3(filePath);
+        const stats = await stat2(filePath);
         const age = now - stats.mtimeMs;
         if (age > DELETION_CACHE_TTL_MS) {
           await rm(filePath);
