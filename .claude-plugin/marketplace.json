@@ -10,7 +10,7 @@
       "name": "zest",
       "source": "./zest/",
       "description": "Automatically track coding sessions and file changes with Zest for productivity insights and analysis",
-      "version": "1.1.1"
+      "version": "1.1.3"
     }
   ]
 }

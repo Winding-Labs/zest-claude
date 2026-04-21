@@ -1,3 +1,7 @@
+// ../../packages/claude-common/src/supabase/utils/string-utils.ts
+function toWellFormed(str) {
+  return str.toWellFormed?.() ?? str;
+}
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -134,7 +138,11 @@ var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
 import { appendFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
-// src/utils/fs-utils.ts
+// ../../packages/claude-common/src/log-rotation/log-rotation.ts
+import { readdir, unlink } from "node:fs/promises";
+import { join as join2 } from "node:path";
+
+// ../../packages/claude-common/src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
 async function ensureDirectory(dirPath) {
   try {
@@ -144,17 +152,14 @@ async function ensureDirectory(dirPath) {
   }
 }
 
-// src/utils/log-rotation.ts
-import { readdir, unlink } from "node:fs/promises";
-import { join as join2 } from "node:path";
+// ../../packages/claude-common/src/log-rotation/log-rotation.ts
 var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
-var lastCleanupTime = {};
 function getDateString() {
   return new Date().toISOString().split("T")[0];
 }
-function getDatedLogPath(logPrefix) {
+function getDatedLogPath(logsDir, logPrefix) {
   const dateStr = getDateString();
-  return join2(LOGS_DIR, `${logPrefix}-${dateStr}.log`);
+  return join2(logsDir, `${logPrefix}-${dateStr}.log`);
 }
 function parseDateFromFilename(filename, logPrefix) {
   const pattern = new RegExp(`^${logPrefix}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
@@ -165,30 +170,59 @@ function parseDateFromFilename(filename, logPrefix) {
   const date = new Date(match[1] + "T00:00:00Z");
   return Number.isNaN(date.getTime()) ? null : date;
 }
-async function cleanupStaleLogs(logPrefix) {
-  const now = Date.now();
-  const lastCleanup = lastCleanupTime[logPrefix] || 0;
-  if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
-    return;
-  }
-  lastCleanupTime[logPrefix] = now;
-  try {
-    await ensureDirectory(LOGS_DIR);
-    const files = await readdir(LOGS_DIR);
-    const cutoffDate = new Date(now - LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000);
-    for (const file of files) {
-      const fileDate = parseDateFromFilename(file, logPrefix);
-      if (fileDate && fileDate < cutoffDate) {
-        const filePath = join2(LOGS_DIR, file);
-        try {
-          await unlink(filePath);
-        } catch (error) {
-          logger.error(`Failed to delete old log file ${file}`, error);
+function createLogRotation(config) {
+  const { logsDir, retentionDays, logger } = config;
+  const lastCleanupTime = {};
+  async function cleanupStaleLogs(logPrefix) {
+    const now = Date.now();
+    const lastCleanup = lastCleanupTime[logPrefix] || 0;
+    if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
+      return;
+    }
+    lastCleanupTime[logPrefix] = now;
+    try {
+      await ensureDirectory(logsDir);
+      const files = await readdir(logsDir);
+      const cutoffDate = new Date(now - retentionDays * 24 * 60 * 60 * 1000);
+      for (const file of files) {
+        const fileDate = parseDateFromFilename(file, logPrefix);
+        if (fileDate && fileDate < cutoffDate) {
+          const filePath = join2(logsDir, file);
+          try {
+            await unlink(filePath);
+          } catch (error) {
+            logger?.error(`Failed to delete old log file ${file}`, error);
+          }
         }
       }
+    } catch (error) {
+      logger?.error("Failed to cleanup old logs", error);
     }
-  } catch (error) {
-    logger.error("Failed to cleanup old logs", error);
+  }
+  async function forceCleanupStaleLogs(logPrefix) {
+    lastCleanupTime[logPrefix] = 0;
+    await cleanupStaleLogs(logPrefix);
+  }
+  return { cleanupStaleLogs, forceCleanupStaleLogs };
+}
+
+// src/log-rotation/log-rotation.ts
+function getDatedLogPath2(logPrefix) {
+  return getDatedLogPath(LOGS_DIR, logPrefix);
+}
+var logRotation = createLogRotation({
+  logsDir: LOGS_DIR,
+  retentionDays: LOG_RETENTION_DAYS
+});
+var { cleanupStaleLogs, forceCleanupStaleLogs } = logRotation;
+
+// src/utils/fs-utils.ts
+import { mkdir as mkdir2, stat as stat2 } from "node:fs/promises";
+async function ensureDirectory2(dirPath) {
+  try {
+    await stat2(dirPath);
+  } catch {
+    await mkdir2(dirPath, { recursive: true, mode: 448 });
   }
 }
 
@@ -210,8 +244,8 @@ class Logger {
   }
   async writeToFile(message) {
     try {
-      const logFilePath = getDatedLogPath(this.logPrefix);
-      await ensureDirectory(dirname(logFilePath));
+      const logFilePath = getDatedLogPath2(this.logPrefix);
+      await ensureDirectory2(dirname(logFilePath));
       const timestamp = new Date().toISOString();
       await appendFile(logFilePath, `[${timestamp}] ${message}
 `, "utf-8");
@@ -241,7 +275,7 @@ class Logger {
   }
   error(message, error) {
     if (this.shouldLog("error")) {
-      console.error(`[Zest:Error] ${message}`, error);
+      console.error(`[Zest:Error] ${message}`);
       this.writeToFile(`ERROR: ${message} ${error instanceof Error ? error.stack : JSON.stringify(error)}`);
     }
   }
@@ -260,7 +294,7 @@ function shouldExcludeCommand(command) {
 }
 
 // src/utils/deletion-cache.ts
-import { readdir as readdir2, readFile, rm, stat as stat2, writeFile } from "node:fs/promises";
+import { readdir as readdir2, readFile, rm, stat as stat3, writeFile } from "node:fs/promises";
 import { join as join3 } from "node:path";
 function getCacheKey(filePath, sessionId) {
   const hash = Buffer.from(filePath).toString("base64").replace(/[/+=]/g, "_");
@@ -1280,11 +1314,6 @@ function splitLines(text) {
   return result;
 }
 
-// src/utils/string-utils.ts
-function toWellFormed(str) {
-  return str.toWellFormed?.() ?? str;
-}
-
 // src/utils/diff-utils.ts
 function createUnifiedDiff(filePath, oldString, newString) {
   try {
@@ -1316,7 +1345,7 @@ function sanitizeDiff(diff, filePath) {
 }
 
 // src/extractors/extraction-utils.ts
-function extractTextContent(content) {
+function extractTextContent2(content) {
   if (typeof content === "string") {
     return toWellFormed(content);
   }
@@ -1460,7 +1489,7 @@ function extractSessionTitleFromContent(content) {
     try {
       const entry = JSON.parse(line);
       if (entry.message?.role === "user" && entry.message.content) {
-        const text = extractTextContent(entry.message.content);
+        const text = extractTextContent2(entry.message.content);
         if (text && text.length >= MIN_SESSION_TITLE_LENGTH) {
           return toWellFormed(text.substring(0, MAX_SESSION_TITLE_LENGTH)).trim();
         }
@@ -1487,6 +1516,6 @@ export {
   logDiff,
   extractToolUseResult,
   extractToolUse,
-  extractTextContent,
+  extractTextContent2 as extractTextContent,
   extractSessionTitleFromContent
 };

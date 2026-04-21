@@ -13,991 +13,6 @@ var __export = (target, all) => {
     });
 };
 
-// src/utils/session-startup.ts
-import { createHash } from "node:crypto";
-import { copyFile, readFile as readFile3, stat as stat3 } from "node:fs/promises";
-import { dirname as dirname6, join as join5 } from "node:path";
-import { fileURLToPath as fileURLToPath2 } from "node:url";
-
-// src/config/constants.ts
-import { homedir } from "node:os";
-import { join } from "node:path";
-var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
-var CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
-var CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
-var CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
-var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
-var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
-var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
-var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-var SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
-var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
-var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
-var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
-var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
-var STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
-var SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
-var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
-var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
-var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
-var LOCK_RETRY_MS = 50;
-var LOCK_MAX_RETRIES = 300;
-var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
-var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
-var LOG_RETENTION_DAYS = 7;
-var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
-var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
-var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-var POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ";
-var CLAUDE_BUILTIN_COMMANDS = new Set([
-  "add-dir",
-  "agents",
-  "allowed-tools",
-  "android",
-  "app",
-  "autofix-pr",
-  "bashes",
-  "branch",
-  "btw",
-  "bug",
-  "checkpoint",
-  "chrome",
-  "clear",
-  "color",
-  "compact",
-  "config",
-  "context",
-  "continue",
-  "copy",
-  "cost",
-  "desktop",
-  "diff",
-  "doctor",
-  "effort",
-  "exit",
-  "export",
-  "extra-usage",
-  "fast",
-  "feedback",
-  "fork",
-  "help",
-  "hooks",
-  "ide",
-  "init",
-  "insights",
-  "install-github-app",
-  "install-slack-app",
-  "ios",
-  "keybindings",
-  "login",
-  "logout",
-  "mcp",
-  "memory",
-  "mobile",
-  "model",
-  "new",
-  "output-style",
-  "passes",
-  "permissions",
-  "plan",
-  "plugin",
-  "powerup",
-  "pr-comments",
-  "privacy-settings",
-  "quit",
-  "rc",
-  "release-notes",
-  "reload-plugins",
-  "remote-control",
-  "remote-env",
-  "rename",
-  "reset",
-  "resume",
-  "review",
-  "rewind",
-  "sandbox",
-  "schedule",
-  "security-review",
-  "settings",
-  "setup-bedrock",
-  "skills",
-  "stats",
-  "status",
-  "statusline",
-  "stickers",
-  "tasks",
-  "teleport",
-  "terminal-setup",
-  "theme",
-  "todos",
-  "tp",
-  "ultraplan",
-  "upgrade",
-  "usage",
-  "vim",
-  "voice",
-  "web-setup"
-]);
-var EXCLUDED_COMMAND_PATTERNS = [
-  new RegExp(`^\\/(${[...CLAUDE_BUILTIN_COMMANDS].join("|")})\\b`, "i"),
-  /^\/zest[^:\s]*:/i,
-  /<command-name>\/zest[^<]*<\/command-name>/i,
-  /node\s+.*\/dist\/commands\/.*-cli\.js/i
-];
-var MARKETPLACE_PLUGIN_JSON_URL = "https://raw.githubusercontent.com/Winding-Labs/zest-claude/refs/heads/main/zest/.claude-plugin/plugin.json";
-var VERSION_CHECK_TIMEOUT_MS = 5000;
-var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
-var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
-var DAEMON_WARMUP_GRACE_MS = 3 * 1000;
-var NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
-var STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
-var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
-
-// src/utils/fs-utils.ts
-import { mkdir, stat } from "node:fs/promises";
-async function ensureDirectory(dirPath) {
-  try {
-    await stat(dirPath);
-  } catch {
-    await mkdir(dirPath, { recursive: true, mode: 448 });
-  }
-}
-
-// src/utils/logger.ts
-import { appendFile } from "node:fs/promises";
-import { dirname } from "node:path";
-
-// ../../packages/claude-common/src/log-rotation/log-rotation.ts
-import { readdir, unlink } from "node:fs/promises";
-import { join as join2 } from "node:path";
-
-// ../../packages/claude-common/src/utils/fs-utils.ts
-import { mkdir as mkdir2, stat as stat2 } from "node:fs/promises";
-async function ensureDirectory2(dirPath) {
-  try {
-    await stat2(dirPath);
-  } catch {
-    await mkdir2(dirPath, { recursive: true, mode: 448 });
-  }
-}
-
-// ../../packages/claude-common/src/log-rotation/log-rotation.ts
-var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
-function getDateString() {
-  return new Date().toISOString().split("T")[0];
-}
-function getDatedLogPath(logsDir, logPrefix) {
-  const dateStr = getDateString();
-  return join2(logsDir, `${logPrefix}-${dateStr}.log`);
-}
-function parseDateFromFilename(filename, logPrefix) {
-  const pattern = new RegExp(`^${logPrefix}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
-  const match = filename.match(pattern);
-  if (!match) {
-    return null;
-  }
-  const date = new Date(match[1] + "T00:00:00Z");
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-function createLogRotation(config) {
-  const { logsDir, retentionDays, logger } = config;
-  const lastCleanupTime = {};
-  async function cleanupStaleLogs(logPrefix) {
-    const now = Date.now();
-    const lastCleanup = lastCleanupTime[logPrefix] || 0;
-    if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
-      return;
-    }
-    lastCleanupTime[logPrefix] = now;
-    try {
-      await ensureDirectory2(logsDir);
-      const files = await readdir(logsDir);
-      const cutoffDate = new Date(now - retentionDays * 24 * 60 * 60 * 1000);
-      for (const file of files) {
-        const fileDate = parseDateFromFilename(file, logPrefix);
-        if (fileDate && fileDate < cutoffDate) {
-          const filePath = join2(logsDir, file);
-          try {
-            await unlink(filePath);
-          } catch (error) {
-            logger?.error(`Failed to delete old log file ${file}`, error);
-          }
-        }
-      }
-    } catch (error) {
-      logger?.error("Failed to cleanup old logs", error);
-    }
-  }
-  async function forceCleanupStaleLogs(logPrefix) {
-    lastCleanupTime[logPrefix] = 0;
-    await cleanupStaleLogs(logPrefix);
-  }
-  return { cleanupStaleLogs, forceCleanupStaleLogs };
-}
-
-// src/log-rotation/log-rotation.ts
-function getDatedLogPath2(logPrefix) {
-  return getDatedLogPath(LOGS_DIR, logPrefix);
-}
-var logRotation = createLogRotation({
-  logsDir: LOGS_DIR,
-  retentionDays: LOG_RETENTION_DAYS
-});
-var { cleanupStaleLogs, forceCleanupStaleLogs } = logRotation;
-
-// src/utils/logger.ts
-class Logger {
-  minLevel = "info";
-  logPrefix;
-  levels = {
-    debug: 0,
-    info: 1,
-    warn: 2,
-    error: 3
-  };
-  constructor(logPrefix = "plugin") {
-    this.logPrefix = logPrefix;
-  }
-  setLevel(level) {
-    this.minLevel = level;
-  }
-  async writeToFile(message) {
-    try {
-      const logFilePath = getDatedLogPath2(this.logPrefix);
-      await ensureDirectory(dirname(logFilePath));
-      const timestamp = new Date().toISOString();
-      await appendFile(logFilePath, `[${timestamp}] ${message}
-`, "utf-8");
-      cleanupStaleLogs(this.logPrefix);
-    } catch (error) {
-      console.error("Failed to write to log file:", error);
-    }
-  }
-  shouldLog(level) {
-    return this.levels[level] >= this.levels[this.minLevel];
-  }
-  debug(message, ...args) {
-    if (this.shouldLog("debug")) {
-      this.writeToFile(`DEBUG: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  info(message, ...args) {
-    if (this.shouldLog("info")) {
-      this.writeToFile(`INFO: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  warn(message, ...args) {
-    if (this.shouldLog("warn")) {
-      console.warn(`[Zest:Warn] ${message}`, ...args);
-      this.writeToFile(`WARN: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  error(message, error) {
-    if (this.shouldLog("error")) {
-      console.error(`[Zest:Error] ${message}`);
-      this.writeToFile(`ERROR: ${message} ${error instanceof Error ? error.stack : JSON.stringify(error)}`);
-    }
-  }
-}
-var logger = new Logger;
-
-// src/utils/plugin-version.ts
-import { readFileSync } from "node:fs";
-import { join as join3 } from "node:path";
-
-// ../../packages/claude-common/src/utils/version-compare.ts
-function parseVersion(version) {
-  const cleanVersion = version.startsWith("v") ? version.slice(1) : version;
-  const baseVersion = cleanVersion.split("-")[0];
-  const parts = baseVersion.split(".");
-  if (parts.length < 1 || parts.length > 3) {
-    return null;
-  }
-  const major = Number.parseInt(parts[0], 10);
-  const minor = parts.length >= 2 ? Number.parseInt(parts[1], 10) : 0;
-  const patch = parts.length >= 3 ? Number.parseInt(parts[2], 10) : 0;
-  if (Number.isNaN(major) || Number.isNaN(minor) || Number.isNaN(patch)) {
-    return null;
-  }
-  if (major < 0 || minor < 0 || patch < 0) {
-    return null;
-  }
-  if (major > 9999 || minor > 9999 || patch > 9999) {
-    return null;
-  }
-  return { major, minor, patch };
-}
-function compareVersions(currentVersion, latestVersion) {
-  const current = parseVersion(currentVersion);
-  const latest = parseVersion(latestVersion);
-  if (!current || !latest)
-    return "same";
-  if (latest.major !== current.major)
-    return latest.major > current.major ? "newer" : "older";
-  if (latest.minor !== current.minor)
-    return latest.minor > current.minor ? "newer" : "older";
-  if (latest.patch !== current.patch)
-    return latest.patch > current.patch ? "newer" : "older";
-  return "same";
-}
-
-// src/utils/plugin-version.ts
-function getPluginVersion() {
-  try {
-    const marketplacePluginPath = join3(CLAUDE_INSTALL_DIR, "plugins", "marketplaces", "zest-marketplace", "zest", ".claude-plugin", "plugin.json");
-    const pluginJson = JSON.parse(readFileSync(marketplacePluginPath, "utf-8"));
-    if (pluginJson.version && typeof pluginJson.version === "string") {
-      logger.debug("Read plugin version from marketplace plugin.json", {
-        version: pluginJson.version
-      });
-      return pluginJson.version;
-    }
-    logger.warn("Version field not found in marketplace plugin.json");
-    return "unknown";
-  } catch (error) {
-    logger.warn("Failed to read plugin version from marketplace plugin.json", error);
-    return "unknown";
-  }
-}
-async function fetchMarketplaceVersion() {
-  logger.info("Fetching latest plugin version from marketplace", {
-    url: MARKETPLACE_PLUGIN_JSON_URL
-  });
-  const controller = new AbortController;
-  const timeoutId = setTimeout(() => {
-    controller.abort();
-    logger.warn("Marketplace version fetch timed out", {
-      timeout_ms: VERSION_CHECK_TIMEOUT_MS
-    });
-  }, VERSION_CHECK_TIMEOUT_MS);
-  try {
-    const response = await fetch(MARKETPLACE_PLUGIN_JSON_URL, {
-      signal: controller.signal,
-      headers: {
-        Accept: "application/json",
-        "User-Agent": "zest-claude-plugin"
-      }
-    });
-    if (!response.ok) {
-      const error = new Error(`Marketplace request failed: HTTP ${response.status} ${response.statusText}`);
-      logger.error("Failed to fetch marketplace version - HTTP error", {
-        status: response.status,
-        statusText: response.statusText,
-        url: MARKETPLACE_PLUGIN_JSON_URL
-      });
-      throw error;
-    }
-    const data = await response.json();
-    if (!data.version || typeof data.version !== "string") {
-      const error = new Error("Marketplace plugin.json missing or invalid version field");
-      logger.error("Invalid marketplace plugin.json structure", {
-        hasVersion: !!data.version,
-        versionType: typeof data.version
-      });
-      throw error;
-    }
-    logger.info("Successfully fetched marketplace version", {
-      version: data.version
-    });
-    return data.version;
-  } catch (error) {
-    if (error instanceof Error) {
-      if (error.name === "AbortError") {
-        throw new Error(`Marketplace version check timed out after ${VERSION_CHECK_TIMEOUT_MS}ms`);
-      }
-      throw error;
-    }
-    throw new Error(`Unexpected error fetching marketplace version: ${error}`);
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-async function checkForUpdates() {
-  logger.info("Starting plugin update check");
-  try {
-    const currentVersion = getPluginVersion();
-    if (currentVersion === "unknown") {
-      const error = "Unable to determine current plugin version";
-      logger.warn(error);
-      return {
-        updateAvailable: false,
-        currentVersion: "unknown",
-        latestVersion: "unknown",
-        error
-      };
-    }
-    logger.info("Current plugin version", { version: currentVersion });
-    let latestVersion;
-    try {
-      latestVersion = await fetchMarketplaceVersion();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.warn("Failed to fetch marketplace version", { error: errorMessage });
-      return {
-        updateAvailable: false,
-        currentVersion,
-        latestVersion: "unknown",
-        error: errorMessage
-      };
-    }
-    const comparison = compareVersions(currentVersion, latestVersion);
-    const updateAvailable = comparison === "newer";
-    logger.info("Version check complete", {
-      currentVersion,
-      latestVersion,
-      comparison,
-      updateAvailable
-    });
-    return {
-      updateAvailable,
-      currentVersion,
-      latestVersion
-    };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("Unexpected error during version check", { error: errorMessage });
-    return {
-      updateAvailable: false,
-      currentVersion: "unknown",
-      latestVersion: "unknown",
-      error: `Version check failed: ${errorMessage}`
-    };
-  }
-}
-
-// ../../packages/claude-common/src/cache/status-cache-manager.ts
-import { readFileSync as readFileSync2, writeFileSync } from "node:fs";
-
-// ../../packages/claude-common/src/utils/file-lock.ts
-import { unlinkSync } from "node:fs";
-import { readdir as readdir2, readFile, unlink as unlink2, writeFile } from "node:fs/promises";
-import { dirname as dirname2 } from "node:path";
-
-// ../../packages/claude-common/src/analytics/events.ts
-var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed";
-var AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed";
-var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
-var AUTH_SESSION_CLEAR_FAILED = "auth_session_clear_failed";
-var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
-var SYNC_NOT_AUTHENTICATED = "sync_not_authenticated";
-var SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed";
-var SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted";
-var SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed";
-var SYNC_NETWORK_ERROR = "sync_network_error";
-var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
-var QUEUE_WRITE_FAILED = "queue_write_failed";
-var FILE_LOCK_TIMEOUT = "file_lock_timeout";
-var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
-var NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed";
-var EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found";
-var EXTRACTION_SESSION_FAILED = "extraction_session_failed";
-var DAEMON_START_FAILED = "daemon_start_failed";
-var DAEMON_RESTART_FAILED = "daemon_restart_failed";
-var DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed";
-var API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed";
-var API_PROFILE_UPDATE_FAILED = "api_profile_update_failed";
-var API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed";
-var API_STANDUP_TEAM_FETCH_FAILED = "api_standup_team_fetch_failed";
-var API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed";
-var API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed";
-var API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed";
-var SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed";
-var SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed";
-var SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed";
-var ERROR_TYPES = [
-  AUTH_DEVICE_CODE_INITIATION_FAILED,
-  AUTH_DEVICE_CODE_POLLING_FAILED,
-  AUTH_SESSION_CLEAR_FAILED,
-  AUTH_SESSION_LOAD_FAILED,
-  AUTH_SESSION_SAVE_FAILED,
-  SYNC_NOT_AUTHENTICATED,
-  SYNC_EVENTS_UPLOAD_FAILED,
-  SYNC_EVENTS_RETRY_EXHAUSTED,
-  SYNC_CHAT_UPLOAD_FAILED,
-  SYNC_NETWORK_ERROR,
-  QUEUE_READ_CORRUPTED,
-  QUEUE_WRITE_FAILED,
-  FILE_LOCK_TIMEOUT,
-  FILE_LOCK_CREATE_FAILED,
-  NOTIFICATION_STATE_WRITE_FAILED,
-  EXTRACTION_PROJECT_DIR_NOT_FOUND,
-  EXTRACTION_SESSION_FAILED,
-  DAEMON_START_FAILED,
-  DAEMON_RESTART_FAILED,
-  DAEMON_SYNC_CYCLE_FAILED,
-  API_WORKSPACE_FETCH_FAILED,
-  API_PROFILE_UPDATE_FAILED,
-  API_PROFILE_METADATA_PREFETCH_FAILED,
-  API_STANDUP_TEAM_FETCH_FAILED,
-  API_STANDUP_PROMPT_FETCH_FAILED,
-  API_STANDUP_GENERATION_FAILED,
-  API_DATA_CONTROLS_FETCH_FAILED,
-  SUPABASE_CLIENT_INIT_FAILED,
-  SUPABASE_SESSION_READ_FAILED,
-  SUPABASE_SESSION_WRITE_FAILED
-];
-var errorTypeSet = new Set(ERROR_TYPES);
-function getErrorCategory(errorType) {
-  if (errorType.startsWith("auth_"))
-    return "auth";
-  if (errorType.startsWith("sync_"))
-    return "sync";
-  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("notification_") || errorType.startsWith("extraction_"))
-    return "filesystem";
-  if (errorType.startsWith("daemon_"))
-    return "daemon";
-  if (errorType.startsWith("api_"))
-    return "api";
-  if (errorType.startsWith("supabase_"))
-    return "supabase";
-  return "api";
-}
-
-// ../../packages/claude-common/src/analytics/properties.ts
-import { basename } from "node:path";
-import { release } from "node:os";
-function buildStandardProperties(version) {
-  return {
-    plugin_version: version,
-    node_version: process.version,
-    os_platform: process.platform,
-    os_version: release()
-  };
-}
-function buildUserProperties(session) {
-  if (!session)
-    return {};
-  return {
-    user_id: session.userId,
-    email: session.email,
-    workspace_id: session.workspaceId,
-    workspace_name: session.workspaceName
-  };
-}
-function buildFileSystemProperties(options) {
-  const anonymizedPath = options.filePath ? basename(options.filePath) : undefined;
-  return {
-    ...anonymizedPath && { file_name: anonymizedPath },
-    operation: options.operation,
-    ...options.errnoCode && { errno_code: options.errnoCode }
-  };
-}
-
-// ../../packages/claude-common/src/utils/file-lock.ts
-var DEFAULT_LOCK_RETRY_MS = 50;
-var DEFAULT_LOCK_MAX_RETRIES = 300;
-function defaultIsProcessRunning(pid) {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-function isLockStale(lockInfo, isRunning) {
-  return !isRunning(lockInfo.pid);
-}
-var MAX_ACQUIRE_DEPTH = 3;
-async function acquireFileLock(filePath, isRunning, options, activeLockFiles, depth = 0) {
-  if (depth >= MAX_ACQUIRE_DEPTH) {
-    options.logger?.warn(`Lock acquisition for ${filePath} exceeded max recursive depth (${MAX_ACQUIRE_DEPTH})`);
-    return false;
-  }
-  const lockFile = `${filePath}.lock`;
-  const lockInfo = {
-    pid: process.pid,
-    timestamp: Date.now()
-  };
-  try {
-    await ensureDirectory2(dirname2(lockFile));
-    await writeFile(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
-    activeLockFiles?.add(lockFile);
-    return true;
-  } catch (error) {
-    if (error.code !== "EEXIST") {
-      const errCode = error.code;
-      if (errCode === "ENOENT" || errCode === "EACCES") {
-        options.logger?.error(`Failed to create lock file ${lockFile}:`, error);
-        options.onCaptureException?.(error, FILE_LOCK_CREATE_FAILED, "file-lock", {
-          ...buildFileSystemProperties({
-            filePath: lockFile,
-            operation: "lock",
-            errnoCode: errCode
-          })
-        });
-      }
-      throw error;
-    }
-    try {
-      const content = await readFile(lockFile, "utf8");
-      const existingLock = JSON.parse(content);
-      if (isLockStale(existingLock, isRunning)) {
-        options.logger?.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
-        await unlink2(lockFile).catch(() => {});
-        return acquireFileLock(filePath, isRunning, options, activeLockFiles, depth + 1);
-      }
-    } catch {
-      options.logger?.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
-      await unlink2(lockFile).catch(() => {});
-      return acquireFileLock(filePath, isRunning, options, activeLockFiles, depth + 1);
-    }
-    return false;
-  }
-}
-async function releaseFileLock(filePath, activeLockFiles) {
-  const lockFile = `${filePath}.lock`;
-  activeLockFiles?.delete(lockFile);
-  await unlink2(lockFile).catch(() => {});
-}
-function createFileLock(config) {
-  const {
-    logger: logger2,
-    onCaptureException,
-    lockRetryMs = DEFAULT_LOCK_RETRY_MS,
-    lockMaxRetries = DEFAULT_LOCK_MAX_RETRIES,
-    lockDir
-  } = config;
-  const isRunning = config.isProcessRunning ?? defaultIsProcessRunning;
-  const options = { logger: logger2, onCaptureException, isProcessRunning: isRunning, lockRetryMs, lockMaxRetries };
-  const activeLockFiles = new Set;
-  async function withFileLockInstance(filePath, fn) {
-    let retries = 0;
-    while (!await acquireFileLock(filePath, isRunning, options, activeLockFiles)) {
-      if (++retries >= lockMaxRetries) {
-        const error = new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
-        onCaptureException?.(error, FILE_LOCK_TIMEOUT, "file-lock", {
-          ...buildFileSystemProperties({ filePath, operation: "lock" }),
-          retries,
-          max_retries: lockMaxRetries,
-          retry_delay_ms: lockRetryMs
-        });
-        throw error;
-      }
-      await new Promise((resolve) => setTimeout(resolve, lockRetryMs));
-    }
-    try {
-      return await fn();
-    } finally {
-      await releaseFileLock(filePath, activeLockFiles);
-    }
-  }
-  function cleanupLockFiles() {
-    for (const lockFile of activeLockFiles) {
-      try {
-        unlinkSync(lockFile);
-      } catch {}
-    }
-    activeLockFiles.clear();
-  }
-  async function cleanupStaleLocks() {
-    if (!lockDir) {
-      logger2?.debug("No lockDir configured, skipping stale lock cleanup");
-      return;
-    }
-    try {
-      const files = await readdir2(lockDir).catch(() => []);
-      const lockFiles = files.filter((f) => f.endsWith(".lock"));
-      for (const lockFileName of lockFiles) {
-        const lockFile = `${lockDir}/${lockFileName}`;
-        try {
-          const content = await readFile(lockFile, "utf8");
-          const lockInfo = JSON.parse(content);
-          if (!isRunning(lockInfo.pid)) {
-            await unlink2(lockFile);
-            logger2?.info(`Cleaned up stale lock file: ${lockFileName} (PID ${lockInfo.pid} is dead)`);
-          }
-        } catch {
-          await unlink2(lockFile).catch(() => {});
-          logger2?.info(`Removed corrupted lock file: ${lockFileName}`);
-        }
-      }
-    } catch (error) {
-      logger2?.debug("Failed to clean up stale locks:", error);
-    }
-  }
-  return {
-    withFileLock: withFileLockInstance,
-    cleanupStaleLocks,
-    cleanupLockFiles
-  };
-}
-var noopFileLock = (_path, fn) => fn();
-function resolveFileLock(callback) {
-  return callback ?? noopFileLock;
-}
-
-// ../../packages/claude-common/src/cache/status-cache-manager.ts
-var DEFAULT_VERSION_CHECK = {
-  updateAvailable: false,
-  currentVersion: "unknown",
-  latestVersion: "unknown",
-  checkedAt: 0
-};
-var DEFAULT_SYNC_STATUS = {
-  hasError: false,
-  errorType: null,
-  errorMessage: null,
-  lastErrorAt: null,
-  lastSuccessAt: null
-};
-var DEFAULT_DEV_MODE_STATUS = {
-  active: false
-};
-var DEFAULT_STANDUP_NOTIFICATION = {
-  message: null,
-  createdAt: null,
-  expiresAt: null,
-  firstDataReadyLastShownAt: null,
-  standupRefreshedLastShownAt: null
-};
-var DEFAULT_STATUS_CACHE = {
-  versionCheck: DEFAULT_VERSION_CHECK,
-  syncStatus: DEFAULT_SYNC_STATUS,
-  devMode: DEFAULT_DEV_MODE_STATUS,
-  standupNotification: DEFAULT_STANDUP_NOTIFICATION,
-  daemonWarmingUpUntil: null
-};
-function createStatusCacheManager(config) {
-  const {
-    statusCacheFile,
-    logger: logger2,
-    notificationDurationMs = 0,
-    standupNotificationThrottleMs = 0
-  } = config;
-  const withFileLock = resolveFileLock(config.withFileLock);
-  function readStatusCache() {
-    try {
-      const data = readFileSync2(statusCacheFile, "utf-8");
-      const parsed = JSON.parse(data);
-      if (parsed.updateAvailable !== undefined && !parsed.versionCheck) {
-        logger2?.info("Migrating old update-check.json format to new status-cache.json format");
-        const migrated = {
-          versionCheck: {
-            updateAvailable: parsed.updateAvailable ?? false,
-            currentVersion: parsed.currentVersion ?? "unknown",
-            latestVersion: parsed.latestVersion ?? "unknown",
-            checkedAt: parsed.checkedAt ?? 0
-          },
-          syncStatus: DEFAULT_SYNC_STATUS,
-          devMode: DEFAULT_DEV_MODE_STATUS,
-          standupNotification: DEFAULT_STANDUP_NOTIFICATION,
-          daemonWarmingUpUntil: null
-        };
-        return migrated;
-      }
-      return {
-        versionCheck: {
-          ...DEFAULT_VERSION_CHECK,
-          ...parsed.versionCheck
-        },
-        syncStatus: {
-          ...DEFAULT_SYNC_STATUS,
-          ...parsed.syncStatus
-        },
-        devMode: {
-          ...DEFAULT_DEV_MODE_STATUS,
-          ...parsed.devMode
-        },
-        standupNotification: {
-          ...DEFAULT_STANDUP_NOTIFICATION,
-          ...parsed.standupNotification
-        },
-        daemonWarmingUpUntil: parsed.daemonWarmingUpUntil ?? null,
-        lastUpdate: parsed.lastUpdate ?? undefined
-      };
-    } catch (error) {
-      if (error.code === "ENOENT") {
-        logger2?.debug("Status cache file does not exist, using defaults");
-      } else {
-        logger2?.warn("Failed to read status cache file, using defaults", error);
-      }
-      return DEFAULT_STATUS_CACHE;
-    }
-  }
-  async function writeVersionCheck(check) {
-    try {
-      await withFileLock(statusCacheFile, async () => {
-        const currentCache = readStatusCache();
-        const updatedCache = {
-          ...currentCache,
-          versionCheck: check
-        };
-        writeFileSync(statusCacheFile, JSON.stringify(updatedCache, null, 2), "utf-8");
-        logger2?.debug("Wrote version check to status cache", {
-          updateAvailable: check.updateAvailable,
-          currentVersion: check.currentVersion,
-          latestVersion: check.latestVersion
-        });
-      });
-    } catch (error) {
-      logger2?.error("Failed to write version check to status cache", error);
-    }
-  }
-  async function writeLastUpdate(update) {
-    try {
-      await withFileLock(statusCacheFile, async () => {
-        const currentCache = readStatusCache();
-        const updatedCache = {
-          ...currentCache,
-          lastUpdate: update,
-          versionCheck: {
-            ...currentCache.versionCheck,
-            updateAvailable: false
-          }
-        };
-        writeFileSync(statusCacheFile, JSON.stringify(updatedCache, null, 2), "utf-8");
-        logger2?.debug("Wrote last update to status cache", {
-          fromVersion: update.fromVersion,
-          toVersion: update.toVersion
-        });
-      });
-    } catch (error) {
-      logger2?.error("Failed to write last update to status cache", error);
-    }
-  }
-  async function writeSyncStatus(status) {
-    try {
-      await withFileLock(statusCacheFile, async () => {
-        const currentCache = readStatusCache();
-        const updatedCache = {
-          ...currentCache,
-          syncStatus: status
-        };
-        writeFileSync(statusCacheFile, JSON.stringify(updatedCache, null, 2), "utf-8");
-        logger2?.debug("Wrote sync status to status cache", {
-          hasError: status.hasError,
-          errorType: status.errorType
-        });
-      });
-    } catch (error) {
-      logger2?.error("Failed to write sync status to status cache", error);
-    }
-  }
-  async function clearSyncError() {
-    try {
-      await withFileLock(statusCacheFile, async () => {
-        const currentCache = readStatusCache();
-        const clearedStatus = {
-          hasError: false,
-          errorType: null,
-          errorMessage: null,
-          lastErrorAt: currentCache.syncStatus.lastErrorAt,
-          lastSuccessAt: Date.now()
-        };
-        const updatedCache = {
-          ...currentCache,
-          syncStatus: clearedStatus
-        };
-        writeFileSync(statusCacheFile, JSON.stringify(updatedCache, null, 2), "utf-8");
-        logger2?.debug("Cleared sync error in status cache");
-      });
-    } catch (error) {
-      logger2?.error("Failed to clear sync error in status cache", error);
-    }
-  }
-  async function writeDevModeActive() {
-    try {
-      await withFileLock(statusCacheFile, async () => {
-        const currentCache = readStatusCache();
-        const updatedCache = {
-          ...currentCache,
-          devMode: { active: true }
-        };
-        writeFileSync(statusCacheFile, JSON.stringify(updatedCache, null, 2), "utf-8");
-        logger2?.debug("Wrote dev mode active to status cache");
-      });
-    } catch (error) {
-      logger2?.error("Failed to write dev mode to status cache", error);
-    }
-  }
-  async function writeStandupNotification(message, options) {
-    try {
-      await withFileLock(statusCacheFile, async () => {
-        const currentCache = readStatusCache();
-        const now = Date.now();
-        const updatedNotification = {
-          ...currentCache.standupNotification,
-          message,
-          createdAt: now,
-          expiresAt: now + notificationDurationMs,
-          ...options?.updateFirstDataReadyThrottle && { firstDataReadyLastShownAt: now },
-          ...options?.updateRefreshedThrottle && { standupRefreshedLastShownAt: now }
-        };
-        const updatedCache = {
-          ...currentCache,
-          standupNotification: updatedNotification
-        };
-        writeFileSync(statusCacheFile, JSON.stringify(updatedCache, null, 2), "utf-8");
-        logger2?.debug("Wrote standup notification to status cache", { message });
-      });
-    } catch (error) {
-      logger2?.error("Failed to write standup notification to status cache", error);
-    }
-  }
-  function hasActiveStandupNotification() {
-    try {
-      const cache = readStatusCache();
-      const { message, expiresAt } = cache.standupNotification;
-      return message !== null && expiresAt !== null && expiresAt > Date.now();
-    } catch (error) {
-      logger2?.warn("Failed to check for active standup notification", error);
-      return false;
-    }
-  }
-  function shouldShowFirstDataReady() {
-    try {
-      const cache = readStatusCache();
-      const { firstDataReadyLastShownAt } = cache.standupNotification;
-      if (!firstDataReadyLastShownAt)
-        return true;
-      return Date.now() - firstDataReadyLastShownAt >= standupNotificationThrottleMs;
-    } catch (error) {
-      logger2?.warn("Failed to check first data ready throttle", error);
-      return true;
-    }
-  }
-  async function writeDaemonWarmingUp(durationMs) {
-    try {
-      await withFileLock(statusCacheFile, async () => {
-        const currentCache = readStatusCache();
-        const updatedCache = {
-          ...currentCache,
-          daemonWarmingUpUntil: Date.now() + durationMs
-        };
-        writeFileSync(statusCacheFile, JSON.stringify(updatedCache, null, 2), "utf-8");
-        logger2?.debug(`Wrote daemon warmup grace period (${durationMs}ms)`);
-      });
-    } catch (error) {
-      logger2?.error("Failed to write daemon warmup to status cache", error);
-    }
-  }
-  function shouldShowStandupRefreshed() {
-    try {
-      const cache = readStatusCache();
-      const { standupRefreshedLastShownAt } = cache.standupNotification;
-      if (!standupRefreshedLastShownAt)
-        return true;
-      return Date.now() - standupRefreshedLastShownAt >= standupNotificationThrottleMs;
-    } catch (error) {
-      logger2?.warn("Failed to check standup refreshed throttle", error);
-      return true;
-    }
-  }
-  return {
-    readStatusCache,
-    writeVersionCheck,
-    writeLastUpdate,
-    writeSyncStatus,
-    clearSyncError,
-    writeDevModeActive,
-    writeStandupNotification,
-    hasActiveStandupNotification,
-    shouldShowFirstDataReady,
-    writeDaemonWarmingUp,
-    shouldShowStandupRefreshed
-  };
-}
-
 // ../../packages/analytics/src/client.ts
 class Analytics {
   providers;
@@ -1153,7 +168,7 @@ class GA4ServerProvider {
 }
 
 // ../../node_modules/.bun/posthog-node@5.11.0/node_modules/posthog-node/dist/extensions/error-tracking/modifiers/module.node.mjs
-import { dirname as dirname3, posix, sep } from "path";
+import { dirname, posix, sep } from "path";
 function createModulerModifier() {
   const getModuleFromFileName = createGetModuleFromFilename();
   return async (frames) => {
@@ -1162,7 +177,7 @@ function createModulerModifier() {
     return frames;
   };
 }
-function createGetModuleFromFilename(basePath = process.argv[1] ? dirname3(process.argv[1]) : process.cwd(), isWindows = sep === "\\") {
+function createGetModuleFromFilename(basePath = process.argv[1] ? dirname(process.argv[1]) : process.cwd(), isWindows = sep === "\\") {
   const normalizedBase = isWindows ? normalizeWindowsPath(basePath) : basePath;
   return (filename) => {
     if (!filename)
@@ -1593,23 +608,23 @@ function isPlainObject(candidate) {
 }
 
 // ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/utils/number-utils.mjs
-function clampToRange(value, min, max, logger2, fallbackValue) {
+function clampToRange(value, min, max, logger, fallbackValue) {
   if (min > max) {
-    logger2.warn("min cannot be greater than max.");
+    logger.warn("min cannot be greater than max.");
     min = max;
   }
   if (isNumber(value))
     if (value > max) {
-      logger2.warn(" cannot be  greater than max: " + max + ". Using max value instead.");
+      logger.warn(" cannot be  greater than max: " + max + ". Using max value instead.");
       return max;
     } else {
       if (!(value < min))
         return value;
-      logger2.warn(" cannot be less than min: " + min + ". Using min value instead.");
+      logger.warn(" cannot be less than min: " + min + ". Using min value instead.");
       return min;
     }
-  logger2.warn(" must be a number. using max or fallback. max: " + max + ", fallback: " + fallbackValue);
-  return clampToRange(fallbackValue || max, min, max, logger2);
+  logger.warn(" must be a number. using max or fallback. max: " + max + ", fallback: " + fallbackValue);
+  return clampToRange(fallbackValue || max, min, max, logger);
 }
 
 // ../../node_modules/.bun/@posthog+core@1.5.0/node_modules/@posthog/core/dist/utils/bucketed-rate-limiter.mjs
@@ -1790,7 +805,7 @@ var _createLogger = (prefix, maybeCall, consoleLike) => {
       consoleMethod(prefix, ...args);
     });
   }
-  const logger2 = {
+  const logger = {
     info: (...args) => {
       _log("log", ...args);
     },
@@ -1805,7 +820,7 @@ var _createLogger = (prefix, maybeCall, consoleLike) => {
     },
     createLogger: (additionalPrefix) => _createLogger(`${prefix} ${additionalPrefix}`, maybeCall, consoleLike)
   };
-  return logger2;
+  return logger;
 };
 function createLogger(prefix, maybeCall) {
   return _createLogger(prefix, maybeCall, createConsole());
@@ -4689,9 +3704,89 @@ function createServerAnalytics(configOrApiKey, legacyOptions) {
   return new Analytics(providers);
 }
 
+// ../../packages/claude-common/src/analytics/events.ts
+var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed";
+var AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed";
+var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
+var AUTH_SESSION_CLEAR_FAILED = "auth_session_clear_failed";
+var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
+var SYNC_NOT_AUTHENTICATED = "sync_not_authenticated";
+var SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed";
+var SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted";
+var SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed";
+var SYNC_NETWORK_ERROR = "sync_network_error";
+var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
+var QUEUE_WRITE_FAILED = "queue_write_failed";
+var FILE_LOCK_TIMEOUT = "file_lock_timeout";
+var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
+var NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed";
+var EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found";
+var EXTRACTION_SESSION_FAILED = "extraction_session_failed";
+var DAEMON_START_FAILED = "daemon_start_failed";
+var DAEMON_RESTART_FAILED = "daemon_restart_failed";
+var DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed";
+var API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed";
+var API_PROFILE_UPDATE_FAILED = "api_profile_update_failed";
+var API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed";
+var API_STANDUP_TEAM_FETCH_FAILED = "api_standup_team_fetch_failed";
+var API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed";
+var API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed";
+var API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed";
+var SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed";
+var SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed";
+var SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed";
+var ERROR_TYPES = [
+  AUTH_DEVICE_CODE_INITIATION_FAILED,
+  AUTH_DEVICE_CODE_POLLING_FAILED,
+  AUTH_SESSION_CLEAR_FAILED,
+  AUTH_SESSION_LOAD_FAILED,
+  AUTH_SESSION_SAVE_FAILED,
+  SYNC_NOT_AUTHENTICATED,
+  SYNC_EVENTS_UPLOAD_FAILED,
+  SYNC_EVENTS_RETRY_EXHAUSTED,
+  SYNC_CHAT_UPLOAD_FAILED,
+  SYNC_NETWORK_ERROR,
+  QUEUE_READ_CORRUPTED,
+  QUEUE_WRITE_FAILED,
+  FILE_LOCK_TIMEOUT,
+  FILE_LOCK_CREATE_FAILED,
+  NOTIFICATION_STATE_WRITE_FAILED,
+  EXTRACTION_PROJECT_DIR_NOT_FOUND,
+  EXTRACTION_SESSION_FAILED,
+  DAEMON_START_FAILED,
+  DAEMON_RESTART_FAILED,
+  DAEMON_SYNC_CYCLE_FAILED,
+  API_WORKSPACE_FETCH_FAILED,
+  API_PROFILE_UPDATE_FAILED,
+  API_PROFILE_METADATA_PREFETCH_FAILED,
+  API_STANDUP_TEAM_FETCH_FAILED,
+  API_STANDUP_PROMPT_FETCH_FAILED,
+  API_STANDUP_GENERATION_FAILED,
+  API_DATA_CONTROLS_FETCH_FAILED,
+  SUPABASE_CLIENT_INIT_FAILED,
+  SUPABASE_SESSION_READ_FAILED,
+  SUPABASE_SESSION_WRITE_FAILED
+];
+var errorTypeSet = new Set(ERROR_TYPES);
+function getErrorCategory(errorType) {
+  if (errorType.startsWith("auth_"))
+    return "auth";
+  if (errorType.startsWith("sync_"))
+    return "sync";
+  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("notification_") || errorType.startsWith("extraction_"))
+    return "filesystem";
+  if (errorType.startsWith("daemon_"))
+    return "daemon";
+  if (errorType.startsWith("api_"))
+    return "api";
+  if (errorType.startsWith("supabase_"))
+    return "supabase";
+  return "api";
+}
+
 // ../../packages/claude-common/src/analytics/index.ts
 function createAnalyticsClient(config) {
-  const { posthogApiKey, errorSourcePrefix, logger: logger2 } = config;
+  const { posthogApiKey, errorSourcePrefix, logger } = config;
   if (!posthogApiKey) {
     return null;
   }
@@ -4707,7 +3802,7 @@ function createAnalyticsClient(config) {
         };
         client.captureException(error, userId, context);
       } catch (e) {
-        logger2?.debug("Failed to capture exception in PostHog", e);
+        logger?.debug("Failed to capture exception in PostHog", e);
       }
     },
     capture(distinctId, eventName, properties) {
@@ -4718,22 +3813,210 @@ function createAnalyticsClient(config) {
           properties
         });
       } catch (e) {
-        logger2?.debug("Failed to capture event in PostHog", e);
+        logger?.debug("Failed to capture event in PostHog", e);
       }
     },
     async shutdown() {
       try {
         await client.dispose();
       } catch (e) {
-        logger2?.debug("Error shutting down analytics", e);
+        logger?.debug("Error shutting down analytics", e);
       }
     }
   };
 }
 
+// ../../packages/claude-common/src/analytics/properties.ts
+import { basename } from "node:path";
+import { release } from "node:os";
+function buildStandardProperties(version2) {
+  return {
+    plugin_version: version2,
+    node_version: process.version,
+    os_platform: process.platform,
+    os_version: release()
+  };
+}
+function buildUserProperties(session) {
+  if (!session)
+    return {};
+  return {
+    user_id: session.userId,
+    email: session.email,
+    workspace_id: session.workspaceId,
+    workspace_name: session.workspaceName
+  };
+}
+function buildFileSystemProperties(options) {
+  const anonymizedPath = options.filePath ? basename(options.filePath) : undefined;
+  return {
+    ...anonymizedPath && { file_name: anonymizedPath },
+    operation: options.operation,
+    ...options.errnoCode && { errno_code: options.errnoCode }
+  };
+}
+
+// ../../packages/claude-common/src/utils/file-lock.ts
+import { unlinkSync } from "node:fs";
+import { readdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { dirname as dirname2 } from "node:path";
+
+// ../../packages/claude-common/src/utils/fs-utils.ts
+import { mkdir, stat } from "node:fs/promises";
+async function ensureDirectory(dirPath) {
+  try {
+    await stat(dirPath);
+  } catch {
+    await mkdir(dirPath, { recursive: true, mode: 448 });
+  }
+}
+
+// ../../packages/claude-common/src/utils/file-lock.ts
+var DEFAULT_LOCK_RETRY_MS = 50;
+var DEFAULT_LOCK_MAX_RETRIES = 300;
+function defaultIsProcessRunning(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+function isLockStale(lockInfo, isRunning) {
+  return !isRunning(lockInfo.pid);
+}
+var MAX_ACQUIRE_DEPTH = 3;
+async function acquireFileLock(filePath, isRunning, options, activeLockFiles, depth = 0) {
+  if (depth >= MAX_ACQUIRE_DEPTH) {
+    options.logger?.warn(`Lock acquisition for ${filePath} exceeded max recursive depth (${MAX_ACQUIRE_DEPTH})`);
+    return false;
+  }
+  const lockFile = `${filePath}.lock`;
+  const lockInfo = {
+    pid: process.pid,
+    timestamp: Date.now()
+  };
+  try {
+    await ensureDirectory(dirname2(lockFile));
+    await writeFile(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
+    activeLockFiles?.add(lockFile);
+    return true;
+  } catch (error) {
+    if (error.code !== "EEXIST") {
+      const errCode = error.code;
+      if (errCode === "ENOENT" || errCode === "EACCES") {
+        options.logger?.error(`Failed to create lock file ${lockFile}:`, error);
+        options.onCaptureException?.(error, FILE_LOCK_CREATE_FAILED, "file-lock", {
+          ...buildFileSystemProperties({
+            filePath: lockFile,
+            operation: "lock",
+            errnoCode: errCode
+          })
+        });
+      }
+      throw error;
+    }
+    try {
+      const content = await readFile(lockFile, "utf8");
+      const existingLock = JSON.parse(content);
+      if (isLockStale(existingLock, isRunning)) {
+        options.logger?.debug(`Removing stale lock for ${filePath} (PID ${existingLock.pid} is dead)`);
+        await unlink(lockFile).catch(() => {});
+        return acquireFileLock(filePath, isRunning, options, activeLockFiles, depth + 1);
+      }
+    } catch {
+      options.logger?.debug(`Lock file for ${filePath} is corrupted or unreadable, removing`);
+      await unlink(lockFile).catch(() => {});
+      return acquireFileLock(filePath, isRunning, options, activeLockFiles, depth + 1);
+    }
+    return false;
+  }
+}
+async function releaseFileLock(filePath, activeLockFiles) {
+  const lockFile = `${filePath}.lock`;
+  activeLockFiles?.delete(lockFile);
+  await unlink(lockFile).catch(() => {});
+}
+function createFileLock(config) {
+  const {
+    logger,
+    onCaptureException,
+    lockRetryMs = DEFAULT_LOCK_RETRY_MS,
+    lockMaxRetries = DEFAULT_LOCK_MAX_RETRIES,
+    lockDir
+  } = config;
+  const isRunning = config.isProcessRunning ?? defaultIsProcessRunning;
+  const options = { logger, onCaptureException, isProcessRunning: isRunning, lockRetryMs, lockMaxRetries };
+  const activeLockFiles = new Set;
+  async function withFileLockInstance(filePath, fn) {
+    let retries = 0;
+    while (!await acquireFileLock(filePath, isRunning, options, activeLockFiles)) {
+      if (++retries >= lockMaxRetries) {
+        const error = new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
+        onCaptureException?.(error, FILE_LOCK_TIMEOUT, "file-lock", {
+          ...buildFileSystemProperties({ filePath, operation: "lock" }),
+          retries,
+          max_retries: lockMaxRetries,
+          retry_delay_ms: lockRetryMs
+        });
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, lockRetryMs));
+    }
+    try {
+      return await fn();
+    } finally {
+      await releaseFileLock(filePath, activeLockFiles);
+    }
+  }
+  function cleanupLockFiles() {
+    for (const lockFile of activeLockFiles) {
+      try {
+        unlinkSync(lockFile);
+      } catch {}
+    }
+    activeLockFiles.clear();
+  }
+  async function cleanupStaleLocks() {
+    if (!lockDir) {
+      logger?.debug("No lockDir configured, skipping stale lock cleanup");
+      return;
+    }
+    try {
+      const files = await readdir(lockDir).catch(() => []);
+      const lockFiles = files.filter((f) => f.endsWith(".lock"));
+      for (const lockFileName of lockFiles) {
+        const lockFile = `${lockDir}/${lockFileName}`;
+        try {
+          const content = await readFile(lockFile, "utf8");
+          const lockInfo = JSON.parse(content);
+          if (!isRunning(lockInfo.pid)) {
+            await unlink(lockFile);
+            logger?.info(`Cleaned up stale lock file: ${lockFileName} (PID ${lockInfo.pid} is dead)`);
+          }
+        } catch {
+          await unlink(lockFile).catch(() => {});
+          logger?.info(`Removed corrupted lock file: ${lockFileName}`);
+        }
+      }
+    } catch (error) {
+      logger?.debug("Failed to clean up stale locks:", error);
+    }
+  }
+  return {
+    withFileLock: withFileLockInstance,
+    cleanupStaleLocks,
+    cleanupLockFiles
+  };
+}
+var noopFileLock = (_path, fn) => fn();
+function resolveFileLock(callback) {
+  return callback ?? noopFileLock;
+}
+
 // ../../packages/claude-common/src/auth/session-io.ts
-import { mkdir as mkdir3, readFile as readFile2, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
-import { dirname as dirname4 } from "node:path";
+import { mkdir as mkdir2, readFile as readFile2, unlink as unlink2, writeFile as writeFile2 } from "node:fs/promises";
+import { dirname as dirname3 } from "node:path";
 async function readSessionFile(filePath) {
   try {
     const content = await readFile2(filePath, "utf-8");
@@ -4746,7 +4029,7 @@ async function readSessionFile(filePath) {
   }
 }
 async function writeSessionFile(filePath, session) {
-  await mkdir3(dirname4(filePath), { recursive: true });
+  await mkdir2(dirname3(filePath), { recursive: true });
   await writeFile2(filePath, JSON.stringify(session, null, 2), {
     encoding: "utf-8",
     mode: 384
@@ -4754,7 +4037,7 @@ async function writeSessionFile(filePath, session) {
 }
 async function deleteSessionFile(filePath) {
   try {
-    await unlink3(filePath);
+    await unlink2(filePath);
   } catch (error) {
     if (error.code === "ENOENT") {
       return;
@@ -4771,7 +4054,7 @@ function isRefreshTokenExpired(session) {
 
 // ../../packages/claude-common/src/auth/session-manager.ts
 function createSessionManager(config) {
-  const { sessionFilePath, logger: logger2, onError } = config;
+  const { sessionFilePath, logger, onError } = config;
   const withFileLock = resolveFileLock(config.withFileLock);
   async function loadSession() {
     try {
@@ -4779,13 +4062,13 @@ function createSessionManager(config) {
       if (!session)
         return null;
       if (!isSessionStructureValid(session)) {
-        logger2?.warn("Invalid session structure, clearing session");
+        logger?.warn("Invalid session structure, clearing session");
         await clearSession();
         return null;
       }
       return session;
     } catch (error) {
-      logger2?.error("Failed to load session file", error);
+      logger?.error("Failed to load session file", error);
       if (error instanceof Error)
         onError?.(error, "load");
       return null;
@@ -4796,9 +4079,9 @@ function createSessionManager(config) {
       await withFileLock(sessionFilePath, async () => {
         await writeSessionFile(sessionFilePath, session);
       });
-      logger2?.info("Session saved successfully");
+      logger?.info("Session saved successfully");
     } catch (error) {
-      logger2?.error("Failed to save session", error);
+      logger?.error("Failed to save session", error);
       if (error instanceof Error)
         onError?.(error, "save");
       throw error;
@@ -4807,9 +4090,9 @@ function createSessionManager(config) {
   async function clearSession() {
     try {
       await deleteSessionFile(sessionFilePath);
-      logger2?.info("Session cleared successfully");
+      logger?.info("Session cleared successfully");
     } catch (error) {
-      logger2?.error("Failed to clear session", error);
+      logger?.error("Failed to clear session", error);
       if (error instanceof Error)
         onError?.(error, "clear");
       throw error;
@@ -4818,11 +4101,11 @@ function createSessionManager(config) {
   async function getValidSession() {
     const session = await loadSession();
     if (!session) {
-      logger2?.debug("getValidSession: No session found");
+      logger?.debug("getValidSession: No session found");
       return null;
     }
     if (isRefreshTokenExpired(session)) {
-      logger2?.warn("getValidSession: Refresh token expired, user must re-authenticate");
+      logger?.warn("getValidSession: Refresh token expired, user must re-authenticate");
       await clearSession();
       return null;
     }
@@ -4838,7 +4121,7 @@ function createSessionManager(config) {
       try {
         await updateWorkspaceInSession(current.id, current.name);
       } catch (error) {
-        logger2?.debug("Failed to update workspace name in session (non-critical)", error);
+        logger?.debug("Failed to update workspace name in session (non-critical)", error);
       }
     }
     return current.name;
@@ -4848,7 +4131,7 @@ function createSessionManager(config) {
       await withFileLock(sessionFilePath, async () => {
         const session = await readSessionFile(sessionFilePath);
         if (!session) {
-          logger2?.debug("Cannot update workspace: session file does not exist");
+          logger?.debug("Cannot update workspace: session file does not exist");
           return;
         }
         if (!isSessionStructureValid(session)) {
@@ -4858,9 +4141,9 @@ function createSessionManager(config) {
         session.workspaceName = workspaceName;
         await writeSessionFile(sessionFilePath, session);
       });
-      logger2?.info("Workspace metadata updated in session");
+      logger?.info("Workspace metadata updated in session");
     } catch (error) {
-      logger2?.error("Failed to update workspace in session", error);
+      logger?.error("Failed to update workspace in session", error);
       if (error instanceof Error)
         onError?.(error, "save");
       throw error;
@@ -4871,7 +4154,7 @@ function createSessionManager(config) {
     if (current && current.refreshToken === staleRefreshToken) {
       await clearSession();
     } else {
-      logger2?.info("Session refresh token changed on disk, skipping clear");
+      logger?.info("Session refresh token changed on disk, skipping clear");
     }
   }
   return {
@@ -4885,6 +4168,319 @@ function createSessionManager(config) {
     getSessionFilePath: () => sessionFilePath
   };
 }
+// src/utils/logger.ts
+import { appendFile } from "node:fs/promises";
+import { dirname as dirname4 } from "node:path";
+
+// ../../packages/claude-common/src/log-rotation/log-rotation.ts
+import { readdir as readdir2, unlink as unlink3 } from "node:fs/promises";
+import { join } from "node:path";
+var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
+function getDateString() {
+  return new Date().toISOString().split("T")[0];
+}
+function getDatedLogPath(logsDir, logPrefix) {
+  const dateStr = getDateString();
+  return join(logsDir, `${logPrefix}-${dateStr}.log`);
+}
+function parseDateFromFilename(filename, logPrefix) {
+  const pattern = new RegExp(`^${logPrefix}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
+  const match = filename.match(pattern);
+  if (!match) {
+    return null;
+  }
+  const date = new Date(match[1] + "T00:00:00Z");
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+function createLogRotation(config) {
+  const { logsDir, retentionDays, logger } = config;
+  const lastCleanupTime = {};
+  async function cleanupStaleLogs(logPrefix) {
+    const now = Date.now();
+    const lastCleanup = lastCleanupTime[logPrefix] || 0;
+    if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
+      return;
+    }
+    lastCleanupTime[logPrefix] = now;
+    try {
+      await ensureDirectory(logsDir);
+      const files = await readdir2(logsDir);
+      const cutoffDate = new Date(now - retentionDays * 24 * 60 * 60 * 1000);
+      for (const file of files) {
+        const fileDate = parseDateFromFilename(file, logPrefix);
+        if (fileDate && fileDate < cutoffDate) {
+          const filePath = join(logsDir, file);
+          try {
+            await unlink3(filePath);
+          } catch (error) {
+            logger?.error(`Failed to delete old log file ${file}`, error);
+          }
+        }
+      }
+    } catch (error) {
+      logger?.error("Failed to cleanup old logs", error);
+    }
+  }
+  async function forceCleanupStaleLogs(logPrefix) {
+    lastCleanupTime[logPrefix] = 0;
+    await cleanupStaleLogs(logPrefix);
+  }
+  return { cleanupStaleLogs, forceCleanupStaleLogs };
+}
+
+// src/config/constants.ts
+import { homedir } from "node:os";
+import { join as join2 } from "node:path";
+var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join2(homedir(), ".claude");
+var CLAUDE_PROJECTS_DIR = join2(CLAUDE_INSTALL_DIR, "projects");
+var CLAUDE_SETTINGS_FILE = join2(CLAUDE_INSTALL_DIR, "settings.json");
+var CLAUDE_ZEST_DIR = join2(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
+var QUEUE_DIR = join2(CLAUDE_ZEST_DIR, "queue");
+var LOGS_DIR = join2(CLAUDE_ZEST_DIR, "logs");
+var STATE_DIR = join2(CLAUDE_ZEST_DIR, "state");
+var DELETION_CACHE_DIR = join2(CLAUDE_ZEST_DIR, "cache", "deletions");
+var SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join2(CLAUDE_ZEST_DIR, "session.json");
+var SETTINGS_FILE = join2(CLAUDE_ZEST_DIR, "settings.json");
+var DAEMON_PID_FILE = join2(CLAUDE_ZEST_DIR, "daemon.pid");
+var CLAUDE_INSTANCES_FILE = join2(CLAUDE_ZEST_DIR, "claude-instances.json");
+var STATUSLINE_SCRIPT_PATH = join2(CLAUDE_ZEST_DIR, "statusline.mjs");
+var STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join2(CLAUDE_ZEST_DIR, "status-cache.json");
+var SYNC_METRICS_FILE = join2(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
+var EVENTS_QUEUE_FILE = join2(QUEUE_DIR, "events.jsonl");
+var SESSIONS_QUEUE_FILE = join2(QUEUE_DIR, "chat-sessions.jsonl");
+var MESSAGES_QUEUE_FILE = join2(QUEUE_DIR, "chat-messages.jsonl");
+var LOCK_RETRY_MS = 50;
+var LOCK_MAX_RETRIES = 300;
+var DEBOUNCE_DIR = join2(CLAUDE_ZEST_DIR, "debounce");
+var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
+var LOG_RETENTION_DAYS = 7;
+var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
+var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+var POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ";
+var CLAUDE_BUILTIN_COMMANDS = new Set([
+  "add-dir",
+  "agents",
+  "allowed-tools",
+  "android",
+  "app",
+  "autofix-pr",
+  "bashes",
+  "branch",
+  "btw",
+  "bug",
+  "checkpoint",
+  "chrome",
+  "clear",
+  "color",
+  "compact",
+  "config",
+  "context",
+  "continue",
+  "copy",
+  "cost",
+  "desktop",
+  "diff",
+  "doctor",
+  "effort",
+  "exit",
+  "export",
+  "extra-usage",
+  "fast",
+  "feedback",
+  "fork",
+  "help",
+  "hooks",
+  "ide",
+  "init",
+  "insights",
+  "install-github-app",
+  "install-slack-app",
+  "ios",
+  "keybindings",
+  "login",
+  "logout",
+  "mcp",
+  "memory",
+  "mobile",
+  "model",
+  "new",
+  "output-style",
+  "passes",
+  "permissions",
+  "plan",
+  "plugin",
+  "powerup",
+  "pr-comments",
+  "privacy-settings",
+  "quit",
+  "rc",
+  "release-notes",
+  "reload-plugins",
+  "remote-control",
+  "remote-env",
+  "rename",
+  "reset",
+  "resume",
+  "review",
+  "rewind",
+  "sandbox",
+  "schedule",
+  "security-review",
+  "settings",
+  "setup-bedrock",
+  "skills",
+  "stats",
+  "status",
+  "statusline",
+  "stickers",
+  "tasks",
+  "teleport",
+  "terminal-setup",
+  "theme",
+  "todos",
+  "tp",
+  "ultraplan",
+  "upgrade",
+  "usage",
+  "vim",
+  "voice",
+  "web-setup"
+]);
+var EXCLUDED_COMMAND_PATTERNS = [
+  new RegExp(`^\\/(${[...CLAUDE_BUILTIN_COMMANDS].join("|")})\\b`, "i"),
+  /^\/zest[^:\s]*:/i,
+  /<command-name>\/zest[^<]*<\/command-name>/i,
+  /node\s+.*\/dist\/commands\/.*-cli\.js/i
+];
+var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
+var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+var DAEMON_WARMUP_GRACE_MS = 3 * 1000;
+var NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
+var STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
+var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
+
+// src/log-rotation/log-rotation.ts
+function getDatedLogPath2(logPrefix) {
+  return getDatedLogPath(LOGS_DIR, logPrefix);
+}
+var logRotation = createLogRotation({
+  logsDir: LOGS_DIR,
+  retentionDays: LOG_RETENTION_DAYS
+});
+var { cleanupStaleLogs, forceCleanupStaleLogs } = logRotation;
+
+// src/utils/fs-utils.ts
+import { mkdir as mkdir3, stat as stat2 } from "node:fs/promises";
+async function ensureDirectory2(dirPath) {
+  try {
+    await stat2(dirPath);
+  } catch {
+    await mkdir3(dirPath, { recursive: true, mode: 448 });
+  }
+}
+
+// src/utils/logger.ts
+class Logger {
+  minLevel = "info";
+  logPrefix;
+  levels = {
+    debug: 0,
+    info: 1,
+    warn: 2,
+    error: 3
+  };
+  constructor(logPrefix = "plugin") {
+    this.logPrefix = logPrefix;
+  }
+  setLevel(level) {
+    this.minLevel = level;
+  }
+  async writeToFile(message) {
+    try {
+      const logFilePath = getDatedLogPath2(this.logPrefix);
+      await ensureDirectory2(dirname4(logFilePath));
+      const timestamp = new Date().toISOString();
+      await appendFile(logFilePath, `[${timestamp}] ${message}
+`, "utf-8");
+      cleanupStaleLogs(this.logPrefix);
+    } catch (error) {
+      console.error("Failed to write to log file:", error);
+    }
+  }
+  shouldLog(level) {
+    return this.levels[level] >= this.levels[this.minLevel];
+  }
+  debug(message, ...args) {
+    if (this.shouldLog("debug")) {
+      this.writeToFile(`DEBUG: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  info(message, ...args) {
+    if (this.shouldLog("info")) {
+      this.writeToFile(`INFO: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  warn(message, ...args) {
+    if (this.shouldLog("warn")) {
+      console.warn(`[Zest:Warn] ${message}`, ...args);
+      this.writeToFile(`WARN: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  error(message, error) {
+    if (this.shouldLog("error")) {
+      console.error(`[Zest:Error] ${message}`);
+      this.writeToFile(`ERROR: ${message} ${error instanceof Error ? error.stack : JSON.stringify(error)}`);
+    }
+  }
+}
+var logger = new Logger;
+
+// src/utils/plugin-version.ts
+import { readFileSync } from "node:fs";
+import { join as join3 } from "node:path";
+function getPluginVersion() {
+  try {
+    const marketplacePluginPath = join3(CLAUDE_INSTALL_DIR, "plugins", "marketplaces", "zest-marketplace", "zest", ".claude-plugin", "plugin.json");
+    const pluginJson = JSON.parse(readFileSync(marketplacePluginPath, "utf-8"));
+    if (pluginJson.version && typeof pluginJson.version === "string") {
+      logger.debug("Read plugin version from marketplace plugin.json", {
+        version: pluginJson.version
+      });
+      return pluginJson.version;
+    }
+    logger.warn("Version field not found in marketplace plugin.json");
+    return "unknown";
+  } catch (error) {
+    logger.warn("Failed to read plugin version from marketplace plugin.json", error);
+    return "unknown";
+  }
+}
+// src/utils/daemon-manager.ts
+import { dirname as dirname5, join as join4 } from "node:path";
+import { fileURLToPath } from "node:url";
+var DAEMON_RESTART_LOCK = join4(CLAUDE_ZEST_DIR, "daemon-restart.lock");
+var __filename2 = fileURLToPath(import.meta.url);
+var __dirname2 = dirname5(__filename2);
+function isProcessRunning(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// src/utils/file-lock.ts
+var fileLock = createFileLock({
+  logger,
+  onCaptureException: captureException,
+  isProcessRunning,
+  lockRetryMs: LOCK_RETRY_MS,
+  lockMaxRetries: LOCK_MAX_RETRIES,
+  lockDir: QUEUE_DIR
+});
+var { withFileLock, cleanupStaleLocks, cleanupLockFiles } = fileLock;
 
 // src/auth/session-manager.ts
 var ERROR_OPERATION_MAP = {
@@ -4958,130 +4554,19 @@ async function captureException(error, errorType, errorSource, additionalPropert
     logger.debug("Failed to capture exception in PostHog", e);
   }
 }
-// src/utils/daemon-manager.ts
-import { dirname as dirname5, join as join4 } from "node:path";
-import { fileURLToPath } from "node:url";
-var DAEMON_RESTART_LOCK = join4(CLAUDE_ZEST_DIR, "daemon-restart.lock");
-var __filename2 = fileURLToPath(import.meta.url);
-var __dirname2 = dirname5(__filename2);
-function isProcessRunning(pid) {
+async function shutdownAnalytics() {
   try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// src/utils/file-lock.ts
-var fileLock = createFileLock({
-  logger,
-  onCaptureException: captureException,
-  isProcessRunning,
-  lockRetryMs: LOCK_RETRY_MS,
-  lockMaxRetries: LOCK_MAX_RETRIES,
-  lockDir: QUEUE_DIR
-});
-var { withFileLock, cleanupStaleLocks, cleanupLockFiles } = fileLock;
-
-// src/utils/status-cache-manager.ts
-var statusCacheManager = createStatusCacheManager({
-  statusCacheFile: STATUS_CACHE_FILE,
-  logger,
-  withFileLock,
-  notificationDurationMs: NOTIFICATION_DURATION_MS,
-  standupNotificationThrottleMs: STANDUP_NOTIFICATION_THROTTLE_MS
-});
-var {
-  readStatusCache,
-  writeVersionCheck,
-  writeLastUpdate,
-  writeSyncStatus,
-  clearSyncError,
-  writeDevModeActive,
-  writeStandupNotification,
-  hasActiveStandupNotification,
-  shouldShowFirstDataReady,
-  writeDaemonWarmingUp,
-  shouldShowStandupRefreshed
-} = statusCacheManager;
-
-// src/utils/session-startup.ts
-async function getFileHash(filePath) {
-  try {
-    const content = await readFile3(filePath);
-    return createHash("sha256").update(content).digest("hex");
-  } catch {
-    return null;
-  }
-}
-async function ensureStatuslineScript() {
-  try {
-    const __dirname3 = dirname6(fileURLToPath2(import.meta.url));
-    const sourceStatusline = join5(__dirname3, "..", "statusline", "statusline-cli.js");
-    const targetStatusline = STATUSLINE_SCRIPT_PATH;
-    await ensureDirectory(CLAUDE_ZEST_DIR);
-    try {
-      await stat3(sourceStatusline);
-    } catch (error) {
-      logger.error("Statusline source script not found", {
-        expectedPath: sourceStatusline,
-        error
-      });
-      throw new Error(`Statusline script not found at ${sourceStatusline}`);
-    }
-    const sourceHash = await getFileHash(sourceStatusline);
-    const targetHash = await getFileHash(targetStatusline);
-    const shouldCopy = sourceHash !== targetHash;
-    if (shouldCopy) {
-      await copyFile(sourceStatusline, targetStatusline);
-      logger.debug("Statusline script copied", {
-        source: sourceStatusline,
-        target: STATUSLINE_SCRIPT_PATH,
-        sourceHash,
-        targetHash: targetHash || "not-found"
-      });
-    } else {
-      logger.debug("Statusline script up to date, skipping copy");
+    if (analyticsClient) {
+      await analyticsClient.shutdown();
+      analyticsClient = null;
+      logger.debug("Analytics client shut down successfully");
     }
   } catch (error) {
-    logger.warn("Failed to copy statusline script", error);
-  }
-}
-async function checkAndCachePluginUpdates() {
-  try {
-    await ensureDirectory(CLAUDE_ZEST_DIR);
-    const updateCheckResult = await checkForUpdates();
-    await writeVersionCheck({
-      updateAvailable: updateCheckResult.updateAvailable,
-      currentVersion: updateCheckResult.currentVersion,
-      latestVersion: updateCheckResult.latestVersion,
-      checkedAt: Date.now()
-    });
-    if (updateCheckResult.error) {
-      if (updateCheckResult.error.includes("not configured")) {
-        logger.debug("Version checking disabled - marketplace URL not configured");
-      } else {
-        logger.warn("Version check failed", {
-          error: updateCheckResult.error,
-          currentVersion: updateCheckResult.currentVersion
-        });
-      }
-    } else if (updateCheckResult.updateAvailable) {
-      logger.info("Plugin update available - will show in statusline", {
-        currentVersion: updateCheckResult.currentVersion,
-        latestVersion: updateCheckResult.latestVersion
-      });
-    } else {
-      logger.info("Plugin is up-to-date", {
-        version: updateCheckResult.currentVersion
-      });
-    }
-  } catch (error) {
-    logger.error("Unexpected error during version check", error);
+    logger.debug("Error shutting down analytics client", error);
   }
 }
 export {
-  ensureStatuslineScript,
-  checkAndCachePluginUpdates
+  shutdownAnalytics,
+  getAnalyticsClient,
+  captureException
 };
