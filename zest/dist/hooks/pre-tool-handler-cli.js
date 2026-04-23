@@ -31,7 +31,7 @@ async function ensureDirectory(dirPath) {
 }
 var init_fs_utils = () => {};
 
-// ../../packages/claude-common/src/utils/fs-utils.ts
+// ../../packages/plugin-common/src/utils/fs-utils.ts
 import { mkdir as mkdir2, stat as stat3 } from "node:fs/promises";
 async function ensureDirectory2(dirPath) {
   try {
@@ -42,7 +42,7 @@ async function ensureDirectory2(dirPath) {
 }
 var init_fs_utils2 = () => {};
 
-// ../../packages/claude-common/src/log-rotation/log-rotation.ts
+// ../../packages/plugin-common/src/log-rotation/log-rotation.ts
 import { readdir as readdir2, unlink } from "node:fs/promises";
 import { join } from "node:path";
 function getDateString() {
@@ -105,7 +105,7 @@ var init_log_rotation = __esm(() => {
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join as join2 } from "node:path";
-var CLAUDE_INSTALL_DIR, CLAUDE_DIR_SEPARATOR_PATTERN, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DEBOUNCE_WINDOW_MS = 500, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MIN_MESSAGES_PER_SESSION = 3, STALE_SESSION_AGE_MS, POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", CLAUDE_BUILTIN_COMMANDS, EXCLUDED_COMMAND_PATTERNS, UPDATE_CHECK_CACHE_TTL_MS, DAEMON_INACTIVITY_TIMEOUT_MS, DAEMON_WARMUP_GRACE_MS, NOTIFICATION_DURATION_MS, STANDUP_NOTIFICATION_THROTTLE_MS, SYNC_METRICS_RETENTION_MS;
+var CLAUDE_INSTALL_DIR, CLAUDE_DIR_SEPARATOR_PATTERN, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DEBOUNCE_WINDOW_MS = 500, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MIN_MESSAGES_PER_SESSION = 3, STALE_SESSION_AGE_MS, MAX_QUEUE_SIZE_EVENTS = 5000, MAX_QUEUE_SIZE_SESSIONS = 500, MAX_QUEUE_SIZE_MESSAGES = 1e4, POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", CLAUDE_BUILTIN_COMMANDS, EXCLUDED_COMMAND_PATTERNS, UPDATE_CHECK_CACHE_TTL_MS, DAEMON_INACTIVITY_TIMEOUT_MS, DAEMON_WARMUP_GRACE_MS, NOTIFICATION_DURATION_MS, STANDUP_NOTIFICATION_THROTTLE_MS, SYNC_METRICS_RETENTION_MS;
 var init_constants = __esm(() => {
   CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join2(homedir(), ".claude");
   CLAUDE_DIR_SEPARATOR_PATTERN = /[\\/:.\s_]/g;
@@ -14225,7 +14225,8 @@ var UserSettingsSchema = exports_external.object({
   respectGitignore: exports_external.boolean(),
   logLevel: exports_external.enum(["debug", "info", "warn", "error"]),
   excludedFolders: exports_external.array(exports_external.string()).default([]),
-  privacy: PrivacySettingsSchema.optional()
+  privacy: PrivacySettingsSchema.optional(),
+  notificationsEnabled: exports_external.boolean().default(false)
 });
 var DEFAULT_SETTINGS = {
   enableRemotePersistence: true,
@@ -14233,7 +14234,8 @@ var DEFAULT_SETTINGS = {
   respectGitignore: true,
   logLevel: "info",
   excludedFolders: [],
-  privacy: DEFAULT_PRIVACY_SETTINGS
+  privacy: DEFAULT_PRIVACY_SETTINGS,
+  notificationsEnabled: false
 };
 async function loadSettings() {
   try {
@@ -14256,12 +14258,12 @@ init_constants();
 import { readdir as readdir4, readFile as readFile5, rm, stat as stat4, unlink as unlink4, writeFile as writeFile4 } from "node:fs/promises";
 import { join as join5 } from "node:path";
 
-// ../../packages/claude-common/src/utils/file-lock.ts
+// ../../packages/plugin-common/src/utils/file-lock.ts
 import { unlinkSync } from "node:fs";
 import { readdir as readdir3, readFile as readFile3, unlink as unlink2, writeFile as writeFile2 } from "node:fs/promises";
 import { dirname as dirname2 } from "node:path";
 
-// ../../packages/claude-common/src/analytics/events.ts
+// ../../packages/plugin-common/src/analytics/events.ts
 var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed";
 var AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed";
 var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
@@ -14272,11 +14274,17 @@ var SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed";
 var SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted";
 var SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed";
 var SYNC_NETWORK_ERROR = "sync_network_error";
+var SYNC_SERVER_OVERLOAD = "sync_server_overload";
+var SYNC_DATA_ERROR = "sync_data_error";
+var SYNC_AUTH_ERROR = "sync_auth_error";
 var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
 var QUEUE_WRITE_FAILED = "queue_write_failed";
 var FILE_LOCK_TIMEOUT = "file_lock_timeout";
 var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
 var NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed";
+var QUEUE_CAP_EVICTION = "queue_cap_eviction";
+var SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped";
+var SYNC_DRAIN_THROTTLED = "sync_drain_throttled";
 var EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found";
 var EXTRACTION_SESSION_FAILED = "extraction_session_failed";
 var DAEMON_START_FAILED = "daemon_start_failed";
@@ -14303,8 +14311,14 @@ var ERROR_TYPES = [
   SYNC_EVENTS_RETRY_EXHAUSTED,
   SYNC_CHAT_UPLOAD_FAILED,
   SYNC_NETWORK_ERROR,
+  SYNC_SERVER_OVERLOAD,
+  SYNC_DATA_ERROR,
+  SYNC_AUTH_ERROR,
   QUEUE_READ_CORRUPTED,
   QUEUE_WRITE_FAILED,
+  QUEUE_CAP_EVICTION,
+  SYNC_STALE_EVENTS_DROPPED,
+  SYNC_DRAIN_THROTTLED,
   FILE_LOCK_TIMEOUT,
   FILE_LOCK_CREATE_FAILED,
   NOTIFICATION_STATE_WRITE_FAILED,
@@ -14341,9 +14355,9 @@ function getErrorCategory(errorType) {
   return "api";
 }
 
-// ../../packages/claude-common/src/analytics/properties.ts
-import { basename } from "node:path";
+// ../../packages/plugin-common/src/analytics/properties.ts
 import { release } from "node:os";
+import { basename } from "node:path";
 function buildStandardProperties(version2) {
   return {
     plugin_version: version2,
@@ -14371,7 +14385,7 @@ function buildFileSystemProperties(options) {
   };
 }
 
-// ../../packages/claude-common/src/utils/file-lock.ts
+// ../../packages/plugin-common/src/utils/file-lock.ts
 init_fs_utils2();
 var DEFAULT_LOCK_RETRY_MS = 50;
 var DEFAULT_LOCK_MAX_RETRIES = 300;
@@ -18206,7 +18220,7 @@ function createServerAnalytics(configOrApiKey, legacyOptions) {
   return new Analytics(providers);
 }
 
-// ../../packages/claude-common/src/analytics/index.ts
+// ../../packages/plugin-common/src/analytics/index.ts
 function createAnalyticsClient(config2) {
   const { posthogApiKey, errorSourcePrefix, logger: logger2 } = config2;
   if (!posthogApiKey) {
@@ -18248,7 +18262,7 @@ function createAnalyticsClient(config2) {
   };
 }
 
-// ../../packages/claude-common/src/auth/session-io.ts
+// ../../packages/plugin-common/src/auth/session-io.ts
 import { mkdir as mkdir3, readFile as readFile4, unlink as unlink3, writeFile as writeFile3 } from "node:fs/promises";
 import { dirname as dirname4 } from "node:path";
 async function readSessionFile(filePath) {
@@ -18286,7 +18300,7 @@ function isRefreshTokenExpired(session) {
   return Boolean(session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now());
 }
 
-// ../../packages/claude-common/src/auth/session-manager.ts
+// ../../packages/plugin-common/src/auth/session-manager.ts
 function createSessionManager(config2) {
   const { sessionFilePath, logger: logger2, onError } = config2;
   const withFileLock = resolveFileLock(config2.withFileLock);
@@ -18584,7 +18598,7 @@ init_deletion_cache();
 // src/utils/extraction-helpers.ts
 import { realpath, stat as stat6 } from "node:fs/promises";
 import { basename as basename2, join as join8 } from "node:path";
-// ../../packages/claude-common/src/supabase/utils/string-utils.ts
+// ../../packages/plugin-common/src/supabase/utils/string-utils.ts
 function toWellFormed(str) {
   return str.toWellFormed?.() ?? str;
 }
@@ -19493,7 +19507,7 @@ function getPrivacyManager() {
 // src/utils/extraction-helpers.ts
 init_logger();
 
-// ../../packages/claude-common/src/queue/queue-manager.ts
+// ../../packages/plugin-common/src/queue/queue-manager.ts
 import { appendFile as appendFile2, readFile as readFile7, unlink as unlink5, writeFile as writeFile6 } from "node:fs/promises";
 import { dirname as dirname6 } from "node:path";
 init_fs_utils2();
@@ -19506,6 +19520,7 @@ function createQueueManager(config2) {
     privacyManager,
     onCaptureException
   } = config2;
+  const maxQueueSizeMap = config2.maxQueueSize;
   const withFileLock2 = resolveFileLock(config2.withFileLock);
   async function readJsonl(filePath) {
     try {
@@ -19710,10 +19725,34 @@ function createQueueManager(config2) {
   }
   async function appendItem(queueFile, item, isDuplicate) {
     await withFileLock2(queueFile, async () => {
+      let existingItems;
       if (isDuplicate) {
-        const existingItems = await readJsonl(queueFile);
+        existingItems = await readJsonl(queueFile);
         if (isDuplicate(existingItems, item)) {
           logger2?.debug(`Skipping duplicate item in ${queueFile}`);
+          return;
+        }
+      }
+      const cap = maxQueueSizeMap?.get(queueFile);
+      if (cap && cap > 0) {
+        const currentItems = existingItems ?? await readJsonl(queueFile);
+        if (currentItems.length >= cap) {
+          const targetSize = Math.floor(cap * 0.9);
+          const itemsToEvict = currentItems.length - targetSize;
+          const trimmed = currentItems.slice(itemsToEvict);
+          await ensureDirectory2(dirname6(queueFile));
+          const content = [...trimmed, item].map((i) => JSON.stringify(i, sanitizingReplacer)).join(`
+`) + `
+`;
+          await writeFile6(queueFile, content, "utf8");
+          logger2?.warn(`Queue cap reached for ${queueFile}: evicted ${itemsToEvict} oldest items (${currentItems.length} → ${trimmed.length + 1})`);
+          onCaptureException?.(new Error(`Queue cap reached: evicted ${itemsToEvict} oldest items`), QUEUE_CAP_EVICTION, "queue-manager", {
+            evicted_count: itemsToEvict,
+            queue_size_before: currentItems.length,
+            queue_size_after: trimmed.length + 1,
+            cap,
+            filePath: queueFile
+          });
           return;
         }
       }
@@ -19817,10 +19856,15 @@ var queueManager = createQueueManager({
   logger,
   privacyManager: getPrivacyManager(),
   onCaptureException: captureException,
-  withFileLock
+  withFileLock,
+  maxQueueSize: new Map([
+    [EVENTS_QUEUE_FILE, MAX_QUEUE_SIZE_EVENTS],
+    [SESSIONS_QUEUE_FILE, MAX_QUEUE_SIZE_SESSIONS],
+    [MESSAGES_QUEUE_FILE, MAX_QUEUE_SIZE_MESSAGES]
+  ])
 });
 
-// ../../packages/claude-common/src/state/state-manager.ts
+// ../../packages/plugin-common/src/state/state-manager.ts
 import { readFile as readFile8, writeFile as writeFile7 } from "node:fs/promises";
 import { join as join7 } from "node:path";
 init_fs_utils2();

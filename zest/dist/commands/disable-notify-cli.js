@@ -13,213 +13,6 @@ var __export = (target, all) => {
       set: __exportSetter.bind(all, name)
     });
 };
-var __esm = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
-
-// src/config/constants.ts
-var exports_constants = {};
-__export(exports_constants, {
-  ZEST_SESSION_NAMESPACE: () => ZEST_SESSION_NAMESPACE,
-  WEB_APP_URL: () => WEB_APP_URL,
-  VERSION_CHECK_TIMEOUT_MS: () => VERSION_CHECK_TIMEOUT_MS,
-  UPDATE_CHECK_CACHE_TTL_MS: () => UPDATE_CHECK_CACHE_TTL_MS,
-  SYNC_METRICS_RETENTION_MS: () => SYNC_METRICS_RETENTION_MS,
-  SYNC_METRICS_FILE: () => SYNC_METRICS_FILE,
-  SYNC_INTERVAL_MS: () => SYNC_INTERVAL_MS,
-  SUPABASE_URL: () => SUPABASE_URL,
-  SUPABASE_ANON_KEY: () => SUPABASE_ANON_KEY,
-  STATUS_CACHE_FILE: () => STATUS_CACHE_FILE,
-  STATUSLINE_SCRIPT_PATH: () => STATUSLINE_SCRIPT_PATH,
-  STATE_DIR: () => STATE_DIR,
-  STANDUP_NOTIFICATION_THROTTLE_MS: () => STANDUP_NOTIFICATION_THROTTLE_MS,
-  STALE_SESSION_AGE_MS: () => STALE_SESSION_AGE_MS,
-  SOURCE: () => SOURCE,
-  SETTINGS_FILE: () => SETTINGS_FILE,
-  SESSION_FILE: () => SESSION_FILE,
-  SESSIONS_QUEUE_FILE: () => SESSIONS_QUEUE_FILE,
-  RETRY_BACKOFF_MS: () => RETRY_BACKOFF_MS,
-  QUEUE_DIR: () => QUEUE_DIR,
-  PROACTIVE_REFRESH_THRESHOLD_MS: () => PROACTIVE_REFRESH_THRESHOLD_MS,
-  POSTHOG_API_KEY: () => POSTHOG_API_KEY,
-  PLATFORM: () => PLATFORM,
-  NOTIFICATION_DURATION_MS: () => NOTIFICATION_DURATION_MS,
-  MIN_SESSION_TITLE_LENGTH: () => MIN_SESSION_TITLE_LENGTH,
-  MIN_MESSAGES_PER_SESSION: () => MIN_MESSAGES_PER_SESSION,
-  MESSAGES_QUEUE_FILE: () => MESSAGES_QUEUE_FILE,
-  MAX_SESSION_TITLE_LENGTH: () => MAX_SESSION_TITLE_LENGTH,
-  MAX_SESSIONS_PER_CYCLE: () => MAX_SESSIONS_PER_CYCLE,
-  MAX_RETRY_ATTEMPTS: () => MAX_RETRY_ATTEMPTS,
-  MAX_QUEUE_SIZE_SESSIONS: () => MAX_QUEUE_SIZE_SESSIONS,
-  MAX_QUEUE_SIZE_MESSAGES: () => MAX_QUEUE_SIZE_MESSAGES,
-  MAX_QUEUE_SIZE_EVENTS: () => MAX_QUEUE_SIZE_EVENTS,
-  MAX_MESSAGES_PER_CYCLE: () => MAX_MESSAGES_PER_CYCLE,
-  MAX_EVENT_AGE_DAYS: () => MAX_EVENT_AGE_DAYS,
-  MAX_EVENTS_PER_CYCLE: () => MAX_EVENTS_PER_CYCLE,
-  MAX_DIFF_SIZE_BYTES: () => MAX_DIFF_SIZE_BYTES,
-  MAX_CONTENT_PREVIEW_LENGTH: () => MAX_CONTENT_PREVIEW_LENGTH,
-  MARKETPLACE_PLUGIN_JSON_URL: () => MARKETPLACE_PLUGIN_JSON_URL,
-  LOG_RETENTION_DAYS: () => LOG_RETENTION_DAYS,
-  LOGS_DIR: () => LOGS_DIR,
-  LOCK_RETRY_MS: () => LOCK_RETRY_MS,
-  LOCK_MAX_RETRIES: () => LOCK_MAX_RETRIES,
-  FIRST_DATA_THRESHOLD_MESSAGES: () => FIRST_DATA_THRESHOLD_MESSAGES,
-  EXCLUDED_COMMAND_PATTERNS: () => EXCLUDED_COMMAND_PATTERNS,
-  EVENTS_QUEUE_FILE: () => EVENTS_QUEUE_FILE,
-  DELETION_CACHE_TTL_MS: () => DELETION_CACHE_TTL_MS,
-  DELETION_CACHE_DIR: () => DELETION_CACHE_DIR,
-  DELAYED_EXTRACTION_MAX_WAIT_MS: () => DELAYED_EXTRACTION_MAX_WAIT_MS,
-  DELAYED_EXTRACTION_INITIAL_DELAY_MS: () => DELAYED_EXTRACTION_INITIAL_DELAY_MS,
-  DELAYED_EXTRACTION_CHECK_INTERVAL_MS: () => DELAYED_EXTRACTION_CHECK_INTERVAL_MS,
-  DEFAULT_STANDUP_MODEL: () => DEFAULT_STANDUP_MODEL,
-  DEBOUNCE_WINDOW_MS: () => DEBOUNCE_WINDOW_MS,
-  DEBOUNCE_TRAILING_MS: () => DEBOUNCE_TRAILING_MS,
-  DEBOUNCE_DIR: () => DEBOUNCE_DIR,
-  DAEMON_WARMUP_GRACE_MS: () => DAEMON_WARMUP_GRACE_MS,
-  DAEMON_PID_FILE: () => DAEMON_PID_FILE,
-  DAEMON_INACTIVITY_TIMEOUT_MS: () => DAEMON_INACTIVITY_TIMEOUT_MS,
-  DAEMON_FRESH_PID_THRESHOLD_MS: () => DAEMON_FRESH_PID_THRESHOLD_MS,
-  CLIENT_ID: () => CLIENT_ID,
-  CLAUDE_ZEST_DIR: () => CLAUDE_ZEST_DIR,
-  CLAUDE_SETTINGS_FILE: () => CLAUDE_SETTINGS_FILE,
-  CLAUDE_PROJECTS_DIR: () => CLAUDE_PROJECTS_DIR,
-  CLAUDE_INSTANCES_FILE: () => CLAUDE_INSTANCES_FILE,
-  CLAUDE_INSTALL_DIR: () => CLAUDE_INSTALL_DIR,
-  CLAUDE_DIR_SEPARATOR_PATTERN: () => CLAUDE_DIR_SEPARATOR_PATTERN,
-  CLAUDE_BUILTIN_COMMANDS: () => CLAUDE_BUILTIN_COMMANDS
-});
-import { homedir } from "node:os";
-import { join } from "node:path";
-var CLAUDE_INSTALL_DIR, CLAUDE_DIR_SEPARATOR_PATTERN, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, PLATFORM = "terminal", SOURCE = "claude-code", CLIENT_ID = "claude-cli", SYNC_INTERVAL_MS = 60000, MAX_RETRY_ATTEMPTS = 3, RETRY_BACKOFF_MS = 5000, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DEBOUNCE_WINDOW_MS = 500, DEBOUNCE_TRAILING_MS = 300, DELAYED_EXTRACTION_INITIAL_DELAY_MS = 500, DELAYED_EXTRACTION_MAX_WAIT_MS = 1e4, DELAYED_EXTRACTION_CHECK_INTERVAL_MS = 300, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MAX_CONTENT_PREVIEW_LENGTH = 1000, MAX_SESSION_TITLE_LENGTH = 100, MIN_SESSION_TITLE_LENGTH = 3, MIN_MESSAGES_PER_SESSION = 3, STALE_SESSION_AGE_MS, MAX_QUEUE_SIZE_EVENTS = 5000, MAX_QUEUE_SIZE_SESSIONS = 500, MAX_QUEUE_SIZE_MESSAGES = 1e4, MAX_EVENT_AGE_DAYS = 7, MAX_EVENTS_PER_CYCLE = 500, MAX_SESSIONS_PER_CYCLE = 50, MAX_MESSAGES_PER_CYCLE = 1000, WEB_APP_URL = "https://app.meetzest.com", SUPABASE_URL = "https://fnnlebrtmlxxjwdvngck.supabase.co", SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubmxlYnJ0bWx4eGp3ZHZuZ2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MzA3MjYsImV4cCI6MjA3MjMwNjcyNn0.0IE3HCY_DiyyALdewbRn1vkedwzDW27NQMQ28V6j4Dk", POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", CLAUDE_BUILTIN_COMMANDS, EXCLUDED_COMMAND_PATTERNS, ZEST_SESSION_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341", MARKETPLACE_PLUGIN_JSON_URL = "https://raw.githubusercontent.com/Winding-Labs/zest-claude/refs/heads/main/zest/.claude-plugin/plugin.json", VERSION_CHECK_TIMEOUT_MS = 5000, UPDATE_CHECK_CACHE_TTL_MS, DAEMON_FRESH_PID_THRESHOLD_MS = 2000, DAEMON_INACTIVITY_TIMEOUT_MS, DAEMON_WARMUP_GRACE_MS, NOTIFICATION_DURATION_MS, FIRST_DATA_THRESHOLD_MESSAGES = 5, STANDUP_NOTIFICATION_THROTTLE_MS, SYNC_METRICS_RETENTION_MS, DEFAULT_STANDUP_MODEL = "anthropic/claude-opus-4-5";
-var init_constants = __esm(() => {
-  CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
-  CLAUDE_DIR_SEPARATOR_PATTERN = /[\\/:.\s_]/g;
-  CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
-  CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
-  CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
-  QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
-  LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
-  STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
-  DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-  SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
-  SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
-  DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
-  CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
-  STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
-  STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
-  SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
-  EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
-  SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
-  MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
-  DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
-  DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
-  PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
-  MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
-  STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-  CLAUDE_BUILTIN_COMMANDS = new Set([
-    "add-dir",
-    "agents",
-    "allowed-tools",
-    "android",
-    "app",
-    "autofix-pr",
-    "bashes",
-    "branch",
-    "btw",
-    "bug",
-    "checkpoint",
-    "chrome",
-    "clear",
-    "color",
-    "compact",
-    "config",
-    "context",
-    "continue",
-    "copy",
-    "cost",
-    "desktop",
-    "diff",
-    "doctor",
-    "effort",
-    "exit",
-    "export",
-    "extra-usage",
-    "fast",
-    "feedback",
-    "fork",
-    "help",
-    "hooks",
-    "ide",
-    "init",
-    "insights",
-    "install-github-app",
-    "install-slack-app",
-    "ios",
-    "keybindings",
-    "login",
-    "logout",
-    "mcp",
-    "memory",
-    "mobile",
-    "model",
-    "new",
-    "output-style",
-    "passes",
-    "permissions",
-    "plan",
-    "plugin",
-    "powerup",
-    "pr-comments",
-    "privacy-settings",
-    "quit",
-    "rc",
-    "release-notes",
-    "reload-plugins",
-    "remote-control",
-    "remote-env",
-    "rename",
-    "reset",
-    "resume",
-    "review",
-    "rewind",
-    "sandbox",
-    "schedule",
-    "security-review",
-    "settings",
-    "setup-bedrock",
-    "skills",
-    "stats",
-    "status",
-    "statusline",
-    "stickers",
-    "tasks",
-    "teleport",
-    "terminal-setup",
-    "theme",
-    "todos",
-    "tp",
-    "ultraplan",
-    "upgrade",
-    "usage",
-    "vim",
-    "voice",
-    "web-setup"
-  ]);
-  EXCLUDED_COMMAND_PATTERNS = [
-    new RegExp(`^\\/(${[...CLAUDE_BUILTIN_COMMANDS].join("|")})\\b`, "i"),
-    /^\/zest[^:\s]*:/i,
-    /<command-name>\/zest[^<]*<\/command-name>/i,
-    /node\s+.*\/dist\/commands\/.*-cli\.js/i
-  ];
-  UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
-  DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
-  DAEMON_WARMUP_GRACE_MS = 3 * 1000;
-  NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
-  STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
-  SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
-});
-
-// src/commands/enable-statusline-cli.ts
-init_constants();
-import { existsSync } from "node:fs";
 
 // src/config/settings.ts
 import { readFile, writeFile } from "node:fs/promises";
@@ -13038,7 +12831,7 @@ import { dirname } from "node:path";
 
 // ../../packages/plugin-common/src/log-rotation/log-rotation.ts
 import { readdir, unlink } from "node:fs/promises";
-import { join as join2 } from "node:path";
+import { join } from "node:path";
 
 // ../../packages/plugin-common/src/utils/fs-utils.ts
 import { mkdir as mkdir2, stat as stat2 } from "node:fs/promises";
@@ -13057,7 +12850,7 @@ function getDateString() {
 }
 function getDatedLogPath(logsDir, logPrefix) {
   const dateStr = getDateString();
-  return join2(logsDir, `${logPrefix}-${dateStr}.log`);
+  return join(logsDir, `${logPrefix}-${dateStr}.log`);
 }
 function parseDateFromFilename(filename, logPrefix) {
   const pattern = new RegExp(`^${logPrefix}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
@@ -13085,7 +12878,7 @@ function createLogRotation(config2) {
       for (const file2 of files) {
         const fileDate = parseDateFromFilename(file2, logPrefix);
         if (fileDate && fileDate < cutoffDate) {
-          const filePath = join2(logsDir, file2);
+          const filePath = join(logsDir, file2);
           try {
             await unlink(filePath);
           } catch (error46) {
@@ -13104,8 +12897,136 @@ function createLogRotation(config2) {
   return { cleanupStaleLogs, forceCleanupStaleLogs };
 }
 
+// src/config/constants.ts
+import { homedir } from "node:os";
+import { join as join2 } from "node:path";
+var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join2(homedir(), ".claude");
+var CLAUDE_PROJECTS_DIR = join2(CLAUDE_INSTALL_DIR, "projects");
+var CLAUDE_SETTINGS_FILE = join2(CLAUDE_INSTALL_DIR, "settings.json");
+var CLAUDE_ZEST_DIR = join2(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
+var QUEUE_DIR = join2(CLAUDE_ZEST_DIR, "queue");
+var LOGS_DIR = join2(CLAUDE_ZEST_DIR, "logs");
+var STATE_DIR = join2(CLAUDE_ZEST_DIR, "state");
+var DELETION_CACHE_DIR = join2(CLAUDE_ZEST_DIR, "cache", "deletions");
+var SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join2(CLAUDE_ZEST_DIR, "session.json");
+var SETTINGS_FILE = join2(CLAUDE_ZEST_DIR, "settings.json");
+var DAEMON_PID_FILE = join2(CLAUDE_ZEST_DIR, "daemon.pid");
+var CLAUDE_INSTANCES_FILE = join2(CLAUDE_ZEST_DIR, "claude-instances.json");
+var STATUSLINE_SCRIPT_PATH = join2(CLAUDE_ZEST_DIR, "statusline.mjs");
+var STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join2(CLAUDE_ZEST_DIR, "status-cache.json");
+var SYNC_METRICS_FILE = join2(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
+var EVENTS_QUEUE_FILE = join2(QUEUE_DIR, "events.jsonl");
+var SESSIONS_QUEUE_FILE = join2(QUEUE_DIR, "chat-sessions.jsonl");
+var MESSAGES_QUEUE_FILE = join2(QUEUE_DIR, "chat-messages.jsonl");
+var DEBOUNCE_DIR = join2(CLAUDE_ZEST_DIR, "debounce");
+var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
+var LOG_RETENTION_DAYS = 7;
+var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
+var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+var CLAUDE_BUILTIN_COMMANDS = new Set([
+  "add-dir",
+  "agents",
+  "allowed-tools",
+  "android",
+  "app",
+  "autofix-pr",
+  "bashes",
+  "branch",
+  "btw",
+  "bug",
+  "checkpoint",
+  "chrome",
+  "clear",
+  "color",
+  "compact",
+  "config",
+  "context",
+  "continue",
+  "copy",
+  "cost",
+  "desktop",
+  "diff",
+  "doctor",
+  "effort",
+  "exit",
+  "export",
+  "extra-usage",
+  "fast",
+  "feedback",
+  "fork",
+  "help",
+  "hooks",
+  "ide",
+  "init",
+  "insights",
+  "install-github-app",
+  "install-slack-app",
+  "ios",
+  "keybindings",
+  "login",
+  "logout",
+  "mcp",
+  "memory",
+  "mobile",
+  "model",
+  "new",
+  "output-style",
+  "passes",
+  "permissions",
+  "plan",
+  "plugin",
+  "powerup",
+  "pr-comments",
+  "privacy-settings",
+  "quit",
+  "rc",
+  "release-notes",
+  "reload-plugins",
+  "remote-control",
+  "remote-env",
+  "rename",
+  "reset",
+  "resume",
+  "review",
+  "rewind",
+  "sandbox",
+  "schedule",
+  "security-review",
+  "settings",
+  "setup-bedrock",
+  "skills",
+  "stats",
+  "status",
+  "statusline",
+  "stickers",
+  "tasks",
+  "teleport",
+  "terminal-setup",
+  "theme",
+  "todos",
+  "tp",
+  "ultraplan",
+  "upgrade",
+  "usage",
+  "vim",
+  "voice",
+  "web-setup"
+]);
+var EXCLUDED_COMMAND_PATTERNS = [
+  new RegExp(`^\\/(${[...CLAUDE_BUILTIN_COMMANDS].join("|")})\\b`, "i"),
+  /^\/zest[^:\s]*:/i,
+  /<command-name>\/zest[^<]*<\/command-name>/i,
+  /node\s+.*\/dist\/commands\/.*-cli\.js/i
+];
+var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
+var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+var DAEMON_WARMUP_GRACE_MS = 3 * 1000;
+var NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
+var STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
+var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
+
 // src/log-rotation/log-rotation.ts
-init_constants();
 function getDatedLogPath2(logPrefix) {
   return getDatedLogPath(LOGS_DIR, logPrefix);
 }
@@ -13172,7 +13093,6 @@ class Logger {
 var logger = new Logger;
 
 // src/config/settings.ts
-init_constants();
 var UserSettingsSchema = exports_external.object({
   enableRemotePersistence: exports_external.boolean(),
   excludePatterns: exports_external.array(exports_external.string()),
@@ -13215,173 +13135,21 @@ async function saveSettings(settings) {
   await writeFile(SETTINGS_FILE, JSON.stringify(result.data, null, 2), "utf-8");
 }
 
-// src/utils/claude-settings-manager.ts
-init_constants();
-import { readFile as readFile2, writeFile as writeFile2 } from "node:fs/promises";
-async function readClaudeSettings() {
-  try {
-    const content = await readFile2(CLAUDE_SETTINGS_FILE, "utf-8");
-    const settings = JSON.parse(content);
-    logger.debug("Claude settings read successfully", { path: CLAUDE_SETTINGS_FILE });
-    return settings;
-  } catch (error46) {
-    if (error46.code === "ENOENT") {
-      logger.debug("Claude settings file does not exist", { path: CLAUDE_SETTINGS_FILE });
-      return null;
-    }
-    logger.error("Failed to read Claude settings", {
-      path: CLAUDE_SETTINGS_FILE,
-      error: error46 instanceof Error ? error46.message : String(error46)
-    });
-    throw error46;
-  }
-}
-async function writeClaudeSettings(settings) {
-  try {
-    await ensureDirectory(CLAUDE_INSTALL_DIR);
-    const existingSettings = await readClaudeSettings() || {};
-    const mergedSettings = { ...existingSettings, ...settings };
-    await writeFile2(CLAUDE_SETTINGS_FILE, JSON.stringify(mergedSettings, null, 2), "utf-8");
-    logger.info("Claude settings updated successfully", {
-      path: CLAUDE_SETTINGS_FILE,
-      updatedKeys: Object.keys(settings)
-    });
-  } catch (error46) {
-    logger.error("Failed to write Claude settings", {
-      path: CLAUDE_SETTINGS_FILE,
-      error: error46 instanceof Error ? error46.message : String(error46)
-    });
-    throw error46;
-  }
-}
-async function hasStatusLineConfigured() {
-  try {
-    const settings = await readClaudeSettings();
-    const hasStatusLine = settings?.statusLine !== undefined;
-    logger.debug("Status line configuration check", { hasStatusLine });
-    return hasStatusLine;
-  } catch (error46) {
-    logger.warn("Error checking status line configuration", error46);
-    return false;
-  }
-}
-async function getStatusLineConfig() {
-  try {
-    const settings = await readClaudeSettings();
-    const statusLineConfig = settings?.statusLine || null;
-    logger.debug("Status line config retrieved", { config: statusLineConfig });
-    return statusLineConfig;
-  } catch (error46) {
-    logger.warn("Error getting status line configuration", error46);
-    return null;
-  }
-}
-async function setZestStatusLine() {
-  const { STATUSLINE_SCRIPT_PATH: STATUSLINE_SCRIPT_PATH2 } = await Promise.resolve().then(() => (init_constants(), exports_constants));
-  const zestStatusLineConfig = {
-    statusLine: {
-      type: "command",
-      command: STATUSLINE_SCRIPT_PATH2
-    }
-  };
-  try {
-    await writeClaudeSettings(zestStatusLineConfig);
-    logger.info("Zest status line configured successfully", {
-      scriptPath: STATUSLINE_SCRIPT_PATH2
-    });
-  } catch (error46) {
-    logger.error("Failed to set Zest status line", error46);
-    throw error46;
-  }
-}
-
-// src/commands/enable-statusline-cli.ts
-async function enableNotifications() {
-  const settings = await loadSettings();
-  if (!settings.notificationsEnabled) {
-    settings.notificationsEnabled = true;
-    await saveSettings(settings);
-  }
-}
+// src/commands/disable-notify-cli.ts
 async function main() {
   try {
-    const args = process.argv.slice(2);
-    const forceMode = args.includes("--force") || args.includes("-f");
-    if (!existsSync(STATUSLINE_SCRIPT_PATH)) {
-      console.log("❌ Statusline script not found at: " + STATUSLINE_SCRIPT_PATH);
-      console.log("   Start a new Claude session to install it automatically");
-      process.exit(1);
-    }
-    console.log("\uD83D\uDD04 Configuring status line...");
-    console.log("");
-    const hasStatusLine = await hasStatusLineConfigured();
-    const currentConfig = await getStatusLineConfig();
-    const isZestStatusLine = currentConfig?.command === STATUSLINE_SCRIPT_PATH;
-    if (isZestStatusLine) {
-      await enableNotifications();
-      console.log("✅ Zest status line already configured!");
-      console.log("");
-      console.log("✨ Notifications enabled. You'll see:");
-      console.log("   • \uD83C\uDF4B Plugin update notifications");
-      console.log("   • \uD83D\uDD34 Chat history sync errors");
-      console.log("   • \uD83D\uDD27 Dev mode indicator");
+    const settings = await loadSettings();
+    if (!settings.notificationsEnabled) {
+      console.log("✓ Zest notifications are already disabled");
       return;
     }
-    if (hasStatusLine && currentConfig) {
-      console.log("⚠️  Status line currently configured:");
-      console.log("   Current: " + currentConfig.command);
-      console.log("");
-      if (!forceMode) {
-        console.log("⚠️  Zest status line will REPLACE your current configuration");
-        console.log("");
-        console.log("\uD83D\uDCA1 To proceed:");
-        console.log("   1. Respond that you want to update the status line");
-        console.log("   2. Or run: /zest:enable-statusline --force");
-        console.log("");
-        console.log("✨ After update, you'll see:");
-        console.log("   • \uD83C\uDF4B Plugin update notifications");
-        console.log("   • \uD83D\uDD34 Chat history sync errors");
-        console.log("   • \uD83D\uDD27 Dev mode indicator");
-        return;
-      }
-      console.log("\uD83D\uDD04 Replacing with Zest status line...");
-      console.log("   (Your previous configuration will be overwritten)");
-      console.log("");
-      await setZestStatusLine();
-      await enableNotifications();
-      console.log("✅ Status line replaced successfully!");
-      console.log("");
-      console.log("✨ Notifications enabled. You'll now see:");
-      console.log("   • \uD83C\uDF4B Plugin update notifications");
-      console.log("   • \uD83D\uDD34 Chat history sync errors");
-      console.log("   • \uD83D\uDD27 Dev mode indicator");
-      console.log("");
-      console.log("\uD83D\uDCDD Configuration saved to: ~/.claude/settings.json");
-      console.log("\uD83D\uDD04 Restart Claude Code for changes to take effect");
-      return;
-    }
-    await setZestStatusLine();
-    await enableNotifications();
-    console.log("✅ Status line configured successfully!");
-    console.log("");
-    console.log("✨ Notifications enabled. You'll now see:");
-    console.log("   • \uD83C\uDF4B Plugin update notifications");
-    console.log("   • \uD83D\uDD34 Chat history sync errors");
-    console.log("   • \uD83D\uDD27 Dev mode indicator");
-    console.log("");
-    console.log("\uD83D\uDCDD Configuration saved to: ~/.claude/settings.json");
-    console.log("\uD83D\uDD04 Restart Claude Code for changes to take effect");
+    settings.notificationsEnabled = false;
+    await saveSettings(settings);
+    console.log("✅ Zest notifications disabled");
+    console.log("   Status line will be silent (use /zest:enable-notify to re-enable)");
   } catch (error46) {
-    logger.error("Failed to configure status line", error46);
-    console.error("");
-    console.error("❌ Failed to configure status line");
-    console.error("   Error: " + (error46 instanceof Error ? error46.message : "Unknown error"));
-    console.error("");
-    console.error("\uD83D\uDCA1 You can try:");
-    console.error("   1. Check permissions on: ~/.claude/settings.json");
-    console.error("   2. Verify Claude Code is not running (close all instances)");
-    console.error("   3. Manually edit ~/.claude/settings.json and add:");
-    console.error(`      "statusLine": { "type": "command", "command": "${STATUSLINE_SCRIPT_PATH}" }`);
+    logger.error("Failed to disable notifications", error46);
+    console.error("❌ Failed to disable notifications: " + (error46 instanceof Error ? error46.message : "Unknown error"));
     process.exit(1);
   }
 }

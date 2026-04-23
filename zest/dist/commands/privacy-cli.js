@@ -13848,11 +13848,11 @@ async function ensureDirectory(dirPath) {
 import { appendFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
-// ../../packages/claude-common/src/log-rotation/log-rotation.ts
+// ../../packages/plugin-common/src/log-rotation/log-rotation.ts
 import { readdir as readdir2, unlink } from "node:fs/promises";
 import { join } from "node:path";
 
-// ../../packages/claude-common/src/utils/fs-utils.ts
+// ../../packages/plugin-common/src/utils/fs-utils.ts
 import { mkdir as mkdir2, stat as stat3 } from "node:fs/promises";
 async function ensureDirectory2(dirPath) {
   try {
@@ -13862,7 +13862,7 @@ async function ensureDirectory2(dirPath) {
   }
 }
 
-// ../../packages/claude-common/src/log-rotation/log-rotation.ts
+// ../../packages/plugin-common/src/log-rotation/log-rotation.ts
 var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
 function getDateString() {
   return new Date().toISOString().split("T")[0];
@@ -14118,7 +14118,8 @@ var UserSettingsSchema = exports_external.object({
   respectGitignore: exports_external.boolean(),
   logLevel: exports_external.enum(["debug", "info", "warn", "error"]),
   excludedFolders: exports_external.array(exports_external.string()).default([]),
-  privacy: PrivacySettingsSchema.optional()
+  privacy: PrivacySettingsSchema.optional(),
+  notificationsEnabled: exports_external.boolean().default(false)
 });
 var DEFAULT_SETTINGS = {
   enableRemotePersistence: true,
@@ -14126,7 +14127,8 @@ var DEFAULT_SETTINGS = {
   respectGitignore: true,
   logLevel: "info",
   excludedFolders: [],
-  privacy: DEFAULT_PRIVACY_SETTINGS
+  privacy: DEFAULT_PRIVACY_SETTINGS,
+  notificationsEnabled: false
 };
 async function loadSettings() {
   try {

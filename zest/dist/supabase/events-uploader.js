@@ -13,7 +13,7 @@ var __export = (target, all) => {
     });
 };
 
-// ../../packages/claude-common/src/sync/events-uploader.ts
+// ../../packages/plugin-common/src/sync/events-uploader.ts
 import { fileURLToPath } from "node:url";
 // ../../packages/utils/src/date-range.ts
 var PERIOD_TYPE_LABELS = {
@@ -94,128 +94,10 @@ function sanitizeNullBytes(value) {
   }
   return value;
 }
-// ../../packages/claude-common/src/analytics/events.ts
-var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed";
-var AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed";
-var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
-var AUTH_SESSION_CLEAR_FAILED = "auth_session_clear_failed";
-var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
-var SYNC_NOT_AUTHENTICATED = "sync_not_authenticated";
-var SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed";
-var SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted";
-var SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed";
-var SYNC_NETWORK_ERROR = "sync_network_error";
-var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
-var QUEUE_WRITE_FAILED = "queue_write_failed";
-var FILE_LOCK_TIMEOUT = "file_lock_timeout";
-var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
-var NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed";
-var EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found";
-var EXTRACTION_SESSION_FAILED = "extraction_session_failed";
-var DAEMON_START_FAILED = "daemon_start_failed";
-var DAEMON_RESTART_FAILED = "daemon_restart_failed";
-var DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed";
-var API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed";
-var API_PROFILE_UPDATE_FAILED = "api_profile_update_failed";
-var API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed";
-var API_STANDUP_TEAM_FETCH_FAILED = "api_standup_team_fetch_failed";
-var API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed";
-var API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed";
-var API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed";
-var SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed";
-var SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed";
-var SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed";
-var ERROR_TYPES = [
-  AUTH_DEVICE_CODE_INITIATION_FAILED,
-  AUTH_DEVICE_CODE_POLLING_FAILED,
-  AUTH_SESSION_CLEAR_FAILED,
-  AUTH_SESSION_LOAD_FAILED,
-  AUTH_SESSION_SAVE_FAILED,
-  SYNC_NOT_AUTHENTICATED,
-  SYNC_EVENTS_UPLOAD_FAILED,
-  SYNC_EVENTS_RETRY_EXHAUSTED,
-  SYNC_CHAT_UPLOAD_FAILED,
-  SYNC_NETWORK_ERROR,
-  QUEUE_READ_CORRUPTED,
-  QUEUE_WRITE_FAILED,
-  FILE_LOCK_TIMEOUT,
-  FILE_LOCK_CREATE_FAILED,
-  NOTIFICATION_STATE_WRITE_FAILED,
-  EXTRACTION_PROJECT_DIR_NOT_FOUND,
-  EXTRACTION_SESSION_FAILED,
-  DAEMON_START_FAILED,
-  DAEMON_RESTART_FAILED,
-  DAEMON_SYNC_CYCLE_FAILED,
-  API_WORKSPACE_FETCH_FAILED,
-  API_PROFILE_UPDATE_FAILED,
-  API_PROFILE_METADATA_PREFETCH_FAILED,
-  API_STANDUP_TEAM_FETCH_FAILED,
-  API_STANDUP_PROMPT_FETCH_FAILED,
-  API_STANDUP_GENERATION_FAILED,
-  API_DATA_CONTROLS_FETCH_FAILED,
-  SUPABASE_CLIENT_INIT_FAILED,
-  SUPABASE_SESSION_READ_FAILED,
-  SUPABASE_SESSION_WRITE_FAILED
-];
-var errorTypeSet = new Set(ERROR_TYPES);
-function getErrorCategory(errorType) {
-  if (errorType.startsWith("auth_"))
-    return "auth";
-  if (errorType.startsWith("sync_"))
-    return "sync";
-  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("notification_") || errorType.startsWith("extraction_"))
-    return "filesystem";
-  if (errorType.startsWith("daemon_"))
-    return "daemon";
-  if (errorType.startsWith("api_"))
-    return "api";
-  if (errorType.startsWith("supabase_"))
-    return "supabase";
-  return "api";
-}
-
-// ../../packages/claude-common/src/analytics/properties.ts
-import { basename } from "node:path";
-import { release } from "node:os";
-function buildStandardProperties(version) {
-  return {
-    plugin_version: version,
-    node_version: process.version,
-    os_platform: process.platform,
-    os_version: release()
-  };
-}
-function buildUserProperties(session) {
-  if (!session)
-    return {};
-  return {
-    user_id: session.userId,
-    email: session.email,
-    workspace_id: session.workspaceId,
-    workspace_name: session.workspaceName
-  };
-}
-function buildSyncProperties(options) {
-  return {
-    ...options.syncErrorType && { sync_error_type: options.syncErrorType },
-    ...options.eventsAttempted !== undefined && { events_attempted: options.eventsAttempted },
-    ...options.sessionsAttempted !== undefined && {
-      sessions_attempted: options.sessionsAttempted
-    },
-    ...options.messagesAttempted !== undefined && {
-      messages_attempted: options.messagesAttempted
-    },
-    ...options.retryAttempt !== undefined && { retry_attempt: options.retryAttempt }
-  };
-}
-function buildFileSystemProperties(options) {
-  const anonymizedPath = options.filePath ? basename(options.filePath) : undefined;
-  return {
-    ...anonymizedPath && { file_name: anonymizedPath },
-    operation: options.operation,
-    ...options.errnoCode && { errno_code: options.errnoCode }
-  };
-}
+// ../../packages/utils/src/git-utils.ts
+import { exec, execSync } from "node:child_process";
+import * as path from "node:path";
+import { promisify } from "node:util";
 // ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/sha1.js
 import { createHash } from "node:crypto";
 function sha1(bytes) {
@@ -299,21 +181,7 @@ function v5(value, namespace, buf, offset) {
 v5.DNS = DNS;
 v5.URL = URL2;
 var v5_default = v5;
-// ../../packages/claude-common/src/supabase/utils/session-id-normalizer.ts
-function normalizeSessionId(sessionId, namespace) {
-  if (validate_default(sessionId)) {
-    return sessionId;
-  }
-  return v5_default(sessionId, namespace);
-}
-// ../../packages/claude-common/src/supabase/utils/string-utils.ts
-function toWellFormed(str) {
-  return str.toWellFormed?.() ?? str;
-}
 // ../../packages/utils/src/git-utils.ts
-import { exec, execSync } from "node:child_process";
-import * as path from "node:path";
-import { promisify } from "node:util";
 var execAsync = promisify(exec);
 var UNKNOWN_PROJECT = {
   projectId: "unknown",
@@ -398,7 +266,303 @@ function getProjectInfoSync(workingDirectory) {
     return UNKNOWN_PROJECT;
   }
 }
-// ../../packages/claude-common/src/sync/events-uploader.ts
+// ../../packages/plugin-common/src/analytics/events.ts
+var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed";
+var AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed";
+var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
+var AUTH_SESSION_CLEAR_FAILED = "auth_session_clear_failed";
+var AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed";
+var SYNC_NOT_AUTHENTICATED = "sync_not_authenticated";
+var SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed";
+var SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted";
+var SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed";
+var SYNC_NETWORK_ERROR = "sync_network_error";
+var SYNC_SERVER_OVERLOAD = "sync_server_overload";
+var SYNC_DATA_ERROR = "sync_data_error";
+var SYNC_AUTH_ERROR = "sync_auth_error";
+var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
+var QUEUE_WRITE_FAILED = "queue_write_failed";
+var FILE_LOCK_TIMEOUT = "file_lock_timeout";
+var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
+var NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed";
+var QUEUE_CAP_EVICTION = "queue_cap_eviction";
+var SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped";
+var SYNC_DRAIN_THROTTLED = "sync_drain_throttled";
+var EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found";
+var EXTRACTION_SESSION_FAILED = "extraction_session_failed";
+var DAEMON_START_FAILED = "daemon_start_failed";
+var DAEMON_RESTART_FAILED = "daemon_restart_failed";
+var DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed";
+var API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed";
+var API_PROFILE_UPDATE_FAILED = "api_profile_update_failed";
+var API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed";
+var API_STANDUP_TEAM_FETCH_FAILED = "api_standup_team_fetch_failed";
+var API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed";
+var API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed";
+var API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed";
+var SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed";
+var SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed";
+var SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed";
+var ERROR_TYPES = [
+  AUTH_DEVICE_CODE_INITIATION_FAILED,
+  AUTH_DEVICE_CODE_POLLING_FAILED,
+  AUTH_SESSION_CLEAR_FAILED,
+  AUTH_SESSION_LOAD_FAILED,
+  AUTH_SESSION_SAVE_FAILED,
+  SYNC_NOT_AUTHENTICATED,
+  SYNC_EVENTS_UPLOAD_FAILED,
+  SYNC_EVENTS_RETRY_EXHAUSTED,
+  SYNC_CHAT_UPLOAD_FAILED,
+  SYNC_NETWORK_ERROR,
+  SYNC_SERVER_OVERLOAD,
+  SYNC_DATA_ERROR,
+  SYNC_AUTH_ERROR,
+  QUEUE_READ_CORRUPTED,
+  QUEUE_WRITE_FAILED,
+  QUEUE_CAP_EVICTION,
+  SYNC_STALE_EVENTS_DROPPED,
+  SYNC_DRAIN_THROTTLED,
+  FILE_LOCK_TIMEOUT,
+  FILE_LOCK_CREATE_FAILED,
+  NOTIFICATION_STATE_WRITE_FAILED,
+  EXTRACTION_PROJECT_DIR_NOT_FOUND,
+  EXTRACTION_SESSION_FAILED,
+  DAEMON_START_FAILED,
+  DAEMON_RESTART_FAILED,
+  DAEMON_SYNC_CYCLE_FAILED,
+  API_WORKSPACE_FETCH_FAILED,
+  API_PROFILE_UPDATE_FAILED,
+  API_PROFILE_METADATA_PREFETCH_FAILED,
+  API_STANDUP_TEAM_FETCH_FAILED,
+  API_STANDUP_PROMPT_FETCH_FAILED,
+  API_STANDUP_GENERATION_FAILED,
+  API_DATA_CONTROLS_FETCH_FAILED,
+  SUPABASE_CLIENT_INIT_FAILED,
+  SUPABASE_SESSION_READ_FAILED,
+  SUPABASE_SESSION_WRITE_FAILED
+];
+var errorTypeSet = new Set(ERROR_TYPES);
+function getErrorCategory(errorType) {
+  if (errorType.startsWith("auth_"))
+    return "auth";
+  if (errorType.startsWith("sync_"))
+    return "sync";
+  if (errorType.startsWith("queue_") || errorType.startsWith("file_") || errorType.startsWith("notification_") || errorType.startsWith("extraction_"))
+    return "filesystem";
+  if (errorType.startsWith("daemon_"))
+    return "daemon";
+  if (errorType.startsWith("api_"))
+    return "api";
+  if (errorType.startsWith("supabase_"))
+    return "supabase";
+  return "api";
+}
+
+// ../../packages/plugin-common/src/analytics/properties.ts
+import { release } from "node:os";
+import { basename as basename2 } from "node:path";
+function buildStandardProperties(version) {
+  return {
+    plugin_version: version,
+    node_version: process.version,
+    os_platform: process.platform,
+    os_version: release()
+  };
+}
+function buildUserProperties(session) {
+  if (!session)
+    return {};
+  return {
+    user_id: session.userId,
+    email: session.email,
+    workspace_id: session.workspaceId,
+    workspace_name: session.workspaceName
+  };
+}
+function buildSyncProperties(options) {
+  return {
+    ...options.syncErrorType && { sync_error_type: options.syncErrorType },
+    ...options.eventsAttempted !== undefined && { events_attempted: options.eventsAttempted },
+    ...options.sessionsAttempted !== undefined && {
+      sessions_attempted: options.sessionsAttempted
+    },
+    ...options.messagesAttempted !== undefined && {
+      messages_attempted: options.messagesAttempted
+    },
+    ...options.retryAttempt !== undefined && { retry_attempt: options.retryAttempt }
+  };
+}
+function buildFileSystemProperties(options) {
+  const anonymizedPath = options.filePath ? basename2(options.filePath) : undefined;
+  return {
+    ...anonymizedPath && { file_name: anonymizedPath },
+    operation: options.operation,
+    ...options.errnoCode && { errno_code: options.errnoCode }
+  };
+}
+
+// ../../packages/plugin-common/src/supabase/utils/session-id-normalizer.ts
+function normalizeSessionId(sessionId, namespace) {
+  if (validate_default(sessionId)) {
+    return sessionId;
+  }
+  return v5_default(sessionId, namespace);
+}
+// ../../packages/plugin-common/src/supabase/utils/string-utils.ts
+function toWellFormed(str) {
+  return str.toWellFormed?.() ?? str;
+}
+// ../../packages/plugin-common/src/sync/error-classifier.ts
+var AUTH_ERROR_STATUSES = new Set([401, 403]);
+var DATA_ERROR_PG_CODES = new Set(["22021", "22P02", "22001"]);
+var INSUFFICIENT_PRIVILEGE_PG_CODE = "42501";
+var DATA_ERROR_PATTERNS = [
+  "unsupported unicode escape sequence",
+  "invalid byte sequence",
+  "invalid input syntax for type json",
+  "value too long for type character varying"
+];
+var NETWORK_ERRNO_CODES = new Set([
+  "ENOTFOUND",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "ENETUNREACH"
+]);
+function isServerOverload(httpStatus) {
+  return httpStatus >= 500;
+}
+function isRateLimited(httpStatus) {
+  return httpStatus === 429;
+}
+function isNetworkError(httpStatus) {
+  return httpStatus === 0;
+}
+var HTML_RESPONSE_PATTERN = /<!doctype|<html|<head/i;
+function isHtmlResponse(message) {
+  return HTML_RESPONSE_PATTERN.test(message);
+}
+function isProxyGlitch(httpStatus) {
+  return httpStatus >= 200 && httpStatus < 300;
+}
+function isAuthError(httpStatus, pgCode) {
+  return AUTH_ERROR_STATUSES.has(httpStatus) || pgCode === INSUFFICIENT_PRIVILEGE_PG_CODE;
+}
+function isDataError(message, pgCode) {
+  if (pgCode && DATA_ERROR_PG_CODES.has(pgCode)) {
+    return true;
+  }
+  const lower = message.toLowerCase();
+  return DATA_ERROR_PATTERNS.some((pattern) => lower.includes(pattern));
+}
+var RETRYABLE_CATEGORIES = new Set([
+  "unknown",
+  "network_error",
+  "server_overload",
+  "rate_limited"
+]);
+function isRetryableCategory(category) {
+  return RETRYABLE_CATEGORIES.has(category);
+}
+function classifyPostgrestError(error, httpStatus) {
+  if (isNetworkError(httpStatus))
+    return "network_error";
+  if (isHtmlResponse(error.message))
+    return "server_overload";
+  if (isRateLimited(httpStatus))
+    return "rate_limited";
+  if (isServerOverload(httpStatus))
+    return "server_overload";
+  if (isAuthError(httpStatus, error.code))
+    return "auth_error";
+  if (isProxyGlitch(httpStatus) && !error.code)
+    return "server_overload";
+  if (isDataError(error.message, error.code))
+    return "data_error";
+  return "unknown";
+}
+function classifyException(error) {
+  const message = error instanceof Error ? error.message : String(error);
+  const messageLower = message.toLowerCase();
+  const errnoCode = error?.code ?? "";
+  if (NETWORK_ERRNO_CODES.has(errnoCode))
+    return "network_error";
+  if (error instanceof TypeError && messageLower.includes("fetch"))
+    return "network_error";
+  if (messageLower.includes("network") || messageLower.includes("econnrefused") || messageLower.includes("etimedout") || messageLower.includes("timeout") || messageLower.includes("fetch")) {
+    return "network_error";
+  }
+  if (isDataError(message))
+    return "data_error";
+  return "unknown";
+}
+
+// ../../packages/plugin-common/src/sync/upsert-fallback.ts
+var FALLBACK_CHUNK_SIZE = 50;
+async function upsertWithFallback(options) {
+  const { rows, upsert, rowId, logger } = options;
+  if (rows.length === 0)
+    return { success: true, uploadedCount: 0, failedIndices: new Set };
+  const { error, status } = await upsert(rows);
+  if (!error) {
+    return { success: true, uploadedCount: rows.length, failedIndices: new Set };
+  }
+  const category = classifyPostgrestError(error, status);
+  if (category !== "data_error") {
+    return {
+      success: false,
+      uploadedCount: 0,
+      failedIndices: new Set,
+      errorCategory: category
+    };
+  }
+  let uploaded = 0;
+  const failedIndices = new Set;
+  for (let ci = 0;ci < rows.length; ci += FALLBACK_CHUNK_SIZE) {
+    const chunk = rows.slice(ci, ci + FALLBACK_CHUNK_SIZE);
+    const { error: chunkError, status: chunkStatus } = await upsert(chunk);
+    if (!chunkError) {
+      uploaded += chunk.length;
+      continue;
+    }
+    const chunkCategory = classifyPostgrestError(chunkError, chunkStatus);
+    if (chunkCategory !== "data_error") {
+      for (let j = ci;j < rows.length; j++)
+        failedIndices.add(j);
+      return {
+        success: false,
+        uploadedCount: uploaded,
+        failedIndices,
+        errorCategory: chunkCategory
+      };
+    }
+    for (let ri = 0;ri < chunk.length; ri++) {
+      const row = chunk[ri];
+      const { error: rowError, status: rowStatus } = await upsert([row]);
+      if (!rowError) {
+        uploaded++;
+        continue;
+      }
+      const rowCategory = classifyPostgrestError(rowError, rowStatus);
+      if (rowCategory !== "data_error") {
+        const globalIndex = ci + ri;
+        for (let j = globalIndex;j < rows.length; j++)
+          failedIndices.add(j);
+        return {
+          success: false,
+          uploadedCount: uploaded,
+          failedIndices,
+          errorCategory: rowCategory
+        };
+      }
+      logger?.warn?.(`Skipping row ${rowId(row)} due to data error [${rowError.code ?? "unknown"}]`);
+      failedIndices.add(ci + ri);
+    }
+  }
+  return { success: true, uploadedCount: uploaded, failedIndices };
+}
+
+// ../../packages/plugin-common/src/sync/events-uploader.ts
 var UNKNOWN_PROJECT2 = {
   projectId: "unknown",
   projectName: "unknown"
@@ -440,7 +604,9 @@ function createEventsUploader(config) {
     logger,
     readQueue,
     atomicUpdateQueue,
-    onCaptureException
+    onCaptureException,
+    maxEventAgeDays,
+    maxEventsPerCycle
   } = config;
   function transformEventForUpload(event, userId, projectInfo) {
     let normalizedPayload = event.payload;
@@ -477,9 +643,49 @@ function createEventsUploader(config) {
       if (uniqueEvents.length < queuedEvents.length) {
         logger?.info(`Deduplicated events: ${queuedEvents.length} → ${uniqueEvents.length} (removed ${queuedEvents.length - uniqueEvents.length} duplicates)`);
       }
-      logger?.info(`Uploading ${uniqueEvents.length} code digest events`);
+      let eventsToProcess = uniqueEvents;
+      if (maxEventAgeDays !== undefined && maxEventAgeDays > 0) {
+        const cutoff = new Date(Date.now() - maxEventAgeDays * 24 * 60 * 60 * 1000).toISOString();
+        const fresh = [];
+        const stale = [];
+        for (const e of uniqueEvents) {
+          if (e.timestamp && e.timestamp < cutoff) {
+            stale.push(e);
+          } else {
+            fresh.push(e);
+          }
+        }
+        if (stale.length > 0) {
+          const oldestTimestamp = stale.reduce((oldest, e) => e.timestamp && e.timestamp < oldest ? e.timestamp : oldest, stale[0].timestamp);
+          const oldestAgeDays = Math.round((Date.now() - new Date(oldestTimestamp).getTime()) / (24 * 60 * 60 * 1000));
+          logger?.info(`Dropped ${stale.length} events older than ${maxEventAgeDays} days`);
+          onCaptureException?.(new Error(`Dropped ${stale.length} stale events`), SYNC_STALE_EVENTS_DROPPED, "events-uploader", {
+            dropped_count: stale.length,
+            max_age_days: maxEventAgeDays,
+            oldest_event_age_days: oldestAgeDays
+          });
+          const staleIds = new Set(stale.map((e) => e.id).filter((id) => !!id));
+          await atomicUpdateQueue(eventsQueueFile, (current) => current.filter((e) => !e.id || !staleIds.has(e.id)));
+        }
+        eventsToProcess = fresh;
+      }
+      if (eventsToProcess.length === 0) {
+        logger?.debug("No events to upload after age eviction");
+        return { success: true, uploaded: 0 };
+      }
+      let eventsForThisCycle = eventsToProcess;
+      if (maxEventsPerCycle && eventsToProcess.length > maxEventsPerCycle) {
+        eventsForThisCycle = eventsToProcess.slice(0, maxEventsPerCycle);
+        logger?.info(`Drain throttle: uploading ${eventsForThisCycle.length} of ${eventsToProcess.length} events`);
+        onCaptureException?.(new Error(`Drain throttle active: ${eventsToProcess.length} events in queue`), SYNC_DRAIN_THROTTLED, "events-uploader", {
+          queue_size: eventsToProcess.length,
+          cycle_cap: maxEventsPerCycle,
+          queue_type: "events"
+        });
+      }
+      logger?.info(`Uploading ${eventsForThisCycle.length} code digest events`);
       const projectInfoCache = new Map;
-      for (const event of uniqueEvents) {
+      for (const event of eventsForThisCycle) {
         if (!event.workspace_folder_uri) {
           logger?.debug("Event missing workspace_folder_uri, using unknown project");
           continue;
@@ -489,74 +695,104 @@ function createEventsUploader(config) {
           projectInfoCache.set(workingDirectory, getProjectInfoSync(workingDirectory));
         }
       }
-      const eventsToUpload = uniqueEvents.map((e) => {
+      const eventsToUpload = eventsForThisCycle.map((e) => {
         const projectInfo = e.workspace_folder_uri ? projectInfoCache.get(parseFileUri(e.workspace_folder_uri)) ?? UNKNOWN_PROJECT2 : UNKNOWN_PROJECT2;
         return transformEventForUpload(e, session.userId, projectInfo);
       });
       const batchSize = 100;
       let uploadedCount = 0;
-      const successfullyUploadedIds = new Set;
+      const processedIds = new Set;
       for (let i = 0;i < eventsToUpload.length; i += batchSize) {
         const batch = eventsToUpload.slice(i, i + batchSize);
-        const batchIds = batch.map((e) => e.id).filter((id) => !!id);
-        const { error } = await supabase.from("code_digest_events").upsert(batch, { onConflict: "id" });
-        if (error) {
-          logger?.error(`Failed to upload events batch ${i / batchSize + 1}`, error);
-          onCaptureException?.(new Error(error.message), SYNC_EVENTS_UPLOAD_FAILED, "events-uploader", {
+        const batchNumber = i / batchSize + 1;
+        const result = await upsertWithFallback({
+          rows: batch,
+          upsert: (rows) => supabase.from("code_digest_events").upsert(rows, { onConflict: "id" }),
+          rowId: (row) => row.id ?? "unknown",
+          logger
+        });
+        uploadedCount += result.uploadedCount;
+        if (result.success) {
+          for (const event of batch) {
+            if (event.id)
+              processedIds.add(event.id);
+          }
+        } else {
+          for (let idx = 0;idx < batch.length; idx++) {
+            if (!result.failedIndices.has(idx)) {
+              const id = batch[idx].id;
+              if (id)
+                processedIds.add(id);
+            }
+          }
+        }
+        if (result.failedIndices.size > 0) {
+          logger?.warn(`Batch ${batchNumber}: ${result.failedIndices.size} events discarded`);
+          onCaptureException?.(new Error(`${result.failedIndices.size} events failed during fallback`), SYNC_DATA_ERROR, "events-uploader", {
             ...buildSyncProperties({
-              syncErrorType: "upload_failed",
+              syncErrorType: "data_error",
+              eventsAttempted: batch.length
+            }),
+            batch_number: batchNumber,
+            skipped: result.failedIndices.size,
+            uploaded: result.uploadedCount
+          });
+        }
+        if (!result.success) {
+          logger?.error(`Events batch ${batchNumber} failed [${result.errorCategory}]`);
+          onCaptureException?.(new Error(`Events upload failed: ${result.errorCategory}`), SYNC_EVENTS_UPLOAD_FAILED, "events-uploader", {
+            ...buildSyncProperties({
+              syncErrorType: result.errorCategory === "data_error" ? "data_error" : "upload_failed",
               eventsAttempted: eventsToUpload.length
             }),
-            batch_number: i / batchSize + 1,
+            batch_number: batchNumber,
             batch_size: batch.length,
-            uploaded_before_failure: uploadedCount
+            uploaded_before_failure: uploadedCount,
+            error_category: result.errorCategory
           });
-          if (successfullyUploadedIds.size > 0) {
-            await atomicUpdateQueue(eventsQueueFile, (currentEvents) => currentEvents.filter((e) => !e.id || !successfullyUploadedIds.has(e.id)));
-            logger?.info(`Removed ${successfullyUploadedIds.size} successfully uploaded events from queue`);
+          if (processedIds.size > 0) {
+            await atomicUpdateQueue(eventsQueueFile, (currentEvents) => currentEvents.filter((e) => !e.id || !processedIds.has(e.id)));
+            logger?.info(`Removed ${processedIds.size} processed events from queue`);
           }
-          return { success: false, uploaded: uploadedCount };
+          return { success: false, uploaded: uploadedCount, errorCategory: result.errorCategory };
         }
-        for (const id of batchIds) {
-          successfullyUploadedIds.add(id);
-        }
-        uploadedCount += batch.length;
-        logger?.debug(`✓ Uploaded batch ${i / batchSize + 1} (${batch.length} events)`);
+        logger?.debug(`✓ Uploaded batch ${batchNumber} (${batch.length} events)`);
       }
-      await atomicUpdateQueue(eventsQueueFile, (currentEvents) => currentEvents.filter((e) => !e.id || !successfullyUploadedIds.has(e.id)));
+      await atomicUpdateQueue(eventsQueueFile, (currentEvents) => currentEvents.filter((e) => !e.id || !processedIds.has(e.id)));
       logger?.info(`✓ Events upload completed: ${uploadedCount} events`);
       return { success: true, uploaded: uploadedCount };
     } catch (error) {
       logger?.error("Failed to upload events", error);
-      return { success: false, uploaded: 0 };
+      return {
+        success: false,
+        uploaded: 0,
+        errorCategory: classifyException(error)
+      };
     }
   }
   async function uploadEventsWithRetry(supabase, session, dataControls, maxRetries = 3, backoffMs = 5000) {
-    let lastError = null;
+    let lastResult = null;
     for (let attempt = 1;attempt <= maxRetries; attempt++) {
-      try {
-        const result = await uploadEvents(supabase, session, dataControls);
-        if (result.success) {
-          return result;
-        }
+      const result = await uploadEvents(supabase, session, dataControls);
+      if (result.success) {
         return result;
-      } catch (error) {
-        lastError = error;
-        logger?.warn(`Events upload attempt ${attempt}/${maxRetries} failed: ${lastError.message}`);
-        if (attempt < maxRetries) {
-          const delay = backoffMs * attempt;
-          logger?.debug(`Retrying in ${delay}ms...`);
-          await new Promise((resolve2) => setTimeout(resolve2, delay));
-        }
+      }
+      lastResult = result;
+      if (result.errorCategory && !isRetryableCategory(result.errorCategory)) {
+        return result;
+      }
+      logger?.warn(`Events upload attempt ${attempt}/${maxRetries} failed`);
+      if (attempt < maxRetries) {
+        const delay = backoffMs * attempt;
+        logger?.debug(`Retrying in ${delay}ms...`);
+        await new Promise((resolve2) => setTimeout(resolve2, delay));
       }
     }
-    logger?.error(`Events upload failed after ${maxRetries} attempts`, lastError);
-    if (lastError) {
-      onCaptureException?.(lastError, SYNC_EVENTS_RETRY_EXHAUSTED, "events-uploader", {
-        ...buildSyncProperties({ syncErrorType: "upload_failed", retryAttempt: maxRetries })
-      });
+    logger?.error(`Events upload failed after ${maxRetries} attempts`);
+    if (lastResult) {
+      onCaptureException?.(new Error(lastResult.errorCategory ?? "upload_failed"), SYNC_EVENTS_RETRY_EXHAUSTED, "events-uploader", { ...buildSyncProperties({ syncErrorType: "upload_failed", retryAttempt: maxRetries }) });
     }
-    return { success: false, uploaded: 0 };
+    return lastResult ?? { success: false, uploaded: 0 };
   }
   return { uploadEvents, uploadEventsWithRetry };
 }
@@ -2991,8 +3227,8 @@ class ErrorTracking {
       const eventMessage = await ErrorTracking.buildEventMessage(exception, hint);
       const exceptionProperties = eventMessage.properties;
       const exceptionType = exceptionProperties?.$exception_list[0]?.type ?? "Exception";
-      const isRateLimited = this._rateLimiter.consumeRateLimit(exceptionType);
-      if (isRateLimited)
+      const isRateLimited2 = this._rateLimiter.consumeRateLimit(exceptionType);
+      if (isRateLimited2)
         return void this._logger.info("Skipping exception capture because of client rate limiting.", {
           exception: exceptionType
         });
@@ -4252,7 +4488,7 @@ function createServerAnalytics(configOrApiKey, legacyOptions) {
   return new Analytics(providers);
 }
 
-// ../../packages/claude-common/src/analytics/index.ts
+// ../../packages/plugin-common/src/analytics/index.ts
 function createAnalyticsClient(config) {
   const { posthogApiKey, errorSourcePrefix, logger } = config;
   if (!posthogApiKey) {
@@ -4294,12 +4530,12 @@ function createAnalyticsClient(config) {
   };
 }
 
-// ../../packages/claude-common/src/utils/file-lock.ts
+// ../../packages/plugin-common/src/utils/file-lock.ts
 import { unlinkSync } from "node:fs";
 import { readdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { dirname as dirname2 } from "node:path";
 
-// ../../packages/claude-common/src/utils/fs-utils.ts
+// ../../packages/plugin-common/src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
 async function ensureDirectory(dirPath) {
   try {
@@ -4309,7 +4545,7 @@ async function ensureDirectory(dirPath) {
   }
 }
 
-// ../../packages/claude-common/src/utils/file-lock.ts
+// ../../packages/plugin-common/src/utils/file-lock.ts
 var DEFAULT_LOCK_RETRY_MS = 50;
 var DEFAULT_LOCK_MAX_RETRIES = 300;
 function defaultIsProcessRunning(pid) {
@@ -4452,7 +4688,7 @@ function resolveFileLock(callback) {
   return callback ?? noopFileLock;
 }
 
-// ../../packages/claude-common/src/auth/session-io.ts
+// ../../packages/plugin-common/src/auth/session-io.ts
 import { mkdir as mkdir2, readFile as readFile2, unlink as unlink2, writeFile as writeFile2 } from "node:fs/promises";
 import { dirname as dirname3 } from "node:path";
 async function readSessionFile(filePath) {
@@ -4490,7 +4726,7 @@ function isRefreshTokenExpired(session) {
   return Boolean(session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now());
 }
 
-// ../../packages/claude-common/src/auth/session-manager.ts
+// ../../packages/plugin-common/src/auth/session-manager.ts
 function createSessionManager(config) {
   const { sessionFilePath, logger, onError } = config;
   const withFileLock = resolveFileLock(config.withFileLock);
@@ -4639,6 +4875,11 @@ var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var MIN_MESSAGES_PER_SESSION = 3;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+var MAX_QUEUE_SIZE_EVENTS = 5000;
+var MAX_QUEUE_SIZE_SESSIONS = 500;
+var MAX_QUEUE_SIZE_MESSAGES = 1e4;
+var MAX_EVENT_AGE_DAYS = 7;
+var MAX_EVENTS_PER_CYCLE = 500;
 var POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ";
 var CLAUDE_BUILTIN_COMMANDS = new Set([
   "add-dir",
@@ -4751,7 +4992,7 @@ import { fileURLToPath as fileURLToPath2 } from "node:url";
 import { appendFile } from "node:fs/promises";
 import { dirname as dirname4 } from "node:path";
 
-// ../../packages/claude-common/src/log-rotation/log-rotation.ts
+// ../../packages/plugin-common/src/log-rotation/log-rotation.ts
 import { readdir as readdir2, unlink as unlink3 } from "node:fs/promises";
 import { join as join2 } from "node:path";
 var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
@@ -5000,7 +5241,7 @@ async function captureException(error, errorType, errorSource, additionalPropert
     logger.debug("Failed to capture exception in PostHog", e);
   }
 }
-// ../../packages/claude-common/src/queue/queue-manager.ts
+// ../../packages/plugin-common/src/queue/queue-manager.ts
 import { appendFile as appendFile2, readFile as readFile3, unlink as unlink4, writeFile as writeFile3 } from "node:fs/promises";
 import { dirname as dirname6 } from "node:path";
 function createQueueManager(config) {
@@ -5012,6 +5253,7 @@ function createQueueManager(config) {
     privacyManager,
     onCaptureException
   } = config;
+  const maxQueueSizeMap = config.maxQueueSize;
   const withFileLock2 = resolveFileLock(config.withFileLock);
   async function readJsonl(filePath) {
     try {
@@ -5216,10 +5458,34 @@ function createQueueManager(config) {
   }
   async function appendItem(queueFile, item, isDuplicate) {
     await withFileLock2(queueFile, async () => {
+      let existingItems;
       if (isDuplicate) {
-        const existingItems = await readJsonl(queueFile);
+        existingItems = await readJsonl(queueFile);
         if (isDuplicate(existingItems, item)) {
           logger2?.debug(`Skipping duplicate item in ${queueFile}`);
+          return;
+        }
+      }
+      const cap = maxQueueSizeMap?.get(queueFile);
+      if (cap && cap > 0) {
+        const currentItems = existingItems ?? await readJsonl(queueFile);
+        if (currentItems.length >= cap) {
+          const targetSize = Math.floor(cap * 0.9);
+          const itemsToEvict = currentItems.length - targetSize;
+          const trimmed = currentItems.slice(itemsToEvict);
+          await ensureDirectory(dirname6(queueFile));
+          const content = [...trimmed, item].map((i) => JSON.stringify(i, sanitizingReplacer)).join(`
+`) + `
+`;
+          await writeFile3(queueFile, content, "utf8");
+          logger2?.warn(`Queue cap reached for ${queueFile}: evicted ${itemsToEvict} oldest items (${currentItems.length} → ${trimmed.length + 1})`);
+          onCaptureException?.(new Error(`Queue cap reached: evicted ${itemsToEvict} oldest items`), QUEUE_CAP_EVICTION, "queue-manager", {
+            evicted_count: itemsToEvict,
+            queue_size_before: currentItems.length,
+            queue_size_after: trimmed.length + 1,
+            cap,
+            filePath: queueFile
+          });
           return;
         }
       }
@@ -19138,7 +19404,12 @@ var queueManager = createQueueManager({
   logger,
   privacyManager: getPrivacyManager(),
   onCaptureException: captureException,
-  withFileLock
+  withFileLock,
+  maxQueueSize: new Map([
+    [EVENTS_QUEUE_FILE, MAX_QUEUE_SIZE_EVENTS],
+    [SESSIONS_QUEUE_FILE, MAX_QUEUE_SIZE_SESSIONS],
+    [MESSAGES_QUEUE_FILE, MAX_QUEUE_SIZE_MESSAGES]
+  ])
 });
 var {
   readQueue,
@@ -19162,7 +19433,9 @@ var eventsUploader = createEventsUploader({
   logger,
   readQueue,
   atomicUpdateQueue,
-  onCaptureException: captureException
+  onCaptureException: captureException,
+  maxEventAgeDays: MAX_EVENT_AGE_DAYS,
+  maxEventsPerCycle: MAX_EVENTS_PER_CYCLE
 });
 var { uploadEvents, uploadEventsWithRetry } = eventsUploader;
 export {
