@@ -1,7 +1,7 @@
 // src/extractors/message-parser.ts
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
-// ../../packages/claude-common/src/supabase/utils/string-utils.ts
+// ../../packages/plugin-common/src/supabase/utils/string-utils.ts
 function toWellFormed(str) {
   return str.toWellFormed?.() ?? str;
 }
@@ -157,11 +157,11 @@ async function ensureDirectory(dirPath) {
 import { appendFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
-// ../../packages/claude-common/src/log-rotation/log-rotation.ts
+// ../../packages/plugin-common/src/log-rotation/log-rotation.ts
 import { readdir, unlink } from "node:fs/promises";
 import { join as join2 } from "node:path";
 
-// ../../packages/claude-common/src/utils/fs-utils.ts
+// ../../packages/plugin-common/src/utils/fs-utils.ts
 import { mkdir as mkdir2, stat as stat2 } from "node:fs/promises";
 async function ensureDirectory2(dirPath) {
   try {
@@ -171,7 +171,7 @@ async function ensureDirectory2(dirPath) {
   }
 }
 
-// ../../packages/claude-common/src/log-rotation/log-rotation.ts
+// ../../packages/plugin-common/src/log-rotation/log-rotation.ts
 var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
 function getDateString() {
   return new Date().toISOString().split("T")[0];

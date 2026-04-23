@@ -1,4 +1,4 @@
-// ../../packages/claude-common/src/supabase/utils/string-utils.ts
+// ../../packages/plugin-common/src/supabase/utils/string-utils.ts
 function toWellFormed(str) {
   return str.toWellFormed?.() ?? str;
 }
@@ -1123,11 +1123,11 @@ var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
 import { appendFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
-// ../../packages/claude-common/src/log-rotation/log-rotation.ts
+// ../../packages/plugin-common/src/log-rotation/log-rotation.ts
 import { readdir, unlink } from "node:fs/promises";
 import { join as join2 } from "node:path";
 
-// ../../packages/claude-common/src/utils/fs-utils.ts
+// ../../packages/plugin-common/src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
 async function ensureDirectory(dirPath) {
   try {
@@ -1137,7 +1137,7 @@ async function ensureDirectory(dirPath) {
   }
 }
 
-// ../../packages/claude-common/src/log-rotation/log-rotation.ts
+// ../../packages/plugin-common/src/log-rotation/log-rotation.ts
 var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
 function getDateString() {
   return new Date().toISOString().split("T")[0];

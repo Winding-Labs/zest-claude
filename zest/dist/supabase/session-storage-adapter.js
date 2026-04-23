@@ -17,7 +17,7 @@ var __export = (target, all) => {
 import { readFile as readFile3, unlink as unlink4, writeFile as writeFile3 } from "node:fs/promises";
 import { dirname as dirname6 } from "node:path";
 
-// ../../packages/claude-common/src/analytics/events.ts
+// ../../packages/plugin-common/src/analytics/events.ts
 var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed";
 var AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed";
 var AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed";
@@ -28,11 +28,17 @@ var SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed";
 var SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted";
 var SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed";
 var SYNC_NETWORK_ERROR = "sync_network_error";
+var SYNC_SERVER_OVERLOAD = "sync_server_overload";
+var SYNC_DATA_ERROR = "sync_data_error";
+var SYNC_AUTH_ERROR = "sync_auth_error";
 var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
 var QUEUE_WRITE_FAILED = "queue_write_failed";
 var FILE_LOCK_TIMEOUT = "file_lock_timeout";
 var FILE_LOCK_CREATE_FAILED = "file_lock_create_failed";
 var NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed";
+var QUEUE_CAP_EVICTION = "queue_cap_eviction";
+var SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped";
+var SYNC_DRAIN_THROTTLED = "sync_drain_throttled";
 var EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found";
 var EXTRACTION_SESSION_FAILED = "extraction_session_failed";
 var DAEMON_START_FAILED = "daemon_start_failed";
@@ -59,8 +65,14 @@ var ERROR_TYPES = [
   SYNC_EVENTS_RETRY_EXHAUSTED,
   SYNC_CHAT_UPLOAD_FAILED,
   SYNC_NETWORK_ERROR,
+  SYNC_SERVER_OVERLOAD,
+  SYNC_DATA_ERROR,
+  SYNC_AUTH_ERROR,
   QUEUE_READ_CORRUPTED,
   QUEUE_WRITE_FAILED,
+  QUEUE_CAP_EVICTION,
+  SYNC_STALE_EVENTS_DROPPED,
+  SYNC_DRAIN_THROTTLED,
   FILE_LOCK_TIMEOUT,
   FILE_LOCK_CREATE_FAILED,
   NOTIFICATION_STATE_WRITE_FAILED,
@@ -97,9 +109,9 @@ function getErrorCategory(errorType) {
   return "api";
 }
 
-// ../../packages/claude-common/src/analytics/properties.ts
-import { basename } from "node:path";
+// ../../packages/plugin-common/src/analytics/properties.ts
 import { release } from "node:os";
+import { basename } from "node:path";
 function buildStandardProperties(version) {
   return {
     plugin_version: version,
@@ -3818,7 +3830,7 @@ function createServerAnalytics(configOrApiKey, legacyOptions) {
   return new Analytics(providers);
 }
 
-// ../../packages/claude-common/src/analytics/index.ts
+// ../../packages/plugin-common/src/analytics/index.ts
 function createAnalyticsClient(config) {
   const { posthogApiKey, errorSourcePrefix, logger } = config;
   if (!posthogApiKey) {
@@ -3860,12 +3872,12 @@ function createAnalyticsClient(config) {
   };
 }
 
-// ../../packages/claude-common/src/utils/file-lock.ts
+// ../../packages/plugin-common/src/utils/file-lock.ts
 import { unlinkSync } from "node:fs";
 import { readdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { dirname as dirname2 } from "node:path";
 
-// ../../packages/claude-common/src/utils/fs-utils.ts
+// ../../packages/plugin-common/src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
 async function ensureDirectory(dirPath) {
   try {
@@ -3875,7 +3887,7 @@ async function ensureDirectory(dirPath) {
   }
 }
 
-// ../../packages/claude-common/src/utils/file-lock.ts
+// ../../packages/plugin-common/src/utils/file-lock.ts
 var DEFAULT_LOCK_RETRY_MS = 50;
 var DEFAULT_LOCK_MAX_RETRIES = 300;
 function defaultIsProcessRunning(pid) {
@@ -4018,7 +4030,7 @@ function resolveFileLock(callback) {
   return callback ?? noopFileLock;
 }
 
-// ../../packages/claude-common/src/auth/session-io.ts
+// ../../packages/plugin-common/src/auth/session-io.ts
 import { mkdir as mkdir2, readFile as readFile2, unlink as unlink2, writeFile as writeFile2 } from "node:fs/promises";
 import { dirname as dirname3 } from "node:path";
 async function readSessionFile(filePath) {
@@ -4056,7 +4068,7 @@ function isRefreshTokenExpired(session) {
   return Boolean(session.refreshTokenExpiresAt && session.refreshTokenExpiresAt < Date.now());
 }
 
-// ../../packages/claude-common/src/auth/session-manager.ts
+// ../../packages/plugin-common/src/auth/session-manager.ts
 function createSessionManager(config) {
   const { sessionFilePath, logger, onError } = config;
   const withFileLock = resolveFileLock(config.withFileLock);
@@ -4314,7 +4326,7 @@ import { fileURLToPath } from "node:url";
 import { appendFile } from "node:fs/promises";
 import { dirname as dirname4 } from "node:path";
 
-// ../../packages/claude-common/src/log-rotation/log-rotation.ts
+// ../../packages/plugin-common/src/log-rotation/log-rotation.ts
 import { readdir as readdir2, unlink as unlink3 } from "node:fs/promises";
 import { join as join2 } from "node:path";
 var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;

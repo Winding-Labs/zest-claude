@@ -39,12 +39,15 @@ function extractHeadingDescription(content) {
   const lines = content.split(`
 `);
   for (let i = 0;i < lines.length && i < 10; i++) {
-    const line = lines[i].trim();
+    const rawLine = lines[i];
+    if (rawLine === undefined)
+      continue;
+    const line = rawLine.trim();
     if (!line.startsWith("#"))
       continue;
     const heading = line.replace(/^#+\s*/, "");
     const separatorMatch = heading.match(/\s[—–-]\s(.+)/);
-    if (separatorMatch)
+    if (separatorMatch?.[1])
       return separatorMatch[1].trim();
     if (heading.length > 3)
       return heading;
@@ -64,7 +67,10 @@ function parseFrontmatter(content) {
   const lines = yamlBlock.split(`
 `);
   for (let i = 0;i < lines.length; i++) {
-    const parsed = parseYamlLine(lines[i]);
+    const line = lines[i];
+    if (line === undefined)
+      continue;
+    const parsed = parseYamlLine(line);
     if (!parsed)
       continue;
     const [key, value] = parsed;
@@ -72,6 +78,8 @@ function parseFrontmatter(content) {
       const continuationLines = [];
       while (i + 1 < lines.length) {
         const next = lines[i + 1];
+        if (next === undefined)
+          break;
         if (next.length > 0 && !next.startsWith(" ") && !next.startsWith("\t"))
           break;
         continuationLines.push(next.trim());
@@ -696,11 +704,11 @@ var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
 import { appendFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
-// ../../packages/claude-common/src/log-rotation/log-rotation.ts
+// ../../packages/plugin-common/src/log-rotation/log-rotation.ts
 import { readdir as readdir2, unlink } from "node:fs/promises";
 import { join as join2 } from "node:path";
 
-// ../../packages/claude-common/src/utils/fs-utils.ts
+// ../../packages/plugin-common/src/utils/fs-utils.ts
 import { mkdir, stat } from "node:fs/promises";
 async function ensureDirectory(dirPath) {
   try {
@@ -710,7 +718,7 @@ async function ensureDirectory(dirPath) {
   }
 }
 
-// ../../packages/claude-common/src/log-rotation/log-rotation.ts
+// ../../packages/plugin-common/src/log-rotation/log-rotation.ts
 var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
 function getDateString() {
   return new Date().toISOString().split("T")[0];
