@@ -113,6 +113,7 @@ var NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed";
 var QUEUE_CAP_EVICTION = "queue_cap_eviction";
 var SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped";
 var SYNC_DRAIN_THROTTLED = "sync_drain_throttled";
+var SYNC_ORPHANED_MESSAGES_DROPPED = "sync_orphaned_messages_dropped";
 var EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found";
 var EXTRACTION_SESSION_FAILED = "extraction_session_failed";
 var DAEMON_START_FAILED = "daemon_start_failed";
@@ -147,6 +148,7 @@ var ERROR_TYPES = [
   QUEUE_CAP_EVICTION,
   SYNC_STALE_EVENTS_DROPPED,
   SYNC_DRAIN_THROTTLED,
+  SYNC_ORPHANED_MESSAGES_DROPPED,
   FILE_LOCK_TIMEOUT,
   FILE_LOCK_CREATE_FAILED,
   NOTIFICATION_STATE_WRITE_FAILED,
@@ -718,6 +720,14 @@ function createChatUploader(config) {
         const { data: existingSessions, error: queryError } = await supabase.from("chat_sessions").select("id").in("id", orphanedSessionIds2);
         if (queryError) {
           const orphanedMessageIds = new Set(messagePartition.orphaned.map((m) => m.id).filter((id) => !!id));
+          const droppedSessionIds = [
+            ...new Set(messagePartition.orphaned.map((m) => m.session_id).filter(Boolean))
+          ];
+          logger?.warn("orphaned_messages_dropped_query_error", {
+            dropped_count: orphanedMessageIds.size,
+            session_ids: droppedSessionIds
+          });
+          onCaptureException?.(new Error(`Dropped ${orphanedMessageIds.size} orphaned messages due to query error`), SYNC_ORPHANED_MESSAGES_DROPPED, "chat-uploader", { dropped_count: orphanedMessageIds.size, session_ids: droppedSessionIds });
           await removeMessagesFromQueue(orphanedMessageIds);
           messagePartition.orphaned = [];
         } else {
@@ -738,6 +748,14 @@ function createChatUploader(config) {
           }
           if (invalidOrphaned.length > 0) {
             const invalidMessageIds = new Set(invalidOrphaned.map((m) => m.id).filter((id) => !!id));
+            const droppedSessionIds = [
+              ...new Set(invalidOrphaned.map((m) => m.session_id).filter(Boolean))
+            ];
+            logger?.warn("orphaned_messages_dropped_invalid", {
+              dropped_count: invalidMessageIds.size,
+              session_ids: droppedSessionIds
+            });
+            onCaptureException?.(new Error(`Dropped ${invalidMessageIds.size} orphaned messages - sessions not found`), SYNC_ORPHANED_MESSAGES_DROPPED, "chat-uploader", { dropped_count: invalidMessageIds.size, session_ids: droppedSessionIds });
             await removeMessagesFromQueue(invalidMessageIds);
           }
           messagePartition.orphaned = validOrphaned;

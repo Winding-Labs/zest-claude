@@ -121,10 +121,12 @@ __export(exports_constants, {
   DEBOUNCE_WINDOW_MS: () => DEBOUNCE_WINDOW_MS,
   DEBOUNCE_TRAILING_MS: () => DEBOUNCE_TRAILING_MS,
   DEBOUNCE_DIR: () => DEBOUNCE_DIR,
+  DEBOUNCE_COUNT_RESET_MS: () => DEBOUNCE_COUNT_RESET_MS,
   DAEMON_WARMUP_GRACE_MS: () => DAEMON_WARMUP_GRACE_MS,
   DAEMON_PID_FILE: () => DAEMON_PID_FILE,
   DAEMON_INACTIVITY_TIMEOUT_MS: () => DAEMON_INACTIVITY_TIMEOUT_MS,
   DAEMON_FRESH_PID_THRESHOLD_MS: () => DAEMON_FRESH_PID_THRESHOLD_MS,
+  CONSUMPTION_TTL_MS: () => CONSUMPTION_TTL_MS,
   CLIENT_ID: () => CLIENT_ID,
   CLAUDE_ZEST_DIR: () => CLAUDE_ZEST_DIR,
   CLAUDE_SETTINGS_FILE: () => CLAUDE_SETTINGS_FILE,
@@ -136,7 +138,7 @@ __export(exports_constants, {
 });
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_INSTALL_DIR, CLAUDE_DIR_SEPARATOR_PATTERN, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, PLATFORM = "terminal", SOURCE = "claude-code", CLIENT_ID = "claude-cli", SYNC_INTERVAL_MS = 60000, MAX_RETRY_ATTEMPTS = 3, RETRY_BACKOFF_MS = 5000, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DEBOUNCE_WINDOW_MS = 500, DEBOUNCE_TRAILING_MS = 300, DELAYED_EXTRACTION_INITIAL_DELAY_MS = 500, DELAYED_EXTRACTION_MAX_WAIT_MS = 1e4, DELAYED_EXTRACTION_CHECK_INTERVAL_MS = 300, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MAX_CONTENT_PREVIEW_LENGTH = 1000, MAX_SESSION_TITLE_LENGTH = 100, MIN_SESSION_TITLE_LENGTH = 3, MIN_MESSAGES_PER_SESSION = 3, STALE_SESSION_AGE_MS, MAX_QUEUE_SIZE_EVENTS = 5000, MAX_QUEUE_SIZE_SESSIONS = 500, MAX_QUEUE_SIZE_MESSAGES = 1e4, MAX_EVENT_AGE_DAYS = 7, MAX_EVENTS_PER_CYCLE = 500, MAX_SESSIONS_PER_CYCLE = 50, MAX_MESSAGES_PER_CYCLE = 1000, WEB_APP_URL = "https://app.meetzest.com", SUPABASE_URL = "https://fnnlebrtmlxxjwdvngck.supabase.co", SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubmxlYnJ0bWx4eGp3ZHZuZ2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MzA3MjYsImV4cCI6MjA3MjMwNjcyNn0.0IE3HCY_DiyyALdewbRn1vkedwzDW27NQMQ28V6j4Dk", POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", CLAUDE_BUILTIN_COMMANDS, EXCLUDED_COMMAND_PATTERNS, ZEST_SESSION_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341", MARKETPLACE_PLUGIN_JSON_URL = "https://raw.githubusercontent.com/Winding-Labs/zest-claude/refs/heads/main/zest/.claude-plugin/plugin.json", VERSION_CHECK_TIMEOUT_MS = 5000, UPDATE_CHECK_CACHE_TTL_MS, DAEMON_FRESH_PID_THRESHOLD_MS = 2000, DAEMON_INACTIVITY_TIMEOUT_MS, DAEMON_WARMUP_GRACE_MS, NOTIFICATION_DURATION_MS, FIRST_DATA_THRESHOLD_MESSAGES = 5, STANDUP_NOTIFICATION_THROTTLE_MS, SYNC_METRICS_RETENTION_MS, DEFAULT_STANDUP_MODEL = "anthropic/claude-opus-4-5";
+var CLAUDE_INSTALL_DIR, CLAUDE_DIR_SEPARATOR_PATTERN, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, PLATFORM = "terminal", SOURCE = "claude-code", CLIENT_ID = "claude-cli", SYNC_INTERVAL_MS = 60000, MAX_RETRY_ATTEMPTS = 3, RETRY_BACKOFF_MS = 5000, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DEBOUNCE_WINDOW_MS = 500, DEBOUNCE_TRAILING_MS = 300, DEBOUNCE_COUNT_RESET_MS = 5000, DELAYED_EXTRACTION_INITIAL_DELAY_MS = 500, DELAYED_EXTRACTION_MAX_WAIT_MS = 1e4, DELAYED_EXTRACTION_CHECK_INTERVAL_MS = 300, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MAX_CONTENT_PREVIEW_LENGTH = 1000, MAX_SESSION_TITLE_LENGTH = 100, MIN_SESSION_TITLE_LENGTH = 3, MIN_MESSAGES_PER_SESSION = 3, STALE_SESSION_AGE_MS, MAX_QUEUE_SIZE_EVENTS = 5000, MAX_QUEUE_SIZE_SESSIONS = 500, MAX_QUEUE_SIZE_MESSAGES = 1e4, MAX_EVENT_AGE_DAYS = 7, CONSUMPTION_TTL_MS = 30000, MAX_EVENTS_PER_CYCLE = 500, MAX_SESSIONS_PER_CYCLE = 50, MAX_MESSAGES_PER_CYCLE = 1000, WEB_APP_URL = "https://app.meetzest.com", SUPABASE_URL = "https://fnnlebrtmlxxjwdvngck.supabase.co", SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubmxlYnJ0bWx4eGp3ZHZuZ2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MzA3MjYsImV4cCI6MjA3MjMwNjcyNn0.0IE3HCY_DiyyALdewbRn1vkedwzDW27NQMQ28V6j4Dk", POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", CLAUDE_BUILTIN_COMMANDS, EXCLUDED_COMMAND_PATTERNS, ZEST_SESSION_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341", MARKETPLACE_PLUGIN_JSON_URL = "https://raw.githubusercontent.com/Winding-Labs/zest-claude/refs/heads/main/zest/.claude-plugin/plugin.json", VERSION_CHECK_TIMEOUT_MS = 5000, UPDATE_CHECK_CACHE_TTL_MS, DAEMON_FRESH_PID_THRESHOLD_MS = 2000, DAEMON_INACTIVITY_TIMEOUT_MS, DAEMON_WARMUP_GRACE_MS, NOTIFICATION_DURATION_MS, FIRST_DATA_THRESHOLD_MESSAGES = 5, STANDUP_NOTIFICATION_THROTTLE_MS, SYNC_METRICS_RETENTION_MS, DEFAULT_STANDUP_MODEL = "anthropic/claude-opus-4-5";
 var init_constants = __esm(() => {
   CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
   CLAUDE_DIR_SEPARATOR_PATTERN = /[\\/:.\s_]/g;
@@ -10899,6 +10901,7 @@ var NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed";
 var QUEUE_CAP_EVICTION = "queue_cap_eviction";
 var SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped";
 var SYNC_DRAIN_THROTTLED = "sync_drain_throttled";
+var SYNC_ORPHANED_MESSAGES_DROPPED = "sync_orphaned_messages_dropped";
 var EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found";
 var EXTRACTION_SESSION_FAILED = "extraction_session_failed";
 var DAEMON_START_FAILED = "daemon_start_failed";
@@ -10933,6 +10936,7 @@ var ERROR_TYPES = [
   QUEUE_CAP_EVICTION,
   SYNC_STALE_EVENTS_DROPPED,
   SYNC_DRAIN_THROTTLED,
+  SYNC_ORPHANED_MESSAGES_DROPPED,
   FILE_LOCK_TIMEOUT,
   FILE_LOCK_CREATE_FAILED,
   NOTIFICATION_STATE_WRITE_FAILED,
@@ -29985,7 +29989,7 @@ var { checkFirstDataReadyNotification, createStandupRealtimeManager } = createSt
   messages: {
     firstDataReady: `\x1B[1;32m✨ Zest got your first code! Now, code away and we'll let you know when your AI standup is ready at ${WEB_APP_URL}/me\x1B[0m`,
     standupFirst: "\x1B[1;32m\uD83C\uDF89 Your standup is ready & will keep updating as you code.\x1B[0m",
-    standupRefreshed: "\x1B[1;32m\uD83D\uDD04 Your standup has been refreshed & will keep updating as you code.\x1B[0m"
+    standupRefreshed: `\x1B[1;32m\uD83C\uDF4B New standup updated at ${WEB_APP_URL}\x1B[0m`
   },
   hasActiveStandupNotification,
   shouldShowFirstDataReady,
@@ -35451,6 +35455,14 @@ function createChatUploader(config2) {
         const { data: existingSessions, error: queryError } = await supabase.from("chat_sessions").select("id").in("id", orphanedSessionIds2);
         if (queryError) {
           const orphanedMessageIds = new Set(messagePartition.orphaned.map((m) => m.id).filter((id) => !!id));
+          const droppedSessionIds = [
+            ...new Set(messagePartition.orphaned.map((m) => m.session_id).filter(Boolean))
+          ];
+          logger2?.warn("orphaned_messages_dropped_query_error", {
+            dropped_count: orphanedMessageIds.size,
+            session_ids: droppedSessionIds
+          });
+          onCaptureException?.(new Error(`Dropped ${orphanedMessageIds.size} orphaned messages due to query error`), SYNC_ORPHANED_MESSAGES_DROPPED, "chat-uploader", { dropped_count: orphanedMessageIds.size, session_ids: droppedSessionIds });
           await removeMessagesFromQueue(orphanedMessageIds);
           messagePartition.orphaned = [];
         } else {
@@ -35471,6 +35483,14 @@ function createChatUploader(config2) {
           }
           if (invalidOrphaned.length > 0) {
             const invalidMessageIds = new Set(invalidOrphaned.map((m) => m.id).filter((id) => !!id));
+            const droppedSessionIds = [
+              ...new Set(invalidOrphaned.map((m) => m.session_id).filter(Boolean))
+            ];
+            logger2?.warn("orphaned_messages_dropped_invalid", {
+              dropped_count: invalidMessageIds.size,
+              session_ids: droppedSessionIds
+            });
+            onCaptureException?.(new Error(`Dropped ${invalidMessageIds.size} orphaned messages - sessions not found`), SYNC_ORPHANED_MESSAGES_DROPPED, "chat-uploader", { dropped_count: invalidMessageIds.size, session_ids: droppedSessionIds });
             await removeMessagesFromQueue(invalidMessageIds);
           }
           messagePartition.orphaned = validOrphaned;

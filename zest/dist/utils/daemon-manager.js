@@ -43,6 +43,7 @@ var NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed";
 var QUEUE_CAP_EVICTION = "queue_cap_eviction";
 var SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped";
 var SYNC_DRAIN_THROTTLED = "sync_drain_throttled";
+var SYNC_ORPHANED_MESSAGES_DROPPED = "sync_orphaned_messages_dropped";
 var EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found";
 var EXTRACTION_SESSION_FAILED = "extraction_session_failed";
 var DAEMON_START_FAILED = "daemon_start_failed";
@@ -77,6 +78,7 @@ var ERROR_TYPES = [
   QUEUE_CAP_EVICTION,
   SYNC_STALE_EVENTS_DROPPED,
   SYNC_DRAIN_THROTTLED,
+  SYNC_ORPHANED_MESSAGES_DROPPED,
   FILE_LOCK_TIMEOUT,
   FILE_LOCK_CREATE_FAILED,
   NOTIFICATION_STATE_WRITE_FAILED,
@@ -4636,6 +4638,21 @@ async function getAlivePidsAndPrune() {
 
 // src/utils/daemon-manager.ts
 var DAEMON_RESTART_LOCK = join4(CLAUDE_ZEST_DIR, "daemon-restart.lock");
+var wmicProbeResult = "unknown";
+function isWmicAvailable() {
+  if (process.platform !== "win32")
+    return false;
+  if (wmicProbeResult !== "unknown")
+    return wmicProbeResult === "available";
+  try {
+    execSync("where.exe wmic", { windowsHide: true, timeout: 3000, stdio: "pipe" });
+    wmicProbeResult = "available";
+  } catch {
+    wmicProbeResult = "missing";
+    logger.info("wmic not available on this system, using PowerShell for process queries");
+  }
+  return wmicProbeResult === "available";
+}
 var __filename2 = fileURLToPath(import.meta.url);
 var __dirname2 = dirname5(__filename2);
 function isProcessRunning(pid) {
@@ -4702,15 +4719,23 @@ async function killAllDaemons() {
       } catch {}
     }
     const execAsync = promisify(exec);
-    try {
-      if (process.platform === "win32") {
-        await execAsync(`wmic process where "CommandLine like '%sync-daemon.js%'" call terminate`, { windowsHide: true });
+    if (process.platform === "win32") {
+      if (isWmicAvailable()) {
+        try {
+          await execAsync(`wmic process where "CommandLine like '%sync-daemon.js%'" call terminate`, { windowsHide: true, timeout: 5000 });
+        } catch {}
       } else {
+        try {
+          await execAsync(`powershell.exe -NoProfile -NonInteractive -Command "Get-CimInstance Win32_Process -Filter \\"CommandLine like '%sync-daemon.js%'\\" | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"`, { windowsHide: true, timeout: 1e4 });
+        } catch {}
+      }
+    } else {
+      try {
         await execAsync("pkill -f 'sync-daemon.js' 2>/dev/null || true", {
           windowsHide: true
         });
-      }
-    } catch {}
+      } catch {}
+    }
     await new Promise((resolve) => setTimeout(resolve, 500));
     await cleanupPidFile();
   } catch (error) {
@@ -4787,17 +4812,33 @@ function isDaemonRunning() {
   }
 }
 function getParentPid(pid) {
-  try {
-    if (process.platform === "win32") {
-      const output2 = execSync(`wmic process where ProcessId=${pid} get ParentProcessId /format:value`, { encoding: "utf-8", windowsHide: true });
-      const match = output2.match(/ParentProcessId=(\d+)/);
-      if (match) {
-        const ppid2 = Number.parseInt(match[1], 10);
-        return Number.isNaN(ppid2) ? null : ppid2;
-      }
-      return null;
+  if (process.platform === "win32") {
+    if (isWmicAvailable()) {
+      try {
+        const output = execSync(`wmic process where ProcessId=${pid} get ParentProcessId /format:value`, { encoding: "utf-8", windowsHide: true, timeout: 5000 });
+        const match = output.match(/ParentProcessId=(\d+)/);
+        if (match) {
+          const ppid = Number.parseInt(match[1], 10);
+          if (!Number.isNaN(ppid))
+            return ppid;
+        }
+      } catch {}
+    } else {
+      try {
+        const output = execSync(`powershell.exe -NoProfile -NonInteractive -Command "(Get-CimInstance Win32_Process -Filter 'ProcessId=${pid}').ParentProcessId"`, { encoding: "utf-8", windowsHide: true, timeout: 1e4 });
+        const ppid = Number.parseInt(output.trim(), 10);
+        if (!Number.isNaN(ppid))
+          return ppid;
+      } catch {}
     }
-    const output = execSync(`ps -o ppid= -p ${pid}`, { encoding: "utf-8", windowsHide: true });
+    return null;
+  }
+  try {
+    const output = execSync(`ps -o ppid= -p ${pid}`, {
+      encoding: "utf-8",
+      windowsHide: true,
+      timeout: 5000
+    });
     const ppid = Number.parseInt(output.trim(), 10);
     return Number.isNaN(ppid) ? null : ppid;
   } catch {
