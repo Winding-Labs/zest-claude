@@ -13,344 +13,152 @@ var __export = (target, all) => {
       set: __exportSetter.bind(all, name)
     });
 };
-var __esm = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
+
+// src/hooks/delayed-extractor-cli.ts
+import { stat as stat6, unlink as unlink6, writeFile as writeFile9 } from "node:fs/promises";
+import { join as join10 } from "node:path";
 
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_INSTALL_DIR, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DEBOUNCE_TRAILING_MS = 300, DELAYED_EXTRACTION_INITIAL_DELAY_MS = 500, DELAYED_EXTRACTION_MAX_WAIT_MS = 1e4, DELAYED_EXTRACTION_CHECK_INTERVAL_MS = 300, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MAX_CONTENT_PREVIEW_LENGTH = 1000, MIN_MESSAGES_PER_SESSION = 3, STALE_SESSION_AGE_MS, MAX_QUEUE_SIZE_EVENTS = 5000, MAX_QUEUE_SIZE_SESSIONS = 500, MAX_QUEUE_SIZE_MESSAGES = 1e4, POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", CLAUDE_BUILTIN_COMMANDS, EXCLUDED_COMMAND_PATTERNS, UPDATE_CHECK_CACHE_TTL_MS, DAEMON_INACTIVITY_TIMEOUT_MS, DAEMON_WARMUP_GRACE_MS, NOTIFICATION_DURATION_MS, STANDUP_NOTIFICATION_THROTTLE_MS, SYNC_METRICS_RETENTION_MS;
-var init_constants = __esm(() => {
-  CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
-  CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
-  CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
-  CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
-  QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
-  LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
-  STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
-  DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-  SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
-  SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
-  DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
-  CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
-  STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
-  STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
-  SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
-  EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
-  SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
-  MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
-  DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
-  DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
-  PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
-  MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
-  STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-  CLAUDE_BUILTIN_COMMANDS = new Set([
-    "add-dir",
-    "agents",
-    "allowed-tools",
-    "android",
-    "app",
-    "autofix-pr",
-    "bashes",
-    "branch",
-    "btw",
-    "bug",
-    "checkpoint",
-    "chrome",
-    "clear",
-    "color",
-    "compact",
-    "config",
-    "context",
-    "continue",
-    "copy",
-    "cost",
-    "desktop",
-    "diff",
-    "doctor",
-    "effort",
-    "exit",
-    "export",
-    "extra-usage",
-    "fast",
-    "feedback",
-    "fork",
-    "help",
-    "hooks",
-    "ide",
-    "init",
-    "insights",
-    "install-github-app",
-    "install-slack-app",
-    "ios",
-    "keybindings",
-    "login",
-    "logout",
-    "mcp",
-    "memory",
-    "mobile",
-    "model",
-    "new",
-    "output-style",
-    "passes",
-    "permissions",
-    "plan",
-    "plugin",
-    "powerup",
-    "pr-comments",
-    "privacy-settings",
-    "quit",
-    "rc",
-    "release-notes",
-    "reload-plugins",
-    "remote-control",
-    "remote-env",
-    "rename",
-    "reset",
-    "resume",
-    "review",
-    "rewind",
-    "sandbox",
-    "schedule",
-    "security-review",
-    "settings",
-    "setup-bedrock",
-    "skills",
-    "stats",
-    "status",
-    "statusline",
-    "stickers",
-    "tasks",
-    "teleport",
-    "terminal-setup",
-    "theme",
-    "todos",
-    "tp",
-    "ultraplan",
-    "upgrade",
-    "usage",
-    "vim",
-    "voice",
-    "web-setup"
-  ]);
-  EXCLUDED_COMMAND_PATTERNS = [
-    new RegExp(`^\\/(${[...CLAUDE_BUILTIN_COMMANDS].join("|")})\\b`, "i"),
-    /^\/zest[^:\s]*:/i,
-    /<command-name>\/zest[^<]*<\/command-name>/i,
-    /node\s+.*\/dist\/commands\/.*-cli\.js/i
-  ];
-  UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
-  DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
-  DAEMON_WARMUP_GRACE_MS = 3 * 1000;
-  NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
-  STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
-  SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
-});
-
-// src/utils/fs-utils.ts
-import { mkdir, stat as stat2 } from "node:fs/promises";
-function sanitizeForFilename(input) {
-  return input.replace(/[\\/:*?"<>|]/g, "_");
-}
-async function ensureDirectory(dirPath) {
-  try {
-    await stat2(dirPath);
-  } catch {
-    await mkdir(dirPath, { recursive: true, mode: 448 });
-  }
-}
-var init_fs_utils = () => {};
-
-// ../../packages/plugin-common/src/utils/fs-utils.ts
-import { mkdir as mkdir2, stat as stat3 } from "node:fs/promises";
-async function ensureDirectory2(dirPath) {
-  try {
-    await stat3(dirPath);
-  } catch {
-    await mkdir2(dirPath, { recursive: true, mode: 448 });
-  }
-}
-var init_fs_utils2 = () => {};
-
-// ../../packages/plugin-common/src/log-rotation/log-rotation.ts
-import { readdir as readdir2, unlink } from "node:fs/promises";
-import { join as join2 } from "node:path";
-function getDateString() {
-  return new Date().toISOString().split("T")[0];
-}
-function getDatedLogPath(logsDir, logPrefix) {
-  const dateStr = getDateString();
-  return join2(logsDir, `${logPrefix}-${dateStr}.log`);
-}
-function parseDateFromFilename(filename, logPrefix) {
-  const pattern = new RegExp(`^${logPrefix}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
-  const match = filename.match(pattern);
-  if (!match) {
-    return null;
-  }
-  const date5 = new Date(match[1] + "T00:00:00Z");
-  return Number.isNaN(date5.getTime()) ? null : date5;
-}
-function createLogRotation(config2) {
-  const { logsDir, retentionDays, logger } = config2;
-  const lastCleanupTime = {};
-  async function cleanupStaleLogs(logPrefix) {
-    const now = Date.now();
-    const lastCleanup = lastCleanupTime[logPrefix] || 0;
-    if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
-      return;
-    }
-    lastCleanupTime[logPrefix] = now;
-    try {
-      await ensureDirectory2(logsDir);
-      const files = await readdir2(logsDir);
-      const cutoffDate = new Date(now - retentionDays * 24 * 60 * 60 * 1000);
-      for (const file2 of files) {
-        const fileDate = parseDateFromFilename(file2, logPrefix);
-        if (fileDate && fileDate < cutoffDate) {
-          const filePath = join2(logsDir, file2);
-          try {
-            await unlink(filePath);
-          } catch (error46) {
-            logger?.error(`Failed to delete old log file ${file2}`, error46);
-          }
-        }
-      }
-    } catch (error46) {
-      logger?.error("Failed to cleanup old logs", error46);
-    }
-  }
-  async function forceCleanupStaleLogs(logPrefix) {
-    lastCleanupTime[logPrefix] = 0;
-    await cleanupStaleLogs(logPrefix);
-  }
-  return { cleanupStaleLogs, forceCleanupStaleLogs };
-}
-var CLEANUP_THROTTLE_MS;
-var init_log_rotation = __esm(() => {
-  init_fs_utils2();
-  CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
-});
-
-// src/log-rotation/log-rotation.ts
-function getDatedLogPath2(logPrefix) {
-  return getDatedLogPath(LOGS_DIR, logPrefix);
-}
-var logRotation, cleanupStaleLogs, forceCleanupStaleLogs;
-var init_log_rotation2 = __esm(() => {
-  init_log_rotation();
-  init_constants();
-  logRotation = createLogRotation({
-    logsDir: LOGS_DIR,
-    retentionDays: LOG_RETENTION_DAYS
-  });
-  ({ cleanupStaleLogs, forceCleanupStaleLogs } = logRotation);
-});
-
-// src/utils/logger.ts
-import { appendFile } from "node:fs/promises";
-import { dirname } from "node:path";
-
-class Logger {
-  minLevel = "info";
-  logPrefix;
-  levels = {
-    debug: 0,
-    info: 1,
-    warn: 2,
-    error: 3
-  };
-  constructor(logPrefix = "plugin") {
-    this.logPrefix = logPrefix;
-  }
-  setLevel(level) {
-    this.minLevel = level;
-  }
-  async writeToFile(message) {
-    try {
-      const logFilePath = getDatedLogPath2(this.logPrefix);
-      await ensureDirectory(dirname(logFilePath));
-      const timestamp = new Date().toISOString();
-      await appendFile(logFilePath, `[${timestamp}] ${message}
-`, "utf-8");
-      cleanupStaleLogs(this.logPrefix);
-    } catch (error46) {
-      console.error("Failed to write to log file:", error46);
-    }
-  }
-  shouldLog(level) {
-    return this.levels[level] >= this.levels[this.minLevel];
-  }
-  debug(message, ...args) {
-    if (this.shouldLog("debug")) {
-      this.writeToFile(`DEBUG: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  info(message, ...args) {
-    if (this.shouldLog("info")) {
-      this.writeToFile(`INFO: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  warn(message, ...args) {
-    if (this.shouldLog("warn")) {
-      console.warn(`[Zest:Warn] ${message}`, ...args);
-      this.writeToFile(`WARN: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
-    }
-  }
-  error(message, error46) {
-    if (this.shouldLog("error")) {
-      console.error(`[Zest:Error] ${message}`);
-      this.writeToFile(`ERROR: ${message} ${error46 instanceof Error ? error46.stack : JSON.stringify(error46)}`);
-    }
-  }
-}
-var logger;
-var init_logger = __esm(() => {
-  init_log_rotation2();
-  init_fs_utils();
-  logger = new Logger;
-});
-
-// src/utils/deletion-cache.ts
-import { readdir as readdir6, readFile as readFile7, rm as rm2, stat as stat5, writeFile as writeFile5 } from "node:fs/promises";
-import { join as join6 } from "node:path";
-function getCacheKey(filePath, sessionId) {
-  const hash2 = Buffer.from(filePath).toString("base64").replace(/[/+=]/g, "_");
-  return `${sessionId}_${hash2}.json`;
-}
-async function getCachedFileContent(filePath, sessionId) {
-  try {
-    const cacheKey = getCacheKey(filePath, sessionId);
-    const cachePath = join6(DELETION_CACHE_DIR, cacheKey);
-    try {
-      const content = await readFile7(cachePath, "utf-8");
-      const cached2 = JSON.parse(content);
-      const age = Date.now() - cached2.timestamp;
-      if (age > DELETION_CACHE_TTL_MS) {
-        logger.debug(`Cache expired for ${filePath} (${age}ms old)`);
-        await rm2(cachePath).catch(() => {});
-        return null;
-      }
-      await rm2(cachePath).catch(() => {});
-      logger.debug(`Retrieved cached content for ${filePath} (${cached2.content.length} chars)`);
-      return cached2.content;
-    } catch (readError) {
-      logger.debug(`Cache not found for ${filePath}`);
-      return null;
-    }
-  } catch (error46) {
-    logger.error(`Failed to retrieve cached content: ${filePath}`, error46);
-    return null;
-  }
-}
-var init_deletion_cache = __esm(() => {
-  init_constants();
-  init_fs_utils();
-  init_logger();
-});
-
-// src/hooks/delayed-extractor-cli.ts
-init_constants();
-import { stat as stat6 } from "node:fs/promises";
+var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
+var CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
+var CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
+var CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
+var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
+var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
+var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
+var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
+var SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
+var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
+var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
+var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
+var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
+var STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
+var SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
+var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
+var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
+var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
+var LOCK_RETRY_MS = 50;
+var LOCK_MAX_RETRIES = 300;
+var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
+var DEBOUNCE_TRAILING_MS = 300;
+var DELAYED_EXTRACTION_INITIAL_DELAY_MS = 500;
+var DELAYED_EXTRACTION_MAX_WAIT_MS = 1e4;
+var DELAYED_EXTRACTION_CHECK_INTERVAL_MS = 300;
+var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
+var LOG_RETENTION_DAYS = 7;
+var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
+var MAX_CONTENT_PREVIEW_LENGTH = 1000;
+var MIN_MESSAGES_PER_SESSION = 3;
+var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+var MAX_QUEUE_SIZE_EVENTS = 5000;
+var MAX_QUEUE_SIZE_SESSIONS = 500;
+var MAX_QUEUE_SIZE_MESSAGES = 1e4;
+var CONSUMPTION_TTL_MS = 30000;
+var POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ";
+var CLAUDE_BUILTIN_COMMANDS = new Set([
+  "add-dir",
+  "agents",
+  "allowed-tools",
+  "android",
+  "app",
+  "autofix-pr",
+  "bashes",
+  "branch",
+  "btw",
+  "bug",
+  "checkpoint",
+  "chrome",
+  "clear",
+  "color",
+  "compact",
+  "config",
+  "context",
+  "continue",
+  "copy",
+  "cost",
+  "desktop",
+  "diff",
+  "doctor",
+  "effort",
+  "exit",
+  "export",
+  "extra-usage",
+  "fast",
+  "feedback",
+  "fork",
+  "help",
+  "hooks",
+  "ide",
+  "init",
+  "insights",
+  "install-github-app",
+  "install-slack-app",
+  "ios",
+  "keybindings",
+  "login",
+  "logout",
+  "mcp",
+  "memory",
+  "mobile",
+  "model",
+  "new",
+  "output-style",
+  "passes",
+  "permissions",
+  "plan",
+  "plugin",
+  "powerup",
+  "pr-comments",
+  "privacy-settings",
+  "quit",
+  "rc",
+  "release-notes",
+  "reload-plugins",
+  "remote-control",
+  "remote-env",
+  "rename",
+  "reset",
+  "resume",
+  "review",
+  "rewind",
+  "sandbox",
+  "schedule",
+  "security-review",
+  "settings",
+  "setup-bedrock",
+  "skills",
+  "stats",
+  "status",
+  "statusline",
+  "stickers",
+  "tasks",
+  "teleport",
+  "terminal-setup",
+  "theme",
+  "todos",
+  "tp",
+  "ultraplan",
+  "upgrade",
+  "usage",
+  "vim",
+  "voice",
+  "web-setup"
+]);
+var EXCLUDED_COMMAND_PATTERNS = [
+  new RegExp(`^\\/(${[...CLAUDE_BUILTIN_COMMANDS].join("|")})\\b`, "i"),
+  /^\/zest[^:\s]*:/i,
+  /<command-name>\/zest[^<]*<\/command-name>/i,
+  /node\s+.*\/dist\/commands\/.*-cli\.js/i
+];
+var UPDATE_CHECK_CACHE_TTL_MS = 60 * 60 * 1000;
+var DAEMON_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+var DAEMON_WARMUP_GRACE_MS = 3 * 1000;
+var NOTIFICATION_DURATION_MS = 2 * 60 * 1000;
+var STANDUP_NOTIFICATION_THROTTLE_MS = 2 * 60 * 60 * 1000;
+var SYNC_METRICS_RETENTION_MS = 60 * 60 * 1000;
 
 // src/config/settings.ts
 import { readFile as readFile2, writeFile } from "node:fs/promises";
@@ -14171,10 +13979,158 @@ class PrivacyManager {
   }
 }
 
+// src/utils/fs-utils.ts
+import { mkdir, stat as stat2 } from "node:fs/promises";
+function sanitizeForFilename(input) {
+  return input.replace(/[\\/:*?"<>|]/g, "_");
+}
+async function ensureDirectory(dirPath) {
+  try {
+    await stat2(dirPath);
+  } catch {
+    await mkdir(dirPath, { recursive: true, mode: 448 });
+  }
+}
+
+// src/utils/logger.ts
+import { appendFile } from "node:fs/promises";
+import { dirname } from "node:path";
+
+// ../../packages/plugin-common/src/log-rotation/log-rotation.ts
+import { readdir as readdir2, unlink } from "node:fs/promises";
+import { join as join2 } from "node:path";
+
+// ../../packages/plugin-common/src/utils/fs-utils.ts
+import { mkdir as mkdir2, stat as stat3 } from "node:fs/promises";
+async function ensureDirectory2(dirPath) {
+  try {
+    await stat3(dirPath);
+  } catch {
+    await mkdir2(dirPath, { recursive: true, mode: 448 });
+  }
+}
+
+// ../../packages/plugin-common/src/log-rotation/log-rotation.ts
+var CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
+function getDateString() {
+  return new Date().toISOString().split("T")[0];
+}
+function getDatedLogPath(logsDir, logPrefix) {
+  const dateStr = getDateString();
+  return join2(logsDir, `${logPrefix}-${dateStr}.log`);
+}
+function parseDateFromFilename(filename, logPrefix) {
+  const pattern = new RegExp(`^${logPrefix}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
+  const match = filename.match(pattern);
+  if (!match) {
+    return null;
+  }
+  const date5 = new Date(match[1] + "T00:00:00Z");
+  return Number.isNaN(date5.getTime()) ? null : date5;
+}
+function createLogRotation(config2) {
+  const { logsDir, retentionDays, logger } = config2;
+  const lastCleanupTime = {};
+  async function cleanupStaleLogs(logPrefix) {
+    const now = Date.now();
+    const lastCleanup = lastCleanupTime[logPrefix] || 0;
+    if (now - lastCleanup < CLEANUP_THROTTLE_MS) {
+      return;
+    }
+    lastCleanupTime[logPrefix] = now;
+    try {
+      await ensureDirectory2(logsDir);
+      const files = await readdir2(logsDir);
+      const cutoffDate = new Date(now - retentionDays * 24 * 60 * 60 * 1000);
+      for (const file2 of files) {
+        const fileDate = parseDateFromFilename(file2, logPrefix);
+        if (fileDate && fileDate < cutoffDate) {
+          const filePath = join2(logsDir, file2);
+          try {
+            await unlink(filePath);
+          } catch (error46) {
+            logger?.error(`Failed to delete old log file ${file2}`, error46);
+          }
+        }
+      }
+    } catch (error46) {
+      logger?.error("Failed to cleanup old logs", error46);
+    }
+  }
+  async function forceCleanupStaleLogs(logPrefix) {
+    lastCleanupTime[logPrefix] = 0;
+    await cleanupStaleLogs(logPrefix);
+  }
+  return { cleanupStaleLogs, forceCleanupStaleLogs };
+}
+
+// src/log-rotation/log-rotation.ts
+function getDatedLogPath2(logPrefix) {
+  return getDatedLogPath(LOGS_DIR, logPrefix);
+}
+var logRotation = createLogRotation({
+  logsDir: LOGS_DIR,
+  retentionDays: LOG_RETENTION_DAYS
+});
+var { cleanupStaleLogs, forceCleanupStaleLogs } = logRotation;
+
+// src/utils/logger.ts
+class Logger {
+  minLevel = "info";
+  logPrefix;
+  levels = {
+    debug: 0,
+    info: 1,
+    warn: 2,
+    error: 3
+  };
+  constructor(logPrefix = "plugin") {
+    this.logPrefix = logPrefix;
+  }
+  setLevel(level) {
+    this.minLevel = level;
+  }
+  async writeToFile(message) {
+    try {
+      const logFilePath = getDatedLogPath2(this.logPrefix);
+      await ensureDirectory(dirname(logFilePath));
+      const timestamp = new Date().toISOString();
+      await appendFile(logFilePath, `[${timestamp}] ${message}
+`, "utf-8");
+      cleanupStaleLogs(this.logPrefix);
+    } catch (error46) {
+      console.error("Failed to write to log file:", error46);
+    }
+  }
+  shouldLog(level) {
+    return this.levels[level] >= this.levels[this.minLevel];
+  }
+  debug(message, ...args) {
+    if (this.shouldLog("debug")) {
+      this.writeToFile(`DEBUG: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  info(message, ...args) {
+    if (this.shouldLog("info")) {
+      this.writeToFile(`INFO: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  warn(message, ...args) {
+    if (this.shouldLog("warn")) {
+      console.warn(`[Zest:Warn] ${message}`, ...args);
+      this.writeToFile(`WARN: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
+    }
+  }
+  error(message, error46) {
+    if (this.shouldLog("error")) {
+      console.error(`[Zest:Error] ${message}`);
+      this.writeToFile(`ERROR: ${message} ${error46 instanceof Error ? error46.stack : JSON.stringify(error46)}`);
+    }
+  }
+}
+var logger = new Logger;
+
 // src/config/settings.ts
-init_fs_utils();
-init_logger();
-init_constants();
 var UserSettingsSchema = exports_external.object({
   enableRemotePersistence: exports_external.boolean(),
   excludePatterns: exports_external.array(exports_external.string()),
@@ -14210,7 +14166,6 @@ async function loadSettings() {
 }
 
 // src/utils/debounce-manager.ts
-init_constants();
 import { readdir as readdir4, readFile as readFile5, rm, stat as stat4, unlink as unlink4, writeFile as writeFile4 } from "node:fs/promises";
 import { join as join5 } from "node:path";
 
@@ -14241,6 +14196,7 @@ var NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed";
 var QUEUE_CAP_EVICTION = "queue_cap_eviction";
 var SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped";
 var SYNC_DRAIN_THROTTLED = "sync_drain_throttled";
+var SYNC_ORPHANED_MESSAGES_DROPPED = "sync_orphaned_messages_dropped";
 var EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found";
 var EXTRACTION_SESSION_FAILED = "extraction_session_failed";
 var DAEMON_START_FAILED = "daemon_start_failed";
@@ -14275,6 +14231,7 @@ var ERROR_TYPES = [
   QUEUE_CAP_EVICTION,
   SYNC_STALE_EVENTS_DROPPED,
   SYNC_DRAIN_THROTTLED,
+  SYNC_ORPHANED_MESSAGES_DROPPED,
   FILE_LOCK_TIMEOUT,
   FILE_LOCK_CREATE_FAILED,
   NOTIFICATION_STATE_WRITE_FAILED,
@@ -14342,7 +14299,6 @@ function buildFileSystemProperties(options) {
 }
 
 // ../../packages/plugin-common/src/utils/file-lock.ts
-init_fs_utils2();
 var DEFAULT_LOCK_RETRY_MS = 50;
 var DEFAULT_LOCK_MAX_RETRIES = 300;
 function defaultIsProcessRunning(pid) {
@@ -18374,8 +18330,6 @@ function createSessionManager(config2) {
 }
 
 // src/auth/session-manager.ts
-init_constants();
-init_logger();
 var ERROR_OPERATION_MAP = {
   load: { eventType: AUTH_SESSION_LOAD_FAILED, fsOperation: "read" },
   save: { eventType: AUTH_SESSION_SAVE_FAILED, fsOperation: "write" },
@@ -18406,15 +18360,9 @@ var {
 } = sessionManager;
 var loadSessionFile = loadSession;
 
-// src/analytics/client.ts
-init_constants();
-init_logger();
-
 // src/utils/plugin-version.ts
 import { readFileSync } from "node:fs";
 import { join as join3 } from "node:path";
-init_constants();
-init_logger();
 function getPluginVersion() {
   try {
     const marketplacePluginPath = join3(CLAUDE_INSTALL_DIR, "plugins", "marketplaces", "zest-marketplace", "zest", ".claude-plugin", "plugin.json");
@@ -18474,26 +18422,9 @@ async function captureException(error46, errorType, errorSource, additionalPrope
     logger.debug("Failed to capture exception in PostHog", e);
   }
 }
-// src/utils/claude-version.ts
-init_logger();
-
-// src/analytics/trackers.ts
-init_logger();
-// src/utils/file-lock.ts
-init_constants();
-
 // src/utils/daemon-manager.ts
 import { dirname as dirname5, join as join4 } from "node:path";
 import { fileURLToPath } from "node:url";
-init_constants();
-
-// src/utils/claude-instances.ts
-init_constants();
-init_logger();
-
-// src/utils/daemon-manager.ts
-init_fs_utils();
-init_logger();
 var DAEMON_RESTART_LOCK = join4(CLAUDE_ZEST_DIR, "daemon-restart.lock");
 var __filename2 = fileURLToPath(import.meta.url);
 var __dirname2 = dirname5(__filename2);
@@ -18507,7 +18438,6 @@ function isProcessRunning(pid) {
 }
 
 // src/utils/file-lock.ts
-init_logger();
 var fileLock = createFileLock({
   logger,
   onCaptureException: captureException,
@@ -18519,23 +18449,62 @@ var fileLock = createFileLock({
 var { withFileLock, cleanupStaleLocks, cleanupLockFiles } = fileLock;
 
 // src/utils/debounce-manager.ts
-init_fs_utils();
-init_logger();
 async function shouldProcessNow(hookType, sessionId) {
   const debounceFile = join5(DEBOUNCE_DIR, `trailing-${hookType}-${sanitizeForFilename(sessionId)}.json`);
   const now = Date.now();
   try {
-    const content = await readFile5(debounceFile, "utf-8");
-    const info = JSON.parse(content);
-    const msSinceLastHook = now - info.timestamp;
-    const shouldProcess = msSinceLastHook >= DEBOUNCE_TRAILING_MS;
-    if (!shouldProcess) {
-      logger.debug(`Not ready to process ${hookType} - only ${msSinceLastHook}ms since last hook (need ${DEBOUNCE_TRAILING_MS}ms)`);
-    }
-    return { shouldProcess, msSinceLastHook };
+    return await withFileLock(debounceFile, async () => {
+      try {
+        const content = await readFile5(debounceFile, "utf-8");
+        const info = JSON.parse(content);
+        if (info.consumedBy === process.pid) {
+          info.consumedAt = now;
+          await writeFile4(debounceFile, JSON.stringify(info), "utf-8");
+        }
+        if (info.consumedBy && info.consumedBy !== process.pid) {
+          const consumedAge = now - (info.consumedAt ?? 0);
+          if (consumedAge < CONSUMPTION_TTL_MS) {
+            return { shouldProcess: false, msSinceLastHook: now - info.timestamp };
+          }
+        }
+        const msSinceLastHook = now - info.timestamp;
+        const shouldProcess = msSinceLastHook >= DEBOUNCE_TRAILING_MS;
+        if (shouldProcess && info.consumedBy !== process.pid) {
+          info.consumedBy = process.pid;
+          info.consumedAt = now;
+          await writeFile4(debounceFile, JSON.stringify(info), "utf-8");
+        } else if (!shouldProcess) {
+          logger.debug(`Not ready to process ${hookType} - only ${msSinceLastHook}ms since last hook (need ${DEBOUNCE_TRAILING_MS}ms)`);
+        }
+        return { shouldProcess, msSinceLastHook };
+      } catch {
+        return { shouldProcess: true, msSinceLastHook: Number.POSITIVE_INFINITY };
+      }
+    });
   } catch {
     return { shouldProcess: true, msSinceLastHook: Number.POSITIVE_INFINITY };
   }
+}
+async function startConsumptionHeartbeat(hookType, sessionId, intervalMs = Math.floor(CONSUMPTION_TTL_MS / 3)) {
+  const debounceFile = join5(DEBOUNCE_DIR, `trailing-${hookType}-${sanitizeForFilename(sessionId)}.json`);
+  const tick = async () => {
+    try {
+      await withFileLock(debounceFile, async () => {
+        const content = await readFile5(debounceFile, "utf-8");
+        const info = JSON.parse(content);
+        if (info.consumedBy === process.pid) {
+          info.consumedAt = Date.now();
+          await writeFile4(debounceFile, JSON.stringify(info), "utf-8");
+        }
+      });
+    } catch {}
+  };
+  await tick();
+  const handle = setInterval(tick, intervalMs);
+  handle.unref?.();
+  return () => {
+    clearInterval(handle);
+  };
 }
 
 // src/utils/extraction-helpers.ts
@@ -19388,19 +19357,42 @@ function isDirEntry(entry) {
 function isFileEntry(entry, ext) {
   return (entry.isFile() || entry.isSymbolicLink()) && entry.name.endsWith(ext);
 }
-// src/utils/extraction-helpers.ts
-init_constants();
-
 // src/extractors/message-parser.ts
 import { createReadStream as createReadStream2 } from "node:fs";
 import { createInterface as createInterface2 } from "node:readline";
 
-// src/utils/command-filters.ts
-init_constants();
-
-// src/extractors/extraction-utils.ts
-init_constants();
-init_deletion_cache();
+// src/utils/deletion-cache.ts
+import { readdir as readdir6, readFile as readFile7, rm as rm2, stat as stat5, writeFile as writeFile5 } from "node:fs/promises";
+import { join as join6 } from "node:path";
+function getCacheKey(filePath, sessionId) {
+  const hash2 = Buffer.from(filePath).toString("base64").replace(/[/+=]/g, "_");
+  return `${sessionId}_${hash2}.json`;
+}
+async function getCachedFileContent(filePath, sessionId) {
+  try {
+    const cacheKey = getCacheKey(filePath, sessionId);
+    const cachePath = join6(DELETION_CACHE_DIR, cacheKey);
+    try {
+      const content = await readFile7(cachePath, "utf-8");
+      const cached2 = JSON.parse(content);
+      const age = Date.now() - cached2.timestamp;
+      if (age > DELETION_CACHE_TTL_MS) {
+        logger.debug(`Cache expired for ${filePath} (${age}ms old)`);
+        await rm2(cachePath).catch(() => {});
+        return null;
+      }
+      await rm2(cachePath).catch(() => {});
+      logger.debug(`Retrieved cached content for ${filePath} (${cached2.content.length} chars)`);
+      return cached2.content;
+    } catch (readError) {
+      logger.debug(`Cache not found for ${filePath}`);
+      return null;
+    }
+  } catch (error46) {
+    logger.error(`Failed to retrieve cached content: ${filePath}`, error46);
+    return null;
+  }
+}
 
 // ../../node_modules/.bun/diff@8.0.0-beta/node_modules/diff/libesm/diff/base.js
 var Diff = function() {
@@ -20391,8 +20383,6 @@ function splitLines(text) {
 }
 
 // src/utils/diff-utils.ts
-init_constants();
-init_logger();
 function createUnifiedDiff(filePath, oldString, newString) {
   try {
     return createPatch(filePath, toWellFormed(oldString.trimEnd()), toWellFormed(newString.trimEnd()), "", "", { context: 3 });
@@ -20423,7 +20413,6 @@ function sanitizeDiff(diff, filePath) {
 }
 
 // src/extractors/extraction-utils.ts
-init_logger();
 function extractTextContent2(content) {
   if (typeof content === "string") {
     return toWellFormed(content);
@@ -20577,7 +20566,6 @@ function logDiff(filePath, diff) {
 }
 
 // src/utils/command-filters.ts
-init_logger();
 function shouldExcludeCommand(command) {
   const trimmedCommand = command.trim();
   for (const pattern of EXCLUDED_COMMAND_PATTERNS) {
@@ -20654,7 +20642,6 @@ function applyMessageFilter(role, textContent, currentState) {
 }
 
 // src/extractors/message-parser.ts
-init_logger();
 async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0, startingMessageIndex = 0) {
   const messages = [];
   const toolUses = [];
@@ -20794,13 +20781,9 @@ function getPrivacyManager() {
   return instance;
 }
 
-// src/utils/extraction-helpers.ts
-init_logger();
-
 // ../../packages/plugin-common/src/queue/queue-manager.ts
 import { appendFile as appendFile2, readFile as readFile8, unlink as unlink5, writeFile as writeFile6 } from "node:fs/promises";
 import { dirname as dirname6 } from "node:path";
-init_fs_utils2();
 function createQueueManager(config2) {
   const {
     queueDir,
@@ -21133,8 +21116,6 @@ function createQueueManager(config2) {
 }
 
 // src/utils/queue-manager.ts
-init_constants();
-init_logger();
 var queueManager = createQueueManager({
   queueDir: QUEUE_DIR,
   queueFiles: {
@@ -21169,7 +21150,6 @@ var {
 // ../../packages/plugin-common/src/state/state-manager.ts
 import { readFile as readFile9, writeFile as writeFile7 } from "node:fs/promises";
 import { join as join7 } from "node:path";
-init_fs_utils2();
 function createStateManager(config2) {
   const { stateDir, logger: logger2 } = config2;
   const withFileLock2 = resolveFileLock(config2.withFileLock);
@@ -21218,8 +21198,6 @@ function createStateManager(config2) {
 }
 
 // src/utils/state-manager.ts
-init_constants();
-init_logger();
 var stateManager = createStateManager({
   stateDir: STATE_DIR,
   logger,
@@ -21337,18 +21315,12 @@ function isFolderExcluded(folderPath, settings) {
   });
 }
 
-// src/hooks/delayed-extractor-cli.ts
-init_logger();
-
 // src/utils/signal-state.ts
 import { readFile as readFile10, writeFile as writeFile8 } from "node:fs/promises";
 import { join as join9 } from "node:path";
-init_constants();
 
 // src/extractors/toolkit-metadata-extractor.ts
 import { join as join8 } from "node:path";
-init_constants();
-init_logger();
 var SKILLS_DIR = join8(CLAUDE_INSTALL_DIR, "skills");
 var AGENTS_DIR = join8(CLAUDE_INSTALL_DIR, "agents");
 var INSTALLED_PLUGINS_FILE = join8(CLAUDE_INSTALL_DIR, "plugins", "installed_plugins.json");
@@ -21521,14 +21493,9 @@ async function lookupToolMetadata(toolNames, projectDir) {
   return result;
 }
 
-// src/utils/signal-state.ts
-init_fs_utils();
-init_logger();
-
 // src/utils/signal-scanner.ts
 import { createReadStream as createReadStream3 } from "node:fs";
 import { createInterface as createInterface3 } from "node:readline";
-init_constants();
 var EMPTY_SIGNALS = {
   mcp_usage: {},
   skill_usage: {},
@@ -21820,12 +21787,17 @@ async function updateSessionSignals(conversationFile, sessionId) {
 }
 
 // src/hooks/delayed-extractor-cli.ts
+async function cleanupPidFile(sessionId) {
+  const pidFile = join10(STATE_DIR, `delayed-extractor-${sessionId}.pid`);
+  await writeFile9(pidFile, "0", "utf-8").catch(() => {});
+  await unlink6(pidFile).catch(() => {});
+}
 async function main() {
   const sessionId = process.argv[2];
   const conversationFile = process.argv[3];
   const projectDir = process.env.CLAUDE_PROJECT_DIR;
   if (!sessionId || !conversationFile) {
-    logger.error("Delayed extractor: Missing sessionId or conversationFile argumentss");
+    logger.error("Delayed extractor: Missing sessionId or conversationFile arguments");
     process.exit(1);
   }
   try {
@@ -21833,7 +21805,7 @@ async function main() {
       const settings = await loadSettings();
       if (isFolderExcluded(projectDir, settings)) {
         logger.debug("Folder is excluded, skipping delayed extraction");
-        process.exit(0);
+        return;
       }
     }
     await initializeQueue();
@@ -21851,18 +21823,24 @@ async function main() {
     if (totalWait >= DELAYED_EXTRACTION_MAX_WAIT_MS) {
       logger.warn(`Max wait time (${DELAYED_EXTRACTION_MAX_WAIT_MS}ms) reached, proceeding anyway`);
     }
-    const finalDelayMs = 3000;
-    await new Promise((resolve3) => setTimeout(resolve3, finalDelayMs));
-    const fileStats = await stat6(conversationFile);
-    const extractionResult = await extractNewSessionData(conversationFile, sessionId);
-    if (!extractionResult.hasNewData) {
-      process.exit(0);
+    const stopHeartbeat = await startConsumptionHeartbeat("PostToolUse", sessionId);
+    try {
+      const finalDelayMs = 3000;
+      await new Promise((resolve3) => setTimeout(resolve3, finalDelayMs));
+      const fileStats = await stat6(conversationFile);
+      const extractionResult = await extractNewSessionData(conversationFile, sessionId);
+      if (!extractionResult.hasNewData) {
+        return;
+      }
+      await queueSessionData(sessionId, extractionResult.messages, extractionResult.toolUses, fileStats, projectDir || "", conversationFile, extractionResult.newLastReadLine, extractionResult.lastMessageIndex, extractionResult.isNewSession);
+      await updateSessionSignals(conversationFile, sessionId);
+    } finally {
+      stopHeartbeat();
     }
-    await queueSessionData(sessionId, extractionResult.messages, extractionResult.toolUses, fileStats, projectDir || "", conversationFile, extractionResult.newLastReadLine, extractionResult.lastMessageIndex, extractionResult.isNewSession);
-    await updateSessionSignals(conversationFile, sessionId);
   } catch (error46) {
     logger.error("Failed to perform delayed extraction:", error46);
-    process.exit(0);
+  } finally {
+    await cleanupPidFile(sessionId);
   }
 }
 main().catch((error46) => {

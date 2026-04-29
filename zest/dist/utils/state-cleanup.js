@@ -1,5 +1,5 @@
 // src/utils/state-cleanup.ts
-import { readdir as readdir2, stat as stat3, unlink as unlink2 } from "node:fs/promises";
+import { readdir as readdir2, readFile, stat as stat3, unlink as unlink2 } from "node:fs/promises";
 import { join as join3 } from "node:path";
 
 // src/config/constants.ts
@@ -279,6 +279,17 @@ class Logger {
 }
 var logger = new Logger;
 
+// src/utils/process-utils.ts
+function isProcessDead(pid) {
+  try {
+    process.kill(pid, 0);
+    return false;
+  } catch (err) {
+    const code = err.code;
+    return code === "ESRCH";
+  }
+}
+
 // src/utils/state-cleanup.ts
 var STALE_STATE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 async function cleanupSessionStateFiles(sessionId) {
@@ -294,11 +305,27 @@ async function cleanupStaleStateFiles() {
     const entries = await readdir2(STATE_DIR);
     const cutoff = Date.now() - STALE_STATE_AGE_MS;
     for (const entry of entries) {
-      if (!entry.endsWith(".json") || entry.endsWith(".lock"))
+      if (entry.endsWith(".lock"))
         continue;
+      if (!entry.endsWith(".json") && !entry.endsWith(".pid"))
+        continue;
+      const filePath = join3(STATE_DIR, entry);
       try {
-        const filePath = join3(STATE_DIR, entry);
         const fileStat = await stat3(filePath);
+        if (entry.endsWith(".pid")) {
+          try {
+            const content = await readFile(filePath, "utf-8");
+            const pid = Number.parseInt(content.trim(), 10);
+            if (Number.isNaN(pid) || pid <= 0 || isProcessDead(pid)) {
+              await unlink2(filePath);
+              logger.debug(`Cleaned up dead PID file: ${entry}`);
+              continue;
+            }
+          } catch {
+            await unlink2(filePath).catch(() => {});
+            continue;
+          }
+        }
         if (fileStat.mtimeMs < cutoff) {
           await unlink2(filePath);
           logger.debug(`Cleaned up stale state file: ${entry}`);

@@ -547,6 +547,7 @@ var NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed";
 var QUEUE_CAP_EVICTION = "queue_cap_eviction";
 var SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped";
 var SYNC_DRAIN_THROTTLED = "sync_drain_throttled";
+var SYNC_ORPHANED_MESSAGES_DROPPED = "sync_orphaned_messages_dropped";
 var EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found";
 var EXTRACTION_SESSION_FAILED = "extraction_session_failed";
 var DAEMON_START_FAILED = "daemon_start_failed";
@@ -581,6 +582,7 @@ var ERROR_TYPES = [
   QUEUE_CAP_EVICTION,
   SYNC_STALE_EVENTS_DROPPED,
   SYNC_DRAIN_THROTTLED,
+  SYNC_ORPHANED_MESSAGES_DROPPED,
   FILE_LOCK_TIMEOUT,
   FILE_LOCK_CREATE_FAILED,
   NOTIFICATION_STATE_WRITE_FAILED,
@@ -5101,7 +5103,7 @@ var { checkFirstDataReadyNotification, createStandupRealtimeManager } = createSt
   messages: {
     firstDataReady: `\x1B[1;32m✨ Zest got your first code! Now, code away and we'll let you know when your AI standup is ready at ${WEB_APP_URL}/me\x1B[0m`,
     standupFirst: "\x1B[1;32m\uD83C\uDF89 Your standup is ready & will keep updating as you code.\x1B[0m",
-    standupRefreshed: "\x1B[1;32m\uD83D\uDD04 Your standup has been refreshed & will keep updating as you code.\x1B[0m"
+    standupRefreshed: `\x1B[1;32m\uD83C\uDF4B New standup updated at ${WEB_APP_URL}\x1B[0m`
   },
   hasActiveStandupNotification,
   shouldShowFirstDataReady,

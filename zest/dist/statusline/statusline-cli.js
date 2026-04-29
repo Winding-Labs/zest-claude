@@ -13135,6 +13135,7 @@ var NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed";
 var QUEUE_CAP_EVICTION = "queue_cap_eviction";
 var SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped";
 var SYNC_DRAIN_THROTTLED = "sync_drain_throttled";
+var SYNC_ORPHANED_MESSAGES_DROPPED = "sync_orphaned_messages_dropped";
 var EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found";
 var EXTRACTION_SESSION_FAILED = "extraction_session_failed";
 var DAEMON_START_FAILED = "daemon_start_failed";
@@ -13169,6 +13170,7 @@ var ERROR_TYPES = [
   QUEUE_CAP_EVICTION,
   SYNC_STALE_EVENTS_DROPPED,
   SYNC_DRAIN_THROTTLED,
+  SYNC_ORPHANED_MESSAGES_DROPPED,
   FILE_LOCK_TIMEOUT,
   FILE_LOCK_CREATE_FAILED,
   NOTIFICATION_STATE_WRITE_FAILED,
@@ -17748,7 +17750,7 @@ function main() {
       messages.push("\x1B[1;31m\uD83D\uDD34 Chat history not saving: Background process not running.\x1B[0m");
     }
     if (hasUpdateAvailable) {
-      messages.push(`\x1B[1;33m\uD83C\uDF4B v${cache.versionCheck.currentVersion} → v${cache.versionCheck.latestVersion} update available\x1B[0m`);
+      messages.push(`\x1B[1;33m\uD83C\uDF4B Zest update available (→ v${cache.versionCheck.latestVersion}) via /plugins\x1B[0m`);
     }
     if (messages.length > 0) {
       console.log(messages.join(" | "));

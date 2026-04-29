@@ -7009,6 +7009,7 @@ var NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed";
 var QUEUE_CAP_EVICTION = "queue_cap_eviction";
 var SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped";
 var SYNC_DRAIN_THROTTLED = "sync_drain_throttled";
+var SYNC_ORPHANED_MESSAGES_DROPPED = "sync_orphaned_messages_dropped";
 var EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found";
 var EXTRACTION_SESSION_FAILED = "extraction_session_failed";
 var DAEMON_START_FAILED = "daemon_start_failed";
@@ -7043,6 +7044,7 @@ var ERROR_TYPES = [
   QUEUE_CAP_EVICTION,
   SYNC_STALE_EVENTS_DROPPED,
   SYNC_DRAIN_THROTTLED,
+  SYNC_ORPHANED_MESSAGES_DROPPED,
   FILE_LOCK_TIMEOUT,
   FILE_LOCK_CREATE_FAILED,
   NOTIFICATION_STATE_WRITE_FAILED,
@@ -30283,7 +30285,7 @@ var { checkFirstDataReadyNotification, createStandupRealtimeManager } = createSt
   messages: {
     firstDataReady: `\x1B[1;32m✨ Zest got your first code! Now, code away and we'll let you know when your AI standup is ready at ${WEB_APP_URL}/me\x1B[0m`,
     standupFirst: "\x1B[1;32m\uD83C\uDF89 Your standup is ready & will keep updating as you code.\x1B[0m",
-    standupRefreshed: "\x1B[1;32m\uD83D\uDD04 Your standup has been refreshed & will keep updating as you code.\x1B[0m"
+    standupRefreshed: `\x1B[1;32m\uD83C\uDF4B New standup updated at ${WEB_APP_URL}\x1B[0m`
   },
   hasActiveStandupNotification,
   shouldShowFirstDataReady,
@@ -34781,6 +34783,14 @@ function createChatUploader(config2) {
         const { data: existingSessions, error: queryError } = await supabase.from("chat_sessions").select("id").in("id", orphanedSessionIds2);
         if (queryError) {
           const orphanedMessageIds = new Set(messagePartition.orphaned.map((m) => m.id).filter((id) => !!id));
+          const droppedSessionIds = [
+            ...new Set(messagePartition.orphaned.map((m) => m.session_id).filter(Boolean))
+          ];
+          logger2?.warn("orphaned_messages_dropped_query_error", {
+            dropped_count: orphanedMessageIds.size,
+            session_ids: droppedSessionIds
+          });
+          onCaptureException?.(new Error(`Dropped ${orphanedMessageIds.size} orphaned messages due to query error`), SYNC_ORPHANED_MESSAGES_DROPPED, "chat-uploader", { dropped_count: orphanedMessageIds.size, session_ids: droppedSessionIds });
           await removeMessagesFromQueue(orphanedMessageIds);
           messagePartition.orphaned = [];
         } else {
@@ -34801,6 +34811,14 @@ function createChatUploader(config2) {
           }
           if (invalidOrphaned.length > 0) {
             const invalidMessageIds = new Set(invalidOrphaned.map((m) => m.id).filter((id) => !!id));
+            const droppedSessionIds = [
+              ...new Set(invalidOrphaned.map((m) => m.session_id).filter(Boolean))
+            ];
+            logger2?.warn("orphaned_messages_dropped_invalid", {
+              dropped_count: invalidMessageIds.size,
+              session_ids: droppedSessionIds
+            });
+            onCaptureException?.(new Error(`Dropped ${invalidMessageIds.size} orphaned messages - sessions not found`), SYNC_ORPHANED_MESSAGES_DROPPED, "chat-uploader", { dropped_count: invalidMessageIds.size, session_ids: droppedSessionIds });
             await removeMessagesFromQueue(invalidMessageIds);
           }
           messagePartition.orphaned = validOrphaned;
@@ -35258,19 +35276,48 @@ var syncRunner = createSyncRunner({
 });
 
 // src/utils/state-cleanup.ts
-import { readdir as readdir5, stat as stat5, unlink as unlink9 } from "node:fs/promises";
+import { readdir as readdir5, readFile as readFile11, stat as stat5, unlink as unlink9 } from "node:fs/promises";
 import { join as join7 } from "node:path";
+
+// src/utils/process-utils.ts
+function isProcessDead(pid) {
+  try {
+    process.kill(pid, 0);
+    return false;
+  } catch (err) {
+    const code = err.code;
+    return code === "ESRCH";
+  }
+}
+
+// src/utils/state-cleanup.ts
 var STALE_STATE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 async function cleanupStaleStateFiles() {
   try {
     const entries = await readdir5(STATE_DIR);
     const cutoff = Date.now() - STALE_STATE_AGE_MS;
     for (const entry of entries) {
-      if (!entry.endsWith(".json") || entry.endsWith(".lock"))
+      if (entry.endsWith(".lock"))
         continue;
+      if (!entry.endsWith(".json") && !entry.endsWith(".pid"))
+        continue;
+      const filePath = join7(STATE_DIR, entry);
       try {
-        const filePath = join7(STATE_DIR, entry);
         const fileStat = await stat5(filePath);
+        if (entry.endsWith(".pid")) {
+          try {
+            const content = await readFile11(filePath, "utf-8");
+            const pid = Number.parseInt(content.trim(), 10);
+            if (Number.isNaN(pid) || pid <= 0 || isProcessDead(pid)) {
+              await unlink9(filePath);
+              logger.debug(`Cleaned up dead PID file: ${entry}`);
+              continue;
+            }
+          } catch {
+            await unlink9(filePath).catch(() => {});
+            continue;
+          }
+        }
         if (fileStat.mtimeMs < cutoff) {
           await unlink9(filePath);
           logger.debug(`Cleaned up stale state file: ${entry}`);

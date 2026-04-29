@@ -43,11 +43,13 @@ var LOCK_MAX_RETRIES = 300;
 var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
 var DEBOUNCE_WINDOW_MS = 500;
 var DEBOUNCE_TRAILING_MS = 300;
+var DEBOUNCE_COUNT_RESET_MS = 5000;
 var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
 var LOG_RETENTION_DAYS = 7;
 var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
 var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+var CONSUMPTION_TTL_MS = 30000;
 var POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ";
 var CLAUDE_BUILTIN_COMMANDS = new Set([
   "add-dir",
@@ -178,6 +180,7 @@ var NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed";
 var QUEUE_CAP_EVICTION = "queue_cap_eviction";
 var SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped";
 var SYNC_DRAIN_THROTTLED = "sync_drain_throttled";
+var SYNC_ORPHANED_MESSAGES_DROPPED = "sync_orphaned_messages_dropped";
 var EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found";
 var EXTRACTION_SESSION_FAILED = "extraction_session_failed";
 var DAEMON_START_FAILED = "daemon_start_failed";
@@ -212,6 +215,7 @@ var ERROR_TYPES = [
   QUEUE_CAP_EVICTION,
   SYNC_STALE_EVENTS_DROPPED,
   SYNC_DRAIN_THROTTLED,
+  SYNC_ORPHANED_MESSAGES_DROPPED,
   FILE_LOCK_TIMEOUT,
   FILE_LOCK_CREATE_FAILED,
   NOTIFICATION_STATE_WRITE_FAILED,
@@ -4611,18 +4615,26 @@ async function registerHookFired(hookType, sessionId) {
     return await withFileLock(debounceFile, async () => {
       const now = Date.now();
       let count = 1;
+      let existingConsumedBy;
+      let existingConsumedAt;
       try {
         const content = await readFile3(debounceFile, "utf-8");
         const info = JSON.parse(content);
-        if (now - info.timestamp < 5000) {
+        if (now - info.timestamp < DEBOUNCE_COUNT_RESET_MS) {
           count = (info.count || 1) + 1;
         }
+        existingConsumedBy = info.consumedBy;
+        existingConsumedAt = info.consumedAt;
       } catch {}
       const newInfo = {
         timestamp: now,
         pid: process.pid,
         count
       };
+      if (existingConsumedBy && existingConsumedAt && now - existingConsumedAt < CONSUMPTION_TTL_MS) {
+        newInfo.consumedBy = existingConsumedBy;
+        newInfo.consumedAt = existingConsumedAt;
+      }
       await writeFile3(debounceFile, JSON.stringify(newInfo), "utf-8");
       logger.debug(`Registered ${hookType} #${count} for session ${sessionId}`);
       return count;
@@ -4636,17 +4648,58 @@ async function shouldProcessNow(hookType, sessionId) {
   const debounceFile = join5(DEBOUNCE_DIR, `trailing-${hookType}-${sanitizeForFilename(sessionId)}.json`);
   const now = Date.now();
   try {
-    const content = await readFile3(debounceFile, "utf-8");
-    const info = JSON.parse(content);
-    const msSinceLastHook = now - info.timestamp;
-    const shouldProcess = msSinceLastHook >= DEBOUNCE_TRAILING_MS;
-    if (!shouldProcess) {
-      logger.debug(`Not ready to process ${hookType} - only ${msSinceLastHook}ms since last hook (need ${DEBOUNCE_TRAILING_MS}ms)`);
-    }
-    return { shouldProcess, msSinceLastHook };
+    return await withFileLock(debounceFile, async () => {
+      try {
+        const content = await readFile3(debounceFile, "utf-8");
+        const info = JSON.parse(content);
+        if (info.consumedBy === process.pid) {
+          info.consumedAt = now;
+          await writeFile3(debounceFile, JSON.stringify(info), "utf-8");
+        }
+        if (info.consumedBy && info.consumedBy !== process.pid) {
+          const consumedAge = now - (info.consumedAt ?? 0);
+          if (consumedAge < CONSUMPTION_TTL_MS) {
+            return { shouldProcess: false, msSinceLastHook: now - info.timestamp };
+          }
+        }
+        const msSinceLastHook = now - info.timestamp;
+        const shouldProcess = msSinceLastHook >= DEBOUNCE_TRAILING_MS;
+        if (shouldProcess && info.consumedBy !== process.pid) {
+          info.consumedBy = process.pid;
+          info.consumedAt = now;
+          await writeFile3(debounceFile, JSON.stringify(info), "utf-8");
+        } else if (!shouldProcess) {
+          logger.debug(`Not ready to process ${hookType} - only ${msSinceLastHook}ms since last hook (need ${DEBOUNCE_TRAILING_MS}ms)`);
+        }
+        return { shouldProcess, msSinceLastHook };
+      } catch {
+        return { shouldProcess: true, msSinceLastHook: Number.POSITIVE_INFINITY };
+      }
+    });
   } catch {
     return { shouldProcess: true, msSinceLastHook: Number.POSITIVE_INFINITY };
   }
+}
+async function startConsumptionHeartbeat(hookType, sessionId, intervalMs = Math.floor(CONSUMPTION_TTL_MS / 3)) {
+  const debounceFile = join5(DEBOUNCE_DIR, `trailing-${hookType}-${sanitizeForFilename(sessionId)}.json`);
+  const tick = async () => {
+    try {
+      await withFileLock(debounceFile, async () => {
+        const content = await readFile3(debounceFile, "utf-8");
+        const info = JSON.parse(content);
+        if (info.consumedBy === process.pid) {
+          info.consumedAt = Date.now();
+          await writeFile3(debounceFile, JSON.stringify(info), "utf-8");
+        }
+      });
+    } catch {}
+  };
+  await tick();
+  const handle = setInterval(tick, intervalMs);
+  handle.unref?.();
+  return () => {
+    clearInterval(handle);
+  };
 }
 async function cleanupDebounceFiles() {
   try {
@@ -4675,6 +4728,7 @@ async function cleanupDebounceFiles() {
   } catch {}
 }
 export {
+  startConsumptionHeartbeat,
   shouldSkipDuplicate,
   shouldProcessNow,
   registerHookFired,
