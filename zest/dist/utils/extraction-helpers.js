@@ -32,6 +32,8 @@ var SYNC_NETWORK_ERROR = "sync_network_error";
 var SYNC_SERVER_OVERLOAD = "sync_server_overload";
 var SYNC_DATA_ERROR = "sync_data_error";
 var SYNC_AUTH_ERROR = "sync_auth_error";
+var SYNC_BLOCKED_NO_WORKSPACE = "sync_blocked_no_workspace";
+var AUTH_SESSION_METADATA_LOST = "auth_session_metadata_lost";
 var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
 var QUEUE_WRITE_FAILED = "queue_write_failed";
 var FILE_LOCK_TIMEOUT = "file_lock_timeout";
@@ -46,6 +48,7 @@ var EXTRACTION_SESSION_FAILED = "extraction_session_failed";
 var DAEMON_START_FAILED = "daemon_start_failed";
 var DAEMON_RESTART_FAILED = "daemon_restart_failed";
 var DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed";
+var DAEMON_UNHANDLED_ERROR = "daemon_unhandled_error";
 var API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed";
 var API_PROFILE_UPDATE_FAILED = "api_profile_update_failed";
 var API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed";
@@ -62,6 +65,7 @@ var ERROR_TYPES = [
   AUTH_SESSION_CLEAR_FAILED,
   AUTH_SESSION_LOAD_FAILED,
   AUTH_SESSION_SAVE_FAILED,
+  AUTH_SESSION_METADATA_LOST,
   SYNC_NOT_AUTHENTICATED,
   SYNC_EVENTS_UPLOAD_FAILED,
   SYNC_EVENTS_RETRY_EXHAUSTED,
@@ -70,6 +74,7 @@ var ERROR_TYPES = [
   SYNC_SERVER_OVERLOAD,
   SYNC_DATA_ERROR,
   SYNC_AUTH_ERROR,
+  SYNC_BLOCKED_NO_WORKSPACE,
   QUEUE_READ_CORRUPTED,
   QUEUE_WRITE_FAILED,
   QUEUE_CAP_EVICTION,
@@ -84,6 +89,7 @@ var ERROR_TYPES = [
   DAEMON_START_FAILED,
   DAEMON_RESTART_FAILED,
   DAEMON_SYNC_CYCLE_FAILED,
+  DAEMON_UNHANDLED_ERROR,
   API_WORKSPACE_FETCH_FAILED,
   API_PROFILE_UPDATE_FAILED,
   API_PROFILE_METADATA_PREFETCH_FAILED,
@@ -538,6 +544,8 @@ var EVENTS = {
   USER_INVITED: "User Invited",
   INVITE_LINK_CREATED: "Invite Link Created",
   TEAM_CREATED: "Team Created",
+  ORG_MEMBERS_DETECTED: "Org Members Detected",
+  WORKSPACE_MEMBERS_PROVISIONED: "Workspace Members Provisioned",
   WORKSPACE_SETTINGS_VIEWED: "Workspace Settings Viewed",
   TEAM_SETTINGS_VIEWED: "Team Settings Viewed",
   CLI_SIGNED_IN: "CLI Signed In",
@@ -20832,7 +20840,7 @@ async function queueSessionData(sessionId, messages, toolUses, fileStats, projec
 }
 async function queueToolUseEvents(toolUses, sessionId, projectDir) {
   const session = await getValidSession();
-  const workspaceId = session?.workspaceId || null;
+  const workspaceId = session?.workspaceId ?? null;
   let queuedEventCount = 0;
   for (const toolUse of toolUses) {
     if (!toolUse.file_path)

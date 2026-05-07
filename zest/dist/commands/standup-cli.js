@@ -6997,6 +6997,8 @@ var SYNC_NETWORK_ERROR = "sync_network_error";
 var SYNC_SERVER_OVERLOAD = "sync_server_overload";
 var SYNC_DATA_ERROR = "sync_data_error";
 var SYNC_AUTH_ERROR = "sync_auth_error";
+var SYNC_BLOCKED_NO_WORKSPACE = "sync_blocked_no_workspace";
+var AUTH_SESSION_METADATA_LOST = "auth_session_metadata_lost";
 var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
 var QUEUE_WRITE_FAILED = "queue_write_failed";
 var FILE_LOCK_TIMEOUT = "file_lock_timeout";
@@ -7011,6 +7013,7 @@ var EXTRACTION_SESSION_FAILED = "extraction_session_failed";
 var DAEMON_START_FAILED = "daemon_start_failed";
 var DAEMON_RESTART_FAILED = "daemon_restart_failed";
 var DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed";
+var DAEMON_UNHANDLED_ERROR = "daemon_unhandled_error";
 var API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed";
 var API_PROFILE_UPDATE_FAILED = "api_profile_update_failed";
 var API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed";
@@ -7027,6 +7030,7 @@ var ERROR_TYPES = [
   AUTH_SESSION_CLEAR_FAILED,
   AUTH_SESSION_LOAD_FAILED,
   AUTH_SESSION_SAVE_FAILED,
+  AUTH_SESSION_METADATA_LOST,
   SYNC_NOT_AUTHENTICATED,
   SYNC_EVENTS_UPLOAD_FAILED,
   SYNC_EVENTS_RETRY_EXHAUSTED,
@@ -7035,6 +7039,7 @@ var ERROR_TYPES = [
   SYNC_SERVER_OVERLOAD,
   SYNC_DATA_ERROR,
   SYNC_AUTH_ERROR,
+  SYNC_BLOCKED_NO_WORKSPACE,
   QUEUE_READ_CORRUPTED,
   QUEUE_WRITE_FAILED,
   QUEUE_CAP_EVICTION,
@@ -7049,6 +7054,7 @@ var ERROR_TYPES = [
   DAEMON_START_FAILED,
   DAEMON_RESTART_FAILED,
   DAEMON_SYNC_CYCLE_FAILED,
+  DAEMON_UNHANDLED_ERROR,
   API_WORKSPACE_FETCH_FAILED,
   API_PROFILE_UPDATE_FAILED,
   API_PROFILE_METADATA_PREFETCH_FAILED,
@@ -7127,11 +7133,17 @@ async function fetchUserTeamAndProfile(supabase, userId, workspaceId, options) {
       `).eq("user_id", userId).eq("teams.workspace_id", workspaceId).limit(1).single();
     if (membershipError || !membershipData) {
       logger?.error("Failed to fetch team membership", membershipError);
+      if (membershipError) {
+        onError?.(new Error(membershipError.message), { endpoint: "team_memberships" });
+      }
       return null;
     }
     const { data: profileData, error: profileError } = await supabase.from("profiles").select("slug, timezone").eq("id", userId).single();
     if (profileError || !profileData) {
       logger?.error("Failed to fetch user profile", profileError);
+      if (profileError) {
+        onError?.(new Error(profileError.message), { endpoint: "profiles" });
+      }
       return null;
     }
     return {
@@ -7157,6 +7169,7 @@ async function fetchAutoRefreshEligibility(supabase, workspaceId, userId, option
     }).maybeSingle();
     if (error) {
       logger?.error("Failed to fetch auto-refresh eligibility", error);
+      onError?.(new Error(error.message), { endpoint: "check_auto_refresh_eligibility" });
       return null;
     }
     return data;
@@ -7175,6 +7188,9 @@ async function fetchDefaultStandupPromptId(supabase, workspaceId, options) {
     const { data, error } = await supabase.from("custom_prompts").select("id").eq("type", "standup").eq("is_enabled", true).eq("workspace_id", workspaceId).order("is_default", { ascending: false }).order("display_order", { ascending: true }).order("version", { ascending: false }).limit(1).single();
     if (error || !data) {
       logger?.error("Failed to fetch standup prompt", error);
+      if (error) {
+        onError?.(new Error(error.message), { endpoint: "custom_prompts" });
+      }
       return null;
     }
     return data.id;
@@ -7381,6 +7397,8 @@ var EVENTS = {
   USER_INVITED: "User Invited",
   INVITE_LINK_CREATED: "Invite Link Created",
   TEAM_CREATED: "Team Created",
+  ORG_MEMBERS_DETECTED: "Org Members Detected",
+  WORKSPACE_MEMBERS_PROVISIONED: "Workspace Members Provisioned",
   WORKSPACE_SETTINGS_VIEWED: "Workspace Settings Viewed",
   TEAM_SETTINGS_VIEWED: "Team Settings Viewed",
   CLI_SIGNED_IN: "CLI Signed In",
@@ -14518,7 +14536,13 @@ function createSessionStorageAdapter(isRemovalAllowed) {
             existingRefreshToken = existing.refreshToken;
             refreshTokenExpiresAt = existing.refreshTokenExpiresAt;
             existingEmail = existing.email;
-          } catch {}
+          } catch (error) {
+            const isFirstLogin = error.code === "ENOENT";
+            if (!isFirstLogin) {
+              logger.warn("Storage adapter: failed to read existing session for metadata preservation", error);
+              captureException(error instanceof Error ? error : new Error("Session file read failed during token refresh"), AUTH_SESSION_METADATA_LOST, "session-storage-adapter", { operation: "read", file: "session.json" });
+            }
+          }
           const tokenRotated = existingRefreshToken && existingRefreshToken !== gotrueSession.refresh_token;
           const updatedSession = {
             accessToken: gotrueSession.access_token,
