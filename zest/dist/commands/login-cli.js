@@ -7285,6 +7285,8 @@ var EVENTS = {
   USER_INVITED: "User Invited",
   INVITE_LINK_CREATED: "Invite Link Created",
   TEAM_CREATED: "Team Created",
+  ORG_MEMBERS_DETECTED: "Org Members Detected",
+  WORKSPACE_MEMBERS_PROVISIONED: "Workspace Members Provisioned",
   WORKSPACE_SETTINGS_VIEWED: "Workspace Settings Viewed",
   TEAM_SETTINGS_VIEWED: "Team Settings Viewed",
   CLI_SIGNED_IN: "CLI Signed In",
@@ -10893,6 +10895,8 @@ var SYNC_NETWORK_ERROR = "sync_network_error";
 var SYNC_SERVER_OVERLOAD = "sync_server_overload";
 var SYNC_DATA_ERROR = "sync_data_error";
 var SYNC_AUTH_ERROR = "sync_auth_error";
+var SYNC_BLOCKED_NO_WORKSPACE = "sync_blocked_no_workspace";
+var AUTH_SESSION_METADATA_LOST = "auth_session_metadata_lost";
 var QUEUE_READ_CORRUPTED = "queue_read_corrupted";
 var QUEUE_WRITE_FAILED = "queue_write_failed";
 var FILE_LOCK_TIMEOUT = "file_lock_timeout";
@@ -10907,6 +10911,7 @@ var EXTRACTION_SESSION_FAILED = "extraction_session_failed";
 var DAEMON_START_FAILED = "daemon_start_failed";
 var DAEMON_RESTART_FAILED = "daemon_restart_failed";
 var DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed";
+var DAEMON_UNHANDLED_ERROR = "daemon_unhandled_error";
 var API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed";
 var API_PROFILE_UPDATE_FAILED = "api_profile_update_failed";
 var API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed";
@@ -10923,6 +10928,7 @@ var ERROR_TYPES = [
   AUTH_SESSION_CLEAR_FAILED,
   AUTH_SESSION_LOAD_FAILED,
   AUTH_SESSION_SAVE_FAILED,
+  AUTH_SESSION_METADATA_LOST,
   SYNC_NOT_AUTHENTICATED,
   SYNC_EVENTS_UPLOAD_FAILED,
   SYNC_EVENTS_RETRY_EXHAUSTED,
@@ -10931,6 +10937,7 @@ var ERROR_TYPES = [
   SYNC_SERVER_OVERLOAD,
   SYNC_DATA_ERROR,
   SYNC_AUTH_ERROR,
+  SYNC_BLOCKED_NO_WORKSPACE,
   QUEUE_READ_CORRUPTED,
   QUEUE_WRITE_FAILED,
   QUEUE_CAP_EVICTION,
@@ -10945,6 +10952,7 @@ var ERROR_TYPES = [
   DAEMON_START_FAILED,
   DAEMON_RESTART_FAILED,
   DAEMON_SYNC_CYCLE_FAILED,
+  DAEMON_UNHANDLED_ERROR,
   API_WORKSPACE_FETCH_FAILED,
   API_PROFILE_UPDATE_FAILED,
   API_PROFILE_METADATA_PREFETCH_FAILED,
@@ -15088,7 +15096,13 @@ function createSessionStorageAdapter(isRemovalAllowed) {
             existingRefreshToken = existing.refreshToken;
             refreshTokenExpiresAt = existing.refreshTokenExpiresAt;
             existingEmail = existing.email;
-          } catch {}
+          } catch (error) {
+            const isFirstLogin = error.code === "ENOENT";
+            if (!isFirstLogin) {
+              logger.warn("Storage adapter: failed to read existing session for metadata preservation", error);
+              captureException(error instanceof Error ? error : new Error("Session file read failed during token refresh"), AUTH_SESSION_METADATA_LOST, "session-storage-adapter", { operation: "read", file: "session.json" });
+            }
+          }
           const tokenRotated = existingRefreshToken && existingRefreshToken !== gotrueSession.refresh_token;
           const updatedSession = {
             accessToken: gotrueSession.access_token,
@@ -15263,7 +15277,11 @@ async function startAuthFlow() {
     if (onDemand) {
       try {
         await updateProfileMetadata(onDemand.client, session.userId);
-        await selectDefaultWorkspace(onDemand.client);
+        try {
+          await selectDefaultWorkspace(onDemand.client);
+        } catch (wsError) {
+          logger.warn("Workspace selection failed — sync will be blocked until resolved", wsError);
+        }
       } finally {
         await onDemand.dispose();
       }
@@ -15426,11 +15444,12 @@ async function selectDefaultWorkspace(supabase) {
     logger.info("Loading workspace information");
     const workspaces = await fetchUserWorkspaces(supabase, session.userId);
     if (workspaces.length === 0) {
+      logger.error("No workspace found for user — auth incomplete");
       console.log(`
 ⚠️  No workspace found`);
       console.log(`   Create one at: ${WEB_APP_URL}/onboarding
 `);
-      return;
+      throw new Error("No workspace available for user — create one via onboarding");
     }
     if (session.workspaceId) {
       const selectedWorkspace = workspaces.find((w) => w.id === session.workspaceId);
@@ -30271,12 +30290,14 @@ var RETENTION_PERIOD_ORDER = {
 var WORKSPACE_COLLECTION_DEFAULTS = {
   user_messages: true,
   assistant_messages: true,
-  code_diffs: true
+  code_diffs: true,
+  github_events: true
 };
 var WORKSPACE_RETENTION_DEFAULTS = {
   user_messages: "90d",
   assistant_messages: "90d",
-  code_diffs: "7d"
+  code_diffs: "7d",
+  github_events: "90d"
 };
 function shorterRetentionPeriod(a, b) {
   return RETENTION_PERIOD_ORDER[a] <= RETENTION_PERIOD_ORDER[b] ? a : b;
@@ -30287,7 +30308,8 @@ function getEffectiveCollection(workspace, user) {
   return {
     user_messages: workspace.user_messages && user.user_messages,
     assistant_messages: workspace.assistant_messages && user.assistant_messages,
-    code_diffs: workspace.code_diffs && user.code_diffs
+    code_diffs: workspace.code_diffs && user.code_diffs,
+    github_events: workspace.github_events
   };
 }
 function getEffectiveRetention(workspace, user) {
@@ -30296,7 +30318,8 @@ function getEffectiveRetention(workspace, user) {
   return {
     user_messages: shorterRetentionPeriod(workspace.user_messages, user.user_messages),
     assistant_messages: shorterRetentionPeriod(workspace.assistant_messages, user.assistant_messages),
-    code_diffs: shorterRetentionPeriod(workspace.code_diffs, user.code_diffs)
+    code_diffs: shorterRetentionPeriod(workspace.code_diffs, user.code_diffs),
+    github_events: workspace.github_events
   };
 }
 // ../../packages/types/prompt-tags.ts
@@ -34311,12 +34334,14 @@ var NEVER2 = INVALID;
 var collectionSettingsSchema = exports_external2.object({
   user_messages: exports_external2.boolean(),
   assistant_messages: exports_external2.boolean(),
-  code_diffs: exports_external2.boolean()
+  code_diffs: exports_external2.boolean(),
+  github_events: exports_external2.boolean().default(true)
 });
 var retentionSettingsSchema = exports_external2.object({
   user_messages: exports_external2.enum(RETENTION_PERIODS),
   assistant_messages: exports_external2.enum(RETENTION_PERIODS),
-  code_diffs: exports_external2.enum(RETENTION_PERIODS)
+  code_diffs: exports_external2.enum(RETENTION_PERIODS),
+  github_events: exports_external2.enum(RETENTION_PERIODS).default("90d")
 });
 
 // ../../packages/plugin-common/src/supabase/data-controls-provider.ts
@@ -35350,9 +35375,11 @@ function createChatUploader(config2) {
         platform: platform2,
         source,
         analysis_status: "pending",
-        workspace_id: workspaceId,
         metadata: null
       };
+      if (workspaceId) {
+        session.workspace_id = workspaceId;
+      }
       if (signals) {
         session.signals = signals;
       }
@@ -35379,7 +35406,7 @@ function createChatUploader(config2) {
       return { success: true, uploadedCount: 0, failedSessionIds: new Set };
     const result = await upsertWithFallback({
       rows: sessions,
-      upsert: (batch) => supabase.from("chat_sessions").upsert(batch, { onConflict: "id" }),
+      upsert: (batch) => supabase.from("chat_sessions").upsert(batch, { onConflict: "id", defaultToNull: false }),
       rowId: (row) => row.id ?? "unknown",
       logger: logger2
     });
@@ -35408,7 +35435,7 @@ function createChatUploader(config2) {
     const messagesWithoutId = messages.map(({ id, ...rest }) => rest);
     const result = await upsertWithFallback({
       rows: messagesWithoutId,
-      upsert: (batch) => supabase.from("chat_messages").upsert(batch, { onConflict: "session_id,message_index" }),
+      upsert: (batch) => supabase.from("chat_messages").upsert(batch, { onConflict: "session_id,message_index", defaultToNull: false }),
       rowId: (row) => `${row.session_id}:${row.message_index}`,
       logger: logger2
     });
@@ -35505,7 +35532,16 @@ function createChatUploader(config2) {
       const uniqueSessions = deduplicateSessions(categories.valid);
       const allMessagesToUpload = [...messagePartition.valid, ...messagePartition.orphaned];
       const uniqueMessages = deduplicateMessages(allMessagesToUpload);
-      const sessionsToUpload = await enrichSessionsForUpload(uniqueSessions, session.userId, session.workspaceId || null);
+      const workspaceId = session.workspaceId ?? null;
+      if (!workspaceId) {
+        logger2?.warn("Skipping chat upload: workspace_id is missing from auth session");
+        onCaptureException?.(new Error("Chat upload blocked: no workspace_id in auth session"), SYNC_BLOCKED_NO_WORKSPACE, "chat-uploader", {
+          ...buildSyncProperties({ sessionsAttempted: uniqueSessions.length }),
+          reason: "precondition_failed"
+        });
+        return { success: false, uploaded: { sessions: 0, messages: 0 }, errorCategory: "auth_error" };
+      }
+      const sessionsToUpload = await enrichSessionsForUpload(uniqueSessions, session.userId, workspaceId);
       let sessionsForThisCycle = sessionsToUpload;
       if (maxSessionsPerCycle && sessionsToUpload.length > maxSessionsPerCycle) {
         sessionsForThisCycle = sessionsToUpload.slice(0, maxSessionsPerCycle);
@@ -35970,10 +36006,31 @@ function createEventsUploader(config2) {
           projectInfoCache.set(workingDirectory, getProjectInfoSync(workingDirectory));
         }
       }
-      const eventsToUpload = eventsForThisCycle.map((e) => {
+      const allTransformedEvents = eventsForThisCycle.map((e) => {
         const projectInfo = e.workspace_folder_uri ? projectInfoCache.get(parseFileUri(e.workspace_folder_uri)) ?? UNKNOWN_PROJECT2 : UNKNOWN_PROJECT2;
         return transformEventForUpload(e, session.userId, projectInfo);
       });
+      const droppedIds = new Set;
+      const eventsToUpload = allTransformedEvents.filter((e) => {
+        if (!e.workspace_id) {
+          if (e.id)
+            droppedIds.add(e.id);
+          return false;
+        }
+        return true;
+      });
+      if (droppedIds.size > 0) {
+        logger2?.warn(`Dropping ${droppedIds.size} events without workspace_id from queue`);
+        onCaptureException?.(new Error(`${droppedIds.size} events dropped: no workspace_id`), SYNC_BLOCKED_NO_WORKSPACE, "events-uploader", {
+          ...buildSyncProperties({ eventsAttempted: droppedIds.size }),
+          reason: "precondition_failed"
+        });
+        await atomicUpdateQueue2(eventsQueueFile, (current) => current.filter((e) => !e.id || !droppedIds.has(e.id)));
+      }
+      if (eventsToUpload.length === 0) {
+        logger2?.debug("No events to upload after workspace_id filter");
+        return { success: true, uploaded: 0 };
+      }
       const batchSize = 100;
       let uploadedCount = 0;
       const processedIds = new Set;
@@ -35982,7 +36039,7 @@ function createEventsUploader(config2) {
         const batchNumber = i / batchSize + 1;
         const result = await upsertWithFallback({
           rows: batch,
-          upsert: (rows) => supabase.from("code_digest_events").upsert(rows, { onConflict: "id" }),
+          upsert: (rows) => supabase.from("code_digest_events").upsert(rows, { onConflict: "id", defaultToNull: false }),
           rowId: (row) => row.id ?? "unknown",
           logger: logger2
         });
