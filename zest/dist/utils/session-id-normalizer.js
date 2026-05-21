@@ -1,4 +1,4 @@
-// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/sha1.js
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/sha1.js
 import { createHash } from "node:crypto";
 function sha1(bytes) {
   if (Array.isArray(bytes)) {
@@ -10,16 +10,16 @@ function sha1(bytes) {
 }
 var sha1_default = sha1;
 
-// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/regex.js
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/regex.js
 var regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
 
-// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/validate.js
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/validate.js
 function validate(uuid) {
   return typeof uuid === "string" && regex_default.test(uuid);
 }
 var validate_default = validate;
 
-// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/parse.js
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/parse.js
 function parse(uuid) {
   if (!validate_default(uuid)) {
     throw TypeError("Invalid UUID");
@@ -29,7 +29,7 @@ function parse(uuid) {
 }
 var parse_default = parse;
 
-// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/stringify.js
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/stringify.js
 var byteToHex = [];
 for (let i = 0;i < 256; ++i) {
   byteToHex.push((i + 256).toString(16).slice(1));
@@ -38,7 +38,7 @@ function unsafeStringify(arr, offset = 0) {
   return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
 }
 
-// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/v35.js
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/v35.js
 function stringToBytes(str) {
   str = unescape(encodeURIComponent(str));
   const bytes = new Uint8Array(str.length);
@@ -66,6 +66,9 @@ function v35(version, hash, value, namespace, buf, offset) {
   bytes[8] = bytes[8] & 63 | 128;
   if (buf) {
     offset = offset || 0;
+    if (offset < 0 || offset + 16 > buf.length) {
+      throw new RangeError(`UUID byte range ${offset}:${offset + 15} is out of buffer bounds`);
+    }
     for (let i = 0;i < 16; ++i) {
       buf[offset + i] = bytes[i];
     }
@@ -74,7 +77,7 @@ function v35(version, hash, value, namespace, buf, offset) {
   return unsafeStringify(bytes);
 }
 
-// ../../node_modules/.bun/uuid@13.0.0/node_modules/uuid/dist-node/v5.js
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/v5.js
 function v5(value, namespace, buf, offset) {
   return v35(80, sha1_default, value, namespace, buf, offset);
 }
