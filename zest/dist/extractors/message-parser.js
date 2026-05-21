@@ -1628,6 +1628,25 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
                   if (entry.permissionMode) {
                     metadata.permission_mode = entry.permissionMode;
                   }
+                  if (role === "assistant" && entry.message.usage) {
+                    const u = entry.message.usage;
+                    if (u.input_tokens != null) {
+                      metadata.input_tokens = u.input_tokens + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0);
+                    }
+                    if (u.output_tokens != null)
+                      metadata.output_tokens = u.output_tokens;
+                    if (u.cache_read_input_tokens != null)
+                      metadata.cache_read_tokens = u.cache_read_input_tokens;
+                    if (u.cache_creation_input_tokens != null)
+                      metadata.cache_creation_tokens = u.cache_creation_input_tokens;
+                    if (u.cache_creation?.ephemeral_5m_input_tokens != null)
+                      metadata.cache_creation_5m_tokens = u.cache_creation.ephemeral_5m_input_tokens;
+                    if (u.cache_creation?.ephemeral_1h_input_tokens != null)
+                      metadata.cache_creation_1h_tokens = u.cache_creation.ephemeral_1h_input_tokens;
+                    if (u.input_tokens != null || u.output_tokens != null) {
+                      metadata.token_source = "provider_reported";
+                    }
+                  }
                   messages.push({
                     id: entry.uuid,
                     session_id: sessionId,
