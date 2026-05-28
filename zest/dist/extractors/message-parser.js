@@ -1,6 +1,32 @@
 // src/extractors/message-parser.ts
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
+
+// ../../packages/plugin-common/src/extractors/token-metadata.ts
+function buildTokenMetadata(usage) {
+  const meta = {};
+  if (usage.input_tokens != null) {
+    meta.input_tokens = usage.input_tokens + (usage.cache_creation_input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0);
+  }
+  if (usage.output_tokens != null)
+    meta.output_tokens = usage.output_tokens;
+  if (usage.cache_read_input_tokens != null)
+    meta.cache_read_tokens = usage.cache_read_input_tokens;
+  if (usage.cache_creation_input_tokens != null)
+    meta.cache_creation_tokens = usage.cache_creation_input_tokens;
+  if (usage.cache_creation?.ephemeral_5m_input_tokens != null)
+    meta.cache_creation_5m_tokens = usage.cache_creation.ephemeral_5m_input_tokens;
+  if (usage.cache_creation?.ephemeral_1h_input_tokens != null)
+    meta.cache_creation_1h_tokens = usage.cache_creation.ephemeral_1h_input_tokens;
+  if (typeof usage.server_tool_use?.input_tokens === "number")
+    meta.server_tool_use_input_tokens = usage.server_tool_use.input_tokens;
+  if (typeof usage.server_tool_use?.output_tokens === "number")
+    meta.server_tool_use_output_tokens = usage.server_tool_use.output_tokens;
+  if (usage.input_tokens != null || usage.output_tokens != null) {
+    meta.token_source = "provider_reported";
+  }
+  return meta;
+}
 // ../../packages/plugin-common/src/supabase/utils/string-utils.ts
 function toWellFormed(str) {
   return str.toWellFormed?.() ?? str;
@@ -1573,6 +1599,7 @@ function applyMessageFilter(role, textContent, currentState) {
 async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0, startingMessageIndex = 0) {
   const messages = [];
   const toolUses = [];
+  let peakContextTokens;
   const LOOKBACK_WINDOW = 10;
   const recentLines = [];
   try {
@@ -1629,23 +1656,7 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
                     metadata.permission_mode = entry.permissionMode;
                   }
                   if (role === "assistant" && entry.message.usage) {
-                    const u = entry.message.usage;
-                    if (u.input_tokens != null) {
-                      metadata.input_tokens = u.input_tokens + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0);
-                    }
-                    if (u.output_tokens != null)
-                      metadata.output_tokens = u.output_tokens;
-                    if (u.cache_read_input_tokens != null)
-                      metadata.cache_read_tokens = u.cache_read_input_tokens;
-                    if (u.cache_creation_input_tokens != null)
-                      metadata.cache_creation_tokens = u.cache_creation_input_tokens;
-                    if (u.cache_creation?.ephemeral_5m_input_tokens != null)
-                      metadata.cache_creation_5m_tokens = u.cache_creation.ephemeral_5m_input_tokens;
-                    if (u.cache_creation?.ephemeral_1h_input_tokens != null)
-                      metadata.cache_creation_1h_tokens = u.cache_creation.ephemeral_1h_input_tokens;
-                    if (u.input_tokens != null || u.output_tokens != null) {
-                      metadata.token_source = "provider_reported";
-                    }
+                    Object.assign(metadata, buildTokenMetadata(entry.message.usage));
                   }
                   messages.push({
                     id: entry.uuid,
@@ -1659,8 +1670,30 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
                   messageCounter++;
                   logger.debug(`Extracted ${role} message at line ${lineNumber + 1}: ${textContent.substring(0, 50)}...`);
                 }
+              } else if (role === "assistant" && Array.isArray(content) && content.some((b) => b.type === "tool_use") && entry.message.usage && ((entry.message.usage.input_tokens ?? 0) > 0 || (entry.message.usage.output_tokens ?? 0) > 0)) {
+                const metadata = {};
+                if (entry.uuid)
+                  metadata.claude_uuid = entry.uuid;
+                if (entry.message.model)
+                  metadata.modelName = entry.message.model;
+                if (entry.permissionMode)
+                  metadata.permission_mode = entry.permissionMode;
+                Object.assign(metadata, buildTokenMetadata(entry.message.usage));
+                messages.push({
+                  id: entry.uuid,
+                  session_id: sessionId,
+                  role,
+                  content: "",
+                  created_at: entry.timestamp || new Date().toISOString(),
+                  message_index: messageCounter,
+                  metadata: Object.keys(metadata).length > 0 ? metadata : null
+                });
+                messageCounter++;
               }
             }
+          }
+          if (entry.compactMetadata?.preTokens != null && entry.compactMetadata.preTokens > 0) {
+            peakContextTokens = Math.max(peakContextTokens ?? 0, entry.compactMetadata.preTokens);
           }
           if (entry.toolUseResult) {
             const toolUseWithDiff = extractToolUseResult(entry, sessionId);
@@ -1696,7 +1729,8 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
         toolUses,
         newLastReadLine: lastReadLine,
         lastMessageIndex: startingMessageIndex - 1,
-        totalLines: lineNumber
+        totalLines: lineNumber,
+        peakContextTokens
       };
     }
     logger.info(`Incremental extraction complete: ${messages.length} messages, ${toolUses.length} tool uses`);
@@ -1705,7 +1739,8 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
       toolUses,
       newLastReadLine: lastSuccessfulLine + 1,
       lastMessageIndex: messageCounter - 1,
-      totalLines: lineNumber
+      totalLines: lineNumber,
+      peakContextTokens
     };
   } catch (error) {
     logger.error(`Failed to stream conversation file ${filePath}:`, error);
@@ -1714,7 +1749,8 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
       toolUses,
       newLastReadLine: lastReadLine,
       lastMessageIndex: startingMessageIndex - 1,
-      totalLines: lastReadLine
+      totalLines: lastReadLine,
+      peakContextTokens
     };
   }
 }
