@@ -181,6 +181,17 @@ var init_events2 = __esm(() => {
     WORKSPACE_SETTINGS_VIEWED: "Workspace Settings Viewed",
     TEAM_SETTINGS_VIEWED: "Team Settings Viewed",
     CLI_SIGNED_IN: "CLI Signed In",
+    TRIAL_STARTED: "Trial Started",
+    PLAN_SELECTED: "Plan Selected",
+    PAYMENT_SETUP_COMPLETED: "Payment Setup Completed",
+    PAYMENT_SETUP_FAILED: "Payment Setup Failed",
+    SUBSCRIPTION_CREATED: "Subscription Created",
+    SUBSCRIPTION_UPDATED: "Subscription Updated",
+    SUBSCRIPTION_CANCELED: "Subscription Canceled",
+    PAYMENT_SUCCEEDED: "Payment Succeeded",
+    PAYMENT_FAILED: "Payment Failed",
+    BILLING_PORTAL_OPENED: "Billing Portal Opened",
+    SUBSCRIPTION_GATE_SHOWN: "Subscription Gate Shown",
     ADMIN_IMPERSONATION_STARTED: "Admin Impersonation Started",
     ADMIN_IMPERSONATION_ENDED: "Admin Impersonation Ended"
   };
@@ -22524,6 +22535,32 @@ async function loadSettings() {
 import { createReadStream as createReadStream2 } from "node:fs";
 import { createInterface as createInterface2 } from "node:readline";
 
+// ../../packages/plugin-common/src/extractors/token-metadata.ts
+function buildTokenMetadata(usage) {
+  const meta3 = {};
+  if (usage.input_tokens != null) {
+    meta3.input_tokens = usage.input_tokens + (usage.cache_creation_input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0);
+  }
+  if (usage.output_tokens != null)
+    meta3.output_tokens = usage.output_tokens;
+  if (usage.cache_read_input_tokens != null)
+    meta3.cache_read_tokens = usage.cache_read_input_tokens;
+  if (usage.cache_creation_input_tokens != null)
+    meta3.cache_creation_tokens = usage.cache_creation_input_tokens;
+  if (usage.cache_creation?.ephemeral_5m_input_tokens != null)
+    meta3.cache_creation_5m_tokens = usage.cache_creation.ephemeral_5m_input_tokens;
+  if (usage.cache_creation?.ephemeral_1h_input_tokens != null)
+    meta3.cache_creation_1h_tokens = usage.cache_creation.ephemeral_1h_input_tokens;
+  if (typeof usage.server_tool_use?.input_tokens === "number")
+    meta3.server_tool_use_input_tokens = usage.server_tool_use.input_tokens;
+  if (typeof usage.server_tool_use?.output_tokens === "number")
+    meta3.server_tool_use_output_tokens = usage.server_tool_use.output_tokens;
+  if (usage.input_tokens != null || usage.output_tokens != null) {
+    meta3.token_source = "provider_reported";
+  }
+  return meta3;
+}
+
 // src/utils/command-filters.ts
 init_constants();
 
@@ -23839,6 +23876,7 @@ init_logger2();
 async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0, startingMessageIndex = 0) {
   const messages = [];
   const toolUses = [];
+  let peakContextTokens;
   const LOOKBACK_WINDOW = 10;
   const recentLines = [];
   try {
@@ -23895,23 +23933,7 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
                     metadata.permission_mode = entry.permissionMode;
                   }
                   if (role === "assistant" && entry.message.usage) {
-                    const u = entry.message.usage;
-                    if (u.input_tokens != null) {
-                      metadata.input_tokens = u.input_tokens + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0);
-                    }
-                    if (u.output_tokens != null)
-                      metadata.output_tokens = u.output_tokens;
-                    if (u.cache_read_input_tokens != null)
-                      metadata.cache_read_tokens = u.cache_read_input_tokens;
-                    if (u.cache_creation_input_tokens != null)
-                      metadata.cache_creation_tokens = u.cache_creation_input_tokens;
-                    if (u.cache_creation?.ephemeral_5m_input_tokens != null)
-                      metadata.cache_creation_5m_tokens = u.cache_creation.ephemeral_5m_input_tokens;
-                    if (u.cache_creation?.ephemeral_1h_input_tokens != null)
-                      metadata.cache_creation_1h_tokens = u.cache_creation.ephemeral_1h_input_tokens;
-                    if (u.input_tokens != null || u.output_tokens != null) {
-                      metadata.token_source = "provider_reported";
-                    }
+                    Object.assign(metadata, buildTokenMetadata(entry.message.usage));
                   }
                   messages.push({
                     id: entry.uuid,
@@ -23925,8 +23947,30 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
                   messageCounter++;
                   logger2.debug(`Extracted ${role} message at line ${lineNumber + 1}: ${textContent.substring(0, 50)}...`);
                 }
+              } else if (role === "assistant" && Array.isArray(content) && content.some((b) => b.type === "tool_use") && entry.message.usage && ((entry.message.usage.input_tokens ?? 0) > 0 || (entry.message.usage.output_tokens ?? 0) > 0)) {
+                const metadata = {};
+                if (entry.uuid)
+                  metadata.claude_uuid = entry.uuid;
+                if (entry.message.model)
+                  metadata.modelName = entry.message.model;
+                if (entry.permissionMode)
+                  metadata.permission_mode = entry.permissionMode;
+                Object.assign(metadata, buildTokenMetadata(entry.message.usage));
+                messages.push({
+                  id: entry.uuid,
+                  session_id: sessionId,
+                  role,
+                  content: "",
+                  created_at: entry.timestamp || new Date().toISOString(),
+                  message_index: messageCounter,
+                  metadata: Object.keys(metadata).length > 0 ? metadata : null
+                });
+                messageCounter++;
               }
             }
+          }
+          if (entry.compactMetadata?.preTokens != null && entry.compactMetadata.preTokens > 0) {
+            peakContextTokens = Math.max(peakContextTokens ?? 0, entry.compactMetadata.preTokens);
           }
           if (entry.toolUseResult) {
             const toolUseWithDiff = extractToolUseResult(entry, sessionId);
@@ -23962,7 +24006,8 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
         toolUses,
         newLastReadLine: lastReadLine,
         lastMessageIndex: startingMessageIndex - 1,
-        totalLines: lineNumber
+        totalLines: lineNumber,
+        peakContextTokens
       };
     }
     logger2.info(`Incremental extraction complete: ${messages.length} messages, ${toolUses.length} tool uses`);
@@ -23971,7 +24016,8 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
       toolUses,
       newLastReadLine: lastSuccessfulLine + 1,
       lastMessageIndex: messageCounter - 1,
-      totalLines: lineNumber
+      totalLines: lineNumber,
+      peakContextTokens
     };
   } catch (error51) {
     logger2.error(`Failed to stream conversation file ${filePath}:`, error51);
@@ -23980,7 +24026,8 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
       toolUses,
       newLastReadLine: lastReadLine,
       lastMessageIndex: startingMessageIndex - 1,
-      totalLines: lastReadLine
+      totalLines: lastReadLine,
+      peakContextTokens
     };
   }
 }
@@ -24411,12 +24458,14 @@ function createStateManager(config2) {
       logger3?.error(`Failed to write state for session ${state.sessionId}:`, error51);
     }
   }
-  async function updateLastReadLine(sessionId, filePath, lineNumber, lastMessageIndex) {
+  async function updateLastReadLine(sessionId, filePath, lineNumber, lastMessageIndex, accumulatedCostUsd, accumulatedModelUsage) {
     const newState = {
       sessionId,
       lastReadLine: lineNumber,
       lastMessageIndex,
-      filePath
+      filePath,
+      ...accumulatedCostUsd != null && { accumulatedCostUsd },
+      ...accumulatedModelUsage != null && { accumulatedModelUsage }
     };
     await writeSessionState(newState);
   }
@@ -24593,7 +24642,7 @@ async function extractNewSessionData(conversationFile, sessionId) {
   const lastReadLine = state?.lastReadLine || 0;
   const previousLastMessageIndex = state?.lastMessageIndex ?? -1;
   const isNewSession = !state;
-  const { messages, toolUses, newLastReadLine, lastMessageIndex } = await extractNewMessagesFromFile(conversationFile, sessionId, lastReadLine, previousLastMessageIndex + 1);
+  const { messages, toolUses, newLastReadLine, lastMessageIndex, peakContextTokens } = await extractNewMessagesFromFile(conversationFile, sessionId, lastReadLine, previousLastMessageIndex + 1);
   const hasNewData = messages.length > 0 || toolUses.length > 0;
   return {
     messages,
@@ -24601,10 +24650,11 @@ async function extractNewSessionData(conversationFile, sessionId) {
     newLastReadLine,
     lastMessageIndex,
     isNewSession,
-    hasNewData
+    hasNewData,
+    peakContextTokens
   };
 }
-async function queueSessionData(sessionId, messages, toolUses, fileStats, projectDir, conversationFile, newLastReadLine, lastMessageIndex, isNewSession) {
+async function queueSessionData(sessionId, messages, toolUses, fileStats, projectDir, conversationFile, newLastReadLine, lastMessageIndex, isNewSession, peakContextTokens) {
   await ensurePrivacyInitialized(projectDir);
   if (isNewSession) {
     const projectInfo = getProjectInfoSync(projectDir);
@@ -24631,6 +24681,15 @@ async function queueSessionData(sessionId, messages, toolUses, fileStats, projec
   }
   const eventsQueued = await queueToolUseEvents(toolUses, sessionId, projectDir);
   await updateLastReadLine(sessionId, conversationFile, newLastReadLine, lastMessageIndex);
+  if (peakContextTokens != null) {
+    await atomicUpdateQueue(SESSIONS_QUEUE_FILE, (sessions) => sessions.map((s) => s.id === sessionId ? {
+      ...s,
+      metadata: {
+        ...s.metadata ?? {},
+        context_peak_tokens: peakContextTokens
+      }
+    } : s));
+  }
   return { messagesQueued: messages.length, eventsQueued };
 }
 async function queueToolUseEvents(toolUses, sessionId, projectDir) {
@@ -24666,11 +24725,85 @@ async function queueToolUseEvents(toolUses, sessionId, projectDir) {
   }
   return queuedEventCount;
 }
+async function findSubagentFiles(projectDir, sessionId) {
+  try {
+    let resolvedDir;
+    try {
+      resolvedDir = await realpath(projectDir);
+    } catch {
+      resolvedDir = projectDir;
+    }
+    const claudeDirName = resolvedDir.replace(CLAUDE_DIR_SEPARATOR_PATTERN, "-");
+    const subagentsDir = join7(CLAUDE_PROJECTS_DIR, claudeDirName, sessionId, "subagents");
+    let entries;
+    try {
+      entries = await readdir5(subagentsDir);
+    } catch {
+      return [];
+    }
+    return entries.filter((f) => f.startsWith("agent-") && f.endsWith(".jsonl")).map((f) => ({
+      filePath: join7(subagentsDir, f),
+      agentId: basename3(f, ".jsonl")
+    })).sort((a, b) => a.agentId.localeCompare(b.agentId));
+  } catch (error51) {
+    logger2.debug("Failed to find subagent files:", error51);
+    return [];
+  }
+}
+async function extractSubagentData(projectDir, sessionId, parentLastMessageIndex) {
+  const allMessages = [];
+  const allToolUses = [];
+  const subagentStates = [];
+  let peakContextTokens;
+  const subagentFiles = await findSubagentFiles(projectDir, sessionId);
+  if (subagentFiles.length === 0) {
+    return { messages: allMessages, toolUses: allToolUses, subagentStates };
+  }
+  let messageIndexOffset = parentLastMessageIndex + 1;
+  for (const { filePath, agentId } of subagentFiles) {
+    const stateKey = `${sessionId}_sub_${agentId}`;
+    const state = await readSessionState(stateKey);
+    const lastReadLine = state?.lastReadLine || 0;
+    const previousLastMessageIndex = state?.lastMessageIndex ?? -1;
+    const result = await extractNewMessagesFromFile(filePath, sessionId, lastReadLine, messageIndexOffset);
+    if (result.peakContextTokens != null) {
+      peakContextTokens = Math.max(peakContextTokens ?? 0, result.peakContextTokens);
+    }
+    for (const msg of result.messages) {
+      msg.metadata = {
+        ...msg.metadata ?? {},
+        is_subagent: 1,
+        subagent_id: agentId
+      };
+      allMessages.push(msg);
+    }
+    allToolUses.push(...result.toolUses);
+    if (result.messages.length > 0 || result.toolUses.length > 0) {
+      messageIndexOffset = result.lastMessageIndex + 1;
+      subagentStates.push({
+        stateKey,
+        filePath,
+        newLastReadLine: result.newLastReadLine,
+        lastMessageIndex: result.lastMessageIndex
+      });
+    } else if (previousLastMessageIndex >= 0) {
+      messageIndexOffset = previousLastMessageIndex + 1;
+    }
+  }
+  return {
+    messages: allMessages,
+    toolUses: allToolUses,
+    peakContextTokens,
+    subagentStates
+  };
+}
 export {
   queueSessionData,
   parseRmCommand,
+  findSubagentFiles,
   findRecentBashCommand,
   findConversationFile,
+  extractSubagentData,
   extractNewSessionData,
   cacheFilesForDeletion
 };

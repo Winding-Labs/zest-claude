@@ -3926,14 +3926,14 @@ var require_main2 = __commonJS((exports) => {
   exports.WebSocketFactory = websocket_factory_1.default;
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.105.4/node_modules/@supabase/auth-js/dist/main/lib/version.js
+// ../../node_modules/.bun/@supabase+supabase-js@2.105.4/node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/version.js
 var require_version2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.version = undefined;
   exports.version = "2.105.4";
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.105.4/node_modules/@supabase/auth-js/dist/main/lib/constants.js
+// ../../node_modules/.bun/@supabase+supabase-js@2.105.4/node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/constants.js
 var require_constants2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.JWKS_TTL = exports.BASE64URL_REGEX = exports.API_VERSIONS = exports.API_VERSION_HEADER_NAME = exports.NETWORK_FAILURE = exports.DEFAULT_HEADERS = exports.AUDIENCE = exports.STORAGE_KEY = exports.GOTRUE_URL = exports.EXPIRY_MARGIN_MS = exports.AUTO_REFRESH_TICK_THRESHOLD = exports.AUTO_REFRESH_TICK_DURATION_MS = undefined;
@@ -3960,7 +3960,7 @@ var require_constants2 = __commonJS((exports) => {
   exports.JWKS_TTL = 10 * 60 * 1000;
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.105.4/node_modules/@supabase/auth-js/dist/main/lib/errors.js
+// ../../node_modules/.bun/@supabase+supabase-js@2.105.4/node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/errors.js
 var require_errors = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.AuthInvalidJwtError = exports.AuthWeakPasswordError = exports.AuthRetryableFetchError = exports.AuthPKCECodeVerifierMissingError = exports.AuthPKCEGrantCodeExchangeError = exports.AuthImplicitGrantRedirectError = exports.AuthInvalidCredentialsError = exports.AuthInvalidTokenResponseError = exports.AuthSessionMissingError = exports.CustomAuthError = exports.AuthUnknownError = exports.AuthApiError = exports.AuthError = undefined;
@@ -4118,7 +4118,7 @@ var require_errors = __commonJS((exports) => {
   exports.AuthInvalidJwtError = AuthInvalidJwtError;
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.105.4/node_modules/@supabase/auth-js/dist/main/lib/base64url.js
+// ../../node_modules/.bun/@supabase+supabase-js@2.105.4/node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/base64url.js
 var require_base64url = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.byteToBase64URL = byteToBase64URL;
@@ -4306,7 +4306,7 @@ var require_base64url = __commonJS((exports) => {
   }
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.105.4/node_modules/@supabase/auth-js/dist/main/lib/helpers.js
+// ../../node_modules/.bun/@supabase+supabase-js@2.105.4/node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/helpers.js
 var require_helpers = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.Deferred = exports.removeItemAsync = exports.getItemAsync = exports.setItemAsync = exports.looksLikeFetchResponse = exports.resolveFetch = exports.supportsLocalStorage = exports.isBrowser = undefined;
@@ -4621,7 +4621,7 @@ var require_helpers = __commonJS((exports) => {
   }
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.105.4/node_modules/@supabase/auth-js/dist/main/lib/fetch.js
+// ../../node_modules/.bun/@supabase+supabase-js@2.105.4/node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/fetch.js
 var require_fetch = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.handleError = handleError2;
@@ -4786,14 +4786,14 @@ var require_fetch = __commonJS((exports) => {
   }
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.105.4/node_modules/@supabase/auth-js/dist/main/lib/types.js
+// ../../node_modules/.bun/@supabase+supabase-js@2.105.4/node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/types.js
 var require_types2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.SIGN_OUT_SCOPES = undefined;
   exports.SIGN_OUT_SCOPES = ["global", "local", "others"];
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.105.4/node_modules/@supabase/auth-js/dist/main/GoTrueAdminApi.js
+// ../../node_modules/.bun/@supabase+supabase-js@2.105.4/node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/GoTrueAdminApi.js
 var require_GoTrueAdminApi = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var tslib_1 = require_tslib();
@@ -5240,7 +5240,7 @@ var require_GoTrueAdminApi = __commonJS((exports) => {
   exports.default = GoTrueAdminApi;
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.105.4/node_modules/@supabase/auth-js/dist/main/lib/local-storage.js
+// ../../node_modules/.bun/@supabase+supabase-js@2.105.4/node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/local-storage.js
 var require_local_storage = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.memoryLocalStorageAdapter = memoryLocalStorageAdapter;
@@ -5259,7 +5259,7 @@ var require_local_storage = __commonJS((exports) => {
   }
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.105.4/node_modules/@supabase/auth-js/dist/main/lib/locks.js
+// ../../node_modules/.bun/@supabase+supabase-js@2.105.4/node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/locks.js
 var require_locks = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.ProcessLockAcquireTimeoutError = exports.NavigatorLockAcquireTimeoutError = exports.LockAcquireTimeoutError = exports.internals = undefined;
@@ -5433,7 +5433,7 @@ var require_locks = __commonJS((exports) => {
   }
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.105.4/node_modules/@supabase/auth-js/dist/main/lib/polyfills.js
+// ../../node_modules/.bun/@supabase+supabase-js@2.105.4/node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/polyfills.js
 var require_polyfills = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.polyfillGlobalThis = polyfillGlobalThis;
@@ -5457,7 +5457,7 @@ var require_polyfills = __commonJS((exports) => {
   }
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.105.4/node_modules/@supabase/auth-js/dist/main/lib/web3/ethereum.js
+// ../../node_modules/.bun/@supabase+supabase-js@2.105.4/node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/web3/ethereum.js
 var require_ethereum = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.getAddress = getAddress;
@@ -5534,7 +5534,7 @@ ${suffix}`;
   }
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.105.4/node_modules/@supabase/auth-js/dist/main/lib/webauthn.errors.js
+// ../../node_modules/.bun/@supabase+supabase-js@2.105.4/node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/webauthn.errors.js
 var require_webauthn_errors = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.WebAuthnUnknownError = exports.WebAuthnError = undefined;
@@ -5721,7 +5721,7 @@ var require_webauthn_errors = __commonJS((exports) => {
   }
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.105.4/node_modules/@supabase/auth-js/dist/main/lib/webauthn.js
+// ../../node_modules/.bun/@supabase+supabase-js@2.105.4/node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/lib/webauthn.js
 var require_webauthn = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.WebAuthnApi = exports.DEFAULT_REQUEST_OPTIONS = exports.DEFAULT_CREATION_OPTIONS = exports.webAuthnAbortService = exports.WebAuthnAbortService = exports.identifyAuthenticationError = exports.identifyRegistrationError = exports.isWebAuthnError = exports.WebAuthnError = undefined;
@@ -6175,7 +6175,7 @@ var require_webauthn = __commonJS((exports) => {
   exports.WebAuthnApi = WebAuthnApi;
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.105.4/node_modules/@supabase/auth-js/dist/main/GoTrueClient.js
+// ../../node_modules/.bun/@supabase+supabase-js@2.105.4/node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/GoTrueClient.js
 var require_GoTrueClient = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var tslib_1 = require_tslib();
@@ -8699,7 +8699,7 @@ var require_GoTrueClient = __commonJS((exports) => {
   exports.default = GoTrueClient;
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.105.4/node_modules/@supabase/auth-js/dist/main/AuthAdminApi.js
+// ../../node_modules/.bun/@supabase+supabase-js@2.105.4/node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/AuthAdminApi.js
 var require_AuthAdminApi = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var tslib_1 = require_tslib();
@@ -8708,7 +8708,7 @@ var require_AuthAdminApi = __commonJS((exports) => {
   exports.default = AuthAdminApi;
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.105.4/node_modules/@supabase/auth-js/dist/main/AuthClient.js
+// ../../node_modules/.bun/@supabase+supabase-js@2.105.4/node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/AuthClient.js
 var require_AuthClient = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var tslib_1 = require_tslib();
@@ -8717,7 +8717,7 @@ var require_AuthClient = __commonJS((exports) => {
   exports.default = AuthClient;
 });
 
-// ../../node_modules/.bun/@supabase+auth-js@2.105.4/node_modules/@supabase/auth-js/dist/main/index.js
+// ../../node_modules/.bun/@supabase+supabase-js@2.105.4/node_modules/@supabase/supabase-js/node_modules/@supabase/auth-js/dist/main/index.js
 var require_main3 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.processLock = exports.lockInternals = exports.NavigatorLockAcquireTimeoutError = exports.navigatorLock = exports.AuthClient = exports.AuthAdminApi = exports.GoTrueClient = exports.GoTrueAdminApi = undefined;
@@ -8914,6 +8914,17 @@ var init_events2 = __esm(() => {
     WORKSPACE_SETTINGS_VIEWED: "Workspace Settings Viewed",
     TEAM_SETTINGS_VIEWED: "Team Settings Viewed",
     CLI_SIGNED_IN: "CLI Signed In",
+    TRIAL_STARTED: "Trial Started",
+    PLAN_SELECTED: "Plan Selected",
+    PAYMENT_SETUP_COMPLETED: "Payment Setup Completed",
+    PAYMENT_SETUP_FAILED: "Payment Setup Failed",
+    SUBSCRIPTION_CREATED: "Subscription Created",
+    SUBSCRIPTION_UPDATED: "Subscription Updated",
+    SUBSCRIPTION_CANCELED: "Subscription Canceled",
+    PAYMENT_SUCCEEDED: "Payment Succeeded",
+    PAYMENT_FAILED: "Payment Failed",
+    BILLING_PORTAL_OPENED: "Billing Portal Opened",
+    SUBSCRIPTION_GATE_SHOWN: "Subscription Gate Shown",
     ADMIN_IMPERSONATION_STARTED: "Admin Impersonation Started",
     ADMIN_IMPERSONATION_ENDED: "Admin Impersonation Ended"
   };

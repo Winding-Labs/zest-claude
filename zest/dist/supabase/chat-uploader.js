@@ -225,6 +225,17 @@ var init_events2 = __esm(() => {
     WORKSPACE_SETTINGS_VIEWED: "Workspace Settings Viewed",
     TEAM_SETTINGS_VIEWED: "Team Settings Viewed",
     CLI_SIGNED_IN: "CLI Signed In",
+    TRIAL_STARTED: "Trial Started",
+    PLAN_SELECTED: "Plan Selected",
+    PAYMENT_SETUP_COMPLETED: "Payment Setup Completed",
+    PAYMENT_SETUP_FAILED: "Payment Setup Failed",
+    SUBSCRIPTION_CREATED: "Subscription Created",
+    SUBSCRIPTION_UPDATED: "Subscription Updated",
+    SUBSCRIPTION_CANCELED: "Subscription Canceled",
+    PAYMENT_SUCCEEDED: "Payment Succeeded",
+    PAYMENT_FAILED: "Payment Failed",
+    BILLING_PORTAL_OPENED: "Billing Portal Opened",
+    SUBSCRIPTION_GATE_SHOWN: "Subscription Gate Shown",
     ADMIN_IMPERSONATION_STARTED: "Admin Impersonation Started",
     ADMIN_IMPERSONATION_ENDED: "Admin Impersonation Ended"
   };
@@ -20828,9 +20839,25 @@ var CodexSessionMetadataSchema = exports_external.object({
     secondary: RateLimitWindowSchema.optional()
   }).optional()
 });
+var ClaudeCodeSessionMetadataSchema = exports_external.object({
+  model: exports_external.string().optional(),
+  input_tokens: exports_external.number().optional(),
+  output_tokens: exports_external.number().optional(),
+  cache_read_tokens: exports_external.number().optional(),
+  cache_creation_tokens: exports_external.number().optional(),
+  reasoning_tokens: exports_external.number().optional(),
+  cost_usd: exports_external.number().nullable().optional(),
+  cost_source: exports_external.string().optional(),
+  context_used: exports_external.number().optional(),
+  model_context_window: exports_external.number().optional(),
+  five_hour_limit: exports_external.number().optional(),
+  weekly_limit: exports_external.number().optional(),
+  token_data_source: exports_external.string().optional()
+}).passthrough();
 var metadataSchemasBySource = {
   codex: CodexSessionMetadataSchema,
-  hermes: HermesSessionMetadataSchema
+  hermes: HermesSessionMetadataSchema,
+  claude_code: ClaudeCodeSessionMetadataSchema
 };
 function validateSessionMetadata(source, metadata) {
   const schema = metadataSchemasBySource[source];

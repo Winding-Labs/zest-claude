@@ -212,6 +212,17 @@ var init_events2 = __esm(() => {
     WORKSPACE_SETTINGS_VIEWED: "Workspace Settings Viewed",
     TEAM_SETTINGS_VIEWED: "Team Settings Viewed",
     CLI_SIGNED_IN: "CLI Signed In",
+    TRIAL_STARTED: "Trial Started",
+    PLAN_SELECTED: "Plan Selected",
+    PAYMENT_SETUP_COMPLETED: "Payment Setup Completed",
+    PAYMENT_SETUP_FAILED: "Payment Setup Failed",
+    SUBSCRIPTION_CREATED: "Subscription Created",
+    SUBSCRIPTION_UPDATED: "Subscription Updated",
+    SUBSCRIPTION_CANCELED: "Subscription Canceled",
+    PAYMENT_SUCCEEDED: "Payment Succeeded",
+    PAYMENT_FAILED: "Payment Failed",
+    BILLING_PORTAL_OPENED: "Billing Portal Opened",
+    SUBSCRIPTION_GATE_SHOWN: "Subscription Gate Shown",
     ADMIN_IMPERSONATION_STARTED: "Admin Impersonation Started",
     ADMIN_IMPERSONATION_ENDED: "Admin Impersonation Ended"
   };
