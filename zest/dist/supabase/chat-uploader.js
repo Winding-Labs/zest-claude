@@ -13,6 +13,203 @@ var __export = (target, all) => {
     });
 };
 var __esm = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
+// ../../packages/utils/src/command-xml.ts
+var CLAUDE_BUILTIN_COMMANDS;
+var init_command_xml = __esm(() => {
+  CLAUDE_BUILTIN_COMMANDS = new Set([
+    "add-dir",
+    "agents",
+    "allowed-tools",
+    "android",
+    "app",
+    "autofix-pr",
+    "bashes",
+    "branch",
+    "btw",
+    "bug",
+    "checkpoint",
+    "chrome",
+    "clear",
+    "color",
+    "compact",
+    "config",
+    "context",
+    "continue",
+    "copy",
+    "cost",
+    "desktop",
+    "diff",
+    "doctor",
+    "effort",
+    "exit",
+    "export",
+    "extra-usage",
+    "fast",
+    "feedback",
+    "fork",
+    "help",
+    "hooks",
+    "ide",
+    "init",
+    "insights",
+    "install-github-app",
+    "install-slack-app",
+    "ios",
+    "keybindings",
+    "login",
+    "logout",
+    "mcp",
+    "memory",
+    "mobile",
+    "model",
+    "new",
+    "output-style",
+    "passes",
+    "permissions",
+    "plan",
+    "plugin",
+    "powerup",
+    "pr-comments",
+    "privacy-settings",
+    "quit",
+    "rc",
+    "release-notes",
+    "reload-plugins",
+    "remote-control",
+    "remote-env",
+    "rename",
+    "reset",
+    "resume",
+    "review",
+    "rewind",
+    "sandbox",
+    "schedule",
+    "security-review",
+    "settings",
+    "setup-bedrock",
+    "skills",
+    "stats",
+    "status",
+    "statusline",
+    "stickers",
+    "tasks",
+    "teleport",
+    "terminal-setup",
+    "theme",
+    "todos",
+    "tp",
+    "ultraplan",
+    "upgrade",
+    "usage",
+    "vim",
+    "voice",
+    "web-setup"
+  ]);
+});
+// ../../packages/utils/src/date-range.ts
+var PERIOD_TYPE_LABELS, PERIOD_SUMMARY_LABELS;
+var init_date_range = __esm(() => {
+  PERIOD_TYPE_LABELS = {
+    ["today" /* Today */]: "Today",
+    ["this_week" /* ThisWeek */]: "This Week",
+    ["this_month" /* ThisMonth */]: "This Month"
+  };
+  PERIOD_SUMMARY_LABELS = {
+    ["today" /* Today */]: "Daily Summary",
+    ["this_week" /* ThisWeek */]: "Weekly Summary",
+    ["this_month" /* ThisMonth */]: "Monthly Summary",
+    custom: "Custom Period"
+  };
+});
+// ../../packages/utils/src/frontmatter.ts
+var FRONTMATTER_KEYS;
+var init_frontmatter = __esm(() => {
+  FRONTMATTER_KEYS = new Set(["name", "description"]);
+});
+
+// ../../packages/utils/src/language-utils.ts
+var init_language_utils = () => {};
+
+// ../../packages/utils/src/mcp-registry.ts
+class TtlCache {
+  map = new Map;
+  get(key) {
+    const entry = this.map.get(key);
+    if (!entry)
+      return { hit: false };
+    if (Date.now() > entry.expiry) {
+      this.map.delete(key);
+      return { hit: false };
+    }
+    return { hit: true, value: entry.value };
+  }
+  set(key, value) {
+    if (this.map.size >= CACHE_MAX_SIZE && !this.map.has(key)) {
+      const firstKey = this.map.keys().next().value;
+      if (firstKey !== undefined)
+        this.map.delete(firstKey);
+    }
+    this.map.set(key, { value, expiry: Date.now() + CACHE_TTL_MS });
+  }
+  clear() {
+    this.map.clear();
+  }
+}
+var CACHE_TTL_MS, CACHE_MAX_SIZE = 100, cache, toolCache, serverCache, GENERIC_SEGMENTS, VERB_PREFIXES;
+var init_mcp_registry = __esm(() => {
+  CACHE_TTL_MS = 30 * 60 * 1000;
+  cache = new TtlCache;
+  toolCache = new TtlCache;
+  serverCache = new TtlCache;
+  GENERIC_SEGMENTS = new Set(["mcp", "com", "org", "io", "dev", "server", "api"]);
+  VERB_PREFIXES = new Set([
+    "get",
+    "list",
+    "create",
+    "delete",
+    "update",
+    "search",
+    "query",
+    "fetch",
+    "run",
+    "execute",
+    "resolve",
+    "find",
+    "read",
+    "write",
+    "set",
+    "send",
+    "check",
+    "add",
+    "remove"
+  ]);
+});
+
+// ../../packages/utils/src/sanitize-null-bytes.ts
+function sanitizeNullBytes(value) {
+  if (typeof value === "string") {
+    return value.replace(/\u0000/g, "");
+  }
+  if (Array.isArray(value)) {
+    return value.map(sanitizeNullBytes);
+  }
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, sanitizeNullBytes(v)]));
+  }
+  return value;
+}
+
+// ../../packages/utils/src/string-utils.ts
+var init_string_utils = () => {};
+// ../../packages/utils/src/index.ts
+var init_src = __esm(() => {
+  init_command_xml();
+  init_date_range();
+  init_frontmatter();
+  init_language_utils();
+  init_mcp_registry();
+  init_string_utils();
+});
 
 // ../../packages/plugin-common/src/analytics/events.ts
 function getErrorCategory(errorType) {
@@ -30,11 +227,12 @@ function getErrorCategory(errorType) {
     return "supabase";
   return "api";
 }
-var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed", AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed", AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed", AUTH_SESSION_CLEAR_FAILED = "auth_session_clear_failed", AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed", SYNC_NOT_AUTHENTICATED = "sync_not_authenticated", SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed", SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted", SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed", SYNC_NETWORK_ERROR = "sync_network_error", SYNC_SERVER_OVERLOAD = "sync_server_overload", SYNC_DATA_ERROR = "sync_data_error", SYNC_AUTH_ERROR = "sync_auth_error", SYNC_BLOCKED_NO_WORKSPACE = "sync_blocked_no_workspace", AUTH_SESSION_METADATA_LOST = "auth_session_metadata_lost", QUEUE_READ_CORRUPTED = "queue_read_corrupted", QUEUE_WRITE_FAILED = "queue_write_failed", FILE_LOCK_TIMEOUT = "file_lock_timeout", FILE_LOCK_CREATE_FAILED = "file_lock_create_failed", NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed", QUEUE_CAP_EVICTION = "queue_cap_eviction", SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped", SYNC_DRAIN_THROTTLED = "sync_drain_throttled", SYNC_ORPHANED_MESSAGES_DROPPED = "sync_orphaned_messages_dropped", EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found", EXTRACTION_SESSION_FAILED = "extraction_session_failed", DAEMON_START_FAILED = "daemon_start_failed", DAEMON_RESTART_FAILED = "daemon_restart_failed", DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed", DAEMON_UNHANDLED_ERROR = "daemon_unhandled_error", API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed", API_PROFILE_UPDATE_FAILED = "api_profile_update_failed", API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed", API_STANDUP_TEAM_FETCH_FAILED = "api_standup_team_fetch_failed", API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed", API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed", API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed", SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed", SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed", SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed", ERROR_TYPES, errorTypeSet;
+var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed", AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed", AUTH_AGENT_PROVISIONING_FAILED = "auth_agent_provisioning_failed", AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed", AUTH_SESSION_CLEAR_FAILED = "auth_session_clear_failed", AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed", SYNC_NOT_AUTHENTICATED = "sync_not_authenticated", SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed", SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted", SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed", SYNC_NETWORK_ERROR = "sync_network_error", SYNC_SERVER_OVERLOAD = "sync_server_overload", SYNC_DATA_ERROR = "sync_data_error", SYNC_AUTH_ERROR = "sync_auth_error", SYNC_BLOCKED_NO_WORKSPACE = "sync_blocked_no_workspace", AUTH_SESSION_METADATA_LOST = "auth_session_metadata_lost", QUEUE_READ_CORRUPTED = "queue_read_corrupted", QUEUE_WRITE_FAILED = "queue_write_failed", FILE_LOCK_TIMEOUT = "file_lock_timeout", FILE_LOCK_CREATE_FAILED = "file_lock_create_failed", NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed", QUEUE_CAP_EVICTION = "queue_cap_eviction", SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped", SYNC_DRAIN_THROTTLED = "sync_drain_throttled", SYNC_ORPHANED_MESSAGES_DROPPED = "sync_orphaned_messages_dropped", EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found", EXTRACTION_SESSION_FAILED = "extraction_session_failed", DAEMON_START_FAILED = "daemon_start_failed", DAEMON_RESTART_FAILED = "daemon_restart_failed", DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed", DAEMON_UNHANDLED_ERROR = "daemon_unhandled_error", API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed", API_PROFILE_UPDATE_FAILED = "api_profile_update_failed", API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed", API_STANDUP_TEAM_FETCH_FAILED = "api_standup_team_fetch_failed", API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed", API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed", API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed", SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed", SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed", SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed", ERROR_TYPES, errorTypeSet;
 var init_events = __esm(() => {
   ERROR_TYPES = [
     AUTH_DEVICE_CODE_INITIATION_FAILED,
     AUTH_DEVICE_CODE_POLLING_FAILED,
+    AUTH_AGENT_PROVISIONING_FAILED,
     AUTH_SESSION_CLEAR_FAILED,
     AUTH_SESSION_LOAD_FAILED,
     AUTH_SESSION_SAVE_FAILED,
@@ -231,7 +429,10 @@ var init_events2 = __esm(() => {
     PAYMENT_SETUP_FAILED: "Payment Setup Failed",
     SUBSCRIPTION_CREATED: "Subscription Created",
     SUBSCRIPTION_UPDATED: "Subscription Updated",
+    SUBSCRIPTION_UPGRADED: "Subscription Upgraded",
+    SUBSCRIPTION_DOWNGRADED: "Subscription Downgraded",
     SUBSCRIPTION_CANCELED: "Subscription Canceled",
+    USER_CHURNED: "User Churned",
     PAYMENT_SUCCEEDED: "Payment Succeeded",
     PAYMENT_FAILED: "Payment Failed",
     BILLING_PORTAL_OPENED: "Billing Portal Opened",
@@ -597,7 +798,7 @@ var init_bot_detection = __esm(() => {
 });
 
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/utils/string-utils.mjs
-var init_string_utils = () => {};
+var init_string_utils2 = () => {};
 
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/utils/type-utils.mjs
 function isPrimitive(value) {
@@ -625,7 +826,7 @@ function isInstanceOf(candidate, base) {
 var nativeIsArray, ObjProto, type_utils_hasOwnProperty, type_utils_toString, isArray, isObject2 = (x) => x === Object(x) && !isArray(x), isUndefined = (x) => x === undefined, isString = (x) => type_utils_toString.call(x) == "[object String]", isEmptyString = (x) => isString(x) && x.trim().length === 0, isNumber = (x) => type_utils_toString.call(x) == "[object Number]" && x === x, isPlainError = (x) => x instanceof Error;
 var init_type_utils = __esm(() => {
   init_types();
-  init_string_utils();
+  init_string_utils2();
   nativeIsArray = Array.isArray;
   ObjProto = Object.prototype;
   type_utils_hasOwnProperty = ObjProto.hasOwnProperty;
@@ -955,7 +1156,7 @@ var init_logger = () => {};
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/utils/user-agent-utils.mjs
 var MOBILE = "Mobile", IOS = "iOS", ANDROID = "Android", TABLET = "Tablet", ANDROID_TABLET, APPLE = "Apple", APPLE_WATCH, SAFARI = "Safari", BLACKBERRY = "BlackBerry", SAMSUNG = "Samsung", SAMSUNG_BROWSER, SAMSUNG_INTERNET, CHROME = "Chrome", CHROME_OS, CHROME_IOS, INTERNET_EXPLORER = "Internet Explorer", INTERNET_EXPLORER_MOBILE, OPERA = "Opera", OPERA_MINI, EDGE = "Edge", MICROSOFT_EDGE, FIREFOX = "Firefox", FIREFOX_IOS, NINTENDO = "Nintendo", PLAYSTATION = "PlayStation", XBOX = "Xbox", ANDROID_MOBILE, MOBILE_SAFARI, WINDOWS = "Windows", WINDOWS_PHONE, GENERIC = "Generic", GENERIC_MOBILE, GENERIC_TABLET, KONQUEROR = "Konqueror", BROWSER_VERSION_REGEX_SUFFIX = "(\\d+(\\.\\d+)?)", DEFAULT_BROWSER_VERSION_REGEX, XBOX_REGEX, PLAYSTATION_REGEX, NINTENDO_REGEX, BLACKBERRY_REGEX, windowsVersionMap, versionRegexes, osMatchers;
 var init_user_agent_utils = __esm(() => {
-  init_string_utils();
+  init_string_utils2();
   init_type_utils();
   ANDROID_TABLET = ANDROID + " " + TABLET;
   APPLE_WATCH = APPLE + " Watch";
@@ -1236,7 +1437,7 @@ var init_utils = __esm(() => {
   init_bot_detection();
   init_bucketed_rate_limiter();
   init_number_utils();
-  init_string_utils();
+  init_string_utils2();
   init_type_utils();
   init_promise_queue();
   init_logger();
@@ -5711,9 +5912,12 @@ var init_analytics = __esm(() => {
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_INSTALL_DIR, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, PLATFORM = "terminal", SOURCE = "claude-code", LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MIN_MESSAGES_PER_SESSION = 3, STALE_SESSION_AGE_MS, MAX_QUEUE_SIZE_EVENTS = 5000, MAX_QUEUE_SIZE_SESSIONS = 500, MAX_QUEUE_SIZE_MESSAGES = 1e4, MAX_SESSIONS_PER_CYCLE = 50, MAX_MESSAGES_PER_CYCLE = 1000, POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", CLAUDE_BUILTIN_COMMANDS, EXCLUDED_COMMAND_PATTERNS, ZEST_SESSION_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341", UPDATE_CHECK_CACHE_TTL_MS, DAEMON_INACTIVITY_TIMEOUT_MS, DAEMON_WARMUP_GRACE_MS, NOTIFICATION_DURATION_MS, STANDUP_NOTIFICATION_THROTTLE_MS, SYNC_METRICS_RETENTION_MS;
+var CLAUDE_INSTALL_DIR, CLAUDE_CONFIG_FILE, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUSLINE_PROXY_CONFIG_FILE, STATUSLINE_SNAPSHOTS_FILE, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, PLATFORM = "terminal", SOURCE = "claude-code", LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MIN_MESSAGES_PER_SESSION = 3, STALE_SESSION_AGE_MS, MAX_QUEUE_SIZE_EVENTS = 5000, MAX_QUEUE_SIZE_SESSIONS = 500, MAX_QUEUE_SIZE_MESSAGES = 1e4, MAX_SESSIONS_PER_CYCLE = 50, MAX_MESSAGES_PER_CYCLE = 1000, POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", EXCLUDED_COMMAND_PATTERNS, ZEST_SESSION_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341", UPDATE_CHECK_CACHE_TTL_MS, DAEMON_INACTIVITY_TIMEOUT_MS, DAEMON_WARMUP_GRACE_MS, NOTIFICATION_DURATION_MS, STANDUP_NOTIFICATION_THROTTLE_MS, SYNC_METRICS_RETENTION_MS;
 var init_constants = __esm(() => {
+  init_src();
+  init_src();
   CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
+  CLAUDE_CONFIG_FILE = process.env.CLAUDE_CONFIG_FILE || join(homedir(), ".claude.json");
   CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
   CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
   CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
@@ -5726,6 +5930,8 @@ var init_constants = __esm(() => {
   DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
   CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
   STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
+  STATUSLINE_PROXY_CONFIG_FILE = join(CLAUDE_ZEST_DIR, "statusline-proxy.json");
+  STATUSLINE_SNAPSHOTS_FILE = process.env.ZEST_STATUSLINE_SNAPSHOTS_FILE ?? join(CLAUDE_ZEST_DIR, "statusline-snapshots.json");
   STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
   SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
   EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
@@ -5736,95 +5942,6 @@ var init_constants = __esm(() => {
   PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
   MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
   STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-  CLAUDE_BUILTIN_COMMANDS = new Set([
-    "add-dir",
-    "agents",
-    "allowed-tools",
-    "android",
-    "app",
-    "autofix-pr",
-    "bashes",
-    "branch",
-    "btw",
-    "bug",
-    "checkpoint",
-    "chrome",
-    "clear",
-    "color",
-    "compact",
-    "config",
-    "context",
-    "continue",
-    "copy",
-    "cost",
-    "desktop",
-    "diff",
-    "doctor",
-    "effort",
-    "exit",
-    "export",
-    "extra-usage",
-    "fast",
-    "feedback",
-    "fork",
-    "help",
-    "hooks",
-    "ide",
-    "init",
-    "insights",
-    "install-github-app",
-    "install-slack-app",
-    "ios",
-    "keybindings",
-    "login",
-    "logout",
-    "mcp",
-    "memory",
-    "mobile",
-    "model",
-    "new",
-    "output-style",
-    "passes",
-    "permissions",
-    "plan",
-    "plugin",
-    "powerup",
-    "pr-comments",
-    "privacy-settings",
-    "quit",
-    "rc",
-    "release-notes",
-    "reload-plugins",
-    "remote-control",
-    "remote-env",
-    "rename",
-    "reset",
-    "resume",
-    "review",
-    "rewind",
-    "sandbox",
-    "schedule",
-    "security-review",
-    "settings",
-    "setup-bedrock",
-    "skills",
-    "stats",
-    "status",
-    "statusline",
-    "stickers",
-    "tasks",
-    "teleport",
-    "terminal-setup",
-    "theme",
-    "todos",
-    "tp",
-    "ultraplan",
-    "upgrade",
-    "usage",
-    "vim",
-    "voice",
-    "web-setup"
-  ]);
   EXCLUDED_COMMAND_PATTERNS = [
     new RegExp(`^\\/(${[...CLAUDE_BUILTIN_COMMANDS].join("|")})\\b`, "i"),
     /^\/zest[^:\s]*:/i,
@@ -20786,6 +20903,64 @@ function date4(params) {
 
 // ../../node_modules/.bun/zod@4.4.3/node_modules/zod/v4/classic/external.js
 config(en_default());
+// ../../packages/types/token-usage.ts
+var TOKEN_SOURCES = ["provider_reported", "estimated_heuristic"];
+var COST_SOURCES = [
+  "provider_reported",
+  "derived_openrouter",
+  "cursor_dashboard_api"
+];
+var BILLING_MODES = ["api", "subscription", "unknown"];
+var SessionTokenUsageSchema = exports_external.object({
+  input_tokens: exports_external.number().int().nonnegative(),
+  output_tokens: exports_external.number().int().nonnegative(),
+  total_tokens: exports_external.number().int().nonnegative(),
+  token_source: exports_external.enum(TOKEN_SOURCES),
+  cost_usd: exports_external.number().nonnegative().nullable().optional(),
+  cost_source: exports_external.enum(COST_SOURCES).nullable().optional(),
+  api_equivalent_cost_usd: exports_external.number().nonnegative().nullable().optional(),
+  api_equivalent_cost_source: exports_external.enum(["derived_openrouter", "derived_openrouter_stale"]).nullable().optional(),
+  cache_read_tokens: exports_external.number().int().nonnegative().optional(),
+  cache_creation_tokens: exports_external.number().int().nonnegative().optional(),
+  cache_creation_5m_tokens: exports_external.number().int().nonnegative().optional(),
+  cache_creation_1h_tokens: exports_external.number().int().nonnegative().optional(),
+  reasoning_tokens: exports_external.number().int().nonnegative().optional(),
+  server_tool_use_input_tokens: exports_external.number().int().nonnegative().optional(),
+  server_tool_use_output_tokens: exports_external.number().int().nonnegative().optional(),
+  message_count_with_tokens: exports_external.number().int().nonnegative().optional(),
+  model_usage: exports_external.record(exports_external.string(), exports_external.object({
+    input_tokens: exports_external.number().nonnegative(),
+    output_tokens: exports_external.number().nonnegative(),
+    cache_read_input_tokens: exports_external.number().nonnegative().optional(),
+    cache_creation_input_tokens: exports_external.number().nonnegative().optional(),
+    cache_creation_5m_input_tokens: exports_external.number().nonnegative().optional(),
+    cache_creation_1h_input_tokens: exports_external.number().nonnegative().optional(),
+    reasoning_tokens: exports_external.number().nonnegative().optional(),
+    cost_usd: exports_external.number().nonnegative().optional()
+  })).optional(),
+  context_used_percent: exports_external.number().nonnegative().max(100).optional(),
+  context_window_size: exports_external.number().int().nonnegative().optional(),
+  context_tokens_used: exports_external.number().int().nonnegative().optional(),
+  context_token_breakdown: exports_external.record(exports_external.string(), exports_external.number().int().nonnegative()).optional(),
+  copilot_credits: exports_external.number().nonnegative().optional(),
+  copilot_sku: exports_external.string().min(1).optional(),
+  rate_limit_percent: exports_external.number().nonnegative().optional(),
+  rate_limit_type: exports_external.string().optional(),
+  rate_limit_is_overage: exports_external.boolean().optional(),
+  plan: exports_external.string().min(1).optional(),
+  billing_mode: exports_external.enum(BILLING_MODES).optional(),
+  overage: exports_external.boolean().optional(),
+  rate_limits: exports_external.array(exports_external.object({
+    window: exports_external.enum(["5h", "weekly", "monthly"]),
+    used_percent: exports_external.number().nonnegative(),
+    resets_at: exports_external.string().optional(),
+    credits: exports_external.number().nonnegative().optional(),
+    individual_limit: exports_external.number().nonnegative().optional(),
+    limit_name: exports_external.string().optional(),
+    rate_limit_reached_type: exports_external.string().optional()
+  })).optional()
+});
+
 // ../../packages/types/session-metadata.ts
 var HermesSessionMetadataSchema = exports_external.object({
   trigger: exports_external.string(),
@@ -20800,7 +20975,13 @@ var HermesSessionMetadataSchema = exports_external.object({
   reasoning_tokens: exports_external.number(),
   cost_usd: exports_external.number().nullable(),
   message_count: exports_external.number(),
-  tool_call_count: exports_external.number()
+  tool_call_count: exports_external.number(),
+  duration_ms: exports_external.number().nullable().optional(),
+  available_skills_count: exports_external.number().nullable().optional(),
+  memory_chars: exports_external.number().nullable().optional(),
+  memory_entry_count: exports_external.number().nullable().optional(),
+  user_entry_count: exports_external.number().nullable().optional(),
+  user_chars: exports_external.number().nullable().optional()
 });
 var TokenUsageSchema = exports_external.object({
   input_tokens: exports_external.number().optional(),
@@ -20816,6 +20997,10 @@ var RateLimitWindowSchema = exports_external.object({
 });
 var CodexSessionMetadataSchema = exports_external.object({
   model_with_reasoning: exports_external.string().optional(),
+  token_source: exports_external.enum(TOKEN_SOURCES).optional(),
+  plan: exports_external.string().optional(),
+  billing_mode: exports_external.enum(BILLING_MODES).optional(),
+  overage: exports_external.boolean().optional(),
   context_remaining: exports_external.number().optional(),
   context_used: exports_external.number().optional(),
   five_hour_limit: exports_external.number().optional(),
@@ -20848,16 +21033,29 @@ var ClaudeCodeSessionMetadataSchema = exports_external.object({
   reasoning_tokens: exports_external.number().optional(),
   cost_usd: exports_external.number().nullable().optional(),
   cost_source: exports_external.string().optional(),
+  plan: exports_external.string().optional(),
+  billing_mode: exports_external.enum(BILLING_MODES).optional(),
+  overage: exports_external.boolean().optional(),
   context_used: exports_external.number().optional(),
+  context_tokens_used: exports_external.number().optional(),
+  context_peak_tokens: exports_external.number().optional(),
   model_context_window: exports_external.number().optional(),
+  used_tokens: exports_external.number().optional(),
   five_hour_limit: exports_external.number().optional(),
   weekly_limit: exports_external.number().optional(),
+  rate_limits_latest: exports_external.object({
+    limit_id: exports_external.string().optional(),
+    primary: RateLimitWindowSchema.optional(),
+    secondary: RateLimitWindowSchema.optional()
+  }).optional(),
   token_data_source: exports_external.string().optional()
 }).passthrough();
 var metadataSchemasBySource = {
   codex: CodexSessionMetadataSchema,
   hermes: HermesSessionMetadataSchema,
-  claude_code: ClaudeCodeSessionMetadataSchema
+  "claude-code": ClaudeCodeSessionMetadataSchema,
+  claude_code: ClaudeCodeSessionMetadataSchema,
+  "claude-desktop": ClaudeCodeSessionMetadataSchema
 };
 function validateSessionMetadata(source, metadata) {
   const schema = metadataSchemasBySource[source];
@@ -20868,86 +21066,9 @@ function validateSessionMetadata(source, metadata) {
     return { valid: true, data: result.data };
   return { valid: false, error: result.error.message };
 }
-// ../../packages/utils/src/date-range.ts
-var PERIOD_TYPE_LABELS = {
-  ["today" /* Today */]: "Today",
-  ["this_week" /* ThisWeek */]: "This Week",
-  ["this_month" /* ThisMonth */]: "This Month"
-};
-var PERIOD_SUMMARY_LABELS = {
-  ["today" /* Today */]: "Daily Summary",
-  ["this_week" /* ThisWeek */]: "Weekly Summary",
-  ["this_month" /* ThisMonth */]: "Monthly Summary",
-  custom: "Custom Period"
-};
-// ../../packages/utils/src/frontmatter.ts
-var FRONTMATTER_KEYS = new Set(["name", "description"]);
-// ../../packages/utils/src/mcp-registry.ts
-var CACHE_TTL_MS = 30 * 60 * 1000;
-var CACHE_MAX_SIZE = 100;
-class TtlCache {
-  map = new Map;
-  get(key) {
-    const entry = this.map.get(key);
-    if (!entry)
-      return { hit: false };
-    if (Date.now() > entry.expiry) {
-      this.map.delete(key);
-      return { hit: false };
-    }
-    return { hit: true, value: entry.value };
-  }
-  set(key, value) {
-    if (this.map.size >= CACHE_MAX_SIZE && !this.map.has(key)) {
-      const firstKey = this.map.keys().next().value;
-      if (firstKey !== undefined)
-        this.map.delete(firstKey);
-    }
-    this.map.set(key, { value, expiry: Date.now() + CACHE_TTL_MS });
-  }
-  clear() {
-    this.map.clear();
-  }
-}
-var cache = new TtlCache;
-var toolCache = new TtlCache;
-var serverCache = new TtlCache;
-var GENERIC_SEGMENTS = new Set(["mcp", "com", "org", "io", "dev", "server", "api"]);
-var VERB_PREFIXES = new Set([
-  "get",
-  "list",
-  "create",
-  "delete",
-  "update",
-  "search",
-  "query",
-  "fetch",
-  "run",
-  "execute",
-  "resolve",
-  "find",
-  "read",
-  "write",
-  "set",
-  "send",
-  "check",
-  "add",
-  "remove"
-]);
-// ../../packages/utils/src/sanitize-null-bytes.ts
-function sanitizeNullBytes(value) {
-  if (typeof value === "string") {
-    return value.replace(/\u0000/g, "");
-  }
-  if (Array.isArray(value)) {
-    return value.map(sanitizeNullBytes);
-  }
-  if (value !== null && typeof value === "object") {
-    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, sanitizeNullBytes(v)]));
-  }
-  return value;
-}
+
 // ../../packages/plugin-common/src/sync/chat-uploader.ts
+init_src();
 init_events();
 init_properties();
 // ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/sha1.js
@@ -23417,6 +23538,7 @@ import { readFile as readFile5, writeFile as writeFile4 } from "node:fs/promises
 import { join as join6 } from "node:path";
 
 // src/extractors/toolkit-metadata-extractor.ts
+init_src();
 import { join as join5 } from "node:path";
 
 // ../../packages/utils/src/git-utils.ts
@@ -23426,6 +23548,8 @@ var execAsync = promisify(exec);
 // src/extractors/toolkit-metadata-extractor.ts
 init_constants();
 init_logger2();
+init_src();
+init_src();
 var SKILLS_DIR = join5(CLAUDE_INSTALL_DIR, "skills");
 var AGENTS_DIR = join5(CLAUDE_INSTALL_DIR, "agents");
 var INSTALLED_PLUGINS_FILE = join5(CLAUDE_INSTALL_DIR, "plugins", "installed_plugins.json");
@@ -23436,6 +23560,7 @@ init_fs_utils2();
 init_logger2();
 
 // src/utils/signal-scanner.ts
+init_src();
 init_constants();
 var EMPTY_SIGNALS = {
   mcp_usage: {},

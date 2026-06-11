@@ -79,11 +79,12 @@ function getErrorCategory(errorType) {
     return "supabase";
   return "api";
 }
-var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed", AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed", AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed", AUTH_SESSION_CLEAR_FAILED = "auth_session_clear_failed", AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed", SYNC_NOT_AUTHENTICATED = "sync_not_authenticated", SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed", SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted", SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed", SYNC_NETWORK_ERROR = "sync_network_error", SYNC_SERVER_OVERLOAD = "sync_server_overload", SYNC_DATA_ERROR = "sync_data_error", SYNC_AUTH_ERROR = "sync_auth_error", SYNC_BLOCKED_NO_WORKSPACE = "sync_blocked_no_workspace", AUTH_SESSION_METADATA_LOST = "auth_session_metadata_lost", QUEUE_READ_CORRUPTED = "queue_read_corrupted", QUEUE_WRITE_FAILED = "queue_write_failed", FILE_LOCK_TIMEOUT = "file_lock_timeout", FILE_LOCK_CREATE_FAILED = "file_lock_create_failed", NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed", QUEUE_CAP_EVICTION = "queue_cap_eviction", SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped", SYNC_DRAIN_THROTTLED = "sync_drain_throttled", SYNC_ORPHANED_MESSAGES_DROPPED = "sync_orphaned_messages_dropped", EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found", EXTRACTION_SESSION_FAILED = "extraction_session_failed", DAEMON_START_FAILED = "daemon_start_failed", DAEMON_RESTART_FAILED = "daemon_restart_failed", DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed", DAEMON_UNHANDLED_ERROR = "daemon_unhandled_error", API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed", API_PROFILE_UPDATE_FAILED = "api_profile_update_failed", API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed", API_STANDUP_TEAM_FETCH_FAILED = "api_standup_team_fetch_failed", API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed", API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed", API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed", SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed", SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed", SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed", ERROR_TYPES, errorTypeSet;
+var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed", AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed", AUTH_AGENT_PROVISIONING_FAILED = "auth_agent_provisioning_failed", AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed", AUTH_SESSION_CLEAR_FAILED = "auth_session_clear_failed", AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed", SYNC_NOT_AUTHENTICATED = "sync_not_authenticated", SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed", SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted", SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed", SYNC_NETWORK_ERROR = "sync_network_error", SYNC_SERVER_OVERLOAD = "sync_server_overload", SYNC_DATA_ERROR = "sync_data_error", SYNC_AUTH_ERROR = "sync_auth_error", SYNC_BLOCKED_NO_WORKSPACE = "sync_blocked_no_workspace", AUTH_SESSION_METADATA_LOST = "auth_session_metadata_lost", QUEUE_READ_CORRUPTED = "queue_read_corrupted", QUEUE_WRITE_FAILED = "queue_write_failed", FILE_LOCK_TIMEOUT = "file_lock_timeout", FILE_LOCK_CREATE_FAILED = "file_lock_create_failed", NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed", QUEUE_CAP_EVICTION = "queue_cap_eviction", SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped", SYNC_DRAIN_THROTTLED = "sync_drain_throttled", SYNC_ORPHANED_MESSAGES_DROPPED = "sync_orphaned_messages_dropped", EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found", EXTRACTION_SESSION_FAILED = "extraction_session_failed", DAEMON_START_FAILED = "daemon_start_failed", DAEMON_RESTART_FAILED = "daemon_restart_failed", DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed", DAEMON_UNHANDLED_ERROR = "daemon_unhandled_error", API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed", API_PROFILE_UPDATE_FAILED = "api_profile_update_failed", API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed", API_STANDUP_TEAM_FETCH_FAILED = "api_standup_team_fetch_failed", API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed", API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed", API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed", SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed", SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed", SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed", ERROR_TYPES, errorTypeSet;
 var init_events = __esm(() => {
   ERROR_TYPES = [
     AUTH_DEVICE_CODE_INITIATION_FAILED,
     AUTH_DEVICE_CODE_POLLING_FAILED,
+    AUTH_AGENT_PROVISIONING_FAILED,
     AUTH_SESSION_CLEAR_FAILED,
     AUTH_SESSION_LOAD_FAILED,
     AUTH_SESSION_SAVE_FAILED,
@@ -293,7 +294,10 @@ var init_events2 = __esm(() => {
     PAYMENT_SETUP_FAILED: "Payment Setup Failed",
     SUBSCRIPTION_CREATED: "Subscription Created",
     SUBSCRIPTION_UPDATED: "Subscription Updated",
+    SUBSCRIPTION_UPGRADED: "Subscription Upgraded",
+    SUBSCRIPTION_DOWNGRADED: "Subscription Downgraded",
     SUBSCRIPTION_CANCELED: "Subscription Canceled",
+    USER_CHURNED: "User Churned",
     PAYMENT_SUCCEEDED: "Payment Succeeded",
     PAYMENT_FAILED: "Payment Failed",
     BILLING_PORTAL_OPENED: "Billing Portal Opened",
@@ -5769,35 +5773,9 @@ var init_analytics = __esm(() => {
   init_events();
   init_events();
 });
-
-// src/config/constants.ts
-import { homedir } from "node:os";
-import { join } from "node:path";
-var CLAUDE_INSTALL_DIR, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, PLATFORM = "terminal", SOURCE = "claude-code", SYNC_INTERVAL_MS = 60000, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MIN_MESSAGES_PER_SESSION = 3, STALE_SESSION_AGE_MS, MAX_QUEUE_SIZE_EVENTS = 5000, MAX_QUEUE_SIZE_SESSIONS = 500, MAX_QUEUE_SIZE_MESSAGES = 1e4, MAX_EVENT_AGE_DAYS = 7, MAX_EVENTS_PER_CYCLE = 500, MAX_SESSIONS_PER_CYCLE = 50, MAX_MESSAGES_PER_CYCLE = 1000, WEB_APP_URL = "https://app.meetzest.com", SUPABASE_URL = "https://fnnlebrtmlxxjwdvngck.supabase.co", SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubmxlYnJ0bWx4eGp3ZHZuZ2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MzA3MjYsImV4cCI6MjA3MjMwNjcyNn0.0IE3HCY_DiyyALdewbRn1vkedwzDW27NQMQ28V6j4Dk", POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", CLAUDE_BUILTIN_COMMANDS, EXCLUDED_COMMAND_PATTERNS, ZEST_SESSION_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341", UPDATE_CHECK_CACHE_TTL_MS, DAEMON_INACTIVITY_TIMEOUT_MS, DAEMON_WARMUP_GRACE_MS, NOTIFICATION_DURATION_MS, FIRST_DATA_THRESHOLD_MESSAGES = 5, STANDUP_NOTIFICATION_THROTTLE_MS, SYNC_METRICS_RETENTION_MS;
-var init_constants = __esm(() => {
-  CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
-  CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
-  CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
-  CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
-  QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
-  LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
-  STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
-  DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-  SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
-  SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
-  DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
-  CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
-  STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
-  STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
-  SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
-  EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
-  SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
-  MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
-  DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
-  DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
-  PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
-  MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
-  STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+// ../../packages/utils/src/command-xml.ts
+var CLAUDE_BUILTIN_COMMANDS;
+var init_command_xml = __esm(() => {
   CLAUDE_BUILTIN_COMMANDS = new Set([
     "add-dir",
     "agents",
@@ -5887,6 +5865,145 @@ var init_constants = __esm(() => {
     "voice",
     "web-setup"
   ]);
+});
+// ../../packages/utils/src/date-range.ts
+var PERIOD_TYPE_LABELS, PERIOD_SUMMARY_LABELS;
+var init_date_range = __esm(() => {
+  PERIOD_TYPE_LABELS = {
+    ["today" /* Today */]: "Today",
+    ["this_week" /* ThisWeek */]: "This Week",
+    ["this_month" /* ThisMonth */]: "This Month"
+  };
+  PERIOD_SUMMARY_LABELS = {
+    ["today" /* Today */]: "Daily Summary",
+    ["this_week" /* ThisWeek */]: "Weekly Summary",
+    ["this_month" /* ThisMonth */]: "Monthly Summary",
+    custom: "Custom Period"
+  };
+});
+// ../../packages/utils/src/frontmatter.ts
+var FRONTMATTER_KEYS;
+var init_frontmatter = __esm(() => {
+  FRONTMATTER_KEYS = new Set(["name", "description"]);
+});
+
+// ../../packages/utils/src/language-utils.ts
+var init_language_utils = () => {};
+
+// ../../packages/utils/src/mcp-registry.ts
+class TtlCache {
+  map = new Map;
+  get(key) {
+    const entry = this.map.get(key);
+    if (!entry)
+      return { hit: false };
+    if (Date.now() > entry.expiry) {
+      this.map.delete(key);
+      return { hit: false };
+    }
+    return { hit: true, value: entry.value };
+  }
+  set(key, value) {
+    if (this.map.size >= CACHE_MAX_SIZE && !this.map.has(key)) {
+      const firstKey = this.map.keys().next().value;
+      if (firstKey !== undefined)
+        this.map.delete(firstKey);
+    }
+    this.map.set(key, { value, expiry: Date.now() + CACHE_TTL_MS2 });
+  }
+  clear() {
+    this.map.clear();
+  }
+}
+var CACHE_TTL_MS2, CACHE_MAX_SIZE = 100, cache, toolCache, serverCache, GENERIC_SEGMENTS, VERB_PREFIXES;
+var init_mcp_registry = __esm(() => {
+  CACHE_TTL_MS2 = 30 * 60 * 1000;
+  cache = new TtlCache;
+  toolCache = new TtlCache;
+  serverCache = new TtlCache;
+  GENERIC_SEGMENTS = new Set(["mcp", "com", "org", "io", "dev", "server", "api"]);
+  VERB_PREFIXES = new Set([
+    "get",
+    "list",
+    "create",
+    "delete",
+    "update",
+    "search",
+    "query",
+    "fetch",
+    "run",
+    "execute",
+    "resolve",
+    "find",
+    "read",
+    "write",
+    "set",
+    "send",
+    "check",
+    "add",
+    "remove"
+  ]);
+});
+
+// ../../packages/utils/src/sanitize-null-bytes.ts
+function sanitizeNullBytes(value) {
+  if (typeof value === "string") {
+    return value.replace(/\u0000/g, "");
+  }
+  if (Array.isArray(value)) {
+    return value.map(sanitizeNullBytes);
+  }
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, sanitizeNullBytes(v)]));
+  }
+  return value;
+}
+
+// ../../packages/utils/src/string-utils.ts
+var init_string_utils2 = () => {};
+// ../../packages/utils/src/index.ts
+var init_src = __esm(() => {
+  init_command_xml();
+  init_date_range();
+  init_frontmatter();
+  init_language_utils();
+  init_mcp_registry();
+  init_string_utils2();
+});
+
+// src/config/constants.ts
+import { homedir } from "node:os";
+import { join } from "node:path";
+var CLAUDE_INSTALL_DIR, CLAUDE_CONFIG_FILE, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUSLINE_PROXY_CONFIG_FILE, STATUSLINE_SNAPSHOTS_FILE, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, PLATFORM = "terminal", SOURCE = "claude-code", SYNC_INTERVAL_MS = 60000, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MIN_MESSAGES_PER_SESSION = 3, STALE_SESSION_AGE_MS, MAX_QUEUE_SIZE_EVENTS = 5000, MAX_QUEUE_SIZE_SESSIONS = 500, MAX_QUEUE_SIZE_MESSAGES = 1e4, MAX_EVENT_AGE_DAYS = 7, MAX_EVENTS_PER_CYCLE = 500, MAX_SESSIONS_PER_CYCLE = 50, MAX_MESSAGES_PER_CYCLE = 1000, WEB_APP_URL = "https://app.meetzest.com", SUPABASE_URL = "https://fnnlebrtmlxxjwdvngck.supabase.co", SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZubmxlYnJ0bWx4eGp3ZHZuZ2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MzA3MjYsImV4cCI6MjA3MjMwNjcyNn0.0IE3HCY_DiyyALdewbRn1vkedwzDW27NQMQ28V6j4Dk", POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", EXCLUDED_COMMAND_PATTERNS, ZEST_SESSION_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341", UPDATE_CHECK_CACHE_TTL_MS, DAEMON_INACTIVITY_TIMEOUT_MS, DAEMON_WARMUP_GRACE_MS, NOTIFICATION_DURATION_MS, FIRST_DATA_THRESHOLD_MESSAGES = 5, STANDUP_NOTIFICATION_THROTTLE_MS, SYNC_METRICS_RETENTION_MS;
+var init_constants = __esm(() => {
+  init_src();
+  init_src();
+  CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
+  CLAUDE_CONFIG_FILE = process.env.CLAUDE_CONFIG_FILE || join(homedir(), ".claude.json");
+  CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
+  CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
+  CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
+  QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
+  LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
+  STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
+  DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
+  SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
+  SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
+  DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
+  CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
+  STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
+  STATUSLINE_PROXY_CONFIG_FILE = join(CLAUDE_ZEST_DIR, "statusline-proxy.json");
+  STATUSLINE_SNAPSHOTS_FILE = process.env.ZEST_STATUSLINE_SNAPSHOTS_FILE ?? join(CLAUDE_ZEST_DIR, "statusline-snapshots.json");
+  STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
+  SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
+  EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
+  SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
+  MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
+  DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
+  DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
+  PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+  MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
+  STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
   EXCLUDED_COMMAND_PATTERNS = [
     new RegExp(`^\\/(${[...CLAUDE_BUILTIN_COMMANDS].join("|")})\\b`, "i"),
     /^\/zest[^:\s]*:/i,
@@ -6467,6 +6584,11 @@ function isProcessRunning(pid) {
     return false;
   }
 }
+async function cleanupPidFile() {
+  try {
+    await unlink5(DAEMON_PID_FILE);
+  } catch {}
+}
 async function writePidFile(pid) {
   try {
     await ensureDirectory2(dirname5(DAEMON_PID_FILE));
@@ -6491,6 +6613,7 @@ function startShutdownTimer() {
   shutdownTimerId = setTimeout(async () => {
     logger2.info(`All Claude Code instances have been closed for ${DAEMON_INACTIVITY_TIMEOUT_MS / 1000 / 60} minutes; shutting down daemon`);
     await shutdownAnalytics();
+    await cleanupPidFile();
     process.exit(0);
   }, DAEMON_INACTIVITY_TIMEOUT_MS);
 }
@@ -15379,54 +15502,9 @@ var require_main3 = __commonJS((exports2) => {
 // src/sync-daemon.ts
 init_events();
 init_properties();
+import { unlinkSync as unlinkSync2 } from "node:fs";
 import { appendFile as appendFile3 } from "node:fs/promises";
 import { dirname as dirname9 } from "node:path";
-// ../../packages/types/data-controls.ts
-var RETENTION_PERIODS = ["12h", "1d", "7d", "30d", "90d", "1y", "forever"];
-var RETENTION_PERIOD_ORDER = {
-  "12h": 0,
-  "1d": 1,
-  "7d": 2,
-  "30d": 3,
-  "90d": 4,
-  "1y": 5,
-  forever: 6
-};
-var WORKSPACE_COLLECTION_DEFAULTS = {
-  user_messages: true,
-  assistant_messages: true,
-  code_diffs: true,
-  github_events: true
-};
-var WORKSPACE_RETENTION_DEFAULTS = {
-  user_messages: "90d",
-  assistant_messages: "90d",
-  code_diffs: "7d",
-  github_events: "90d"
-};
-function shorterRetentionPeriod(a, b) {
-  return RETENTION_PERIOD_ORDER[a] <= RETENTION_PERIOD_ORDER[b] ? a : b;
-}
-function getEffectiveCollection(workspace, user) {
-  if (!user)
-    return workspace;
-  return {
-    user_messages: workspace.user_messages && user.user_messages,
-    assistant_messages: workspace.assistant_messages && user.assistant_messages,
-    code_diffs: workspace.code_diffs && user.code_diffs,
-    github_events: workspace.github_events
-  };
-}
-function getEffectiveRetention(workspace, user) {
-  if (!user)
-    return workspace;
-  return {
-    user_messages: shorterRetentionPeriod(workspace.user_messages, user.user_messages),
-    assistant_messages: shorterRetentionPeriod(workspace.assistant_messages, user.assistant_messages),
-    code_diffs: shorterRetentionPeriod(workspace.code_diffs, user.code_diffs),
-    github_events: workspace.github_events
-  };
-}
 // ../../node_modules/.bun/zod@4.4.3/node_modules/zod/v4/classic/external.js
 var exports_external = {};
 __export(exports_external, {
@@ -29703,6 +29781,246 @@ function date4(params) {
 
 // ../../node_modules/.bun/zod@4.4.3/node_modules/zod/v4/classic/external.js
 config(en_default());
+// ../../packages/types/behavioral-profile.ts
+var BASIC_AI_PRACTICES = [
+  {
+    name: "Context Frontloading",
+    description: "Providing comprehensive background, project details, tech stack, and constraints upfront before asking for help"
+  },
+  {
+    name: "Iterative Refinement",
+    description: "Breaking down complex problems into smaller steps and refining solutions through multiple exchanges"
+  },
+  {
+    name: "Explicit Constraint Setting",
+    description: "Clearly stating limitations, requirements, performance needs, or style preferences"
+  },
+  {
+    name: "Error Context Sharing",
+    description: "Providing full error messages, stack traces, and relevant code when debugging"
+  },
+  {
+    name: "Code Review Requests",
+    description: "Asking AI to review, critique, or suggest improvements to existing code"
+  },
+  {
+    name: "Rubber Duck Debugging",
+    description: "Explaining the problem step-by-step to the AI to clarify thinking"
+  },
+  {
+    name: "Alternative Approach Seeking",
+    description: "Asking for multiple solutions or different ways to solve the same problem"
+  },
+  {
+    name: "Trade-off Analysis",
+    description: "Requesting comparison of different approaches with pros/cons"
+  },
+  {
+    name: "Edge Case Exploration",
+    description: "Asking AI to identify potential edge cases or failure scenarios"
+  },
+  {
+    name: "Performance Optimization",
+    description: "Seeking advice on making code faster, more efficient, or scalable"
+  },
+  {
+    name: "Concept Explanation Requests",
+    description: "Asking AI to explain programming concepts, patterns, or best practices"
+  },
+  {
+    name: "Code Annotation",
+    description: "Requesting detailed comments or explanations of how code works"
+  },
+  {
+    name: "Learning Path Guidance",
+    description: "Seeking recommendations for what to learn next or how to improve skills"
+  },
+  {
+    name: "Best Practice Inquiry",
+    description: "Asking about industry standards, conventions, or recommended approaches"
+  },
+  {
+    name: "Template Generation",
+    description: "Asking AI to create boilerplate code, project structures, or configuration files"
+  },
+  {
+    name: "Documentation Assistance",
+    description: "Getting help with README files, API docs, or code comments"
+  },
+  {
+    name: "Testing Strategy",
+    description: "Requesting help with unit tests, test cases, or testing approaches"
+  },
+  {
+    name: "Refactoring Guidance",
+    description: "Asking for help restructuring or cleaning up existing code"
+  },
+  {
+    name: "Integration Help",
+    description: "Seeking assistance with connecting different systems, APIs, or libraries"
+  },
+  {
+    name: "Prompt Engineering",
+    description: "Crafting specific, detailed requests to get better AI responses"
+  },
+  {
+    name: "Role Assignment",
+    description: "Asking AI to take on specific roles (senior developer, code reviewer, architect)"
+  },
+  {
+    name: "Socratic Method",
+    description: "Asking AI to guide discovery through questions rather than direct answers"
+  },
+  {
+    name: "Pair Programming Simulation",
+    description: "Engaging in back-and-forth collaborative coding sessions"
+  },
+  {
+    name: "Architecture Discussion",
+    description: "High-level system design conversations and decision-making"
+  }
+];
+var INTENT_LABELS = [
+  "planning",
+  "implementation",
+  "review",
+  "debugging",
+  "refactoring",
+  "testing",
+  "documentation",
+  "configuration",
+  "exploration",
+  "deployment"
+];
+var ANTI_PATTERNS = [
+  "vibe_coding_unchecked",
+  "context_starvation",
+  "kitchen_sink_context",
+  "premature_acceptance",
+  "error_message_chasing",
+  "model_thrashing",
+  "abandon_the_plan",
+  "over_specification",
+  "spray_and_pray",
+  "automation_bias",
+  "pattern_match_no_understanding",
+  "context_pollution"
+];
+var RECOVERY_STRATEGIES = [
+  "retry",
+  "reframe",
+  "decompose",
+  "step_back",
+  "escalate_model",
+  "escalate_human",
+  "abandon",
+  "none"
+];
+var INTERACTION_STYLES = [
+  "oneshot",
+  "iterative_refinement",
+  "pair_programming",
+  "tight_loop"
+];
+var PLANNING_SEEDS = ["ticket", "spec", "freeform", "none"];
+var PROMPT_TECHNIQUE_NAMES = BASIC_AI_PRACTICES.map((p) => p.name);
+var behavioralProfileZodSchema = object({
+  intent_journey: array(object({
+    intent: _enum2(INTENT_LABELS),
+    message_range: object({
+      from: number2(),
+      to: number2()
+    }),
+    models_used: array(string2()),
+    notes: string2().optional()
+  })).max(50),
+  planning_mode: object({
+    used: boolean2(),
+    seed: _enum2(PLANNING_SEEDS),
+    planning_message_count: number2(),
+    plan_then_execute: boolean2(),
+    plan_revisions: number2()
+  }),
+  context_provisioning: object({
+    frontloaded: boolean2(),
+    attached_files_referenced: number2(),
+    referenced_tickets: boolean2(),
+    referenced_docs: boolean2(),
+    iterative_context: boolean2()
+  }),
+  model_strategy: object({
+    switched_mid_session: boolean2(),
+    switch_reasons: array(object({
+      from: string2(),
+      to: string2(),
+      reason: string2()
+    }))
+  }),
+  prompt_techniques: array(_enum2(PROMPT_TECHNIQUE_NAMES)).max(BASIC_AI_PRACTICES.length),
+  custom_techniques: array(object({
+    name: string2(),
+    description: string2()
+  })).max(50),
+  interaction_style: _enum2(INTERACTION_STYLES),
+  failure_recovery: object({
+    encountered_errors: boolean2(),
+    recovery_strategy: _enum2(RECOVERY_STRATEGIES)
+  }),
+  anti_patterns: array(_enum2(ANTI_PATTERNS)).max(8)
+});
+var behavioralProfileSchema = {
+  _type: undefined,
+  jsonSchema: toJSONSchema(behavioralProfileZodSchema),
+  validate: undefined,
+  [Symbol.for("vercel.ai.schema")]: true,
+  [Symbol.for("vercel.ai.validator")]: true
+};
+// ../../packages/types/data-controls.ts
+var RETENTION_PERIODS = ["12h", "1d", "7d", "30d", "90d", "1y", "forever"];
+var RETENTION_PERIOD_ORDER = {
+  "12h": 0,
+  "1d": 1,
+  "7d": 2,
+  "30d": 3,
+  "90d": 4,
+  "1y": 5,
+  forever: 6
+};
+var WORKSPACE_COLLECTION_DEFAULTS = {
+  user_messages: true,
+  assistant_messages: true,
+  code_diffs: true,
+  github_events: true
+};
+var WORKSPACE_RETENTION_DEFAULTS = {
+  user_messages: "90d",
+  assistant_messages: "90d",
+  code_diffs: "7d",
+  github_events: "90d"
+};
+function shorterRetentionPeriod(a, b) {
+  return RETENTION_PERIOD_ORDER[a] <= RETENTION_PERIOD_ORDER[b] ? a : b;
+}
+function getEffectiveCollection(workspace, user) {
+  if (!user)
+    return workspace;
+  return {
+    user_messages: workspace.user_messages && user.user_messages,
+    assistant_messages: workspace.assistant_messages && user.assistant_messages,
+    code_diffs: workspace.code_diffs && user.code_diffs,
+    github_events: workspace.github_events
+  };
+}
+function getEffectiveRetention(workspace, user) {
+  if (!user)
+    return workspace;
+  return {
+    user_messages: shorterRetentionPeriod(workspace.user_messages, user.user_messages),
+    assistant_messages: shorterRetentionPeriod(workspace.assistant_messages, user.assistant_messages),
+    code_diffs: shorterRetentionPeriod(workspace.code_diffs, user.code_diffs),
+    github_events: workspace.github_events
+  };
+}
 // ../../packages/types/github-metrics-schemas.ts
 var metricChangeSchema = exports_external.object({
   percentage: exports_external.number(),
@@ -29738,6 +30056,8 @@ var metricItemSchema = exports_external.object({
 var gitHubMetricsEntryDataSchema = exports_external.object({
   metrics: exports_external.array(metricItemSchema).min(1)
 });
+// ../../packages/types/profile.ts
+var ACTOR_TYPES = new Set(["human", "agent"]);
 // ../../packages/types/prompt-tags.ts
 var PROMPT_TAGS = {
   TOP_5: {
@@ -29774,18 +30094,22 @@ var PROMPT_TAGS = {
 var AVAILABLE_PROMPT_TAGS = Object.values(PROMPT_TAGS);
 var tagIds = AVAILABLE_PROMPT_TAGS.map((tag) => tag.id);
 // ../../packages/types/schemas.ts
+var SkillOutputFormatSchema = exports_external.enum(["skill_report_markdown", "markdown", "json"]);
 var CustomPromptMetadataSchema = exports_external.object({
   tags: exports_external.array(exports_external.string()).optional(),
   cascade_category: exports_external.string().optional(),
-  description: exports_external.string().optional()
+  description: exports_external.string().optional(),
+  output_format: SkillOutputFormatSchema.optional(),
+  example_output: exports_external.unknown().optional()
 });
 // ../../packages/types/token-usage.ts
-var TOKEN_SOURCES = ["provider_reported"];
+var TOKEN_SOURCES = ["provider_reported", "estimated_heuristic"];
 var COST_SOURCES = [
   "provider_reported",
   "derived_openrouter",
   "cursor_dashboard_api"
 ];
+var BILLING_MODES = ["api", "subscription", "unknown"];
 var SessionTokenUsageSchema = exports_external.object({
   input_tokens: exports_external.number().int().nonnegative(),
   output_tokens: exports_external.number().int().nonnegative(),
@@ -29793,6 +30117,8 @@ var SessionTokenUsageSchema = exports_external.object({
   token_source: exports_external.enum(TOKEN_SOURCES),
   cost_usd: exports_external.number().nonnegative().nullable().optional(),
   cost_source: exports_external.enum(COST_SOURCES).nullable().optional(),
+  api_equivalent_cost_usd: exports_external.number().nonnegative().nullable().optional(),
+  api_equivalent_cost_source: exports_external.enum(["derived_openrouter", "derived_openrouter_stale"]).nullable().optional(),
   cache_read_tokens: exports_external.number().int().nonnegative().optional(),
   cache_creation_tokens: exports_external.number().int().nonnegative().optional(),
   cache_creation_5m_tokens: exports_external.number().int().nonnegative().optional(),
@@ -29806,13 +30132,32 @@ var SessionTokenUsageSchema = exports_external.object({
     output_tokens: exports_external.number().nonnegative(),
     cache_read_input_tokens: exports_external.number().nonnegative().optional(),
     cache_creation_input_tokens: exports_external.number().nonnegative().optional(),
+    cache_creation_5m_input_tokens: exports_external.number().nonnegative().optional(),
+    cache_creation_1h_input_tokens: exports_external.number().nonnegative().optional(),
+    reasoning_tokens: exports_external.number().nonnegative().optional(),
     cost_usd: exports_external.number().nonnegative().optional()
   })).optional(),
   context_used_percent: exports_external.number().nonnegative().max(100).optional(),
   context_window_size: exports_external.number().int().nonnegative().optional(),
+  context_tokens_used: exports_external.number().int().nonnegative().optional(),
+  context_token_breakdown: exports_external.record(exports_external.string(), exports_external.number().int().nonnegative()).optional(),
+  copilot_credits: exports_external.number().nonnegative().optional(),
+  copilot_sku: exports_external.string().min(1).optional(),
   rate_limit_percent: exports_external.number().nonnegative().optional(),
   rate_limit_type: exports_external.string().optional(),
-  rate_limit_is_overage: exports_external.boolean().optional()
+  rate_limit_is_overage: exports_external.boolean().optional(),
+  plan: exports_external.string().min(1).optional(),
+  billing_mode: exports_external.enum(BILLING_MODES).optional(),
+  overage: exports_external.boolean().optional(),
+  rate_limits: exports_external.array(exports_external.object({
+    window: exports_external.enum(["5h", "weekly", "monthly"]),
+    used_percent: exports_external.number().nonnegative(),
+    resets_at: exports_external.string().optional(),
+    credits: exports_external.number().nonnegative().optional(),
+    individual_limit: exports_external.number().nonnegative().optional(),
+    limit_name: exports_external.string().optional(),
+    rate_limit_reached_type: exports_external.string().optional()
+  })).optional()
 });
 // ../../packages/types/data-controls-schemas.ts
 var collectionSettingsSchema = exports_external.object({
@@ -31350,7 +31695,8 @@ var UserSettingsSchema = exports_external.object({
   logLevel: exports_external.enum(["debug", "info", "warn", "error"]),
   excludedFolders: exports_external.array(exports_external.string()).default([]),
   privacy: PrivacySettingsSchema.optional(),
-  notificationsEnabled: exports_external.boolean().default(false)
+  notificationsEnabled: exports_external.boolean().default(false),
+  statuslineAutoWrap: exports_external.boolean().default(true)
 });
 var DEFAULT_SETTINGS = {
   enableRemotePersistence: true,
@@ -31359,7 +31705,8 @@ var DEFAULT_SETTINGS = {
   logLevel: "info",
   excludedFolders: [],
   privacy: DEFAULT_PRIVACY_SETTINGS,
-  notificationsEnabled: false
+  notificationsEnabled: false,
+  statuslineAutoWrap: true
 };
 async function loadSettings() {
   try {
@@ -31821,8 +32168,8 @@ function createStatusCacheManager(config2) {
   }
   function hasActiveStandupNotification() {
     try {
-      const cache = readStatusCache();
-      const { message, expiresAt } = cache.standupNotification;
+      const cache2 = readStatusCache();
+      const { message, expiresAt } = cache2.standupNotification;
       return message !== null && expiresAt !== null && expiresAt > Date.now();
     } catch (error51) {
       logger3?.warn("Failed to check for active standup notification", error51);
@@ -31831,8 +32178,8 @@ function createStatusCacheManager(config2) {
   }
   function shouldShowFirstDataReady() {
     try {
-      const cache = readStatusCache();
-      const { firstDataReadyLastShownAt } = cache.standupNotification;
+      const cache2 = readStatusCache();
+      const { firstDataReadyLastShownAt } = cache2.standupNotification;
       if (!firstDataReadyLastShownAt)
         return true;
       return Date.now() - firstDataReadyLastShownAt >= standupNotificationThrottleMs;
@@ -31858,8 +32205,8 @@ function createStatusCacheManager(config2) {
   }
   function shouldShowStandupRefreshed() {
     try {
-      const cache = readStatusCache();
-      const { standupRefreshedLastShownAt } = cache.standupNotification;
+      const cache2 = readStatusCache();
+      const { standupRefreshedLastShownAt } = cache2.standupNotification;
       if (!standupRefreshedLastShownAt)
         return true;
       return Date.now() - standupRefreshedLastShownAt >= standupNotificationThrottleMs;
@@ -34826,86 +35173,9 @@ import { readFile as readFile8, writeFile as writeFile7 } from "node:fs/promises
 import { join as join6 } from "node:path";
 
 // src/extractors/toolkit-metadata-extractor.ts
+init_src();
 import { join as join5 } from "node:path";
-// ../../packages/utils/src/date-range.ts
-var PERIOD_TYPE_LABELS = {
-  ["today" /* Today */]: "Today",
-  ["this_week" /* ThisWeek */]: "This Week",
-  ["this_month" /* ThisMonth */]: "This Month"
-};
-var PERIOD_SUMMARY_LABELS = {
-  ["today" /* Today */]: "Daily Summary",
-  ["this_week" /* ThisWeek */]: "Weekly Summary",
-  ["this_month" /* ThisMonth */]: "Monthly Summary",
-  custom: "Custom Period"
-};
-// ../../packages/utils/src/frontmatter.ts
-var FRONTMATTER_KEYS = new Set(["name", "description"]);
-// ../../packages/utils/src/mcp-registry.ts
-var CACHE_TTL_MS2 = 30 * 60 * 1000;
-var CACHE_MAX_SIZE = 100;
-class TtlCache {
-  map = new Map;
-  get(key) {
-    const entry = this.map.get(key);
-    if (!entry)
-      return { hit: false };
-    if (Date.now() > entry.expiry) {
-      this.map.delete(key);
-      return { hit: false };
-    }
-    return { hit: true, value: entry.value };
-  }
-  set(key, value) {
-    if (this.map.size >= CACHE_MAX_SIZE && !this.map.has(key)) {
-      const firstKey = this.map.keys().next().value;
-      if (firstKey !== undefined)
-        this.map.delete(firstKey);
-    }
-    this.map.set(key, { value, expiry: Date.now() + CACHE_TTL_MS2 });
-  }
-  clear() {
-    this.map.clear();
-  }
-}
-var cache = new TtlCache;
-var toolCache = new TtlCache;
-var serverCache = new TtlCache;
-var GENERIC_SEGMENTS = new Set(["mcp", "com", "org", "io", "dev", "server", "api"]);
-var VERB_PREFIXES = new Set([
-  "get",
-  "list",
-  "create",
-  "delete",
-  "update",
-  "search",
-  "query",
-  "fetch",
-  "run",
-  "execute",
-  "resolve",
-  "find",
-  "read",
-  "write",
-  "set",
-  "send",
-  "check",
-  "add",
-  "remove"
-]);
-// ../../packages/utils/src/sanitize-null-bytes.ts
-function sanitizeNullBytes(value) {
-  if (typeof value === "string") {
-    return value.replace(/\u0000/g, "");
-  }
-  if (Array.isArray(value)) {
-    return value.map(sanitizeNullBytes);
-  }
-  if (value !== null && typeof value === "object") {
-    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, sanitizeNullBytes(v)]));
-  }
-  return value;
-}
+
 // ../../packages/utils/src/git-utils.ts
 import { exec, execSync } from "node:child_process";
 import * as path from "node:path";
@@ -34997,6 +35267,8 @@ function getProjectInfoSync(workingDirectory) {
 // src/extractors/toolkit-metadata-extractor.ts
 init_constants();
 init_logger2();
+init_src();
+init_src();
 var SKILLS_DIR = join5(CLAUDE_INSTALL_DIR, "skills");
 var AGENTS_DIR = join5(CLAUDE_INSTALL_DIR, "agents");
 var INSTALLED_PLUGINS_FILE = join5(CLAUDE_INSTALL_DIR, "plugins", "installed_plugins.json");
@@ -35007,6 +35279,7 @@ init_fs_utils2();
 init_logger2();
 
 // src/utils/signal-scanner.ts
+init_src();
 init_constants();
 var EMPTY_SIGNALS = {
   mcp_usage: {},
@@ -35999,7 +36272,13 @@ var HermesSessionMetadataSchema = exports_external.object({
   reasoning_tokens: exports_external.number(),
   cost_usd: exports_external.number().nullable(),
   message_count: exports_external.number(),
-  tool_call_count: exports_external.number()
+  tool_call_count: exports_external.number(),
+  duration_ms: exports_external.number().nullable().optional(),
+  available_skills_count: exports_external.number().nullable().optional(),
+  memory_chars: exports_external.number().nullable().optional(),
+  memory_entry_count: exports_external.number().nullable().optional(),
+  user_entry_count: exports_external.number().nullable().optional(),
+  user_chars: exports_external.number().nullable().optional()
 });
 var TokenUsageSchema = exports_external.object({
   input_tokens: exports_external.number().optional(),
@@ -36015,6 +36294,10 @@ var RateLimitWindowSchema = exports_external.object({
 });
 var CodexSessionMetadataSchema = exports_external.object({
   model_with_reasoning: exports_external.string().optional(),
+  token_source: exports_external.enum(TOKEN_SOURCES).optional(),
+  plan: exports_external.string().optional(),
+  billing_mode: exports_external.enum(BILLING_MODES).optional(),
+  overage: exports_external.boolean().optional(),
   context_remaining: exports_external.number().optional(),
   context_used: exports_external.number().optional(),
   five_hour_limit: exports_external.number().optional(),
@@ -36047,16 +36330,29 @@ var ClaudeCodeSessionMetadataSchema = exports_external.object({
   reasoning_tokens: exports_external.number().optional(),
   cost_usd: exports_external.number().nullable().optional(),
   cost_source: exports_external.string().optional(),
+  plan: exports_external.string().optional(),
+  billing_mode: exports_external.enum(BILLING_MODES).optional(),
+  overage: exports_external.boolean().optional(),
   context_used: exports_external.number().optional(),
+  context_tokens_used: exports_external.number().optional(),
+  context_peak_tokens: exports_external.number().optional(),
   model_context_window: exports_external.number().optional(),
+  used_tokens: exports_external.number().optional(),
   five_hour_limit: exports_external.number().optional(),
   weekly_limit: exports_external.number().optional(),
+  rate_limits_latest: exports_external.object({
+    limit_id: exports_external.string().optional(),
+    primary: RateLimitWindowSchema.optional(),
+    secondary: RateLimitWindowSchema.optional()
+  }).optional(),
   token_data_source: exports_external.string().optional()
 }).passthrough();
 var metadataSchemasBySource = {
   codex: CodexSessionMetadataSchema,
   hermes: HermesSessionMetadataSchema,
-  claude_code: ClaudeCodeSessionMetadataSchema
+  "claude-code": ClaudeCodeSessionMetadataSchema,
+  claude_code: ClaudeCodeSessionMetadataSchema,
+  "claude-desktop": ClaudeCodeSessionMetadataSchema
 };
 function validateSessionMetadata(source, metadata) {
   const schema = metadataSchemasBySource[source];
@@ -36069,6 +36365,7 @@ function validateSessionMetadata(source, metadata) {
 }
 
 // ../../packages/plugin-common/src/sync/chat-uploader.ts
+init_src();
 init_events();
 init_properties();
 
@@ -36624,6 +36921,7 @@ var {
 } = chatUploader;
 
 // ../../packages/plugin-common/src/sync/events-uploader.ts
+init_src();
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 init_events();
 init_properties();
@@ -37265,6 +37563,9 @@ function setupShutdownHandlers() {
       syncLogger.error("Failed to destroy Supabase client", error51);
     }
     await shutdownAnalytics();
+    try {
+      unlinkSync2(DAEMON_PID_FILE);
+    } catch {}
     process.exit(0);
   };
   process.on("SIGTERM", shutdown);

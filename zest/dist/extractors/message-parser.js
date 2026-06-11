@@ -18,6 +18,8 @@ function buildTokenMetadata(usage) {
     meta.cache_creation_5m_tokens = usage.cache_creation.ephemeral_5m_input_tokens;
   if (usage.cache_creation?.ephemeral_1h_input_tokens != null)
     meta.cache_creation_1h_tokens = usage.cache_creation.ephemeral_1h_input_tokens;
+  if (usage.reasoning_tokens != null)
+    meta.reasoning_tokens = usage.reasoning_tokens;
   if (typeof usage.server_tool_use?.input_tokens === "number")
     meta.server_tool_use_input_tokens = usage.server_tool_use.input_tokens;
   if (typeof usage.server_tool_use?.output_tokens === "number")
@@ -35,34 +37,22 @@ var SYNTHETIC_MODEL = "<synthetic>";
 function isSyntheticModel(model) {
   return model === SYNTHETIC_MODEL;
 }
-// src/config/constants.ts
-import { homedir } from "node:os";
-import { join } from "node:path";
-var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
-var CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
-var CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
-var CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
-var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
-var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
-var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
-var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-var SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
-var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
-var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
-var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
-var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
-var STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
-var SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
-var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
-var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
-var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
-var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
-var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
-var LOG_RETENTION_DAYS = 7;
-var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
-var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
-var MAX_CONTENT_PREVIEW_LENGTH = 1000;
-var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+// ../../packages/utils/src/signal-helpers.ts
+var CMD_TAG_START = "<command-name>/";
+var CMD_TAG_END = "</command-name>";
+function extractCommandName(text) {
+  const start = text.indexOf(CMD_TAG_START);
+  if (start === -1)
+    return;
+  const nameStart = start + CMD_TAG_START.length;
+  const end = text.indexOf(CMD_TAG_END, nameStart);
+  if (end === -1)
+    return;
+  const name = text.slice(nameStart, end);
+  return name.length > 0 ? name : undefined;
+}
+
+// ../../packages/utils/src/command-xml.ts
 var CLAUDE_BUILTIN_COMMANDS = new Set([
   "add-dir",
   "agents",
@@ -152,6 +142,151 @@ var CLAUDE_BUILTIN_COMMANDS = new Set([
   "voice",
   "web-setup"
 ]);
+function isBuiltinOrZestCommand(name) {
+  return CLAUDE_BUILTIN_COMMANDS.has(name) || name.startsWith("zest:");
+}
+function sanitizeCommandXml(text) {
+  const trimmed = text.trim();
+  if (trimmed.startsWith("<local-command-caveat>")) {
+    return null;
+  }
+  if (trimmed.startsWith("<local-command-stdout>")) {
+    return null;
+  }
+  if (trimmed.startsWith("<command-message>") || trimmed.startsWith("<command-name>")) {
+    const cmdName = extractCommandName(trimmed);
+    if (cmdName) {
+      if (isBuiltinOrZestCommand(cmdName)) {
+        return null;
+      }
+      const argsMatch = trimmed.match(/<command-args>([\s\S]*?)<\/command-args>/);
+      const args = argsMatch?.[1]?.trim() ?? "";
+      return args ? `[Skill: ${cmdName}] ${args}` : `[Skill: ${cmdName}]`;
+    }
+  }
+  if (trimmed.startsWith("<task-notification>")) {
+    const summaryMatch = trimmed.match(/<summary>([\s\S]*?)<\/summary>/);
+    const summary = summaryMatch?.[1]?.trim();
+    return summary ? `[Agent completed: ${summary}]` : "[Agent task completed]";
+  }
+  if (trimmed.startsWith("<teammate-message")) {
+    const summaryMatch = trimmed.match(/\bsummary="([^"]*)"/);
+    const idMatch = trimmed.match(/\bteammate_id="([^"]*)"/);
+    const id = idMatch?.[1] ?? "agent";
+    const summary = summaryMatch?.[1];
+    if (summary) {
+      return `[Agent: ${id}] ${summary}`;
+    }
+    const bodyMatch = trimmed.match(/<teammate-message[^>]*>([\s\S]*?)<\/teammate-message>/);
+    if (bodyMatch) {
+      const body = bodyMatch[1]?.trim() ?? "";
+      if (body.startsWith("{") && body.includes('"idle_notification"')) {
+        return null;
+      }
+      const snippet = body.length > 200 ? `${body.slice(0, 200)}...` : body;
+      return `[Agent: ${id}] ${snippet}`;
+    }
+    return `[Agent: ${id}]`;
+  }
+  return trimmed;
+}
+// ../../packages/utils/src/date-range.ts
+var PERIOD_TYPE_LABELS = {
+  ["today" /* Today */]: "Today",
+  ["this_week" /* ThisWeek */]: "This Week",
+  ["this_month" /* ThisMonth */]: "This Month"
+};
+var PERIOD_SUMMARY_LABELS = {
+  ["today" /* Today */]: "Daily Summary",
+  ["this_week" /* ThisWeek */]: "Weekly Summary",
+  ["this_month" /* ThisMonth */]: "Monthly Summary",
+  custom: "Custom Period"
+};
+// ../../packages/utils/src/frontmatter.ts
+var FRONTMATTER_KEYS = new Set(["name", "description"]);
+// ../../packages/utils/src/mcp-registry.ts
+var CACHE_TTL_MS = 30 * 60 * 1000;
+var CACHE_MAX_SIZE = 100;
+class TtlCache {
+  map = new Map;
+  get(key) {
+    const entry = this.map.get(key);
+    if (!entry)
+      return { hit: false };
+    if (Date.now() > entry.expiry) {
+      this.map.delete(key);
+      return { hit: false };
+    }
+    return { hit: true, value: entry.value };
+  }
+  set(key, value) {
+    if (this.map.size >= CACHE_MAX_SIZE && !this.map.has(key)) {
+      const firstKey = this.map.keys().next().value;
+      if (firstKey !== undefined)
+        this.map.delete(firstKey);
+    }
+    this.map.set(key, { value, expiry: Date.now() + CACHE_TTL_MS });
+  }
+  clear() {
+    this.map.clear();
+  }
+}
+var cache = new TtlCache;
+var toolCache = new TtlCache;
+var serverCache = new TtlCache;
+var GENERIC_SEGMENTS = new Set(["mcp", "com", "org", "io", "dev", "server", "api"]);
+var VERB_PREFIXES = new Set([
+  "get",
+  "list",
+  "create",
+  "delete",
+  "update",
+  "search",
+  "query",
+  "fetch",
+  "run",
+  "execute",
+  "resolve",
+  "find",
+  "read",
+  "write",
+  "set",
+  "send",
+  "check",
+  "add",
+  "remove"
+]);
+// src/config/constants.ts
+import { homedir } from "node:os";
+import { join } from "node:path";
+var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
+var CLAUDE_CONFIG_FILE = process.env.CLAUDE_CONFIG_FILE || join(homedir(), ".claude.json");
+var CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
+var CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
+var CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
+var QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
+var LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
+var STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
+var DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
+var SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
+var SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
+var DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
+var CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
+var STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
+var STATUSLINE_PROXY_CONFIG_FILE = join(CLAUDE_ZEST_DIR, "statusline-proxy.json");
+var STATUSLINE_SNAPSHOTS_FILE = process.env.ZEST_STATUSLINE_SNAPSHOTS_FILE ?? join(CLAUDE_ZEST_DIR, "statusline-snapshots.json");
+var STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
+var SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
+var EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
+var SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
+var MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
+var DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
+var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
+var LOG_RETENTION_DAYS = 7;
+var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
+var MAX_CONTENT_PREVIEW_LENGTH = 1000;
+var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var EXCLUDED_COMMAND_PATTERNS = [
   new RegExp(`^\\/(${[...CLAUDE_BUILTIN_COMMANDS].join("|")})\\b`, "i"),
   /^\/zest[^:\s]*:/i,
@@ -1521,9 +1656,18 @@ function logDiff(filePath, diff) {
 
 // src/utils/command-filters.ts
 function shouldExcludeCommand(command) {
-  const trimmedCommand = command.trim();
+  const trimmed = command.trim();
   for (const pattern of EXCLUDED_COMMAND_PATTERNS) {
-    if (pattern.test(trimmedCommand)) {
+    if (pattern.test(trimmed)) {
+      return true;
+    }
+  }
+  if (trimmed.startsWith("<local-command-caveat>") || trimmed.startsWith("<local-command-stdout>")) {
+    return true;
+  }
+  if (trimmed.startsWith("<command-message>") || trimmed.startsWith("<command-name>")) {
+    const cmdName = extractCommandName(trimmed);
+    if (cmdName && isBuiltinOrZestCommand(cmdName)) {
       return true;
     }
   }
@@ -1545,6 +1689,8 @@ function restoreFilteringState(lines, lastReadLine) {
   for (let i = lookbackLines.length - 1;i >= 0; i--) {
     try {
       const entry = JSON.parse(lookbackLines[i]);
+      if (entry.isMeta === true)
+        continue;
       if (entry.message?.role === "user" && entry.message.content) {
         const textContent = extractTextContent2(entry.message.content);
         if (textContent) {
@@ -1636,6 +1782,11 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
       }
       try {
         const entry = JSON.parse(trimmedLine);
+        if (entry.isMeta === true) {
+          lastSuccessfulLine = lineNumber;
+          lineNumber++;
+          continue;
+        }
         if (!isSyntheticModel(entry.message?.model)) {
           if (entry.message) {
             const role = entry.message.role;
@@ -1646,6 +1797,12 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
                 const filterResult = applyMessageFilter(role, textContent, filteringState);
                 filteringState = filterResult.newState;
                 if (!filterResult.shouldFilter) {
+                  const cleanedContent = sanitizeCommandXml(textContent);
+                  if (!cleanedContent) {
+                    lastSuccessfulLine = lineNumber;
+                    lineNumber++;
+                    continue;
+                  }
                   const metadata = {};
                   if (entry.uuid)
                     metadata.claude_uuid = entry.uuid;
@@ -1662,7 +1819,7 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
                     id: entry.uuid,
                     session_id: sessionId,
                     role,
-                    content: textContent,
+                    content: cleanedContent,
                     created_at: entry.timestamp || new Date().toISOString(),
                     message_index: messageCounter,
                     metadata: Object.keys(metadata).length > 0 ? metadata : null

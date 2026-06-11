@@ -96,35 +96,9 @@ var init_log_rotation = __esm(() => {
   init_fs_utils2();
   CLEANUP_THROTTLE_MS = 60 * 60 * 1000;
 });
-
-// src/config/constants.ts
-import { homedir } from "node:os";
-import { join as join2 } from "node:path";
-var CLAUDE_INSTALL_DIR, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, STALE_SESSION_AGE_MS, POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", CLAUDE_BUILTIN_COMMANDS, EXCLUDED_COMMAND_PATTERNS, UPDATE_CHECK_CACHE_TTL_MS, DAEMON_INACTIVITY_TIMEOUT_MS, DAEMON_WARMUP_GRACE_MS, NOTIFICATION_DURATION_MS, STANDUP_NOTIFICATION_THROTTLE_MS, SYNC_METRICS_RETENTION_MS;
-var init_constants = __esm(() => {
-  CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join2(homedir(), ".claude");
-  CLAUDE_PROJECTS_DIR = join2(CLAUDE_INSTALL_DIR, "projects");
-  CLAUDE_SETTINGS_FILE = join2(CLAUDE_INSTALL_DIR, "settings.json");
-  CLAUDE_ZEST_DIR = join2(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
-  QUEUE_DIR = join2(CLAUDE_ZEST_DIR, "queue");
-  LOGS_DIR = join2(CLAUDE_ZEST_DIR, "logs");
-  STATE_DIR = join2(CLAUDE_ZEST_DIR, "state");
-  DELETION_CACHE_DIR = join2(CLAUDE_ZEST_DIR, "cache", "deletions");
-  SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join2(CLAUDE_ZEST_DIR, "session.json");
-  SETTINGS_FILE = join2(CLAUDE_ZEST_DIR, "settings.json");
-  DAEMON_PID_FILE = join2(CLAUDE_ZEST_DIR, "daemon.pid");
-  CLAUDE_INSTANCES_FILE = join2(CLAUDE_ZEST_DIR, "claude-instances.json");
-  STATUSLINE_SCRIPT_PATH = join2(CLAUDE_ZEST_DIR, "statusline.mjs");
-  STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join2(CLAUDE_ZEST_DIR, "status-cache.json");
-  SYNC_METRICS_FILE = join2(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
-  EVENTS_QUEUE_FILE = join2(QUEUE_DIR, "events.jsonl");
-  SESSIONS_QUEUE_FILE = join2(QUEUE_DIR, "chat-sessions.jsonl");
-  MESSAGES_QUEUE_FILE = join2(QUEUE_DIR, "chat-messages.jsonl");
-  DEBOUNCE_DIR = join2(CLAUDE_ZEST_DIR, "debounce");
-  DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
-  PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
-  MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
-  STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+// ../../packages/utils/src/command-xml.ts
+var CLAUDE_BUILTIN_COMMANDS;
+var init_command_xml = __esm(() => {
   CLAUDE_BUILTIN_COMMANDS = new Set([
     "add-dir",
     "agents",
@@ -214,6 +188,130 @@ var init_constants = __esm(() => {
     "voice",
     "web-setup"
   ]);
+});
+// ../../packages/utils/src/date-range.ts
+var PERIOD_TYPE_LABELS, PERIOD_SUMMARY_LABELS;
+var init_date_range = __esm(() => {
+  PERIOD_TYPE_LABELS = {
+    ["today" /* Today */]: "Today",
+    ["this_week" /* ThisWeek */]: "This Week",
+    ["this_month" /* ThisMonth */]: "This Month"
+  };
+  PERIOD_SUMMARY_LABELS = {
+    ["today" /* Today */]: "Daily Summary",
+    ["this_week" /* ThisWeek */]: "Weekly Summary",
+    ["this_month" /* ThisMonth */]: "Monthly Summary",
+    custom: "Custom Period"
+  };
+});
+// ../../packages/utils/src/frontmatter.ts
+var FRONTMATTER_KEYS;
+var init_frontmatter = __esm(() => {
+  FRONTMATTER_KEYS = new Set(["name", "description"]);
+});
+
+// ../../packages/utils/src/language-utils.ts
+var init_language_utils = () => {};
+
+// ../../packages/utils/src/mcp-registry.ts
+class TtlCache {
+  map = new Map;
+  get(key) {
+    const entry = this.map.get(key);
+    if (!entry)
+      return { hit: false };
+    if (Date.now() > entry.expiry) {
+      this.map.delete(key);
+      return { hit: false };
+    }
+    return { hit: true, value: entry.value };
+  }
+  set(key, value) {
+    if (this.map.size >= CACHE_MAX_SIZE && !this.map.has(key)) {
+      const firstKey = this.map.keys().next().value;
+      if (firstKey !== undefined)
+        this.map.delete(firstKey);
+    }
+    this.map.set(key, { value, expiry: Date.now() + CACHE_TTL_MS });
+  }
+  clear() {
+    this.map.clear();
+  }
+}
+var CACHE_TTL_MS, CACHE_MAX_SIZE = 100, cache, toolCache, serverCache, GENERIC_SEGMENTS, VERB_PREFIXES;
+var init_mcp_registry = __esm(() => {
+  CACHE_TTL_MS = 30 * 60 * 1000;
+  cache = new TtlCache;
+  toolCache = new TtlCache;
+  serverCache = new TtlCache;
+  GENERIC_SEGMENTS = new Set(["mcp", "com", "org", "io", "dev", "server", "api"]);
+  VERB_PREFIXES = new Set([
+    "get",
+    "list",
+    "create",
+    "delete",
+    "update",
+    "search",
+    "query",
+    "fetch",
+    "run",
+    "execute",
+    "resolve",
+    "find",
+    "read",
+    "write",
+    "set",
+    "send",
+    "check",
+    "add",
+    "remove"
+  ]);
+});
+// ../../packages/utils/src/string-utils.ts
+var init_string_utils = () => {};
+// ../../packages/utils/src/index.ts
+var init_src = __esm(() => {
+  init_command_xml();
+  init_date_range();
+  init_frontmatter();
+  init_language_utils();
+  init_mcp_registry();
+  init_string_utils();
+});
+
+// src/config/constants.ts
+import { homedir } from "node:os";
+import { join as join2 } from "node:path";
+var CLAUDE_INSTALL_DIR, CLAUDE_CONFIG_FILE, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUSLINE_PROXY_CONFIG_FILE, STATUSLINE_SNAPSHOTS_FILE, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, STALE_SESSION_AGE_MS, POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", EXCLUDED_COMMAND_PATTERNS, UPDATE_CHECK_CACHE_TTL_MS, DAEMON_INACTIVITY_TIMEOUT_MS, DAEMON_WARMUP_GRACE_MS, NOTIFICATION_DURATION_MS, STANDUP_NOTIFICATION_THROTTLE_MS, SYNC_METRICS_RETENTION_MS;
+var init_constants = __esm(() => {
+  init_src();
+  init_src();
+  CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join2(homedir(), ".claude");
+  CLAUDE_CONFIG_FILE = process.env.CLAUDE_CONFIG_FILE || join2(homedir(), ".claude.json");
+  CLAUDE_PROJECTS_DIR = join2(CLAUDE_INSTALL_DIR, "projects");
+  CLAUDE_SETTINGS_FILE = join2(CLAUDE_INSTALL_DIR, "settings.json");
+  CLAUDE_ZEST_DIR = join2(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
+  QUEUE_DIR = join2(CLAUDE_ZEST_DIR, "queue");
+  LOGS_DIR = join2(CLAUDE_ZEST_DIR, "logs");
+  STATE_DIR = join2(CLAUDE_ZEST_DIR, "state");
+  DELETION_CACHE_DIR = join2(CLAUDE_ZEST_DIR, "cache", "deletions");
+  SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join2(CLAUDE_ZEST_DIR, "session.json");
+  SETTINGS_FILE = join2(CLAUDE_ZEST_DIR, "settings.json");
+  DAEMON_PID_FILE = join2(CLAUDE_ZEST_DIR, "daemon.pid");
+  CLAUDE_INSTANCES_FILE = join2(CLAUDE_ZEST_DIR, "claude-instances.json");
+  STATUSLINE_SCRIPT_PATH = join2(CLAUDE_ZEST_DIR, "statusline.mjs");
+  STATUSLINE_PROXY_CONFIG_FILE = join2(CLAUDE_ZEST_DIR, "statusline-proxy.json");
+  STATUSLINE_SNAPSHOTS_FILE = process.env.ZEST_STATUSLINE_SNAPSHOTS_FILE ?? join2(CLAUDE_ZEST_DIR, "statusline-snapshots.json");
+  STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join2(CLAUDE_ZEST_DIR, "status-cache.json");
+  SYNC_METRICS_FILE = join2(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
+  EVENTS_QUEUE_FILE = join2(QUEUE_DIR, "events.jsonl");
+  SESSIONS_QUEUE_FILE = join2(QUEUE_DIR, "chat-sessions.jsonl");
+  MESSAGES_QUEUE_FILE = join2(QUEUE_DIR, "chat-messages.jsonl");
+  DEBOUNCE_DIR = join2(CLAUDE_ZEST_DIR, "debounce");
+  DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
+  PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+  MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
+  STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
   EXCLUDED_COMMAND_PATTERNS = [
     new RegExp(`^\\/(${[...CLAUDE_BUILTIN_COMMANDS].join("|")})\\b`, "i"),
     /^\/zest[^:\s]*:/i,
@@ -323,11 +421,12 @@ function getErrorCategory(errorType) {
     return "supabase";
   return "api";
 }
-var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed", AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed", AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed", AUTH_SESSION_CLEAR_FAILED = "auth_session_clear_failed", AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed", SYNC_NOT_AUTHENTICATED = "sync_not_authenticated", SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed", SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted", SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed", SYNC_NETWORK_ERROR = "sync_network_error", SYNC_SERVER_OVERLOAD = "sync_server_overload", SYNC_DATA_ERROR = "sync_data_error", SYNC_AUTH_ERROR = "sync_auth_error", SYNC_BLOCKED_NO_WORKSPACE = "sync_blocked_no_workspace", AUTH_SESSION_METADATA_LOST = "auth_session_metadata_lost", QUEUE_READ_CORRUPTED = "queue_read_corrupted", QUEUE_WRITE_FAILED = "queue_write_failed", FILE_LOCK_TIMEOUT = "file_lock_timeout", FILE_LOCK_CREATE_FAILED = "file_lock_create_failed", NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed", QUEUE_CAP_EVICTION = "queue_cap_eviction", SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped", SYNC_DRAIN_THROTTLED = "sync_drain_throttled", SYNC_ORPHANED_MESSAGES_DROPPED = "sync_orphaned_messages_dropped", EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found", EXTRACTION_SESSION_FAILED = "extraction_session_failed", DAEMON_START_FAILED = "daemon_start_failed", DAEMON_RESTART_FAILED = "daemon_restart_failed", DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed", DAEMON_UNHANDLED_ERROR = "daemon_unhandled_error", API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed", API_PROFILE_UPDATE_FAILED = "api_profile_update_failed", API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed", API_STANDUP_TEAM_FETCH_FAILED = "api_standup_team_fetch_failed", API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed", API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed", API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed", SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed", SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed", SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed", ERROR_TYPES, errorTypeSet;
+var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed", AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed", AUTH_AGENT_PROVISIONING_FAILED = "auth_agent_provisioning_failed", AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed", AUTH_SESSION_CLEAR_FAILED = "auth_session_clear_failed", AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed", SYNC_NOT_AUTHENTICATED = "sync_not_authenticated", SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed", SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted", SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed", SYNC_NETWORK_ERROR = "sync_network_error", SYNC_SERVER_OVERLOAD = "sync_server_overload", SYNC_DATA_ERROR = "sync_data_error", SYNC_AUTH_ERROR = "sync_auth_error", SYNC_BLOCKED_NO_WORKSPACE = "sync_blocked_no_workspace", AUTH_SESSION_METADATA_LOST = "auth_session_metadata_lost", QUEUE_READ_CORRUPTED = "queue_read_corrupted", QUEUE_WRITE_FAILED = "queue_write_failed", FILE_LOCK_TIMEOUT = "file_lock_timeout", FILE_LOCK_CREATE_FAILED = "file_lock_create_failed", NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed", QUEUE_CAP_EVICTION = "queue_cap_eviction", SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped", SYNC_DRAIN_THROTTLED = "sync_drain_throttled", SYNC_ORPHANED_MESSAGES_DROPPED = "sync_orphaned_messages_dropped", EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found", EXTRACTION_SESSION_FAILED = "extraction_session_failed", DAEMON_START_FAILED = "daemon_start_failed", DAEMON_RESTART_FAILED = "daemon_restart_failed", DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed", DAEMON_UNHANDLED_ERROR = "daemon_unhandled_error", API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed", API_PROFILE_UPDATE_FAILED = "api_profile_update_failed", API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed", API_STANDUP_TEAM_FETCH_FAILED = "api_standup_team_fetch_failed", API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed", API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed", API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed", SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed", SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed", SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed", ERROR_TYPES, errorTypeSet;
 var init_events = __esm(() => {
   ERROR_TYPES = [
     AUTH_DEVICE_CODE_INITIATION_FAILED,
     AUTH_DEVICE_CODE_POLLING_FAILED,
+    AUTH_AGENT_PROVISIONING_FAILED,
     AUTH_SESSION_CLEAR_FAILED,
     AUTH_SESSION_LOAD_FAILED,
     AUTH_SESSION_SAVE_FAILED,
@@ -659,7 +758,10 @@ var init_events2 = __esm(() => {
     PAYMENT_SETUP_FAILED: "Payment Setup Failed",
     SUBSCRIPTION_CREATED: "Subscription Created",
     SUBSCRIPTION_UPDATED: "Subscription Updated",
+    SUBSCRIPTION_UPGRADED: "Subscription Upgraded",
+    SUBSCRIPTION_DOWNGRADED: "Subscription Downgraded",
     SUBSCRIPTION_CANCELED: "Subscription Canceled",
+    USER_CHURNED: "User Churned",
     PAYMENT_SUCCEEDED: "Payment Succeeded",
     PAYMENT_FAILED: "Payment Failed",
     BILLING_PORTAL_OPENED: "Billing Portal Opened",
@@ -1025,7 +1127,7 @@ var init_bot_detection = __esm(() => {
 });
 
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/utils/string-utils.mjs
-var init_string_utils = () => {};
+var init_string_utils2 = () => {};
 
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/utils/type-utils.mjs
 function isPrimitive(value) {
@@ -1053,7 +1155,7 @@ function isInstanceOf(candidate, base) {
 var nativeIsArray, ObjProto, type_utils_hasOwnProperty, type_utils_toString, isArray, isObject2 = (x) => x === Object(x) && !isArray(x), isUndefined = (x) => x === undefined, isString = (x) => type_utils_toString.call(x) == "[object String]", isEmptyString = (x) => isString(x) && x.trim().length === 0, isNumber = (x) => type_utils_toString.call(x) == "[object Number]" && x === x, isPlainError = (x) => x instanceof Error;
 var init_type_utils = __esm(() => {
   init_types();
-  init_string_utils();
+  init_string_utils2();
   nativeIsArray = Array.isArray;
   ObjProto = Object.prototype;
   type_utils_hasOwnProperty = ObjProto.hasOwnProperty;
@@ -1383,7 +1485,7 @@ var init_logger2 = () => {};
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/utils/user-agent-utils.mjs
 var MOBILE = "Mobile", IOS = "iOS", ANDROID = "Android", TABLET = "Tablet", ANDROID_TABLET, APPLE = "Apple", APPLE_WATCH, SAFARI = "Safari", BLACKBERRY = "BlackBerry", SAMSUNG = "Samsung", SAMSUNG_BROWSER, SAMSUNG_INTERNET, CHROME = "Chrome", CHROME_OS, CHROME_IOS, INTERNET_EXPLORER = "Internet Explorer", INTERNET_EXPLORER_MOBILE, OPERA = "Opera", OPERA_MINI, EDGE = "Edge", MICROSOFT_EDGE, FIREFOX = "Firefox", FIREFOX_IOS, NINTENDO = "Nintendo", PLAYSTATION = "PlayStation", XBOX = "Xbox", ANDROID_MOBILE, MOBILE_SAFARI, WINDOWS = "Windows", WINDOWS_PHONE, GENERIC = "Generic", GENERIC_MOBILE, GENERIC_TABLET, KONQUEROR = "Konqueror", BROWSER_VERSION_REGEX_SUFFIX = "(\\d+(\\.\\d+)?)", DEFAULT_BROWSER_VERSION_REGEX, XBOX_REGEX, PLAYSTATION_REGEX, NINTENDO_REGEX, BLACKBERRY_REGEX, windowsVersionMap, versionRegexes, osMatchers;
 var init_user_agent_utils = __esm(() => {
-  init_string_utils();
+  init_string_utils2();
   init_type_utils();
   ANDROID_TABLET = ANDROID + " " + TABLET;
   APPLE_WATCH = APPLE + " Watch";
@@ -1664,7 +1766,7 @@ var init_utils = __esm(() => {
   init_bot_detection();
   init_bucketed_rate_limiter();
   init_number_utils();
-  init_string_utils();
+  init_string_utils2();
   init_type_utils();
   init_promise_queue();
   init_logger2();
@@ -3521,8 +3623,8 @@ async function addSourceContext(frames) {
     const ranges = makeLineReaderRanges(filesToLineRanges);
     if (ranges.every((r) => rangeExistsInContentCache(file2, r)))
       continue;
-    const cache = emplace(LRU_FILE_CONTENTS_CACHE, file2, {});
-    readlinePromises.push(getContextLinesFromFile(file2, ranges, cache));
+    const cache2 = emplace(LRU_FILE_CONTENTS_CACHE, file2, {});
+    readlinePromises.push(getContextLinesFromFile(file2, ranges, cache2));
   }
   await Promise.all(readlinePromises).catch(() => {});
   if (frames && frames.length > 0)
@@ -3580,10 +3682,10 @@ function getContextLinesFromFile(path, ranges, output) {
     });
   });
 }
-function addSourceContextToFrames(frames, cache) {
+function addSourceContextToFrames(frames, cache2) {
   for (const frame of frames)
     if (frame.filename && frame.context_line === undefined && typeof frame.lineno == "number") {
-      const contents = cache.get(frame.filename);
+      const contents = cache2.get(frame.filename);
       if (contents === undefined)
         continue;
       addContextToFrame(frame.lineno, frame, contents);
@@ -21143,7 +21245,8 @@ var UserSettingsSchema = exports_external.object({
   logLevel: exports_external.enum(["debug", "info", "warn", "error"]),
   excludedFolders: exports_external.array(exports_external.string()).default([]),
   privacy: PrivacySettingsSchema.optional(),
-  notificationsEnabled: exports_external.boolean().default(false)
+  notificationsEnabled: exports_external.boolean().default(false),
+  statuslineAutoWrap: exports_external.boolean().default(true)
 });
 var DEFAULT_SETTINGS = {
   enableRemotePersistence: true,
@@ -21152,7 +21255,8 @@ var DEFAULT_SETTINGS = {
   logLevel: "info",
   excludedFolders: [],
   privacy: DEFAULT_PRIVACY_SETTINGS,
-  notificationsEnabled: false
+  notificationsEnabled: false,
+  statuslineAutoWrap: true
 };
 async function loadSettings() {
   try {
@@ -21396,8 +21500,8 @@ function createStatusCacheManager(config2) {
   }
   function hasActiveStandupNotification() {
     try {
-      const cache = readStatusCache();
-      const { message, expiresAt } = cache.standupNotification;
+      const cache2 = readStatusCache();
+      const { message, expiresAt } = cache2.standupNotification;
       return message !== null && expiresAt !== null && expiresAt > Date.now();
     } catch (error51) {
       logger2?.warn("Failed to check for active standup notification", error51);
@@ -21406,8 +21510,8 @@ function createStatusCacheManager(config2) {
   }
   function shouldShowFirstDataReady() {
     try {
-      const cache = readStatusCache();
-      const { firstDataReadyLastShownAt } = cache.standupNotification;
+      const cache2 = readStatusCache();
+      const { firstDataReadyLastShownAt } = cache2.standupNotification;
       if (!firstDataReadyLastShownAt)
         return true;
       return Date.now() - firstDataReadyLastShownAt >= standupNotificationThrottleMs;
@@ -21433,8 +21537,8 @@ function createStatusCacheManager(config2) {
   }
   function shouldShowStandupRefreshed() {
     try {
-      const cache = readStatusCache();
-      const { standupRefreshedLastShownAt } = cache.standupNotification;
+      const cache2 = readStatusCache();
+      const { standupRefreshedLastShownAt } = cache2.standupNotification;
       if (!standupRefreshedLastShownAt)
         return true;
       return Date.now() - standupRefreshedLastShownAt >= standupNotificationThrottleMs;
