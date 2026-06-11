@@ -15,35 +15,74 @@ var __export = (target, all) => {
 };
 var __esm = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
 
-// src/config/constants.ts
-import { homedir } from "node:os";
-import { join } from "node:path";
-var CLAUDE_INSTALL_DIR, CLAUDE_DIR_SEPARATOR_PATTERN, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DEBOUNCE_TRAILING_MS = 300, DELAYED_EXTRACTION_INITIAL_DELAY_MS = 500, DELAYED_EXTRACTION_MAX_WAIT_MS = 1e4, DELAYED_EXTRACTION_CHECK_INTERVAL_MS = 300, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MAX_CONTENT_PREVIEW_LENGTH = 1000, MIN_MESSAGES_PER_SESSION = 3, STALE_SESSION_AGE_MS, MAX_QUEUE_SIZE_EVENTS = 5000, MAX_QUEUE_SIZE_SESSIONS = 500, MAX_QUEUE_SIZE_MESSAGES = 1e4, CONSUMPTION_TTL_MS = 30000, POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", CLAUDE_BUILTIN_COMMANDS, EXCLUDED_COMMAND_PATTERNS, UPDATE_CHECK_CACHE_TTL_MS, DAEMON_INACTIVITY_TIMEOUT_MS, DAEMON_WARMUP_GRACE_MS, NOTIFICATION_DURATION_MS, STANDUP_NOTIFICATION_THROTTLE_MS, SYNC_METRICS_RETENTION_MS;
-var init_constants = __esm(() => {
-  CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
-  CLAUDE_DIR_SEPARATOR_PATTERN = /[\\/:.\s_]/g;
-  CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
-  CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
-  CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
-  QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
-  LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
-  STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
-  DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-  SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
-  SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
-  DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
-  CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
-  STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
-  STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
-  SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
-  EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
-  SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
-  MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
-  DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
-  DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
-  PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
-  MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
-  STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+// ../../packages/utils/src/signal-helpers.ts
+function incrementMap(map, key) {
+  map.set(key, (map.get(key) ?? 0) + 1);
+}
+function extractCommandName(text) {
+  const start = text.indexOf(CMD_TAG_START);
+  if (start === -1)
+    return;
+  const nameStart = start + CMD_TAG_START.length;
+  const end = text.indexOf(CMD_TAG_END, nameStart);
+  if (end === -1)
+    return;
+  const name = text.slice(nameStart, end);
+  return name.length > 0 ? name : undefined;
+}
+var CMD_TAG_START = "<command-name>/", CMD_TAG_END = "</command-name>";
+
+// ../../packages/utils/src/command-xml.ts
+function isBuiltinOrZestCommand(name) {
+  return CLAUDE_BUILTIN_COMMANDS.has(name) || name.startsWith("zest:");
+}
+function sanitizeCommandXml(text) {
+  const trimmed = text.trim();
+  if (trimmed.startsWith("<local-command-caveat>")) {
+    return null;
+  }
+  if (trimmed.startsWith("<local-command-stdout>")) {
+    return null;
+  }
+  if (trimmed.startsWith("<command-message>") || trimmed.startsWith("<command-name>")) {
+    const cmdName = extractCommandName(trimmed);
+    if (cmdName) {
+      if (isBuiltinOrZestCommand(cmdName)) {
+        return null;
+      }
+      const argsMatch = trimmed.match(/<command-args>([\s\S]*?)<\/command-args>/);
+      const args = argsMatch?.[1]?.trim() ?? "";
+      return args ? `[Skill: ${cmdName}] ${args}` : `[Skill: ${cmdName}]`;
+    }
+  }
+  if (trimmed.startsWith("<task-notification>")) {
+    const summaryMatch = trimmed.match(/<summary>([\s\S]*?)<\/summary>/);
+    const summary = summaryMatch?.[1]?.trim();
+    return summary ? `[Agent completed: ${summary}]` : "[Agent task completed]";
+  }
+  if (trimmed.startsWith("<teammate-message")) {
+    const summaryMatch = trimmed.match(/\bsummary="([^"]*)"/);
+    const idMatch = trimmed.match(/\bteammate_id="([^"]*)"/);
+    const id = idMatch?.[1] ?? "agent";
+    const summary = summaryMatch?.[1];
+    if (summary) {
+      return `[Agent: ${id}] ${summary}`;
+    }
+    const bodyMatch = trimmed.match(/<teammate-message[^>]*>([\s\S]*?)<\/teammate-message>/);
+    if (bodyMatch) {
+      const body = bodyMatch[1]?.trim() ?? "";
+      if (body.startsWith("{") && body.includes('"idle_notification"')) {
+        return null;
+      }
+      const snippet = body.length > 200 ? `${body.slice(0, 200)}...` : body;
+      return `[Agent: ${id}] ${snippet}`;
+    }
+    return `[Agent: ${id}]`;
+  }
+  return trimmed;
+}
+var CLAUDE_BUILTIN_COMMANDS;
+var init_command_xml = __esm(() => {
   CLAUDE_BUILTIN_COMMANDS = new Set([
     "add-dir",
     "agents",
@@ -133,6 +172,693 @@ var init_constants = __esm(() => {
     "voice",
     "web-setup"
   ]);
+});
+// ../../packages/utils/src/date-range.ts
+var PERIOD_TYPE_LABELS, PERIOD_SUMMARY_LABELS;
+var init_date_range = __esm(() => {
+  PERIOD_TYPE_LABELS = {
+    ["today" /* Today */]: "Today",
+    ["this_week" /* ThisWeek */]: "This Week",
+    ["this_month" /* ThisMonth */]: "This Month"
+  };
+  PERIOD_SUMMARY_LABELS = {
+    ["today" /* Today */]: "Daily Summary",
+    ["this_week" /* ThisWeek */]: "Weekly Summary",
+    ["this_month" /* ThisMonth */]: "Monthly Summary",
+    custom: "Custom Period"
+  };
+});
+// ../../packages/utils/src/frontmatter.ts
+function parseYamlLine(line) {
+  const cleaned = line.trim();
+  const colonIdx = cleaned.indexOf(":");
+  if (colonIdx === -1)
+    return null;
+  const key = cleaned.slice(0, colonIdx).trim();
+  if (!FRONTMATTER_KEYS.has(key))
+    return null;
+  let value = cleaned.slice(colonIdx + 1).trim();
+  if (!value)
+    return null;
+  if (value.startsWith('"') && value.endsWith('"') || value.startsWith("'") && value.endsWith("'")) {
+    value = value.slice(1, -1);
+  } else {
+    const commentIdx = value.indexOf(" #");
+    if (commentIdx !== -1) {
+      value = value.slice(0, commentIdx).trimEnd();
+    }
+  }
+  return value ? [key, value] : null;
+}
+function extractHeadingDescription(content) {
+  const lines = content.split(`
+`);
+  for (let i = 0;i < lines.length && i < 10; i++) {
+    const rawLine = lines[i];
+    if (rawLine === undefined)
+      continue;
+    const line = rawLine.trim();
+    if (!line.startsWith("#"))
+      continue;
+    const heading = line.replace(/^#+\s*/, "");
+    const separatorMatch = heading.match(/\s[—–-]\s(.+)/);
+    if (separatorMatch?.[1])
+      return separatorMatch[1].trim();
+    if (heading.length > 3)
+      return heading;
+  }
+  return null;
+}
+function parseFrontmatter(content) {
+  const result = { name: null, description: null, body: null };
+  const trimmed = content.trimStart();
+  if (!trimmed.startsWith("---"))
+    return result;
+  const endIdx = trimmed.indexOf(`
+---`, 3);
+  if (endIdx === -1)
+    return result;
+  const yamlBlock = trimmed.slice(3, endIdx);
+  const lines = yamlBlock.split(`
+`);
+  for (let i = 0;i < lines.length; i++) {
+    const line = lines[i];
+    if (line === undefined)
+      continue;
+    const parsed = parseYamlLine(line);
+    if (!parsed)
+      continue;
+    const [key, value] = parsed;
+    if (value === ">" || value === "|") {
+      const continuationLines = [];
+      while (i + 1 < lines.length) {
+        const next = lines[i + 1];
+        if (next === undefined)
+          break;
+        if (next.length > 0 && !next.startsWith(" ") && !next.startsWith("\t"))
+          break;
+        continuationLines.push(next.trim());
+        i++;
+      }
+      const joined = value === ">" ? continuationLines.join(" ") : continuationLines.join(`
+`);
+      result[key] = joined.trim() || null;
+    } else {
+      result[key] = value;
+    }
+  }
+  const bodyStart = endIdx + 4;
+  const rawBody = trimmed.slice(bodyStart).trim();
+  result.body = rawBody || null;
+  return result;
+}
+var FRONTMATTER_KEYS;
+var init_frontmatter = __esm(() => {
+  FRONTMATTER_KEYS = new Set(["name", "description"]);
+});
+
+// ../../packages/utils/src/language-utils.ts
+function getLanguageFromPath(filePath) {
+  const ext = filePath.split(".").pop()?.toLowerCase();
+  return languageMap[ext || ""] || "plaintext";
+}
+var languageMap;
+var init_language_utils = __esm(() => {
+  languageMap = {
+    ts: "typescript",
+    tsx: "typescriptreact",
+    js: "javascript",
+    jsx: "javascriptreact",
+    mjs: "javascript",
+    cjs: "javascript",
+    py: "python",
+    pyi: "python",
+    pyw: "python",
+    rs: "rust",
+    go: "go",
+    java: "java",
+    kt: "kotlin",
+    kts: "kotlin",
+    scala: "scala",
+    groovy: "groovy",
+    gradle: "groovy",
+    c: "c",
+    h: "c",
+    cpp: "cpp",
+    cc: "cpp",
+    cxx: "cpp",
+    hpp: "cpp",
+    hxx: "hpp",
+    cs: "csharp",
+    rb: "ruby",
+    php: "php",
+    swift: "swift",
+    m: "objective-c",
+    mm: "objective-cpp",
+    vue: "vue",
+    svelte: "svelte",
+    astro: "astro",
+    dart: "dart",
+    ex: "elixir",
+    exs: "elixir",
+    clj: "clojure",
+    cljs: "clojure",
+    edn: "clojure",
+    hs: "haskell",
+    lhs: "haskell",
+    lua: "lua",
+    erl: "erlang",
+    hrl: "erlang",
+    pl: "perl",
+    pm: "perl",
+    coffee: "coffeescript",
+    sh: "shellscript",
+    bash: "shellscript",
+    zsh: "shellscript",
+    fish: "shellscript",
+    ps1: "powershell",
+    psm1: "powershell",
+    bat: "bat",
+    cmd: "bat",
+    md: "markdown",
+    mdx: "mdx",
+    json: "json",
+    jsonc: "jsonc",
+    yaml: "yaml",
+    yml: "yaml",
+    toml: "toml",
+    xml: "xml",
+    html: "html",
+    htm: "html",
+    ini: "ini",
+    properties: "properties",
+    css: "css",
+    scss: "scss",
+    sass: "sass",
+    less: "less",
+    sql: "sql",
+    graphql: "graphql",
+    gql: "graphql",
+    proto: "protobuf",
+    dockerfile: "dockerfile",
+    tf: "terraform",
+    r: "r"
+  };
+});
+
+// ../../packages/utils/src/mcp-registry.ts
+function isSafeRemoteUrl(urlStr) {
+  try {
+    const url = new URL(urlStr);
+    if (url.protocol !== "https:")
+      return false;
+    const host = url.hostname.toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host.startsWith("10.") || host.startsWith("192.168.") || host.startsWith("172.") || host.startsWith("169.254.") || host.endsWith(".local") || host.endsWith(".internal")) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+class TtlCache {
+  map = new Map;
+  get(key) {
+    const entry = this.map.get(key);
+    if (!entry)
+      return { hit: false };
+    if (Date.now() > entry.expiry) {
+      this.map.delete(key);
+      return { hit: false };
+    }
+    return { hit: true, value: entry.value };
+  }
+  set(key, value) {
+    if (this.map.size >= CACHE_MAX_SIZE && !this.map.has(key)) {
+      const firstKey = this.map.keys().next().value;
+      if (firstKey !== undefined)
+        this.map.delete(firstKey);
+    }
+    this.map.set(key, { value, expiry: Date.now() + CACHE_TTL_MS });
+  }
+  clear() {
+    this.map.clear();
+  }
+}
+function extractMeaningfulSegments(name) {
+  return name.split(/[-._/]/).filter((s) => s.length >= 3 && !GENERIC_SEGMENTS.has(s.toLowerCase()));
+}
+function parseMcpKey(key) {
+  if (key.includes("/")) {
+    const slashIndex = key.indexOf("/");
+    return { server: key.slice(0, slashIndex) || key, tool: key.slice(slashIndex + 1) };
+  }
+  if (key.startsWith("mcp__")) {
+    const parts = key.split("__");
+    return {
+      server: parts[1] ?? key,
+      tool: parts.length >= 3 ? parts.slice(2).join("__") : key
+    };
+  }
+  if (key.startsWith("mcp-")) {
+    const withoutPrefix = key.slice(4);
+    const firstHyphen = withoutPrefix.indexOf("-");
+    if (firstHyphen > 0) {
+      return { server: withoutPrefix.slice(0, firstHyphen), tool: key };
+    }
+    return { server: withoutPrefix, tool: key };
+  }
+  return { server: key, tool: key };
+}
+function extractMcpServerName(toolName) {
+  return parseMcpKey(toolName).server;
+}
+function buildSearchQueries(name) {
+  const queries = [name];
+  const parts = name.split("-");
+  for (let i = parts.length - 1;i >= 1; i--) {
+    queries.push(parts.slice(0, i).join("-"));
+  }
+  return queries;
+}
+function isPlausibleMatch(registryName, searchTerm) {
+  const lower = registryName.toLowerCase();
+  if (lower.includes(searchTerm.toLowerCase()))
+    return true;
+  for (const segment of extractMeaningfulSegments(searchTerm)) {
+    if (lower.includes(segment.toLowerCase()))
+      return true;
+  }
+  return false;
+}
+async function searchRegistry(searchName) {
+  const cached = serverCache.get(searchName);
+  if (cached.hit)
+    return cached.value;
+  const queries = buildSearchQueries(searchName);
+  for (const query of queries) {
+    const url = `${REGISTRY_URL}?search=${encodeURIComponent(query)}`;
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS)
+    });
+    if (!response.ok)
+      continue;
+    const data = await response.json();
+    if (!Array.isArray(data?.servers))
+      continue;
+    const servers = data.servers;
+    if (servers.length === 0)
+      continue;
+    const match = servers.find((s) => isPlausibleMatch(s.server.name, searchName));
+    if (match) {
+      serverCache.set(searchName, match.server);
+      return match.server;
+    }
+  }
+  serverCache.set(searchName, null);
+  return null;
+}
+async function fetchToolDescriptions(remoteUrl) {
+  if (!isSafeRemoteUrl(remoteUrl))
+    return null;
+  try {
+    const response = await fetch(remoteUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream"
+      },
+      body: JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 1 }),
+      signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS)
+    });
+    if (!response.ok)
+      return null;
+    const contentType = response.headers.get("content-type") ?? "";
+    let body;
+    if (contentType.includes("text/event-stream")) {
+      const text = await response.text();
+      const dataLines = text.split(`
+`).filter((l) => l.startsWith("data: "));
+      body = {};
+      for (const line of dataLines) {
+        try {
+          const parsed = JSON.parse(line.slice(6).trim());
+          if (parsed?.result?.tools) {
+            body = parsed;
+            break;
+          }
+        } catch {}
+      }
+    } else {
+      body = await response.json();
+    }
+    const tools = body?.result?.tools;
+    if (!Array.isArray(tools))
+      return null;
+    const map = new Map;
+    for (const t of tools) {
+      if (typeof t.name === "string" && typeof t.description === "string") {
+        map.set(t.name, t.description);
+      }
+    }
+    return map.size > 0 ? map : null;
+  } catch {
+    return null;
+  }
+}
+async function lookupToolDescriptions(serverName) {
+  const cached = toolCache.get(serverName);
+  if (cached.hit)
+    return cached.value;
+  try {
+    const server = await searchRegistry(serverName);
+    if (!server) {
+      toolCache.set(serverName, null);
+      return null;
+    }
+    if (server.description) {
+      cache.set(serverName, server.description);
+    }
+    const hasRemotes = (server.remotes?.length ?? 0) > 0;
+    const hasPackages = (server.packages?.length ?? 0) > 0;
+    if (hasRemotes) {
+      for (const remote of server.remotes) {
+        const tools = await fetchToolDescriptions(remote.url);
+        if (tools) {
+          toolCache.set(serverName, tools);
+          return tools;
+        }
+      }
+    }
+    if (hasPackages) {
+      const npmPkg = server.packages.find((p) => !p.registryType || p.registryType === "npm");
+      if (npmPkg) {
+        const tools = await fetchToolsFromNpmCdn(npmPkg.identifier, npmPkg.version);
+        if (tools) {
+          toolCache.set(serverName, tools);
+          return tools;
+        }
+      }
+    }
+    if (!hasRemotes && !hasPackages) {
+      toolCache.set(serverName, null);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+function findJsFiles(node, prefix = "") {
+  const results = [];
+  if (!node?.files)
+    return results;
+  for (const file of node.files) {
+    const path = `${prefix}/${file.name}`;
+    if (file.files) {
+      results.push(...findJsFiles(file, path));
+    } else if (file.name.endsWith(".js") && !file.name.endsWith(".d.ts") && !file.name.includes("test")) {
+      results.push({ path, size: file.size ?? 0 });
+    }
+  }
+  return results;
+}
+function isToolName(name) {
+  return /^[a-z][a-z0-9_-]*$/.test(name) && name.length <= 60;
+}
+function extractToolsFromSource(source) {
+  const tools = new Map;
+  for (const m of source.matchAll(/\{name:\s*"([^"]{2,60})"[^}]{0,200}?description:\s*"([^"]+)"/g)) {
+    const [, name, description] = m;
+    if (!name || !description)
+      continue;
+    if (isToolName(name)) {
+      tools.set(name, cleanDescription(description));
+    }
+  }
+  for (const m of source.matchAll(/(?:registerTool|addTool|createTool)\(\s*"([^"]+)"/g)) {
+    const [, name] = m;
+    if (!name || tools.has(name))
+      continue;
+    const idx = m.index ?? 0;
+    const after = source.slice(idx + m[0].length, idx + m[0].length + 500);
+    const descMatch = after.match(/description:\s*(?:"([^"]+)"|`([^\n]+))/);
+    const desc = descMatch?.[1] ?? descMatch?.[2];
+    if (desc)
+      tools.set(name, cleanDescription(desc));
+  }
+  for (const m of source.matchAll(/\.tool\(\s*"([^"]+)"\s*,\s*"([^"]+)"/g)) {
+    const [, name, description] = m;
+    if (!name || !description)
+      continue;
+    if (!tools.has(name)) {
+      tools.set(name, cleanDescription(description));
+    }
+  }
+  if (source.includes("annotations:")) {
+    for (const m of source.matchAll(/name:\s*"([^"]{2,60})"[\s\S]{0,500}?annotations:\s*\{[^}]{0,200}?description:\s*"([^"]+)"/g)) {
+      const [, name, description] = m;
+      if (!name || !description)
+        continue;
+      if (!tools.has(name) && isToolName(name)) {
+        tools.set(name, cleanDescription(description));
+      }
+    }
+  }
+  return tools;
+}
+function cleanDescription(desc) {
+  return (desc.split(/\\n|\n/)[0] ?? desc).trim();
+}
+function stripVerbPrefix(name) {
+  const [first, ...rest] = name.split(/[-_]/);
+  if (first && rest.length > 0 && VERB_PREFIXES.has(first.toLowerCase())) {
+    return rest.join("-").toLowerCase();
+  }
+  return name.toLowerCase();
+}
+function fuzzyMatchTools(requestedTools, available) {
+  const matched = new Map;
+  const claimed = new Set;
+  for (const req of requestedTools) {
+    const desc = available.get(req);
+    if (desc !== undefined) {
+      matched.set(req, desc);
+      claimed.add(req);
+    }
+  }
+  const unmatched = requestedTools.filter((r) => !matched.has(r));
+  if (unmatched.length === 0)
+    return matched;
+  const unclaimed = [...available.entries()].filter(([k]) => !claimed.has(k));
+  if (unclaimed.length === 0)
+    return matched;
+  for (const req of unmatched) {
+    if (matched.has(req))
+      continue;
+    const strippedReq = stripVerbPrefix(req);
+    for (const [candidate, desc] of unclaimed) {
+      if (claimed.has(candidate))
+        continue;
+      const strippedCand = stripVerbPrefix(candidate);
+      if (strippedCand === strippedReq || strippedCand.endsWith(`-${strippedReq}`)) {
+        matched.set(req, desc);
+        claimed.add(candidate);
+        break;
+      }
+    }
+  }
+  const stillUnmatched = requestedTools.filter((r) => !matched.has(r));
+  for (const req of stillUnmatched) {
+    const reqWords = req.toLowerCase().split(/[-_]/).filter((w) => w.length >= 2);
+    let bestCandidate = null;
+    let bestDesc = "";
+    let bestScore = 0;
+    for (const [candidate, desc] of unclaimed) {
+      if (claimed.has(candidate))
+        continue;
+      const candStr = candidate.toLowerCase();
+      const matchingWords = reqWords.filter((w) => candStr.includes(w));
+      const score = matchingWords.length / reqWords.length;
+      if (score > bestScore && score >= 0.75) {
+        bestScore = score;
+        bestCandidate = candidate;
+        bestDesc = desc;
+      }
+    }
+    if (bestCandidate) {
+      matched.set(req, bestDesc);
+      claimed.add(bestCandidate);
+    }
+  }
+  return matched;
+}
+async function fetchToolsFromNpmCdn(packageName, version) {
+  try {
+    const versionSuffix = version ? `@${version}` : "@latest";
+    const listUrl = `${JSDELIVR_DATA_URL}/${packageName}${versionSuffix}`;
+    const listResponse = await fetch(listUrl, { signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS) });
+    if (!listResponse.ok)
+      return null;
+    const pkgData = await listResponse.json();
+    const jsFiles = findJsFiles(pkgData).sort((a, b) => b.size - a.size);
+    if (jsFiles.length === 0)
+      return null;
+    for (const file of jsFiles.slice(0, 3)) {
+      if (file.size > 500000)
+        continue;
+      const contentUrl = `${JSDELIVR_CDN_URL}/${packageName}${versionSuffix}${file.path}`;
+      const contentResponse = await fetch(contentUrl, {
+        signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS)
+      });
+      if (!contentResponse.ok)
+        continue;
+      const source = await contentResponse.text();
+      const tools = extractToolsFromSource(source);
+      if (tools.size > 0)
+        return tools;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+async function lookupMcpDescription(serverName) {
+  const searchName = extractMcpServerName(serverName);
+  const cached = cache.get(searchName);
+  if (cached.hit)
+    return cached.value;
+  try {
+    const server = await searchRegistry(searchName);
+    const description = server?.description ?? null;
+    cache.set(searchName, description);
+    return description;
+  } catch {
+    return null;
+  }
+}
+async function resolveToolDescriptionsForServers(entries, getToolName) {
+  const allResolved = [];
+  for (let i = 0;i < entries.length; i += 5) {
+    const batch = entries.slice(i, i + 5);
+    const results = await Promise.all(batch.map(async ([serverName, tools]) => {
+      const toolDescriptions = await lookupToolDescriptions(serverName);
+      const serverDescription = toolDescriptions ? null : await lookupMcpDescription(serverName);
+      return { tools, toolDescriptions, serverDescription };
+    }));
+    for (const group of results) {
+      if (group.toolDescriptions) {
+        const requestedNames = group.tools.map(getToolName);
+        const fuzzyMatched = fuzzyMatchTools(requestedNames, group.toolDescriptions);
+        allResolved.push({ ...group, toolDescriptions: fuzzyMatched });
+      } else {
+        allResolved.push(group);
+      }
+    }
+  }
+  return allResolved;
+}
+async function lookupMcpDescriptions(toolNames) {
+  const result = {};
+  const serverGroups = new Map;
+  for (const toolName of toolNames) {
+    const { server, tool } = parseMcpKey(toolName);
+    const group = serverGroups.get(server) ?? [];
+    group.push({ original: toolName, tool });
+    serverGroups.set(server, group);
+  }
+  const resolved = await resolveToolDescriptionsForServers(Array.from(serverGroups.entries()), (t) => t.tool);
+  for (const { tools, toolDescriptions, serverDescription } of resolved) {
+    for (const { original, tool } of tools) {
+      result[original] = toolDescriptions?.get(tool) ?? serverDescription;
+    }
+  }
+  return result;
+}
+var REGISTRY_URL = "https://registry.modelcontextprotocol.io/v0.1/servers", REMOTE_TIMEOUT_MS = 5000, CACHE_TTL_MS, CACHE_MAX_SIZE = 100, cache, toolCache, serverCache, GENERIC_SEGMENTS, JSDELIVR_DATA_URL = "https://data.jsdelivr.com/v1/packages/npm", JSDELIVR_CDN_URL = "https://cdn.jsdelivr.net/npm", VERB_PREFIXES;
+var init_mcp_registry = __esm(() => {
+  CACHE_TTL_MS = 30 * 60 * 1000;
+  cache = new TtlCache;
+  toolCache = new TtlCache;
+  serverCache = new TtlCache;
+  GENERIC_SEGMENTS = new Set(["mcp", "com", "org", "io", "dev", "server", "api"]);
+  VERB_PREFIXES = new Set([
+    "get",
+    "list",
+    "create",
+    "delete",
+    "update",
+    "search",
+    "query",
+    "fetch",
+    "run",
+    "execute",
+    "resolve",
+    "find",
+    "read",
+    "write",
+    "set",
+    "send",
+    "check",
+    "add",
+    "remove"
+  ]);
+});
+// ../../packages/utils/src/string-utils.ts
+var init_string_utils = () => {};
+
+// ../../packages/utils/src/toolkit-signals.ts
+function extractToolNamesFromSignals(signals) {
+  return {
+    skills: Object.keys(signals.skill_usage ?? {}),
+    agents: Object.keys(signals.agent_usage ?? {}),
+    mcpServers: Object.keys(signals.mcp_usage ?? {})
+  };
+}
+// ../../packages/utils/src/index.ts
+var init_src = __esm(() => {
+  init_command_xml();
+  init_date_range();
+  init_frontmatter();
+  init_language_utils();
+  init_mcp_registry();
+  init_string_utils();
+});
+
+// src/config/constants.ts
+import { homedir } from "node:os";
+import { join } from "node:path";
+var CLAUDE_INSTALL_DIR, CLAUDE_CONFIG_FILE, CLAUDE_DIR_SEPARATOR_PATTERN, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUSLINE_PROXY_CONFIG_FILE, STATUSLINE_SNAPSHOTS_FILE, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DEBOUNCE_TRAILING_MS = 300, DELAYED_EXTRACTION_INITIAL_DELAY_MS = 500, DELAYED_EXTRACTION_MAX_WAIT_MS = 1e4, DELAYED_EXTRACTION_CHECK_INTERVAL_MS = 300, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MAX_CONTENT_PREVIEW_LENGTH = 1000, MIN_MESSAGES_PER_SESSION = 3, STALE_SESSION_AGE_MS, MAX_QUEUE_SIZE_EVENTS = 5000, MAX_QUEUE_SIZE_SESSIONS = 500, MAX_QUEUE_SIZE_MESSAGES = 1e4, CONSUMPTION_TTL_MS = 30000, POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", EXCLUDED_COMMAND_PATTERNS, UPDATE_CHECK_CACHE_TTL_MS, DAEMON_INACTIVITY_TIMEOUT_MS, DAEMON_WARMUP_GRACE_MS, NOTIFICATION_DURATION_MS, STANDUP_NOTIFICATION_THROTTLE_MS, SYNC_METRICS_RETENTION_MS;
+var init_constants = __esm(() => {
+  init_src();
+  init_src();
+  CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
+  CLAUDE_CONFIG_FILE = process.env.CLAUDE_CONFIG_FILE || join(homedir(), ".claude.json");
+  CLAUDE_DIR_SEPARATOR_PATTERN = /[\\/:.\s_]/g;
+  CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
+  CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
+  CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
+  QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
+  LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
+  STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
+  DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
+  SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
+  SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
+  DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
+  CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
+  STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
+  STATUSLINE_PROXY_CONFIG_FILE = join(CLAUDE_ZEST_DIR, "statusline-proxy.json");
+  STATUSLINE_SNAPSHOTS_FILE = process.env.ZEST_STATUSLINE_SNAPSHOTS_FILE ?? join(CLAUDE_ZEST_DIR, "statusline-snapshots.json");
+  STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
+  SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
+  EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
+  SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
+  MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
+  DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
+  DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
+  PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+  MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
+  STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
   EXCLUDED_COMMAND_PATTERNS = [
     new RegExp(`^\\/(${[...CLAUDE_BUILTIN_COMMANDS].join("|")})\\b`, "i"),
     /^\/zest[^:\s]*:/i,
@@ -327,11 +1053,12 @@ function getErrorCategory(errorType) {
     return "supabase";
   return "api";
 }
-var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed", AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed", AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed", AUTH_SESSION_CLEAR_FAILED = "auth_session_clear_failed", AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed", SYNC_NOT_AUTHENTICATED = "sync_not_authenticated", SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed", SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted", SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed", SYNC_NETWORK_ERROR = "sync_network_error", SYNC_SERVER_OVERLOAD = "sync_server_overload", SYNC_DATA_ERROR = "sync_data_error", SYNC_AUTH_ERROR = "sync_auth_error", SYNC_BLOCKED_NO_WORKSPACE = "sync_blocked_no_workspace", AUTH_SESSION_METADATA_LOST = "auth_session_metadata_lost", QUEUE_READ_CORRUPTED = "queue_read_corrupted", QUEUE_WRITE_FAILED = "queue_write_failed", FILE_LOCK_TIMEOUT = "file_lock_timeout", FILE_LOCK_CREATE_FAILED = "file_lock_create_failed", NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed", QUEUE_CAP_EVICTION = "queue_cap_eviction", SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped", SYNC_DRAIN_THROTTLED = "sync_drain_throttled", SYNC_ORPHANED_MESSAGES_DROPPED = "sync_orphaned_messages_dropped", EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found", EXTRACTION_SESSION_FAILED = "extraction_session_failed", DAEMON_START_FAILED = "daemon_start_failed", DAEMON_RESTART_FAILED = "daemon_restart_failed", DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed", DAEMON_UNHANDLED_ERROR = "daemon_unhandled_error", API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed", API_PROFILE_UPDATE_FAILED = "api_profile_update_failed", API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed", API_STANDUP_TEAM_FETCH_FAILED = "api_standup_team_fetch_failed", API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed", API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed", API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed", SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed", SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed", SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed", ERROR_TYPES, errorTypeSet;
+var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed", AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed", AUTH_AGENT_PROVISIONING_FAILED = "auth_agent_provisioning_failed", AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed", AUTH_SESSION_CLEAR_FAILED = "auth_session_clear_failed", AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed", SYNC_NOT_AUTHENTICATED = "sync_not_authenticated", SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed", SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted", SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed", SYNC_NETWORK_ERROR = "sync_network_error", SYNC_SERVER_OVERLOAD = "sync_server_overload", SYNC_DATA_ERROR = "sync_data_error", SYNC_AUTH_ERROR = "sync_auth_error", SYNC_BLOCKED_NO_WORKSPACE = "sync_blocked_no_workspace", AUTH_SESSION_METADATA_LOST = "auth_session_metadata_lost", QUEUE_READ_CORRUPTED = "queue_read_corrupted", QUEUE_WRITE_FAILED = "queue_write_failed", FILE_LOCK_TIMEOUT = "file_lock_timeout", FILE_LOCK_CREATE_FAILED = "file_lock_create_failed", NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed", QUEUE_CAP_EVICTION = "queue_cap_eviction", SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped", SYNC_DRAIN_THROTTLED = "sync_drain_throttled", SYNC_ORPHANED_MESSAGES_DROPPED = "sync_orphaned_messages_dropped", EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found", EXTRACTION_SESSION_FAILED = "extraction_session_failed", DAEMON_START_FAILED = "daemon_start_failed", DAEMON_RESTART_FAILED = "daemon_restart_failed", DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed", DAEMON_UNHANDLED_ERROR = "daemon_unhandled_error", API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed", API_PROFILE_UPDATE_FAILED = "api_profile_update_failed", API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed", API_STANDUP_TEAM_FETCH_FAILED = "api_standup_team_fetch_failed", API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed", API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed", API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed", SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed", SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed", SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed", ERROR_TYPES, errorTypeSet;
 var init_events = __esm(() => {
   ERROR_TYPES = [
     AUTH_DEVICE_CODE_INITIATION_FAILED,
     AUTH_DEVICE_CODE_POLLING_FAILED,
+    AUTH_AGENT_PROVISIONING_FAILED,
     AUTH_SESSION_CLEAR_FAILED,
     AUTH_SESSION_LOAD_FAILED,
     AUTH_SESSION_SAVE_FAILED,
@@ -663,7 +1390,10 @@ var init_events2 = __esm(() => {
     PAYMENT_SETUP_FAILED: "Payment Setup Failed",
     SUBSCRIPTION_CREATED: "Subscription Created",
     SUBSCRIPTION_UPDATED: "Subscription Updated",
+    SUBSCRIPTION_UPGRADED: "Subscription Upgraded",
+    SUBSCRIPTION_DOWNGRADED: "Subscription Downgraded",
     SUBSCRIPTION_CANCELED: "Subscription Canceled",
+    USER_CHURNED: "User Churned",
     PAYMENT_SUCCEEDED: "Payment Succeeded",
     PAYMENT_FAILED: "Payment Failed",
     BILLING_PORTAL_OPENED: "Billing Portal Opened",
@@ -1029,7 +1759,7 @@ var init_bot_detection = __esm(() => {
 });
 
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/utils/string-utils.mjs
-var init_string_utils = () => {};
+var init_string_utils2 = () => {};
 
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/utils/type-utils.mjs
 function isPrimitive(value) {
@@ -1057,7 +1787,7 @@ function isInstanceOf(candidate, base) {
 var nativeIsArray, ObjProto, type_utils_hasOwnProperty, type_utils_toString, isArray, isObject2 = (x) => x === Object(x) && !isArray(x), isUndefined = (x) => x === undefined, isString = (x) => type_utils_toString.call(x) == "[object String]", isEmptyString = (x) => isString(x) && x.trim().length === 0, isNumber = (x) => type_utils_toString.call(x) == "[object Number]" && x === x, isPlainError = (x) => x instanceof Error;
 var init_type_utils = __esm(() => {
   init_types();
-  init_string_utils();
+  init_string_utils2();
   nativeIsArray = Array.isArray;
   ObjProto = Object.prototype;
   type_utils_hasOwnProperty = ObjProto.hasOwnProperty;
@@ -1387,7 +2117,7 @@ var init_logger2 = () => {};
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/utils/user-agent-utils.mjs
 var MOBILE = "Mobile", IOS = "iOS", ANDROID = "Android", TABLET = "Tablet", ANDROID_TABLET, APPLE = "Apple", APPLE_WATCH, SAFARI = "Safari", BLACKBERRY = "BlackBerry", SAMSUNG = "Samsung", SAMSUNG_BROWSER, SAMSUNG_INTERNET, CHROME = "Chrome", CHROME_OS, CHROME_IOS, INTERNET_EXPLORER = "Internet Explorer", INTERNET_EXPLORER_MOBILE, OPERA = "Opera", OPERA_MINI, EDGE = "Edge", MICROSOFT_EDGE, FIREFOX = "Firefox", FIREFOX_IOS, NINTENDO = "Nintendo", PLAYSTATION = "PlayStation", XBOX = "Xbox", ANDROID_MOBILE, MOBILE_SAFARI, WINDOWS = "Windows", WINDOWS_PHONE, GENERIC = "Generic", GENERIC_MOBILE, GENERIC_TABLET, KONQUEROR = "Konqueror", BROWSER_VERSION_REGEX_SUFFIX = "(\\d+(\\.\\d+)?)", DEFAULT_BROWSER_VERSION_REGEX, XBOX_REGEX, PLAYSTATION_REGEX, NINTENDO_REGEX, BLACKBERRY_REGEX, windowsVersionMap, versionRegexes, osMatchers;
 var init_user_agent_utils = __esm(() => {
-  init_string_utils();
+  init_string_utils2();
   init_type_utils();
   ANDROID_TABLET = ANDROID + " " + TABLET;
   APPLE_WATCH = APPLE + " Watch";
@@ -1668,7 +2398,7 @@ var init_utils = __esm(() => {
   init_bot_detection();
   init_bucketed_rate_limiter();
   init_number_utils();
-  init_string_utils();
+  init_string_utils2();
   init_type_utils();
   init_promise_queue();
   init_logger2();
@@ -3525,8 +4255,8 @@ async function addSourceContext(frames) {
     const ranges = makeLineReaderRanges(filesToLineRanges);
     if (ranges.every((r) => rangeExistsInContentCache(file2, r)))
       continue;
-    const cache = emplace(LRU_FILE_CONTENTS_CACHE, file2, {});
-    readlinePromises.push(getContextLinesFromFile(file2, ranges, cache));
+    const cache2 = emplace(LRU_FILE_CONTENTS_CACHE, file2, {});
+    readlinePromises.push(getContextLinesFromFile(file2, ranges, cache2));
   }
   await Promise.all(readlinePromises).catch(() => {});
   if (frames && frames.length > 0)
@@ -3584,10 +4314,10 @@ function getContextLinesFromFile(path, ranges, output) {
     });
   });
 }
-function addSourceContextToFrames(frames, cache) {
+function addSourceContextToFrames(frames, cache2) {
   for (const frame of frames)
     if (frame.filename && frame.context_line === undefined && typeof frame.lineno == "number") {
-      const contents = cache.get(frame.filename);
+      const contents = cache2.get(frame.filename);
       if (contents === undefined)
         continue;
       addContextToFrame(frame.lineno, frame, contents);
@@ -6502,10 +7232,127 @@ var init_file_lock2 = __esm(() => {
   ({ withFileLock, cleanupStaleLocks, cleanupLockFiles } = fileLock);
 });
 
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/sha1.js
+import { createHash } from "node:crypto";
+function sha1(bytes) {
+  if (Array.isArray(bytes)) {
+    bytes = Buffer.from(bytes);
+  } else if (typeof bytes === "string") {
+    bytes = Buffer.from(bytes, "utf8");
+  }
+  return createHash("sha1").update(bytes).digest();
+}
+var sha1_default;
+var init_sha1 = __esm(() => {
+  sha1_default = sha1;
+});
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/regex.js
+var regex_default;
+var init_regex = __esm(() => {
+  regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
+});
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/validate.js
+function validate(uuid3) {
+  return typeof uuid3 === "string" && regex_default.test(uuid3);
+}
+var validate_default;
+var init_validate = __esm(() => {
+  init_regex();
+  validate_default = validate;
+});
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/parse.js
+function parse5(uuid3) {
+  if (!validate_default(uuid3)) {
+    throw TypeError("Invalid UUID");
+  }
+  let v;
+  return Uint8Array.of((v = parseInt(uuid3.slice(0, 8), 16)) >>> 24, v >>> 16 & 255, v >>> 8 & 255, v & 255, (v = parseInt(uuid3.slice(9, 13), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(14, 18), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(19, 23), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(24, 36), 16)) / 1099511627776 & 255, v / 4294967296 & 255, v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
+}
+var parse_default;
+var init_parse = __esm(() => {
+  init_validate();
+  parse_default = parse5;
+});
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/stringify.js
+function unsafeStringify(arr, offset = 0) {
+  return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
+}
+var byteToHex;
+var init_stringify = __esm(() => {
+  byteToHex = [];
+  for (let i = 0;i < 256; ++i) {
+    byteToHex.push((i + 256).toString(16).slice(1));
+  }
+});
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/v35.js
+function stringToBytes(str) {
+  str = unescape(encodeURIComponent(str));
+  const bytes = new Uint8Array(str.length);
+  for (let i = 0;i < str.length; ++i) {
+    bytes[i] = str.charCodeAt(i);
+  }
+  return bytes;
+}
+function v35(version3, hash2, value, namespace, buf, offset) {
+  const valueBytes = typeof value === "string" ? stringToBytes(value) : value;
+  const namespaceBytes = typeof namespace === "string" ? parse_default(namespace) : namespace;
+  if (typeof namespace === "string") {
+    namespace = parse_default(namespace);
+  }
+  if (namespace?.length !== 16) {
+    throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
+  }
+  let bytes = new Uint8Array(16 + valueBytes.length);
+  bytes.set(namespaceBytes);
+  bytes.set(valueBytes, namespaceBytes.length);
+  bytes = hash2(bytes);
+  bytes[6] = bytes[6] & 15 | version3;
+  bytes[8] = bytes[8] & 63 | 128;
+  if (buf) {
+    offset = offset || 0;
+    if (offset < 0 || offset + 16 > buf.length) {
+      throw new RangeError(`UUID byte range ${offset}:${offset + 15} is out of buffer bounds`);
+    }
+    for (let i = 0;i < 16; ++i) {
+      buf[offset + i] = bytes[i];
+    }
+    return buf;
+  }
+  return unsafeStringify(bytes);
+}
+var DNS = "6ba7b810-9dad-11d1-80b4-00c04fd430c8", URL2 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
+var init_v35 = __esm(() => {
+  init_parse();
+  init_stringify();
+});
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/v5.js
+function v5(value, namespace, buf, offset) {
+  return v35(80, sha1_default, value, namespace, buf, offset);
+}
+var v5_default;
+var init_v5 = __esm(() => {
+  init_sha1();
+  init_v35();
+  v5.DNS = DNS;
+  v5.URL = URL2;
+  v5_default = v5;
+});
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/index.js
+var init_dist_node = __esm(() => {
+  init_v5();
+});
+
 // src/hooks/delayed-extractor-cli.ts
 init_constants();
 import { stat as stat7, unlink as unlink6, writeFile as writeFile9 } from "node:fs/promises";
-import { join as join11 } from "node:path";
+import { join as join12 } from "node:path";
 
 // src/config/settings.ts
 import { readFile as readFile2, writeFile } from "node:fs/promises";
@@ -22170,7 +23017,8 @@ var UserSettingsSchema = exports_external.object({
   logLevel: exports_external.enum(["debug", "info", "warn", "error"]),
   excludedFolders: exports_external.array(exports_external.string()).default([]),
   privacy: PrivacySettingsSchema.optional(),
-  notificationsEnabled: exports_external.boolean().default(false)
+  notificationsEnabled: exports_external.boolean().default(false),
+  statuslineAutoWrap: exports_external.boolean().default(true)
 });
 var DEFAULT_SETTINGS = {
   enableRemotePersistence: true,
@@ -22179,7 +23027,8 @@ var DEFAULT_SETTINGS = {
   logLevel: "info",
   excludedFolders: [],
   privacy: DEFAULT_PRIVACY_SETTINGS,
-  notificationsEnabled: false
+  notificationsEnabled: false,
+  statuslineAutoWrap: true
 };
 async function loadSettings() {
   try {
@@ -22265,94 +23114,8 @@ async function startConsumptionHeartbeat(hookType, sessionId, intervalMs = Math.
 // src/utils/extraction-helpers.ts
 init_events();
 import { randomUUID } from "node:crypto";
-import { open, readdir as readdir7, readFile as readFile10, realpath, stat as stat6 } from "node:fs/promises";
-import { basename as basename3, join as join8, resolve as resolve2 } from "node:path";
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/sha1.js
-import { createHash } from "node:crypto";
-function sha1(bytes) {
-  if (Array.isArray(bytes)) {
-    bytes = Buffer.from(bytes);
-  } else if (typeof bytes === "string") {
-    bytes = Buffer.from(bytes, "utf8");
-  }
-  return createHash("sha1").update(bytes).digest();
-}
-var sha1_default = sha1;
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/regex.js
-var regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/validate.js
-function validate(uuid3) {
-  return typeof uuid3 === "string" && regex_default.test(uuid3);
-}
-var validate_default = validate;
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/parse.js
-function parse5(uuid3) {
-  if (!validate_default(uuid3)) {
-    throw TypeError("Invalid UUID");
-  }
-  let v;
-  return Uint8Array.of((v = parseInt(uuid3.slice(0, 8), 16)) >>> 24, v >>> 16 & 255, v >>> 8 & 255, v & 255, (v = parseInt(uuid3.slice(9, 13), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(14, 18), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(19, 23), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(24, 36), 16)) / 1099511627776 & 255, v / 4294967296 & 255, v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
-}
-var parse_default = parse5;
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/stringify.js
-var byteToHex = [];
-for (let i = 0;i < 256; ++i) {
-  byteToHex.push((i + 256).toString(16).slice(1));
-}
-function unsafeStringify(arr, offset = 0) {
-  return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
-}
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/v35.js
-function stringToBytes(str) {
-  str = unescape(encodeURIComponent(str));
-  const bytes = new Uint8Array(str.length);
-  for (let i = 0;i < str.length; ++i) {
-    bytes[i] = str.charCodeAt(i);
-  }
-  return bytes;
-}
-var DNS = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
-var URL2 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
-function v35(version3, hash2, value, namespace, buf, offset) {
-  const valueBytes = typeof value === "string" ? stringToBytes(value) : value;
-  const namespaceBytes = typeof namespace === "string" ? parse_default(namespace) : namespace;
-  if (typeof namespace === "string") {
-    namespace = parse_default(namespace);
-  }
-  if (namespace?.length !== 16) {
-    throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
-  }
-  let bytes = new Uint8Array(16 + valueBytes.length);
-  bytes.set(namespaceBytes);
-  bytes.set(valueBytes, namespaceBytes.length);
-  bytes = hash2(bytes);
-  bytes[6] = bytes[6] & 15 | version3;
-  bytes[8] = bytes[8] & 63 | 128;
-  if (buf) {
-    offset = offset || 0;
-    if (offset < 0 || offset + 16 > buf.length) {
-      throw new RangeError(`UUID byte range ${offset}:${offset + 15} is out of buffer bounds`);
-    }
-    for (let i = 0;i < 16; ++i) {
-      buf[offset + i] = bytes[i];
-    }
-    return buf;
-  }
-  return unsafeStringify(bytes);
-}
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/v5.js
-function v5(value, namespace, buf, offset) {
-  return v35(80, sha1_default, value, namespace, buf, offset);
-}
-v5.DNS = DNS;
-v5.URL = URL2;
-var v5_default = v5;
+import { open, readdir as readdir7, readFile as readFile11, realpath, stat as stat6 } from "node:fs/promises";
+import { basename as basename3, join as join9, resolve as resolve2 } from "node:path";
 // ../../packages/plugin-common/src/supabase/utils/string-utils.ts
 function toWellFormed(str) {
   return str.toWellFormed?.() ?? str;
@@ -22361,654 +23124,11 @@ var SYNTHETIC_MODEL = "<synthetic>";
 function isSyntheticModel(model) {
   return model === SYNTHETIC_MODEL;
 }
-// ../../packages/utils/src/date-range.ts
-var PERIOD_TYPE_LABELS = {
-  ["today" /* Today */]: "Today",
-  ["this_week" /* ThisWeek */]: "This Week",
-  ["this_month" /* ThisMonth */]: "This Month"
-};
-var PERIOD_SUMMARY_LABELS = {
-  ["today" /* Today */]: "Daily Summary",
-  ["this_week" /* ThisWeek */]: "Weekly Summary",
-  ["this_month" /* ThisMonth */]: "Monthly Summary",
-  custom: "Custom Period"
-};
-// ../../packages/utils/src/frontmatter.ts
-var FRONTMATTER_KEYS = new Set(["name", "description"]);
-function parseYamlLine(line) {
-  const cleaned = line.trim();
-  const colonIdx = cleaned.indexOf(":");
-  if (colonIdx === -1)
-    return null;
-  const key = cleaned.slice(0, colonIdx).trim();
-  if (!FRONTMATTER_KEYS.has(key))
-    return null;
-  let value = cleaned.slice(colonIdx + 1).trim();
-  if (!value)
-    return null;
-  if (value.startsWith('"') && value.endsWith('"') || value.startsWith("'") && value.endsWith("'")) {
-    value = value.slice(1, -1);
-  } else {
-    const commentIdx = value.indexOf(" #");
-    if (commentIdx !== -1) {
-      value = value.slice(0, commentIdx).trimEnd();
-    }
-  }
-  return value ? [key, value] : null;
-}
-function extractHeadingDescription(content) {
-  const lines = content.split(`
-`);
-  for (let i = 0;i < lines.length && i < 10; i++) {
-    const rawLine = lines[i];
-    if (rawLine === undefined)
-      continue;
-    const line = rawLine.trim();
-    if (!line.startsWith("#"))
-      continue;
-    const heading = line.replace(/^#+\s*/, "");
-    const separatorMatch = heading.match(/\s[—–-]\s(.+)/);
-    if (separatorMatch?.[1])
-      return separatorMatch[1].trim();
-    if (heading.length > 3)
-      return heading;
-  }
-  return null;
-}
-function parseFrontmatter(content) {
-  const result = { name: null, description: null, body: null };
-  const trimmed = content.trimStart();
-  if (!trimmed.startsWith("---"))
-    return result;
-  const endIdx = trimmed.indexOf(`
----`, 3);
-  if (endIdx === -1)
-    return result;
-  const yamlBlock = trimmed.slice(3, endIdx);
-  const lines = yamlBlock.split(`
-`);
-  for (let i = 0;i < lines.length; i++) {
-    const line = lines[i];
-    if (line === undefined)
-      continue;
-    const parsed = parseYamlLine(line);
-    if (!parsed)
-      continue;
-    const [key, value] = parsed;
-    if (value === ">" || value === "|") {
-      const continuationLines = [];
-      while (i + 1 < lines.length) {
-        const next = lines[i + 1];
-        if (next === undefined)
-          break;
-        if (next.length > 0 && !next.startsWith(" ") && !next.startsWith("\t"))
-          break;
-        continuationLines.push(next.trim());
-        i++;
-      }
-      const joined = value === ">" ? continuationLines.join(" ") : continuationLines.join(`
-`);
-      result[key] = joined.trim() || null;
-    } else {
-      result[key] = value;
-    }
-  }
-  const bodyStart = endIdx + 4;
-  const rawBody = trimmed.slice(bodyStart).trim();
-  result.body = rawBody || null;
-  return result;
-}
-// ../../packages/utils/src/language-utils.ts
-var languageMap = {
-  ts: "typescript",
-  tsx: "typescriptreact",
-  js: "javascript",
-  jsx: "javascriptreact",
-  mjs: "javascript",
-  cjs: "javascript",
-  py: "python",
-  pyi: "python",
-  pyw: "python",
-  rs: "rust",
-  go: "go",
-  java: "java",
-  kt: "kotlin",
-  kts: "kotlin",
-  scala: "scala",
-  groovy: "groovy",
-  gradle: "groovy",
-  c: "c",
-  h: "c",
-  cpp: "cpp",
-  cc: "cpp",
-  cxx: "cpp",
-  hpp: "cpp",
-  hxx: "hpp",
-  cs: "csharp",
-  rb: "ruby",
-  php: "php",
-  swift: "swift",
-  m: "objective-c",
-  mm: "objective-cpp",
-  vue: "vue",
-  svelte: "svelte",
-  astro: "astro",
-  dart: "dart",
-  ex: "elixir",
-  exs: "elixir",
-  clj: "clojure",
-  cljs: "clojure",
-  edn: "clojure",
-  hs: "haskell",
-  lhs: "haskell",
-  lua: "lua",
-  erl: "erlang",
-  hrl: "erlang",
-  pl: "perl",
-  pm: "perl",
-  coffee: "coffeescript",
-  sh: "shellscript",
-  bash: "shellscript",
-  zsh: "shellscript",
-  fish: "shellscript",
-  ps1: "powershell",
-  psm1: "powershell",
-  bat: "bat",
-  cmd: "bat",
-  md: "markdown",
-  mdx: "mdx",
-  json: "json",
-  jsonc: "jsonc",
-  yaml: "yaml",
-  yml: "yaml",
-  toml: "toml",
-  xml: "xml",
-  html: "html",
-  htm: "html",
-  ini: "ini",
-  properties: "properties",
-  css: "css",
-  scss: "scss",
-  sass: "sass",
-  less: "less",
-  sql: "sql",
-  graphql: "graphql",
-  gql: "graphql",
-  proto: "protobuf",
-  dockerfile: "dockerfile",
-  tf: "terraform",
-  r: "r"
-};
-function getLanguageFromPath(filePath) {
-  const ext = filePath.split(".").pop()?.toLowerCase();
-  return languageMap[ext || ""] || "plaintext";
-}
-// ../../packages/utils/src/mcp-registry.ts
-var REGISTRY_URL = "https://registry.modelcontextprotocol.io/v0.1/servers";
-var REMOTE_TIMEOUT_MS = 5000;
-var CACHE_TTL_MS = 30 * 60 * 1000;
-var CACHE_MAX_SIZE = 100;
-function isSafeRemoteUrl(urlStr) {
-  try {
-    const url2 = new URL(urlStr);
-    if (url2.protocol !== "https:")
-      return false;
-    const host = url2.hostname.toLowerCase();
-    if (host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host.startsWith("10.") || host.startsWith("192.168.") || host.startsWith("172.") || host.startsWith("169.254.") || host.endsWith(".local") || host.endsWith(".internal")) {
-      return false;
-    }
-    return true;
-  } catch {
-    return false;
-  }
-}
+// src/utils/extraction-helpers.ts
+init_src();
 
-class TtlCache {
-  map = new Map;
-  get(key) {
-    const entry = this.map.get(key);
-    if (!entry)
-      return { hit: false };
-    if (Date.now() > entry.expiry) {
-      this.map.delete(key);
-      return { hit: false };
-    }
-    return { hit: true, value: entry.value };
-  }
-  set(key, value) {
-    if (this.map.size >= CACHE_MAX_SIZE && !this.map.has(key)) {
-      const firstKey = this.map.keys().next().value;
-      if (firstKey !== undefined)
-        this.map.delete(firstKey);
-    }
-    this.map.set(key, { value, expiry: Date.now() + CACHE_TTL_MS });
-  }
-  clear() {
-    this.map.clear();
-  }
-}
-var cache = new TtlCache;
-var toolCache = new TtlCache;
-var serverCache = new TtlCache;
-var GENERIC_SEGMENTS = new Set(["mcp", "com", "org", "io", "dev", "server", "api"]);
-function extractMeaningfulSegments(name) {
-  return name.split(/[-._/]/).filter((s) => s.length >= 3 && !GENERIC_SEGMENTS.has(s.toLowerCase()));
-}
-function parseMcpKey(key) {
-  if (key.includes("/")) {
-    const slashIndex = key.indexOf("/");
-    return { server: key.slice(0, slashIndex) || key, tool: key.slice(slashIndex + 1) };
-  }
-  if (key.startsWith("mcp__")) {
-    const parts = key.split("__");
-    return {
-      server: parts[1] ?? key,
-      tool: parts.length >= 3 ? parts.slice(2).join("__") : key
-    };
-  }
-  if (key.startsWith("mcp-")) {
-    const withoutPrefix = key.slice(4);
-    const firstHyphen = withoutPrefix.indexOf("-");
-    if (firstHyphen > 0) {
-      return { server: withoutPrefix.slice(0, firstHyphen), tool: key };
-    }
-    return { server: withoutPrefix, tool: key };
-  }
-  return { server: key, tool: key };
-}
-function extractMcpServerName(toolName) {
-  return parseMcpKey(toolName).server;
-}
-function buildSearchQueries(name) {
-  const queries = [name];
-  const parts = name.split("-");
-  for (let i = parts.length - 1;i >= 1; i--) {
-    queries.push(parts.slice(0, i).join("-"));
-  }
-  return queries;
-}
-function isPlausibleMatch(registryName, searchTerm) {
-  const lower = registryName.toLowerCase();
-  if (lower.includes(searchTerm.toLowerCase()))
-    return true;
-  for (const segment of extractMeaningfulSegments(searchTerm)) {
-    if (lower.includes(segment.toLowerCase()))
-      return true;
-  }
-  return false;
-}
-async function searchRegistry(searchName) {
-  const cached2 = serverCache.get(searchName);
-  if (cached2.hit)
-    return cached2.value;
-  const queries = buildSearchQueries(searchName);
-  for (const query of queries) {
-    const url2 = `${REGISTRY_URL}?search=${encodeURIComponent(query)}`;
-    const response = await fetch(url2, {
-      signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS)
-    });
-    if (!response.ok)
-      continue;
-    const data = await response.json();
-    if (!Array.isArray(data?.servers))
-      continue;
-    const servers = data.servers;
-    if (servers.length === 0)
-      continue;
-    const match = servers.find((s) => isPlausibleMatch(s.server.name, searchName));
-    if (match) {
-      serverCache.set(searchName, match.server);
-      return match.server;
-    }
-  }
-  serverCache.set(searchName, null);
-  return null;
-}
-async function fetchToolDescriptions(remoteUrl) {
-  if (!isSafeRemoteUrl(remoteUrl))
-    return null;
-  try {
-    const response = await fetch(remoteUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json, text/event-stream"
-      },
-      body: JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 1 }),
-      signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS)
-    });
-    if (!response.ok)
-      return null;
-    const contentType = response.headers.get("content-type") ?? "";
-    let body;
-    if (contentType.includes("text/event-stream")) {
-      const text = await response.text();
-      const dataLines = text.split(`
-`).filter((l) => l.startsWith("data: "));
-      body = {};
-      for (const line of dataLines) {
-        try {
-          const parsed = JSON.parse(line.slice(6).trim());
-          if (parsed?.result?.tools) {
-            body = parsed;
-            break;
-          }
-        } catch {}
-      }
-    } else {
-      body = await response.json();
-    }
-    const tools = body?.result?.tools;
-    if (!Array.isArray(tools))
-      return null;
-    const map2 = new Map;
-    for (const t of tools) {
-      if (typeof t.name === "string" && typeof t.description === "string") {
-        map2.set(t.name, t.description);
-      }
-    }
-    return map2.size > 0 ? map2 : null;
-  } catch {
-    return null;
-  }
-}
-async function lookupToolDescriptions(serverName) {
-  const cached2 = toolCache.get(serverName);
-  if (cached2.hit)
-    return cached2.value;
-  try {
-    const server = await searchRegistry(serverName);
-    if (!server) {
-      toolCache.set(serverName, null);
-      return null;
-    }
-    if (server.description) {
-      cache.set(serverName, server.description);
-    }
-    const hasRemotes = (server.remotes?.length ?? 0) > 0;
-    const hasPackages = (server.packages?.length ?? 0) > 0;
-    if (hasRemotes) {
-      for (const remote of server.remotes) {
-        const tools = await fetchToolDescriptions(remote.url);
-        if (tools) {
-          toolCache.set(serverName, tools);
-          return tools;
-        }
-      }
-    }
-    if (hasPackages) {
-      const npmPkg = server.packages.find((p) => !p.registryType || p.registryType === "npm");
-      if (npmPkg) {
-        const tools = await fetchToolsFromNpmCdn(npmPkg.identifier, npmPkg.version);
-        if (tools) {
-          toolCache.set(serverName, tools);
-          return tools;
-        }
-      }
-    }
-    if (!hasRemotes && !hasPackages) {
-      toolCache.set(serverName, null);
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-var JSDELIVR_DATA_URL = "https://data.jsdelivr.com/v1/packages/npm";
-var JSDELIVR_CDN_URL = "https://cdn.jsdelivr.net/npm";
-function findJsFiles(node, prefix = "") {
-  const results = [];
-  if (!node?.files)
-    return results;
-  for (const file2 of node.files) {
-    const path = `${prefix}/${file2.name}`;
-    if (file2.files) {
-      results.push(...findJsFiles(file2, path));
-    } else if (file2.name.endsWith(".js") && !file2.name.endsWith(".d.ts") && !file2.name.includes("test")) {
-      results.push({ path, size: file2.size ?? 0 });
-    }
-  }
-  return results;
-}
-function isToolName(name) {
-  return /^[a-z][a-z0-9_-]*$/.test(name) && name.length <= 60;
-}
-function extractToolsFromSource(source) {
-  const tools = new Map;
-  for (const m of source.matchAll(/\{name:\s*"([^"]{2,60})"[^}]{0,200}?description:\s*"([^"]+)"/g)) {
-    const [, name, description] = m;
-    if (!name || !description)
-      continue;
-    if (isToolName(name)) {
-      tools.set(name, cleanDescription(description));
-    }
-  }
-  for (const m of source.matchAll(/(?:registerTool|addTool|createTool)\(\s*"([^"]+)"/g)) {
-    const [, name] = m;
-    if (!name || tools.has(name))
-      continue;
-    const idx = m.index ?? 0;
-    const after = source.slice(idx + m[0].length, idx + m[0].length + 500);
-    const descMatch = after.match(/description:\s*(?:"([^"]+)"|`([^\n]+))/);
-    const desc = descMatch?.[1] ?? descMatch?.[2];
-    if (desc)
-      tools.set(name, cleanDescription(desc));
-  }
-  for (const m of source.matchAll(/\.tool\(\s*"([^"]+)"\s*,\s*"([^"]+)"/g)) {
-    const [, name, description] = m;
-    if (!name || !description)
-      continue;
-    if (!tools.has(name)) {
-      tools.set(name, cleanDescription(description));
-    }
-  }
-  if (source.includes("annotations:")) {
-    for (const m of source.matchAll(/name:\s*"([^"]{2,60})"[\s\S]{0,500}?annotations:\s*\{[^}]{0,200}?description:\s*"([^"]+)"/g)) {
-      const [, name, description] = m;
-      if (!name || !description)
-        continue;
-      if (!tools.has(name) && isToolName(name)) {
-        tools.set(name, cleanDescription(description));
-      }
-    }
-  }
-  return tools;
-}
-function cleanDescription(desc) {
-  return (desc.split(/\\n|\n/)[0] ?? desc).trim();
-}
-var VERB_PREFIXES = new Set([
-  "get",
-  "list",
-  "create",
-  "delete",
-  "update",
-  "search",
-  "query",
-  "fetch",
-  "run",
-  "execute",
-  "resolve",
-  "find",
-  "read",
-  "write",
-  "set",
-  "send",
-  "check",
-  "add",
-  "remove"
-]);
-function stripVerbPrefix(name) {
-  const [first, ...rest] = name.split(/[-_]/);
-  if (first && rest.length > 0 && VERB_PREFIXES.has(first.toLowerCase())) {
-    return rest.join("-").toLowerCase();
-  }
-  return name.toLowerCase();
-}
-function fuzzyMatchTools(requestedTools, available) {
-  const matched = new Map;
-  const claimed = new Set;
-  for (const req of requestedTools) {
-    const desc = available.get(req);
-    if (desc !== undefined) {
-      matched.set(req, desc);
-      claimed.add(req);
-    }
-  }
-  const unmatched = requestedTools.filter((r) => !matched.has(r));
-  if (unmatched.length === 0)
-    return matched;
-  const unclaimed = [...available.entries()].filter(([k]) => !claimed.has(k));
-  if (unclaimed.length === 0)
-    return matched;
-  for (const req of unmatched) {
-    if (matched.has(req))
-      continue;
-    const strippedReq = stripVerbPrefix(req);
-    for (const [candidate, desc] of unclaimed) {
-      if (claimed.has(candidate))
-        continue;
-      const strippedCand = stripVerbPrefix(candidate);
-      if (strippedCand === strippedReq || strippedCand.endsWith(`-${strippedReq}`)) {
-        matched.set(req, desc);
-        claimed.add(candidate);
-        break;
-      }
-    }
-  }
-  const stillUnmatched = requestedTools.filter((r) => !matched.has(r));
-  for (const req of stillUnmatched) {
-    const reqWords = req.toLowerCase().split(/[-_]/).filter((w) => w.length >= 2);
-    let bestCandidate = null;
-    let bestDesc = "";
-    let bestScore = 0;
-    for (const [candidate, desc] of unclaimed) {
-      if (claimed.has(candidate))
-        continue;
-      const candStr = candidate.toLowerCase();
-      const matchingWords = reqWords.filter((w) => candStr.includes(w));
-      const score = matchingWords.length / reqWords.length;
-      if (score > bestScore && score >= 0.75) {
-        bestScore = score;
-        bestCandidate = candidate;
-        bestDesc = desc;
-      }
-    }
-    if (bestCandidate) {
-      matched.set(req, bestDesc);
-      claimed.add(bestCandidate);
-    }
-  }
-  return matched;
-}
-async function fetchToolsFromNpmCdn(packageName, version3) {
-  try {
-    const versionSuffix = version3 ? `@${version3}` : "@latest";
-    const listUrl = `${JSDELIVR_DATA_URL}/${packageName}${versionSuffix}`;
-    const listResponse = await fetch(listUrl, { signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS) });
-    if (!listResponse.ok)
-      return null;
-    const pkgData = await listResponse.json();
-    const jsFiles = findJsFiles(pkgData).sort((a, b) => b.size - a.size);
-    if (jsFiles.length === 0)
-      return null;
-    for (const file2 of jsFiles.slice(0, 3)) {
-      if (file2.size > 500000)
-        continue;
-      const contentUrl = `${JSDELIVR_CDN_URL}/${packageName}${versionSuffix}${file2.path}`;
-      const contentResponse = await fetch(contentUrl, {
-        signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS)
-      });
-      if (!contentResponse.ok)
-        continue;
-      const source = await contentResponse.text();
-      const tools = extractToolsFromSource(source);
-      if (tools.size > 0)
-        return tools;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-async function lookupMcpDescription(serverName) {
-  const searchName = extractMcpServerName(serverName);
-  const cached2 = cache.get(searchName);
-  if (cached2.hit)
-    return cached2.value;
-  try {
-    const server = await searchRegistry(searchName);
-    const description = server?.description ?? null;
-    cache.set(searchName, description);
-    return description;
-  } catch {
-    return null;
-  }
-}
-async function resolveToolDescriptionsForServers(entries, getToolName) {
-  const allResolved = [];
-  for (let i = 0;i < entries.length; i += 5) {
-    const batch = entries.slice(i, i + 5);
-    const results = await Promise.all(batch.map(async ([serverName, tools]) => {
-      const toolDescriptions = await lookupToolDescriptions(serverName);
-      const serverDescription = toolDescriptions ? null : await lookupMcpDescription(serverName);
-      return { tools, toolDescriptions, serverDescription };
-    }));
-    for (const group of results) {
-      if (group.toolDescriptions) {
-        const requestedNames = group.tools.map(getToolName);
-        const fuzzyMatched = fuzzyMatchTools(requestedNames, group.toolDescriptions);
-        allResolved.push({ ...group, toolDescriptions: fuzzyMatched });
-      } else {
-        allResolved.push(group);
-      }
-    }
-  }
-  return allResolved;
-}
-async function lookupMcpDescriptions(toolNames) {
-  const result = {};
-  const serverGroups = new Map;
-  for (const toolName of toolNames) {
-    const { server, tool } = parseMcpKey(toolName);
-    const group = serverGroups.get(server) ?? [];
-    group.push({ original: toolName, tool });
-    serverGroups.set(server, group);
-  }
-  const resolved = await resolveToolDescriptionsForServers(Array.from(serverGroups.entries()), (t) => t.tool);
-  for (const { tools, toolDescriptions, serverDescription } of resolved) {
-    for (const { original, tool } of tools) {
-      result[original] = toolDescriptions?.get(tool) ?? serverDescription;
-    }
-  }
-  return result;
-}
-// ../../packages/utils/src/signal-helpers.ts
-function incrementMap(map2, key) {
-  map2.set(key, (map2.get(key) ?? 0) + 1);
-}
-var CMD_TAG_START = "<command-name>/";
-var CMD_TAG_END = "</command-name>";
-function extractCommandName(text) {
-  const start = text.indexOf(CMD_TAG_START);
-  if (start === -1)
-    return;
-  const nameStart = start + CMD_TAG_START.length;
-  const end = text.indexOf(CMD_TAG_END, nameStart);
-  if (end === -1)
-    return;
-  const name = text.slice(nameStart, end);
-  return name.length > 0 ? name : undefined;
-}
-// ../../packages/utils/src/toolkit-signals.ts
-function extractToolNamesFromSignals(signals) {
-  return {
-    skills: Object.keys(signals.skill_usage ?? {}),
-    agents: Object.keys(signals.agent_usage ?? {}),
-    mcpServers: Object.keys(signals.mcp_usage ?? {})
-  };
-}
 // ../../packages/utils/src/git-utils.ts
+init_dist_node();
 import { exec, execSync } from "node:child_process";
 import * as path from "node:path";
 import { promisify } from "node:util";
@@ -23143,6 +23263,8 @@ function buildTokenMetadata(usage) {
     meta3.cache_creation_5m_tokens = usage.cache_creation.ephemeral_5m_input_tokens;
   if (usage.cache_creation?.ephemeral_1h_input_tokens != null)
     meta3.cache_creation_1h_tokens = usage.cache_creation.ephemeral_1h_input_tokens;
+  if (usage.reasoning_tokens != null)
+    meta3.reasoning_tokens = usage.reasoning_tokens;
   if (typeof usage.server_tool_use?.input_tokens === "number")
     meta3.server_tool_use_input_tokens = usage.server_tool_use.input_tokens;
   if (typeof usage.server_tool_use?.output_tokens === "number")
@@ -23153,7 +23275,11 @@ function buildTokenMetadata(usage) {
   return meta3;
 }
 
+// src/extractors/message-parser.ts
+init_src();
+
 // src/utils/command-filters.ts
+init_src();
 init_constants();
 
 // src/extractors/extraction-utils.ts
@@ -24372,9 +24498,18 @@ function logDiff(filePath, diff) {
 // src/utils/command-filters.ts
 init_logger();
 function shouldExcludeCommand(command) {
-  const trimmedCommand = command.trim();
+  const trimmed = command.trim();
   for (const pattern of EXCLUDED_COMMAND_PATTERNS) {
-    if (pattern.test(trimmedCommand)) {
+    if (pattern.test(trimmed)) {
+      return true;
+    }
+  }
+  if (trimmed.startsWith("<local-command-caveat>") || trimmed.startsWith("<local-command-stdout>")) {
+    return true;
+  }
+  if (trimmed.startsWith("<command-message>") || trimmed.startsWith("<command-name>")) {
+    const cmdName = extractCommandName(trimmed);
+    if (cmdName && isBuiltinOrZestCommand(cmdName)) {
       return true;
     }
   }
@@ -24396,6 +24531,8 @@ function restoreFilteringState(lines, lastReadLine) {
   for (let i = lookbackLines.length - 1;i >= 0; i--) {
     try {
       const entry = JSON.parse(lookbackLines[i]);
+      if (entry.isMeta === true)
+        continue;
       if (entry.message?.role === "user" && entry.message.content) {
         const textContent = extractTextContent2(entry.message.content);
         if (textContent) {
@@ -24488,6 +24625,11 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
       }
       try {
         const entry = JSON.parse(trimmedLine);
+        if (entry.isMeta === true) {
+          lastSuccessfulLine = lineNumber;
+          lineNumber++;
+          continue;
+        }
         if (!isSyntheticModel(entry.message?.model)) {
           if (entry.message) {
             const role = entry.message.role;
@@ -24498,6 +24640,12 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
                 const filterResult = applyMessageFilter(role, textContent, filteringState);
                 filteringState = filterResult.newState;
                 if (!filterResult.shouldFilter) {
+                  const cleanedContent = sanitizeCommandXml(textContent);
+                  if (!cleanedContent) {
+                    lastSuccessfulLine = lineNumber;
+                    lineNumber++;
+                    continue;
+                  }
                   const metadata = {};
                   if (entry.uuid)
                     metadata.claude_uuid = entry.uuid;
@@ -24514,7 +24662,7 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
                     id: entry.uuid,
                     session_id: sessionId,
                     role,
-                    content: textContent,
+                    content: cleanedContent,
                     created_at: entry.timestamp || new Date().toISOString(),
                     message_index: messageCounter,
                     metadata: Object.keys(metadata).length > 0 ? metadata : null
@@ -24616,13 +24764,159 @@ function getPrivacyManager() {
   return instance;
 }
 
+// src/statusline/statusline-snapshot.ts
+import { mkdirSync, readFileSync as readFileSync2, renameSync, writeFileSync } from "node:fs";
+init_constants();
+function isRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+function readSnapshotFile(filePath) {
+  try {
+    const parsed = JSON.parse(readFileSync2(filePath, "utf-8"));
+    if (isRecord(parsed) && parsed.version === 1 && isRecord(parsed.snapshots)) {
+      return parsed;
+    }
+  } catch {}
+  return { version: 1, updated_at: new Date(0).toISOString(), snapshots: {} };
+}
+async function readStatuslineSnapshotForSession(sessionId, filePath = STATUSLINE_SNAPSHOTS_FILE) {
+  const file2 = readSnapshotFile(filePath);
+  return file2.snapshots[sessionId] ?? null;
+}
+function epochSeconds(value) {
+  if (!value)
+    return;
+  if (typeof value === "number" && Number.isFinite(value))
+    return Math.floor(value);
+  if (typeof value !== "string")
+    return;
+  const ms = Date.parse(value);
+  return Number.isFinite(ms) ? Math.floor(ms / 1000) : undefined;
+}
+function statuslineSnapshotToSessionMetadata(snapshot) {
+  if (!snapshot)
+    return {};
+  const { transcript_path: _transcriptPath, ...dbSafeSnapshot } = snapshot;
+  const metadata = {
+    claude_statusline: dbSafeSnapshot,
+    token_data_source: "claude_code_statusline"
+  };
+  if (snapshot.model?.id)
+    metadata.model = snapshot.model.id;
+  if (snapshot.context_window?.used_percentage != null) {
+    metadata.context_used = snapshot.context_window.used_percentage;
+  }
+  if (snapshot.context_window?.context_window_size != null) {
+    metadata.model_context_window = snapshot.context_window.context_window_size;
+  }
+  if (snapshot.context_window?.total_input_tokens != null) {
+    metadata.context_tokens_used = snapshot.context_window.total_input_tokens;
+    metadata.used_tokens = snapshot.context_window.total_input_tokens;
+  }
+  if (snapshot.rate_limits?.five_hour?.used_percentage != null) {
+    metadata.five_hour_limit = snapshot.rate_limits.five_hour.used_percentage;
+  }
+  if (snapshot.rate_limits?.seven_day?.used_percentage != null) {
+    metadata.weekly_limit = snapshot.rate_limits.seven_day.used_percentage;
+  }
+  const primaryReset = epochSeconds(snapshot.rate_limits?.five_hour?.resets_at);
+  const secondaryReset = epochSeconds(snapshot.rate_limits?.seven_day?.resets_at);
+  if (primaryReset != null || secondaryReset != null) {
+    metadata.rate_limits_latest = {
+      limit_id: "claude_code_statusline",
+      ...primaryReset != null ? { primary: { resets_at: primaryReset } } : {},
+      ...secondaryReset != null ? { secondary: { resets_at: secondaryReset } } : {}
+    };
+  }
+  return metadata;
+}
+
+// ../../packages/plugin-common/src/extractors/claude-account-metadata.ts
+import { readFile as readFile8 } from "node:fs/promises";
+import { homedir as homedir2 } from "node:os";
+import { join as join7 } from "node:path";
+var CLAUDE_CONFIG_FILE2 = process.env.CLAUDE_CONFIG_FILE || join7(homedir2(), ".claude.json");
+function objectField(value, key) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  const field = value[key];
+  return field && typeof field === "object" ? field : null;
+}
+function stringField(value, key) {
+  if (!value || typeof value !== "object") {
+    return;
+  }
+  const field = value[key];
+  return typeof field === "string" && field.trim().length > 0 ? field.trim() : undefined;
+}
+function booleanField(value, key) {
+  if (!value || typeof value !== "object") {
+    return;
+  }
+  const field = value[key];
+  return typeof field === "boolean" ? field : undefined;
+}
+function normalizeClaudeTier(value) {
+  if (!value) {
+    return;
+  }
+  const normalized = value.toLowerCase().replace(/^claude_/, "");
+  const tierMatch = normalized.match(/(?:^|_)claude_((?:max|pro|team|enterprise)(?:_\d+x)?)/) ?? normalized.match(/^((?:max|pro|team|enterprise)(?:_\d+x)?)/);
+  return tierMatch?.[1] ?? normalized;
+}
+function inferBillingMode(value) {
+  if (!value) {
+    return "unknown";
+  }
+  const normalized = value.toLowerCase();
+  if (normalized.includes("subscription")) {
+    return "subscription";
+  }
+  if (normalized.includes("api")) {
+    return "api";
+  }
+  return "unknown";
+}
+function hasAvailableOverageCredit(cache2) {
+  if (!cache2 || typeof cache2 !== "object") {
+    return;
+  }
+  for (const entry of Object.values(cache2)) {
+    const info = objectField(entry, "info");
+    if (booleanField(info, "available") === true || booleanField(info, "granted") === true) {
+      return true;
+    }
+  }
+  return;
+}
+function extractClaudeAccountMetadataFromConfig(config2) {
+  const oauthAccount = objectField(config2, "oauthAccount") ?? {};
+  const tier = normalizeClaudeTier(stringField(oauthAccount, "subscriptionType") ?? stringField(config2, "subscriptionType") ?? stringField(oauthAccount, "organizationType") ?? stringField(config2, "organizationType") ?? stringField(oauthAccount, "organizationRateLimitTier") ?? stringField(config2, "organizationRateLimitTier") ?? stringField(oauthAccount, "rateLimitTier") ?? stringField(config2, "rateLimitTier"));
+  const billingType = stringField(oauthAccount, "billingType") ?? stringField(config2, "billingType");
+  const overage = booleanField(oauthAccount, "hasExtraUsageEnabled") ?? booleanField(config2, "hasExtraUsageEnabled") ?? hasAvailableOverageCredit(config2?.overageCreditGrantCache);
+  const billingMode = inferBillingMode(billingType);
+  const metadata = {
+    ...tier ? { plan: `anthropic:${tier}` } : {},
+    ...billingType || tier || overage !== undefined ? { billing_mode: billingMode } : {},
+    ...overage !== undefined ? { overage } : {}
+  };
+  return Object.keys(metadata).length > 0 ? metadata : null;
+}
+async function readClaudeAccountMetadata(configFile = CLAUDE_CONFIG_FILE2) {
+  try {
+    return extractClaudeAccountMetadataFromConfig(JSON.parse(await readFile8(configFile, "utf-8")));
+  } catch {
+    return null;
+  }
+}
 // src/utils/extraction-helpers.ts
 init_logger();
 
 // ../../packages/plugin-common/src/queue/queue-manager.ts
 init_events();
 init_properties();
-import { appendFile as appendFile2, readFile as readFile8, unlink as unlink5, writeFile as writeFile6 } from "node:fs/promises";
+import { appendFile as appendFile2, readFile as readFile9, unlink as unlink5, writeFile as writeFile6 } from "node:fs/promises";
 import { dirname as dirname6 } from "node:path";
 init_file_lock();
 init_fs_utils2();
@@ -24639,7 +24933,7 @@ function createQueueManager(config2) {
   const withFileLock2 = resolveFileLock(config2.withFileLock);
   async function readJsonl(filePath) {
     try {
-      const content = await readFile8(filePath, "utf8");
+      const content = await readFile9(filePath, "utf8");
       const lines = content.trim().split(`
 `).filter(Boolean);
       const results = [];
@@ -24669,7 +24963,7 @@ function createQueueManager(config2) {
   }
   async function countLines(filePath) {
     try {
-      const content = await readFile8(filePath, "utf8");
+      const content = await readFile9(filePath, "utf8");
       const lines = content.trim().split(`
 `).filter(Boolean);
       return lines.length;
@@ -24996,20 +25290,20 @@ var {
 // ../../packages/plugin-common/src/state/state-manager.ts
 init_file_lock();
 init_fs_utils2();
-import { readFile as readFile9, writeFile as writeFile7 } from "node:fs/promises";
-import { join as join7 } from "node:path";
+import { readFile as readFile10, writeFile as writeFile7 } from "node:fs/promises";
+import { join as join8 } from "node:path";
 function createStateManager(config2) {
   const { stateDir, logger: logger3 } = config2;
   const withFileLock2 = resolveFileLock(config2.withFileLock);
   function getStateFilePath(sessionId) {
-    return join7(stateDir, `${sessionId}.json`);
+    return join8(stateDir, `${sessionId}.json`);
   }
   async function readSessionState(sessionId) {
     try {
       const stateFile = getStateFilePath(sessionId);
       return await withFileLock2(stateFile, async () => {
         try {
-          const content = await readFile9(stateFile, "utf-8");
+          const content = await readFile10(stateFile, "utf-8");
           return JSON.parse(content);
         } catch (error51) {
           logger3?.debug(`No state found for session ${sessionId} (new session)`);
@@ -25090,14 +25384,21 @@ async function extractNewSessionData(conversationFile, sessionId) {
 }
 async function queueSessionData(sessionId, messages, toolUses, fileStats, projectDir, conversationFile, newLastReadLine, lastMessageIndex, isNewSession, peakContextTokens) {
   await ensurePrivacyInitialized(projectDir);
+  const statuslineMetadata = statuslineSnapshotToSessionMetadata(await readStatuslineSnapshotForSession(sessionId));
   if (isNewSession) {
     const projectInfo = getProjectInfoSync(projectDir);
+    const accountMetadata = await readClaudeAccountMetadata();
+    const metadata = {
+      ...accountMetadata ?? {},
+      ...statuslineMetadata
+    };
     const session = {
       id: sessionId,
       title: toWellFormed(messages.length > 0 ? messages[0].content.substring(0, 100) : `Session ${sessionId}`),
       created_at: fileStats.birthtime.toISOString(),
       project_id: projectInfo.projectId !== "unknown" ? projectInfo.projectId : null,
-      project_name: projectInfo.projectName !== "unknown" ? projectInfo.projectName : null
+      project_name: projectInfo.projectName !== "unknown" ? projectInfo.projectName : null,
+      ...Object.keys(metadata).length > 0 ? { metadata } : {}
     };
     await enqueueChatSession(session);
   }
@@ -25115,16 +25416,39 @@ async function queueSessionData(sessionId, messages, toolUses, fileStats, projec
   }
   const eventsQueued = await queueToolUseEvents(toolUses, sessionId, projectDir);
   await updateLastReadLine(sessionId, conversationFile, newLastReadLine, lastMessageIndex);
-  if (peakContextTokens != null) {
+  const metadataPatch = {
+    ...statuslineMetadata,
+    ...peakContextTokens != null ? { context_peak_tokens: peakContextTokens } : {}
+  };
+  if (Object.keys(metadataPatch).length > 0) {
     await atomicUpdateQueue(SESSIONS_QUEUE_FILE, (sessions) => sessions.map((s) => s.id === sessionId ? {
       ...s,
       metadata: {
         ...s.metadata ?? {},
-        context_peak_tokens: peakContextTokens
+        ...metadataPatch
       }
     } : s));
   }
   return { messagesQueued: messages.length, eventsQueued };
+}
+async function patchQueuedSessionMetadataFromStatusline(sessionId) {
+  const statuslineMetadata = statuslineSnapshotToSessionMetadata(await readStatuslineSnapshotForSession(sessionId));
+  if (Object.keys(statuslineMetadata).length === 0)
+    return false;
+  let patched = false;
+  await atomicUpdateQueue(SESSIONS_QUEUE_FILE, (sessions) => sessions.map((s) => {
+    if (s.id !== sessionId)
+      return s;
+    patched = true;
+    return {
+      ...s,
+      metadata: {
+        ...s.metadata ?? {},
+        ...statuslineMetadata
+      }
+    };
+  }));
+  return patched;
 }
 async function queueToolUseEvents(toolUses, sessionId, projectDir) {
   const session = await getValidSession();
@@ -25168,7 +25492,7 @@ async function findSubagentFiles(projectDir, sessionId) {
       resolvedDir = projectDir;
     }
     const claudeDirName = resolvedDir.replace(CLAUDE_DIR_SEPARATOR_PATTERN, "-");
-    const subagentsDir = join8(CLAUDE_PROJECTS_DIR, claudeDirName, sessionId, "subagents");
+    const subagentsDir = join9(CLAUDE_PROJECTS_DIR, claudeDirName, sessionId, "subagents");
     let entries;
     try {
       entries = await readdir7(subagentsDir);
@@ -25176,7 +25500,7 @@ async function findSubagentFiles(projectDir, sessionId) {
       return [];
     }
     return entries.filter((f) => f.startsWith("agent-") && f.endsWith(".jsonl")).map((f) => ({
-      filePath: join8(subagentsDir, f),
+      filePath: join9(subagentsDir, f),
       agentId: basename3(f, ".jsonl")
     })).sort((a, b) => a.agentId.localeCompare(b.agentId));
   } catch (error51) {
@@ -25256,16 +25580,19 @@ init_logger();
 // src/utils/signal-state.ts
 init_session_manager2();
 init_constants();
-import { readFile as readFile11, writeFile as writeFile8 } from "node:fs/promises";
-import { join as join10 } from "node:path";
+import { readFile as readFile12, writeFile as writeFile8 } from "node:fs/promises";
+import { join as join11 } from "node:path";
 
 // src/extractors/toolkit-metadata-extractor.ts
-import { join as join9 } from "node:path";
+init_src();
+import { join as join10 } from "node:path";
 init_constants();
 init_logger();
-var SKILLS_DIR = join9(CLAUDE_INSTALL_DIR, "skills");
-var AGENTS_DIR = join9(CLAUDE_INSTALL_DIR, "agents");
-var INSTALLED_PLUGINS_FILE = join9(CLAUDE_INSTALL_DIR, "plugins", "installed_plugins.json");
+init_src();
+init_src();
+var SKILLS_DIR = join10(CLAUDE_INSTALL_DIR, "skills");
+var AGENTS_DIR = join10(CLAUDE_INSTALL_DIR, "agents");
+var INSTALLED_PLUGINS_FILE = join10(CLAUDE_INSTALL_DIR, "plugins", "installed_plugins.json");
 var MAX_SCAN_DEPTH = 10;
 async function scanSkillsDir(dir, index, pluginPrefix, relativeDir = "", depth = 0) {
   if (depth >= MAX_SCAN_DEPTH)
@@ -25276,7 +25603,7 @@ async function scanSkillsDir(dir, index, pluginPrefix, relativeDir = "", depth =
       continue;
     const childRelative = relativeDir ? `${relativeDir}/${entry.name}` : entry.name;
     const id = pluginPrefix ? `${pluginPrefix}:${childRelative}` : childRelative;
-    const skillFile = join9(dir, entry.name, "SKILL.md");
+    const skillFile = join10(dir, entry.name, "SKILL.md");
     const content = await safeReadFile(skillFile);
     if (content) {
       if (!index.has(id)) {
@@ -25288,7 +25615,7 @@ async function scanSkillsDir(dir, index, pluginPrefix, relativeDir = "", depth =
       }
       continue;
     }
-    await scanSkillsDir(join9(dir, entry.name), index, pluginPrefix, childRelative, depth + 1);
+    await scanSkillsDir(join10(dir, entry.name), index, pluginPrefix, childRelative, depth + 1);
   }
 }
 async function scanCommandsDir(dir, index, pluginPrefix, relativeDir = "", depth = 0) {
@@ -25298,7 +25625,7 @@ async function scanCommandsDir(dir, index, pluginPrefix, relativeDir = "", depth
   for (const entry of entries) {
     if (isDirEntry(entry) && !entry.isFile()) {
       const childRelative = relativeDir ? `${relativeDir}/${entry.name}` : entry.name;
-      await scanCommandsDir(join9(dir, entry.name), index, pluginPrefix, childRelative, depth + 1);
+      await scanCommandsDir(join10(dir, entry.name), index, pluginPrefix, childRelative, depth + 1);
       continue;
     }
     if (!isFileEntry(entry, ".md"))
@@ -25308,7 +25635,7 @@ async function scanCommandsDir(dir, index, pluginPrefix, relativeDir = "", depth
     const id = pluginPrefix ? `${pluginPrefix}:${relativeName}` : relativeName;
     if (index.has(id))
       continue;
-    const content = await safeReadFile(join9(dir, entry.name));
+    const content = await safeReadFile(join10(dir, entry.name));
     if (!content)
       continue;
     const fm = parseFrontmatter(content);
@@ -25319,7 +25646,7 @@ async function scanCommandsDir(dir, index, pluginPrefix, relativeDir = "", depth
 async function buildSkillIndex(projectDir) {
   const index = new Map;
   if (projectDir) {
-    await scanSkillsDir(join9(projectDir, ".claude", "skills"), index);
+    await scanSkillsDir(join10(projectDir, ".claude", "skills"), index);
   }
   await scanSkillsDir(SKILLS_DIR, index);
   const pluginsContent = await safeReadFile(INSTALLED_PLUGINS_FILE);
@@ -25332,8 +25659,8 @@ async function buildSkillIndex(projectDir) {
             continue;
           const install = installations[0];
           const pluginName = registryKey.split("@")[0];
-          await scanSkillsDir(join9(install.installPath, "skills"), index, pluginName);
-          await scanCommandsDir(join9(install.installPath, "commands"), index, pluginName);
+          await scanSkillsDir(join10(install.installPath, "skills"), index, pluginName);
+          await scanCommandsDir(join10(install.installPath, "commands"), index, pluginName);
         }
       }
     } catch (error51) {
@@ -25345,7 +25672,7 @@ async function buildSkillIndex(projectDir) {
 async function buildAgentIndex(projectDir) {
   const index = new Map;
   if (projectDir) {
-    await scanAgentsDir(join9(projectDir, ".claude", "agents"), index);
+    await scanAgentsDir(join10(projectDir, ".claude", "agents"), index);
   }
   await scanAgentsDir(AGENTS_DIR, index);
   const pluginsContent = await safeReadFile(INSTALLED_PLUGINS_FILE);
@@ -25358,7 +25685,7 @@ async function buildAgentIndex(projectDir) {
             continue;
           const install = installations[0];
           const pluginName = registryKey.split("@")[0];
-          await scanAgentsDir(join9(install.installPath, "agents"), index, pluginName);
+          await scanAgentsDir(join10(install.installPath, "agents"), index, pluginName);
         }
       }
     } catch (error51) {
@@ -25374,7 +25701,7 @@ async function scanAgentsDir(dir, index, pluginPrefix, relativeDir = "", depth =
   for (const entry of entries) {
     if (isDirEntry(entry) && !entry.isFile()) {
       const childRelative = relativeDir ? `${relativeDir}/${entry.name}` : entry.name;
-      await scanAgentsDir(join9(dir, entry.name), index, pluginPrefix, childRelative, depth + 1);
+      await scanAgentsDir(join10(dir, entry.name), index, pluginPrefix, childRelative, depth + 1);
       continue;
     }
     if (!isFileEntry(entry, ".md"))
@@ -25382,7 +25709,7 @@ async function scanAgentsDir(dir, index, pluginPrefix, relativeDir = "", depth =
     const baseName = entry.name.replace(/\.md$/, "");
     const relativeName = relativeDir ? `${relativeDir}/${baseName}` : baseName;
     const id = pluginPrefix ? `${pluginPrefix}:${relativeName}` : relativeName;
-    const agentFile = join9(dir, entry.name);
+    const agentFile = join10(dir, entry.name);
     const content = await safeReadFile(agentFile);
     if (!content)
       continue;
@@ -25441,9 +25768,10 @@ init_fs_utils();
 init_logger();
 
 // src/utils/signal-scanner.ts
+init_src();
+init_constants();
 import { createReadStream as createReadStream3 } from "node:fs";
 import { createInterface as createInterface3 } from "node:readline";
-init_constants();
 var EMPTY_SIGNALS = {
   mcp_usage: {},
   skill_usage: {},
@@ -25611,9 +25939,11 @@ async function scanSignalsDelta(filePath, fromLine) {
               }
             }
           } else if (typeof content === "string") {
-            const cmdName = extractCommandName(content);
-            if (cmdName && !isBlacklistedSkill(cmdName)) {
-              incrementMap(delta.skill_usage, cmdName);
+            if (content.startsWith("<command-message>") || content.startsWith("<command-name>")) {
+              const cmdName = extractCommandName(content);
+              if (cmdName && !isBlacklistedSkill(cmdName)) {
+                incrementMap(delta.skill_usage, cmdName);
+              }
             }
           }
         }
@@ -25644,11 +25974,11 @@ function mergeSignals(previous, delta) {
 
 // src/utils/signal-state.ts
 function getSignalStatePath(sessionId) {
-  return join10(STATE_DIR, `signals-${sessionId}.json`);
+  return join11(STATE_DIR, `signals-${sessionId}.json`);
 }
 async function readStateFromFile(stateFile) {
   try {
-    const content = await readFile11(stateFile, "utf-8");
+    const content = await readFile12(stateFile, "utf-8");
     return JSON.parse(content);
   } catch {
     return { lastReadLine: 0, totals: EMPTY_SIGNALS };
@@ -25736,7 +26066,7 @@ async function updateSessionSignals(conversationFile, sessionId) {
 
 // src/hooks/delayed-extractor-cli.ts
 async function cleanupPidFile(sessionId) {
-  const pidFile = join11(STATE_DIR, `delayed-extractor-${sessionId}.pid`);
+  const pidFile = join12(STATE_DIR, `delayed-extractor-${sessionId}.pid`);
   await writeFile9(pidFile, "0", "utf-8").catch(() => {});
   await unlink6(pidFile).catch(() => {});
 }
@@ -25778,6 +26108,7 @@ async function main() {
       const fileStats = await stat7(conversationFile);
       const extractionResult = await extractNewSessionData(conversationFile, sessionId);
       if (!extractionResult.hasNewData) {
+        await patchQueuedSessionMetadataFromStatusline(sessionId);
         return;
       }
       await queueSessionData(sessionId, extractionResult.messages, extractionResult.toolUses, fileStats, projectDir || "", conversationFile, extractionResult.newLastReadLine, extractionResult.lastMessageIndex, extractionResult.isNewSession, extractionResult.peakContextTokens);

@@ -14733,30 +14733,8 @@ function createLogRotation(config2) {
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join as join2 } from "node:path";
-var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join2(homedir(), ".claude");
-var CLAUDE_PROJECTS_DIR = join2(CLAUDE_INSTALL_DIR, "projects");
-var CLAUDE_SETTINGS_FILE = join2(CLAUDE_INSTALL_DIR, "settings.json");
-var CLAUDE_ZEST_DIR = join2(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
-var QUEUE_DIR = join2(CLAUDE_ZEST_DIR, "queue");
-var LOGS_DIR = join2(CLAUDE_ZEST_DIR, "logs");
-var STATE_DIR = join2(CLAUDE_ZEST_DIR, "state");
-var DELETION_CACHE_DIR = join2(CLAUDE_ZEST_DIR, "cache", "deletions");
-var SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join2(CLAUDE_ZEST_DIR, "session.json");
-var SETTINGS_FILE = join2(CLAUDE_ZEST_DIR, "settings.json");
-var DAEMON_PID_FILE = join2(CLAUDE_ZEST_DIR, "daemon.pid");
-var CLAUDE_INSTANCES_FILE = join2(CLAUDE_ZEST_DIR, "claude-instances.json");
-var STATUSLINE_SCRIPT_PATH = join2(CLAUDE_ZEST_DIR, "statusline.mjs");
-var STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join2(CLAUDE_ZEST_DIR, "status-cache.json");
-var SYNC_METRICS_FILE = join2(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
-var EVENTS_QUEUE_FILE = join2(QUEUE_DIR, "events.jsonl");
-var SESSIONS_QUEUE_FILE = join2(QUEUE_DIR, "chat-sessions.jsonl");
-var MESSAGES_QUEUE_FILE = join2(QUEUE_DIR, "chat-messages.jsonl");
-var DEBOUNCE_DIR = join2(CLAUDE_ZEST_DIR, "debounce");
-var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
-var LOG_RETENTION_DAYS = 7;
-var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
-var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
-var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+// ../../packages/utils/src/command-xml.ts
 var CLAUDE_BUILTIN_COMMANDS = new Set([
   "add-dir",
   "agents",
@@ -14846,6 +14824,100 @@ var CLAUDE_BUILTIN_COMMANDS = new Set([
   "voice",
   "web-setup"
 ]);
+// ../../packages/utils/src/date-range.ts
+var PERIOD_TYPE_LABELS = {
+  ["today" /* Today */]: "Today",
+  ["this_week" /* ThisWeek */]: "This Week",
+  ["this_month" /* ThisMonth */]: "This Month"
+};
+var PERIOD_SUMMARY_LABELS = {
+  ["today" /* Today */]: "Daily Summary",
+  ["this_week" /* ThisWeek */]: "Weekly Summary",
+  ["this_month" /* ThisMonth */]: "Monthly Summary",
+  custom: "Custom Period"
+};
+// ../../packages/utils/src/frontmatter.ts
+var FRONTMATTER_KEYS = new Set(["name", "description"]);
+// ../../packages/utils/src/mcp-registry.ts
+var CACHE_TTL_MS = 30 * 60 * 1000;
+var CACHE_MAX_SIZE = 100;
+class TtlCache {
+  map = new Map;
+  get(key) {
+    const entry = this.map.get(key);
+    if (!entry)
+      return { hit: false };
+    if (Date.now() > entry.expiry) {
+      this.map.delete(key);
+      return { hit: false };
+    }
+    return { hit: true, value: entry.value };
+  }
+  set(key, value) {
+    if (this.map.size >= CACHE_MAX_SIZE && !this.map.has(key)) {
+      const firstKey = this.map.keys().next().value;
+      if (firstKey !== undefined)
+        this.map.delete(firstKey);
+    }
+    this.map.set(key, { value, expiry: Date.now() + CACHE_TTL_MS });
+  }
+  clear() {
+    this.map.clear();
+  }
+}
+var cache = new TtlCache;
+var toolCache = new TtlCache;
+var serverCache = new TtlCache;
+var GENERIC_SEGMENTS = new Set(["mcp", "com", "org", "io", "dev", "server", "api"]);
+var VERB_PREFIXES = new Set([
+  "get",
+  "list",
+  "create",
+  "delete",
+  "update",
+  "search",
+  "query",
+  "fetch",
+  "run",
+  "execute",
+  "resolve",
+  "find",
+  "read",
+  "write",
+  "set",
+  "send",
+  "check",
+  "add",
+  "remove"
+]);
+// src/config/constants.ts
+var CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join2(homedir(), ".claude");
+var CLAUDE_CONFIG_FILE = process.env.CLAUDE_CONFIG_FILE || join2(homedir(), ".claude.json");
+var CLAUDE_PROJECTS_DIR = join2(CLAUDE_INSTALL_DIR, "projects");
+var CLAUDE_SETTINGS_FILE = join2(CLAUDE_INSTALL_DIR, "settings.json");
+var CLAUDE_ZEST_DIR = join2(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
+var QUEUE_DIR = join2(CLAUDE_ZEST_DIR, "queue");
+var LOGS_DIR = join2(CLAUDE_ZEST_DIR, "logs");
+var STATE_DIR = join2(CLAUDE_ZEST_DIR, "state");
+var DELETION_CACHE_DIR = join2(CLAUDE_ZEST_DIR, "cache", "deletions");
+var SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join2(CLAUDE_ZEST_DIR, "session.json");
+var SETTINGS_FILE = join2(CLAUDE_ZEST_DIR, "settings.json");
+var DAEMON_PID_FILE = join2(CLAUDE_ZEST_DIR, "daemon.pid");
+var CLAUDE_INSTANCES_FILE = join2(CLAUDE_ZEST_DIR, "claude-instances.json");
+var STATUSLINE_SCRIPT_PATH = join2(CLAUDE_ZEST_DIR, "statusline.mjs");
+var STATUSLINE_PROXY_CONFIG_FILE = join2(CLAUDE_ZEST_DIR, "statusline-proxy.json");
+var STATUSLINE_SNAPSHOTS_FILE = process.env.ZEST_STATUSLINE_SNAPSHOTS_FILE ?? join2(CLAUDE_ZEST_DIR, "statusline-snapshots.json");
+var STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join2(CLAUDE_ZEST_DIR, "status-cache.json");
+var SYNC_METRICS_FILE = join2(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
+var EVENTS_QUEUE_FILE = join2(QUEUE_DIR, "events.jsonl");
+var SESSIONS_QUEUE_FILE = join2(QUEUE_DIR, "chat-sessions.jsonl");
+var MESSAGES_QUEUE_FILE = join2(QUEUE_DIR, "chat-messages.jsonl");
+var DEBOUNCE_DIR = join2(CLAUDE_ZEST_DIR, "debounce");
+var DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
+var LOG_RETENTION_DAYS = 7;
+var PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+var MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
+var STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var EXCLUDED_COMMAND_PATTERNS = [
   new RegExp(`^\\/(${[...CLAUDE_BUILTIN_COMMANDS].join("|")})\\b`, "i"),
   /^\/zest[^:\s]*:/i,
@@ -14933,7 +15005,8 @@ var UserSettingsSchema = exports_external.object({
   logLevel: exports_external.enum(["debug", "info", "warn", "error"]),
   excludedFolders: exports_external.array(exports_external.string()).default([]),
   privacy: PrivacySettingsSchema.optional(),
-  notificationsEnabled: exports_external.boolean().default(false)
+  notificationsEnabled: exports_external.boolean().default(false),
+  statuslineAutoWrap: exports_external.boolean().default(true)
 });
 var DEFAULT_SETTINGS = {
   enableRemotePersistence: true,
@@ -14942,7 +15015,8 @@ var DEFAULT_SETTINGS = {
   logLevel: "info",
   excludedFolders: [],
   privacy: DEFAULT_PRIVACY_SETTINGS,
-  notificationsEnabled: false
+  notificationsEnabled: false,
+  statuslineAutoWrap: true
 };
 function areNotificationsEnabled() {
   try {

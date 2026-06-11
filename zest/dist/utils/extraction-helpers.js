@@ -30,11 +30,12 @@ function getErrorCategory(errorType) {
     return "supabase";
   return "api";
 }
-var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed", AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed", AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed", AUTH_SESSION_CLEAR_FAILED = "auth_session_clear_failed", AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed", SYNC_NOT_AUTHENTICATED = "sync_not_authenticated", SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed", SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted", SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed", SYNC_NETWORK_ERROR = "sync_network_error", SYNC_SERVER_OVERLOAD = "sync_server_overload", SYNC_DATA_ERROR = "sync_data_error", SYNC_AUTH_ERROR = "sync_auth_error", SYNC_BLOCKED_NO_WORKSPACE = "sync_blocked_no_workspace", AUTH_SESSION_METADATA_LOST = "auth_session_metadata_lost", QUEUE_READ_CORRUPTED = "queue_read_corrupted", QUEUE_WRITE_FAILED = "queue_write_failed", FILE_LOCK_TIMEOUT = "file_lock_timeout", FILE_LOCK_CREATE_FAILED = "file_lock_create_failed", NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed", QUEUE_CAP_EVICTION = "queue_cap_eviction", SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped", SYNC_DRAIN_THROTTLED = "sync_drain_throttled", SYNC_ORPHANED_MESSAGES_DROPPED = "sync_orphaned_messages_dropped", EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found", EXTRACTION_SESSION_FAILED = "extraction_session_failed", DAEMON_START_FAILED = "daemon_start_failed", DAEMON_RESTART_FAILED = "daemon_restart_failed", DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed", DAEMON_UNHANDLED_ERROR = "daemon_unhandled_error", API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed", API_PROFILE_UPDATE_FAILED = "api_profile_update_failed", API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed", API_STANDUP_TEAM_FETCH_FAILED = "api_standup_team_fetch_failed", API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed", API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed", API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed", SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed", SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed", SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed", ERROR_TYPES, errorTypeSet;
+var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed", AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed", AUTH_AGENT_PROVISIONING_FAILED = "auth_agent_provisioning_failed", AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed", AUTH_SESSION_CLEAR_FAILED = "auth_session_clear_failed", AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed", SYNC_NOT_AUTHENTICATED = "sync_not_authenticated", SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed", SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted", SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed", SYNC_NETWORK_ERROR = "sync_network_error", SYNC_SERVER_OVERLOAD = "sync_server_overload", SYNC_DATA_ERROR = "sync_data_error", SYNC_AUTH_ERROR = "sync_auth_error", SYNC_BLOCKED_NO_WORKSPACE = "sync_blocked_no_workspace", AUTH_SESSION_METADATA_LOST = "auth_session_metadata_lost", QUEUE_READ_CORRUPTED = "queue_read_corrupted", QUEUE_WRITE_FAILED = "queue_write_failed", FILE_LOCK_TIMEOUT = "file_lock_timeout", FILE_LOCK_CREATE_FAILED = "file_lock_create_failed", NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed", QUEUE_CAP_EVICTION = "queue_cap_eviction", SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped", SYNC_DRAIN_THROTTLED = "sync_drain_throttled", SYNC_ORPHANED_MESSAGES_DROPPED = "sync_orphaned_messages_dropped", EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found", EXTRACTION_SESSION_FAILED = "extraction_session_failed", DAEMON_START_FAILED = "daemon_start_failed", DAEMON_RESTART_FAILED = "daemon_restart_failed", DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed", DAEMON_UNHANDLED_ERROR = "daemon_unhandled_error", API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed", API_PROFILE_UPDATE_FAILED = "api_profile_update_failed", API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed", API_STANDUP_TEAM_FETCH_FAILED = "api_standup_team_fetch_failed", API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed", API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed", API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed", SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed", SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed", SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed", ERROR_TYPES, errorTypeSet;
 var init_events = __esm(() => {
   ERROR_TYPES = [
     AUTH_DEVICE_CODE_INITIATION_FAILED,
     AUTH_DEVICE_CODE_POLLING_FAILED,
+    AUTH_AGENT_PROVISIONING_FAILED,
     AUTH_SESSION_CLEAR_FAILED,
     AUTH_SESSION_LOAD_FAILED,
     AUTH_SESSION_SAVE_FAILED,
@@ -75,6 +76,455 @@ var init_events = __esm(() => {
     SUPABASE_SESSION_WRITE_FAILED
   ];
   errorTypeSet = new Set(ERROR_TYPES);
+});
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/sha1.js
+import { createHash } from "node:crypto";
+function sha1(bytes) {
+  if (Array.isArray(bytes)) {
+    bytes = Buffer.from(bytes);
+  } else if (typeof bytes === "string") {
+    bytes = Buffer.from(bytes, "utf8");
+  }
+  return createHash("sha1").update(bytes).digest();
+}
+var sha1_default;
+var init_sha1 = __esm(() => {
+  sha1_default = sha1;
+});
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/regex.js
+var regex_default;
+var init_regex = __esm(() => {
+  regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
+});
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/validate.js
+function validate(uuid) {
+  return typeof uuid === "string" && regex_default.test(uuid);
+}
+var validate_default;
+var init_validate = __esm(() => {
+  init_regex();
+  validate_default = validate;
+});
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/parse.js
+function parse(uuid) {
+  if (!validate_default(uuid)) {
+    throw TypeError("Invalid UUID");
+  }
+  let v;
+  return Uint8Array.of((v = parseInt(uuid.slice(0, 8), 16)) >>> 24, v >>> 16 & 255, v >>> 8 & 255, v & 255, (v = parseInt(uuid.slice(9, 13), 16)) >>> 8, v & 255, (v = parseInt(uuid.slice(14, 18), 16)) >>> 8, v & 255, (v = parseInt(uuid.slice(19, 23), 16)) >>> 8, v & 255, (v = parseInt(uuid.slice(24, 36), 16)) / 1099511627776 & 255, v / 4294967296 & 255, v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
+}
+var parse_default;
+var init_parse = __esm(() => {
+  init_validate();
+  parse_default = parse;
+});
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/stringify.js
+function unsafeStringify(arr, offset = 0) {
+  return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
+}
+var byteToHex;
+var init_stringify = __esm(() => {
+  byteToHex = [];
+  for (let i = 0;i < 256; ++i) {
+    byteToHex.push((i + 256).toString(16).slice(1));
+  }
+});
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/v35.js
+function stringToBytes(str) {
+  str = unescape(encodeURIComponent(str));
+  const bytes = new Uint8Array(str.length);
+  for (let i = 0;i < str.length; ++i) {
+    bytes[i] = str.charCodeAt(i);
+  }
+  return bytes;
+}
+function v35(version, hash, value, namespace, buf, offset) {
+  const valueBytes = typeof value === "string" ? stringToBytes(value) : value;
+  const namespaceBytes = typeof namespace === "string" ? parse_default(namespace) : namespace;
+  if (typeof namespace === "string") {
+    namespace = parse_default(namespace);
+  }
+  if (namespace?.length !== 16) {
+    throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
+  }
+  let bytes = new Uint8Array(16 + valueBytes.length);
+  bytes.set(namespaceBytes);
+  bytes.set(valueBytes, namespaceBytes.length);
+  bytes = hash(bytes);
+  bytes[6] = bytes[6] & 15 | version;
+  bytes[8] = bytes[8] & 63 | 128;
+  if (buf) {
+    offset = offset || 0;
+    if (offset < 0 || offset + 16 > buf.length) {
+      throw new RangeError(`UUID byte range ${offset}:${offset + 15} is out of buffer bounds`);
+    }
+    for (let i = 0;i < 16; ++i) {
+      buf[offset + i] = bytes[i];
+    }
+    return buf;
+  }
+  return unsafeStringify(bytes);
+}
+var DNS = "6ba7b810-9dad-11d1-80b4-00c04fd430c8", URL2 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
+var init_v35 = __esm(() => {
+  init_parse();
+  init_stringify();
+});
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/v5.js
+function v5(value, namespace, buf, offset) {
+  return v35(80, sha1_default, value, namespace, buf, offset);
+}
+var v5_default;
+var init_v5 = __esm(() => {
+  init_sha1();
+  init_v35();
+  v5.DNS = DNS;
+  v5.URL = URL2;
+  v5_default = v5;
+});
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/index.js
+var init_dist_node = __esm(() => {
+  init_v5();
+  init_validate();
+});
+
+// ../../packages/utils/src/signal-helpers.ts
+function extractCommandName(text) {
+  const start = text.indexOf(CMD_TAG_START);
+  if (start === -1)
+    return;
+  const nameStart = start + CMD_TAG_START.length;
+  const end = text.indexOf(CMD_TAG_END, nameStart);
+  if (end === -1)
+    return;
+  const name = text.slice(nameStart, end);
+  return name.length > 0 ? name : undefined;
+}
+var CMD_TAG_START = "<command-name>/", CMD_TAG_END = "</command-name>";
+
+// ../../packages/utils/src/command-xml.ts
+function isBuiltinOrZestCommand(name) {
+  return CLAUDE_BUILTIN_COMMANDS.has(name) || name.startsWith("zest:");
+}
+function sanitizeCommandXml(text) {
+  const trimmed = text.trim();
+  if (trimmed.startsWith("<local-command-caveat>")) {
+    return null;
+  }
+  if (trimmed.startsWith("<local-command-stdout>")) {
+    return null;
+  }
+  if (trimmed.startsWith("<command-message>") || trimmed.startsWith("<command-name>")) {
+    const cmdName = extractCommandName(trimmed);
+    if (cmdName) {
+      if (isBuiltinOrZestCommand(cmdName)) {
+        return null;
+      }
+      const argsMatch = trimmed.match(/<command-args>([\s\S]*?)<\/command-args>/);
+      const args = argsMatch?.[1]?.trim() ?? "";
+      return args ? `[Skill: ${cmdName}] ${args}` : `[Skill: ${cmdName}]`;
+    }
+  }
+  if (trimmed.startsWith("<task-notification>")) {
+    const summaryMatch = trimmed.match(/<summary>([\s\S]*?)<\/summary>/);
+    const summary = summaryMatch?.[1]?.trim();
+    return summary ? `[Agent completed: ${summary}]` : "[Agent task completed]";
+  }
+  if (trimmed.startsWith("<teammate-message")) {
+    const summaryMatch = trimmed.match(/\bsummary="([^"]*)"/);
+    const idMatch = trimmed.match(/\bteammate_id="([^"]*)"/);
+    const id = idMatch?.[1] ?? "agent";
+    const summary = summaryMatch?.[1];
+    if (summary) {
+      return `[Agent: ${id}] ${summary}`;
+    }
+    const bodyMatch = trimmed.match(/<teammate-message[^>]*>([\s\S]*?)<\/teammate-message>/);
+    if (bodyMatch) {
+      const body = bodyMatch[1]?.trim() ?? "";
+      if (body.startsWith("{") && body.includes('"idle_notification"')) {
+        return null;
+      }
+      const snippet = body.length > 200 ? `${body.slice(0, 200)}...` : body;
+      return `[Agent: ${id}] ${snippet}`;
+    }
+    return `[Agent: ${id}]`;
+  }
+  return trimmed;
+}
+var CLAUDE_BUILTIN_COMMANDS;
+var init_command_xml = __esm(() => {
+  CLAUDE_BUILTIN_COMMANDS = new Set([
+    "add-dir",
+    "agents",
+    "allowed-tools",
+    "android",
+    "app",
+    "autofix-pr",
+    "bashes",
+    "branch",
+    "btw",
+    "bug",
+    "checkpoint",
+    "chrome",
+    "clear",
+    "color",
+    "compact",
+    "config",
+    "context",
+    "continue",
+    "copy",
+    "cost",
+    "desktop",
+    "diff",
+    "doctor",
+    "effort",
+    "exit",
+    "export",
+    "extra-usage",
+    "fast",
+    "feedback",
+    "fork",
+    "help",
+    "hooks",
+    "ide",
+    "init",
+    "insights",
+    "install-github-app",
+    "install-slack-app",
+    "ios",
+    "keybindings",
+    "login",
+    "logout",
+    "mcp",
+    "memory",
+    "mobile",
+    "model",
+    "new",
+    "output-style",
+    "passes",
+    "permissions",
+    "plan",
+    "plugin",
+    "powerup",
+    "pr-comments",
+    "privacy-settings",
+    "quit",
+    "rc",
+    "release-notes",
+    "reload-plugins",
+    "remote-control",
+    "remote-env",
+    "rename",
+    "reset",
+    "resume",
+    "review",
+    "rewind",
+    "sandbox",
+    "schedule",
+    "security-review",
+    "settings",
+    "setup-bedrock",
+    "skills",
+    "stats",
+    "status",
+    "statusline",
+    "stickers",
+    "tasks",
+    "teleport",
+    "terminal-setup",
+    "theme",
+    "todos",
+    "tp",
+    "ultraplan",
+    "upgrade",
+    "usage",
+    "vim",
+    "voice",
+    "web-setup"
+  ]);
+});
+// ../../packages/utils/src/date-range.ts
+var PERIOD_TYPE_LABELS, PERIOD_SUMMARY_LABELS;
+var init_date_range = __esm(() => {
+  PERIOD_TYPE_LABELS = {
+    ["today" /* Today */]: "Today",
+    ["this_week" /* ThisWeek */]: "This Week",
+    ["this_month" /* ThisMonth */]: "This Month"
+  };
+  PERIOD_SUMMARY_LABELS = {
+    ["today" /* Today */]: "Daily Summary",
+    ["this_week" /* ThisWeek */]: "Weekly Summary",
+    ["this_month" /* ThisMonth */]: "Monthly Summary",
+    custom: "Custom Period"
+  };
+});
+// ../../packages/utils/src/frontmatter.ts
+var FRONTMATTER_KEYS;
+var init_frontmatter = __esm(() => {
+  FRONTMATTER_KEYS = new Set(["name", "description"]);
+});
+
+// ../../packages/utils/src/language-utils.ts
+function getLanguageFromPath(filePath) {
+  const ext = filePath.split(".").pop()?.toLowerCase();
+  return languageMap[ext || ""] || "plaintext";
+}
+var languageMap;
+var init_language_utils = __esm(() => {
+  languageMap = {
+    ts: "typescript",
+    tsx: "typescriptreact",
+    js: "javascript",
+    jsx: "javascriptreact",
+    mjs: "javascript",
+    cjs: "javascript",
+    py: "python",
+    pyi: "python",
+    pyw: "python",
+    rs: "rust",
+    go: "go",
+    java: "java",
+    kt: "kotlin",
+    kts: "kotlin",
+    scala: "scala",
+    groovy: "groovy",
+    gradle: "groovy",
+    c: "c",
+    h: "c",
+    cpp: "cpp",
+    cc: "cpp",
+    cxx: "cpp",
+    hpp: "cpp",
+    hxx: "hpp",
+    cs: "csharp",
+    rb: "ruby",
+    php: "php",
+    swift: "swift",
+    m: "objective-c",
+    mm: "objective-cpp",
+    vue: "vue",
+    svelte: "svelte",
+    astro: "astro",
+    dart: "dart",
+    ex: "elixir",
+    exs: "elixir",
+    clj: "clojure",
+    cljs: "clojure",
+    edn: "clojure",
+    hs: "haskell",
+    lhs: "haskell",
+    lua: "lua",
+    erl: "erlang",
+    hrl: "erlang",
+    pl: "perl",
+    pm: "perl",
+    coffee: "coffeescript",
+    sh: "shellscript",
+    bash: "shellscript",
+    zsh: "shellscript",
+    fish: "shellscript",
+    ps1: "powershell",
+    psm1: "powershell",
+    bat: "bat",
+    cmd: "bat",
+    md: "markdown",
+    mdx: "mdx",
+    json: "json",
+    jsonc: "jsonc",
+    yaml: "yaml",
+    yml: "yaml",
+    toml: "toml",
+    xml: "xml",
+    html: "html",
+    htm: "html",
+    ini: "ini",
+    properties: "properties",
+    css: "css",
+    scss: "scss",
+    sass: "sass",
+    less: "less",
+    sql: "sql",
+    graphql: "graphql",
+    gql: "graphql",
+    proto: "protobuf",
+    dockerfile: "dockerfile",
+    tf: "terraform",
+    r: "r"
+  };
+});
+
+// ../../packages/utils/src/mcp-registry.ts
+class TtlCache {
+  map = new Map;
+  get(key) {
+    const entry = this.map.get(key);
+    if (!entry)
+      return { hit: false };
+    if (Date.now() > entry.expiry) {
+      this.map.delete(key);
+      return { hit: false };
+    }
+    return { hit: true, value: entry.value };
+  }
+  set(key, value) {
+    if (this.map.size >= CACHE_MAX_SIZE && !this.map.has(key)) {
+      const firstKey = this.map.keys().next().value;
+      if (firstKey !== undefined)
+        this.map.delete(firstKey);
+    }
+    this.map.set(key, { value, expiry: Date.now() + CACHE_TTL_MS });
+  }
+  clear() {
+    this.map.clear();
+  }
+}
+var CACHE_TTL_MS, CACHE_MAX_SIZE = 100, cache, toolCache, serverCache, GENERIC_SEGMENTS, VERB_PREFIXES;
+var init_mcp_registry = __esm(() => {
+  CACHE_TTL_MS = 30 * 60 * 1000;
+  cache = new TtlCache;
+  toolCache = new TtlCache;
+  serverCache = new TtlCache;
+  GENERIC_SEGMENTS = new Set(["mcp", "com", "org", "io", "dev", "server", "api"]);
+  VERB_PREFIXES = new Set([
+    "get",
+    "list",
+    "create",
+    "delete",
+    "update",
+    "search",
+    "query",
+    "fetch",
+    "run",
+    "execute",
+    "resolve",
+    "find",
+    "read",
+    "write",
+    "set",
+    "send",
+    "check",
+    "add",
+    "remove"
+  ]);
+});
+// ../../packages/utils/src/string-utils.ts
+var init_string_utils = () => {};
+// ../../packages/utils/src/index.ts
+var init_src = __esm(() => {
+  init_command_xml();
+  init_date_range();
+  init_frontmatter();
+  init_language_utils();
+  init_mcp_registry();
+  init_string_utils();
 });
 
 // ../../packages/analytics/src/client.ts
@@ -187,7 +637,10 @@ var init_events2 = __esm(() => {
     PAYMENT_SETUP_FAILED: "Payment Setup Failed",
     SUBSCRIPTION_CREATED: "Subscription Created",
     SUBSCRIPTION_UPDATED: "Subscription Updated",
+    SUBSCRIPTION_UPGRADED: "Subscription Upgraded",
+    SUBSCRIPTION_DOWNGRADED: "Subscription Downgraded",
     SUBSCRIPTION_CANCELED: "Subscription Canceled",
+    USER_CHURNED: "User Churned",
     PAYMENT_SUCCEEDED: "Payment Succeeded",
     PAYMENT_FAILED: "Payment Failed",
     BILLING_PORTAL_OPENED: "Billing Portal Opened",
@@ -553,7 +1006,7 @@ var init_bot_detection = __esm(() => {
 });
 
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/utils/string-utils.mjs
-var init_string_utils = () => {};
+var init_string_utils2 = () => {};
 
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/utils/type-utils.mjs
 function isPrimitive(value) {
@@ -581,7 +1034,7 @@ function isInstanceOf(candidate, base) {
 var nativeIsArray, ObjProto, type_utils_hasOwnProperty, type_utils_toString, isArray, isObject = (x) => x === Object(x) && !isArray(x), isUndefined = (x) => x === undefined, isString = (x) => type_utils_toString.call(x) == "[object String]", isEmptyString = (x) => isString(x) && x.trim().length === 0, isNumber = (x) => type_utils_toString.call(x) == "[object Number]" && x === x, isPlainError = (x) => x instanceof Error;
 var init_type_utils = __esm(() => {
   init_types();
-  init_string_utils();
+  init_string_utils2();
   nativeIsArray = Array.isArray;
   ObjProto = Object.prototype;
   type_utils_hasOwnProperty = ObjProto.hasOwnProperty;
@@ -911,7 +1364,7 @@ var init_logger = () => {};
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/utils/user-agent-utils.mjs
 var MOBILE = "Mobile", IOS = "iOS", ANDROID = "Android", TABLET = "Tablet", ANDROID_TABLET, APPLE = "Apple", APPLE_WATCH, SAFARI = "Safari", BLACKBERRY = "BlackBerry", SAMSUNG = "Samsung", SAMSUNG_BROWSER, SAMSUNG_INTERNET, CHROME = "Chrome", CHROME_OS, CHROME_IOS, INTERNET_EXPLORER = "Internet Explorer", INTERNET_EXPLORER_MOBILE, OPERA = "Opera", OPERA_MINI, EDGE = "Edge", MICROSOFT_EDGE, FIREFOX = "Firefox", FIREFOX_IOS, NINTENDO = "Nintendo", PLAYSTATION = "PlayStation", XBOX = "Xbox", ANDROID_MOBILE, MOBILE_SAFARI, WINDOWS = "Windows", WINDOWS_PHONE, GENERIC = "Generic", GENERIC_MOBILE, GENERIC_TABLET, KONQUEROR = "Konqueror", BROWSER_VERSION_REGEX_SUFFIX = "(\\d+(\\.\\d+)?)", DEFAULT_BROWSER_VERSION_REGEX, XBOX_REGEX, PLAYSTATION_REGEX, NINTENDO_REGEX, BLACKBERRY_REGEX, windowsVersionMap, versionRegexes, osMatchers;
 var init_user_agent_utils = __esm(() => {
-  init_string_utils();
+  init_string_utils2();
   init_type_utils();
   ANDROID_TABLET = ANDROID + " " + TABLET;
   APPLE_WATCH = APPLE + " Watch";
@@ -1192,7 +1645,7 @@ var init_utils = __esm(() => {
   init_bot_detection();
   init_bucketed_rate_limiter();
   init_number_utils();
-  init_string_utils();
+  init_string_utils2();
   init_type_utils();
   init_promise_queue();
   init_logger();
@@ -5698,9 +6151,12 @@ var init_properties = () => {};
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
-var CLAUDE_INSTALL_DIR, CLAUDE_DIR_SEPARATOR_PATTERN, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MAX_CONTENT_PREVIEW_LENGTH = 1000, MIN_MESSAGES_PER_SESSION = 3, STALE_SESSION_AGE_MS, MAX_QUEUE_SIZE_EVENTS = 5000, MAX_QUEUE_SIZE_SESSIONS = 500, MAX_QUEUE_SIZE_MESSAGES = 1e4, POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", CLAUDE_BUILTIN_COMMANDS, EXCLUDED_COMMAND_PATTERNS, UPDATE_CHECK_CACHE_TTL_MS, DAEMON_INACTIVITY_TIMEOUT_MS, DAEMON_WARMUP_GRACE_MS, NOTIFICATION_DURATION_MS, STANDUP_NOTIFICATION_THROTTLE_MS, SYNC_METRICS_RETENTION_MS;
+var CLAUDE_INSTALL_DIR, CLAUDE_CONFIG_FILE, CLAUDE_DIR_SEPARATOR_PATTERN, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUSLINE_PROXY_CONFIG_FILE, STATUSLINE_SNAPSHOTS_FILE, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, MAX_CONTENT_PREVIEW_LENGTH = 1000, MIN_MESSAGES_PER_SESSION = 3, STALE_SESSION_AGE_MS, MAX_QUEUE_SIZE_EVENTS = 5000, MAX_QUEUE_SIZE_SESSIONS = 500, MAX_QUEUE_SIZE_MESSAGES = 1e4, POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", EXCLUDED_COMMAND_PATTERNS, ZEST_SESSION_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341", UPDATE_CHECK_CACHE_TTL_MS, DAEMON_INACTIVITY_TIMEOUT_MS, DAEMON_WARMUP_GRACE_MS, NOTIFICATION_DURATION_MS, STANDUP_NOTIFICATION_THROTTLE_MS, SYNC_METRICS_RETENTION_MS;
 var init_constants = __esm(() => {
+  init_src();
+  init_src();
   CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
+  CLAUDE_CONFIG_FILE = process.env.CLAUDE_CONFIG_FILE || join(homedir(), ".claude.json");
   CLAUDE_DIR_SEPARATOR_PATTERN = /[\\/:.\s_]/g;
   CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
   CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
@@ -5714,6 +6170,8 @@ var init_constants = __esm(() => {
   DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
   CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
   STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
+  STATUSLINE_PROXY_CONFIG_FILE = join(CLAUDE_ZEST_DIR, "statusline-proxy.json");
+  STATUSLINE_SNAPSHOTS_FILE = process.env.ZEST_STATUSLINE_SNAPSHOTS_FILE ?? join(CLAUDE_ZEST_DIR, "statusline-snapshots.json");
   STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
   SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
   EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
@@ -5724,95 +6182,6 @@ var init_constants = __esm(() => {
   PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
   MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
   STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-  CLAUDE_BUILTIN_COMMANDS = new Set([
-    "add-dir",
-    "agents",
-    "allowed-tools",
-    "android",
-    "app",
-    "autofix-pr",
-    "bashes",
-    "branch",
-    "btw",
-    "bug",
-    "checkpoint",
-    "chrome",
-    "clear",
-    "color",
-    "compact",
-    "config",
-    "context",
-    "continue",
-    "copy",
-    "cost",
-    "desktop",
-    "diff",
-    "doctor",
-    "effort",
-    "exit",
-    "export",
-    "extra-usage",
-    "fast",
-    "feedback",
-    "fork",
-    "help",
-    "hooks",
-    "ide",
-    "init",
-    "insights",
-    "install-github-app",
-    "install-slack-app",
-    "ios",
-    "keybindings",
-    "login",
-    "logout",
-    "mcp",
-    "memory",
-    "mobile",
-    "model",
-    "new",
-    "output-style",
-    "passes",
-    "permissions",
-    "plan",
-    "plugin",
-    "powerup",
-    "pr-comments",
-    "privacy-settings",
-    "quit",
-    "rc",
-    "release-notes",
-    "reload-plugins",
-    "remote-control",
-    "remote-env",
-    "rename",
-    "reset",
-    "resume",
-    "review",
-    "rewind",
-    "sandbox",
-    "schedule",
-    "security-review",
-    "settings",
-    "setup-bedrock",
-    "skills",
-    "stats",
-    "status",
-    "statusline",
-    "stickers",
-    "tasks",
-    "teleport",
-    "terminal-setup",
-    "theme",
-    "todos",
-    "tp",
-    "ultraplan",
-    "upgrade",
-    "usage",
-    "vim",
-    "voice",
-    "web-setup"
-  ]);
   EXCLUDED_COMMAND_PATTERNS = [
     new RegExp(`^\\/(${[...CLAUDE_BUILTIN_COMMANDS].join("|")})\\b`, "i"),
     /^\/zest[^:\s]*:/i,
@@ -6498,97 +6867,31 @@ var init_analytics2 = __esm(() => {
   init_trackers();
 });
 
+// src/utils/session-id-normalizer.ts
+var exports_session_id_normalizer = {};
+__export(exports_session_id_normalizer, {
+  normalizeSessionId: () => normalizeSessionId2,
+  isValidSessionId: () => isValidSessionId2
+});
+function isValidSessionId2(sessionId) {
+  return validate_default(sessionId);
+}
+function normalizeSessionId2(sessionId) {
+  if (validate_default(sessionId)) {
+    return sessionId;
+  }
+  return v5_default(sessionId, ZEST_SESSION_NAMESPACE);
+}
+var init_session_id_normalizer = __esm(() => {
+  init_dist_node();
+  init_constants();
+});
+
 // src/utils/extraction-helpers.ts
 init_events();
 import { randomUUID } from "node:crypto";
-import { open, readdir as readdir5, readFile as readFile8, realpath, stat as stat5 } from "node:fs/promises";
-import { basename as basename3, join as join7, resolve as resolve2 } from "node:path";
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/sha1.js
-import { createHash } from "node:crypto";
-function sha1(bytes) {
-  if (Array.isArray(bytes)) {
-    bytes = Buffer.from(bytes);
-  } else if (typeof bytes === "string") {
-    bytes = Buffer.from(bytes, "utf8");
-  }
-  return createHash("sha1").update(bytes).digest();
-}
-var sha1_default = sha1;
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/regex.js
-var regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/validate.js
-function validate(uuid) {
-  return typeof uuid === "string" && regex_default.test(uuid);
-}
-var validate_default = validate;
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/parse.js
-function parse(uuid) {
-  if (!validate_default(uuid)) {
-    throw TypeError("Invalid UUID");
-  }
-  let v;
-  return Uint8Array.of((v = parseInt(uuid.slice(0, 8), 16)) >>> 24, v >>> 16 & 255, v >>> 8 & 255, v & 255, (v = parseInt(uuid.slice(9, 13), 16)) >>> 8, v & 255, (v = parseInt(uuid.slice(14, 18), 16)) >>> 8, v & 255, (v = parseInt(uuid.slice(19, 23), 16)) >>> 8, v & 255, (v = parseInt(uuid.slice(24, 36), 16)) / 1099511627776 & 255, v / 4294967296 & 255, v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
-}
-var parse_default = parse;
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/stringify.js
-var byteToHex = [];
-for (let i = 0;i < 256; ++i) {
-  byteToHex.push((i + 256).toString(16).slice(1));
-}
-function unsafeStringify(arr, offset = 0) {
-  return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
-}
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/v35.js
-function stringToBytes(str) {
-  str = unescape(encodeURIComponent(str));
-  const bytes = new Uint8Array(str.length);
-  for (let i = 0;i < str.length; ++i) {
-    bytes[i] = str.charCodeAt(i);
-  }
-  return bytes;
-}
-var DNS = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
-var URL2 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
-function v35(version, hash, value, namespace, buf, offset) {
-  const valueBytes = typeof value === "string" ? stringToBytes(value) : value;
-  const namespaceBytes = typeof namespace === "string" ? parse_default(namespace) : namespace;
-  if (typeof namespace === "string") {
-    namespace = parse_default(namespace);
-  }
-  if (namespace?.length !== 16) {
-    throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
-  }
-  let bytes = new Uint8Array(16 + valueBytes.length);
-  bytes.set(namespaceBytes);
-  bytes.set(valueBytes, namespaceBytes.length);
-  bytes = hash(bytes);
-  bytes[6] = bytes[6] & 15 | version;
-  bytes[8] = bytes[8] & 63 | 128;
-  if (buf) {
-    offset = offset || 0;
-    if (offset < 0 || offset + 16 > buf.length) {
-      throw new RangeError(`UUID byte range ${offset}:${offset + 15} is out of buffer bounds`);
-    }
-    for (let i = 0;i < 16; ++i) {
-      buf[offset + i] = bytes[i];
-    }
-    return buf;
-  }
-  return unsafeStringify(bytes);
-}
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/v5.js
-function v5(value, namespace, buf, offset) {
-  return v35(80, sha1_default, value, namespace, buf, offset);
-}
-v5.DNS = DNS;
-v5.URL = URL2;
-var v5_default = v5;
+import { open, readdir as readdir5, readFile as readFile9, realpath, stat as stat5 } from "node:fs/promises";
+import { basename as basename3, join as join8, resolve as resolve2 } from "node:path";
 // ../../packages/plugin-common/src/supabase/utils/string-utils.ts
 function toWellFormed(str) {
   return str.toWellFormed?.() ?? str;
@@ -6597,158 +6900,11 @@ var SYNTHETIC_MODEL = "<synthetic>";
 function isSyntheticModel(model) {
   return model === SYNTHETIC_MODEL;
 }
-// ../../packages/utils/src/date-range.ts
-var PERIOD_TYPE_LABELS = {
-  ["today" /* Today */]: "Today",
-  ["this_week" /* ThisWeek */]: "This Week",
-  ["this_month" /* ThisMonth */]: "This Month"
-};
-var PERIOD_SUMMARY_LABELS = {
-  ["today" /* Today */]: "Daily Summary",
-  ["this_week" /* ThisWeek */]: "Weekly Summary",
-  ["this_month" /* ThisMonth */]: "Monthly Summary",
-  custom: "Custom Period"
-};
-// ../../packages/utils/src/frontmatter.ts
-var FRONTMATTER_KEYS = new Set(["name", "description"]);
-// ../../packages/utils/src/language-utils.ts
-var languageMap = {
-  ts: "typescript",
-  tsx: "typescriptreact",
-  js: "javascript",
-  jsx: "javascriptreact",
-  mjs: "javascript",
-  cjs: "javascript",
-  py: "python",
-  pyi: "python",
-  pyw: "python",
-  rs: "rust",
-  go: "go",
-  java: "java",
-  kt: "kotlin",
-  kts: "kotlin",
-  scala: "scala",
-  groovy: "groovy",
-  gradle: "groovy",
-  c: "c",
-  h: "c",
-  cpp: "cpp",
-  cc: "cpp",
-  cxx: "cpp",
-  hpp: "cpp",
-  hxx: "hpp",
-  cs: "csharp",
-  rb: "ruby",
-  php: "php",
-  swift: "swift",
-  m: "objective-c",
-  mm: "objective-cpp",
-  vue: "vue",
-  svelte: "svelte",
-  astro: "astro",
-  dart: "dart",
-  ex: "elixir",
-  exs: "elixir",
-  clj: "clojure",
-  cljs: "clojure",
-  edn: "clojure",
-  hs: "haskell",
-  lhs: "haskell",
-  lua: "lua",
-  erl: "erlang",
-  hrl: "erlang",
-  pl: "perl",
-  pm: "perl",
-  coffee: "coffeescript",
-  sh: "shellscript",
-  bash: "shellscript",
-  zsh: "shellscript",
-  fish: "shellscript",
-  ps1: "powershell",
-  psm1: "powershell",
-  bat: "bat",
-  cmd: "bat",
-  md: "markdown",
-  mdx: "mdx",
-  json: "json",
-  jsonc: "jsonc",
-  yaml: "yaml",
-  yml: "yaml",
-  toml: "toml",
-  xml: "xml",
-  html: "html",
-  htm: "html",
-  ini: "ini",
-  properties: "properties",
-  css: "css",
-  scss: "scss",
-  sass: "sass",
-  less: "less",
-  sql: "sql",
-  graphql: "graphql",
-  gql: "graphql",
-  proto: "protobuf",
-  dockerfile: "dockerfile",
-  tf: "terraform",
-  r: "r"
-};
-function getLanguageFromPath(filePath) {
-  const ext = filePath.split(".").pop()?.toLowerCase();
-  return languageMap[ext || ""] || "plaintext";
-}
-// ../../packages/utils/src/mcp-registry.ts
-var CACHE_TTL_MS = 30 * 60 * 1000;
-var CACHE_MAX_SIZE = 100;
-class TtlCache {
-  map = new Map;
-  get(key) {
-    const entry = this.map.get(key);
-    if (!entry)
-      return { hit: false };
-    if (Date.now() > entry.expiry) {
-      this.map.delete(key);
-      return { hit: false };
-    }
-    return { hit: true, value: entry.value };
-  }
-  set(key, value) {
-    if (this.map.size >= CACHE_MAX_SIZE && !this.map.has(key)) {
-      const firstKey = this.map.keys().next().value;
-      if (firstKey !== undefined)
-        this.map.delete(firstKey);
-    }
-    this.map.set(key, { value, expiry: Date.now() + CACHE_TTL_MS });
-  }
-  clear() {
-    this.map.clear();
-  }
-}
-var cache = new TtlCache;
-var toolCache = new TtlCache;
-var serverCache = new TtlCache;
-var GENERIC_SEGMENTS = new Set(["mcp", "com", "org", "io", "dev", "server", "api"]);
-var VERB_PREFIXES = new Set([
-  "get",
-  "list",
-  "create",
-  "delete",
-  "update",
-  "search",
-  "query",
-  "fetch",
-  "run",
-  "execute",
-  "resolve",
-  "find",
-  "read",
-  "write",
-  "set",
-  "send",
-  "check",
-  "add",
-  "remove"
-]);
+// src/utils/extraction-helpers.ts
+init_src();
+
 // ../../packages/utils/src/git-utils.ts
+init_dist_node();
 import { exec, execSync } from "node:child_process";
 import * as path from "node:path";
 import { promisify } from "node:util";
@@ -22504,7 +22660,8 @@ var UserSettingsSchema = exports_external.object({
   logLevel: exports_external.enum(["debug", "info", "warn", "error"]),
   excludedFolders: exports_external.array(exports_external.string()).default([]),
   privacy: PrivacySettingsSchema.optional(),
-  notificationsEnabled: exports_external.boolean().default(false)
+  notificationsEnabled: exports_external.boolean().default(false),
+  statuslineAutoWrap: exports_external.boolean().default(true)
 });
 var DEFAULT_SETTINGS = {
   enableRemotePersistence: true,
@@ -22513,7 +22670,8 @@ var DEFAULT_SETTINGS = {
   logLevel: "info",
   excludedFolders: [],
   privacy: DEFAULT_PRIVACY_SETTINGS,
-  notificationsEnabled: false
+  notificationsEnabled: false,
+  statuslineAutoWrap: true
 };
 async function loadSettings() {
   try {
@@ -22551,6 +22709,8 @@ function buildTokenMetadata(usage) {
     meta3.cache_creation_5m_tokens = usage.cache_creation.ephemeral_5m_input_tokens;
   if (usage.cache_creation?.ephemeral_1h_input_tokens != null)
     meta3.cache_creation_1h_tokens = usage.cache_creation.ephemeral_1h_input_tokens;
+  if (usage.reasoning_tokens != null)
+    meta3.reasoning_tokens = usage.reasoning_tokens;
   if (typeof usage.server_tool_use?.input_tokens === "number")
     meta3.server_tool_use_input_tokens = usage.server_tool_use.input_tokens;
   if (typeof usage.server_tool_use?.output_tokens === "number")
@@ -22561,7 +22721,11 @@ function buildTokenMetadata(usage) {
   return meta3;
 }
 
+// src/extractors/message-parser.ts
+init_src();
+
 // src/utils/command-filters.ts
+init_src();
 init_constants();
 
 // src/extractors/extraction-utils.ts
@@ -23797,9 +23961,18 @@ function logDiff(filePath, diff) {
 // src/utils/command-filters.ts
 init_logger2();
 function shouldExcludeCommand(command) {
-  const trimmedCommand = command.trim();
+  const trimmed = command.trim();
   for (const pattern of EXCLUDED_COMMAND_PATTERNS) {
-    if (pattern.test(trimmedCommand)) {
+    if (pattern.test(trimmed)) {
+      return true;
+    }
+  }
+  if (trimmed.startsWith("<local-command-caveat>") || trimmed.startsWith("<local-command-stdout>")) {
+    return true;
+  }
+  if (trimmed.startsWith("<command-message>") || trimmed.startsWith("<command-name>")) {
+    const cmdName = extractCommandName(trimmed);
+    if (cmdName && isBuiltinOrZestCommand(cmdName)) {
       return true;
     }
   }
@@ -23821,6 +23994,8 @@ function restoreFilteringState(lines, lastReadLine) {
   for (let i = lookbackLines.length - 1;i >= 0; i--) {
     try {
       const entry = JSON.parse(lookbackLines[i]);
+      if (entry.isMeta === true)
+        continue;
       if (entry.message?.role === "user" && entry.message.content) {
         const textContent = extractTextContent2(entry.message.content);
         if (textContent) {
@@ -23913,6 +24088,11 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
       }
       try {
         const entry = JSON.parse(trimmedLine);
+        if (entry.isMeta === true) {
+          lastSuccessfulLine = lineNumber;
+          lineNumber++;
+          continue;
+        }
         if (!isSyntheticModel(entry.message?.model)) {
           if (entry.message) {
             const role = entry.message.role;
@@ -23923,6 +24103,12 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
                 const filterResult = applyMessageFilter(role, textContent, filteringState);
                 filteringState = filterResult.newState;
                 if (!filterResult.shouldFilter) {
+                  const cleanedContent = sanitizeCommandXml(textContent);
+                  if (!cleanedContent) {
+                    lastSuccessfulLine = lineNumber;
+                    lineNumber++;
+                    continue;
+                  }
                   const metadata = {};
                   if (entry.uuid)
                     metadata.claude_uuid = entry.uuid;
@@ -23939,7 +24125,7 @@ async function extractNewMessagesFromFile(filePath, sessionId, lastReadLine = 0,
                     id: entry.uuid,
                     session_id: sessionId,
                     role,
-                    content: textContent,
+                    content: cleanedContent,
                     created_at: entry.timestamp || new Date().toISOString(),
                     message_index: messageCounter,
                     metadata: Object.keys(metadata).length > 0 ? metadata : null
@@ -24041,13 +24227,159 @@ function getPrivacyManager() {
   return instance;
 }
 
+// src/statusline/statusline-snapshot.ts
+import { mkdirSync, readFileSync as readFileSync2, renameSync, writeFileSync } from "node:fs";
+init_constants();
+function isRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+function readSnapshotFile(filePath) {
+  try {
+    const parsed = JSON.parse(readFileSync2(filePath, "utf-8"));
+    if (isRecord(parsed) && parsed.version === 1 && isRecord(parsed.snapshots)) {
+      return parsed;
+    }
+  } catch {}
+  return { version: 1, updated_at: new Date(0).toISOString(), snapshots: {} };
+}
+async function readStatuslineSnapshotForSession(sessionId, filePath = STATUSLINE_SNAPSHOTS_FILE) {
+  const file2 = readSnapshotFile(filePath);
+  return file2.snapshots[sessionId] ?? null;
+}
+function epochSeconds(value) {
+  if (!value)
+    return;
+  if (typeof value === "number" && Number.isFinite(value))
+    return Math.floor(value);
+  if (typeof value !== "string")
+    return;
+  const ms = Date.parse(value);
+  return Number.isFinite(ms) ? Math.floor(ms / 1000) : undefined;
+}
+function statuslineSnapshotToSessionMetadata(snapshot) {
+  if (!snapshot)
+    return {};
+  const { transcript_path: _transcriptPath, ...dbSafeSnapshot } = snapshot;
+  const metadata = {
+    claude_statusline: dbSafeSnapshot,
+    token_data_source: "claude_code_statusline"
+  };
+  if (snapshot.model?.id)
+    metadata.model = snapshot.model.id;
+  if (snapshot.context_window?.used_percentage != null) {
+    metadata.context_used = snapshot.context_window.used_percentage;
+  }
+  if (snapshot.context_window?.context_window_size != null) {
+    metadata.model_context_window = snapshot.context_window.context_window_size;
+  }
+  if (snapshot.context_window?.total_input_tokens != null) {
+    metadata.context_tokens_used = snapshot.context_window.total_input_tokens;
+    metadata.used_tokens = snapshot.context_window.total_input_tokens;
+  }
+  if (snapshot.rate_limits?.five_hour?.used_percentage != null) {
+    metadata.five_hour_limit = snapshot.rate_limits.five_hour.used_percentage;
+  }
+  if (snapshot.rate_limits?.seven_day?.used_percentage != null) {
+    metadata.weekly_limit = snapshot.rate_limits.seven_day.used_percentage;
+  }
+  const primaryReset = epochSeconds(snapshot.rate_limits?.five_hour?.resets_at);
+  const secondaryReset = epochSeconds(snapshot.rate_limits?.seven_day?.resets_at);
+  if (primaryReset != null || secondaryReset != null) {
+    metadata.rate_limits_latest = {
+      limit_id: "claude_code_statusline",
+      ...primaryReset != null ? { primary: { resets_at: primaryReset } } : {},
+      ...secondaryReset != null ? { secondary: { resets_at: secondaryReset } } : {}
+    };
+  }
+  return metadata;
+}
+
+// ../../packages/plugin-common/src/extractors/claude-account-metadata.ts
+import { readFile as readFile6 } from "node:fs/promises";
+import { homedir as homedir2 } from "node:os";
+import { join as join6 } from "node:path";
+var CLAUDE_CONFIG_FILE2 = process.env.CLAUDE_CONFIG_FILE || join6(homedir2(), ".claude.json");
+function objectField(value, key) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  const field = value[key];
+  return field && typeof field === "object" ? field : null;
+}
+function stringField(value, key) {
+  if (!value || typeof value !== "object") {
+    return;
+  }
+  const field = value[key];
+  return typeof field === "string" && field.trim().length > 0 ? field.trim() : undefined;
+}
+function booleanField(value, key) {
+  if (!value || typeof value !== "object") {
+    return;
+  }
+  const field = value[key];
+  return typeof field === "boolean" ? field : undefined;
+}
+function normalizeClaudeTier(value) {
+  if (!value) {
+    return;
+  }
+  const normalized = value.toLowerCase().replace(/^claude_/, "");
+  const tierMatch = normalized.match(/(?:^|_)claude_((?:max|pro|team|enterprise)(?:_\d+x)?)/) ?? normalized.match(/^((?:max|pro|team|enterprise)(?:_\d+x)?)/);
+  return tierMatch?.[1] ?? normalized;
+}
+function inferBillingMode(value) {
+  if (!value) {
+    return "unknown";
+  }
+  const normalized = value.toLowerCase();
+  if (normalized.includes("subscription")) {
+    return "subscription";
+  }
+  if (normalized.includes("api")) {
+    return "api";
+  }
+  return "unknown";
+}
+function hasAvailableOverageCredit(cache2) {
+  if (!cache2 || typeof cache2 !== "object") {
+    return;
+  }
+  for (const entry of Object.values(cache2)) {
+    const info = objectField(entry, "info");
+    if (booleanField(info, "available") === true || booleanField(info, "granted") === true) {
+      return true;
+    }
+  }
+  return;
+}
+function extractClaudeAccountMetadataFromConfig(config2) {
+  const oauthAccount = objectField(config2, "oauthAccount") ?? {};
+  const tier = normalizeClaudeTier(stringField(oauthAccount, "subscriptionType") ?? stringField(config2, "subscriptionType") ?? stringField(oauthAccount, "organizationType") ?? stringField(config2, "organizationType") ?? stringField(oauthAccount, "organizationRateLimitTier") ?? stringField(config2, "organizationRateLimitTier") ?? stringField(oauthAccount, "rateLimitTier") ?? stringField(config2, "rateLimitTier"));
+  const billingType = stringField(oauthAccount, "billingType") ?? stringField(config2, "billingType");
+  const overage = booleanField(oauthAccount, "hasExtraUsageEnabled") ?? booleanField(config2, "hasExtraUsageEnabled") ?? hasAvailableOverageCredit(config2?.overageCreditGrantCache);
+  const billingMode = inferBillingMode(billingType);
+  const metadata = {
+    ...tier ? { plan: `anthropic:${tier}` } : {},
+    ...billingType || tier || overage !== undefined ? { billing_mode: billingMode } : {},
+    ...overage !== undefined ? { overage } : {}
+  };
+  return Object.keys(metadata).length > 0 ? metadata : null;
+}
+async function readClaudeAccountMetadata(configFile = CLAUDE_CONFIG_FILE2) {
+  try {
+    return extractClaudeAccountMetadataFromConfig(JSON.parse(await readFile6(configFile, "utf-8")));
+  } catch {
+    return null;
+  }
+}
 // src/utils/extraction-helpers.ts
 init_logger2();
 
 // ../../packages/plugin-common/src/queue/queue-manager.ts
 init_events();
 init_properties();
-import { appendFile as appendFile2, readFile as readFile6, unlink as unlink4, writeFile as writeFile5 } from "node:fs/promises";
+import { appendFile as appendFile2, readFile as readFile7, unlink as unlink4, writeFile as writeFile5 } from "node:fs/promises";
 import { dirname as dirname6 } from "node:path";
 init_file_lock();
 init_fs_utils();
@@ -24064,7 +24396,7 @@ function createQueueManager(config2) {
   const withFileLock2 = resolveFileLock(config2.withFileLock);
   async function readJsonl(filePath) {
     try {
-      const content = await readFile6(filePath, "utf8");
+      const content = await readFile7(filePath, "utf8");
       const lines = content.trim().split(`
 `).filter(Boolean);
       const results = [];
@@ -24094,7 +24426,7 @@ function createQueueManager(config2) {
   }
   async function countLines(filePath) {
     try {
-      const content = await readFile6(filePath, "utf8");
+      const content = await readFile7(filePath, "utf8");
       const lines = content.trim().split(`
 `).filter(Boolean);
       return lines.length;
@@ -24421,20 +24753,20 @@ var {
 // ../../packages/plugin-common/src/state/state-manager.ts
 init_file_lock();
 init_fs_utils();
-import { readFile as readFile7, writeFile as writeFile6 } from "node:fs/promises";
-import { join as join6 } from "node:path";
+import { readFile as readFile8, writeFile as writeFile6 } from "node:fs/promises";
+import { join as join7 } from "node:path";
 function createStateManager(config2) {
   const { stateDir, logger: logger3 } = config2;
   const withFileLock2 = resolveFileLock(config2.withFileLock);
   function getStateFilePath(sessionId) {
-    return join6(stateDir, `${sessionId}.json`);
+    return join7(stateDir, `${sessionId}.json`);
   }
   async function readSessionState(sessionId) {
     try {
       const stateFile = getStateFilePath(sessionId);
       return await withFileLock2(stateFile, async () => {
         try {
-          const content = await readFile7(stateFile, "utf-8");
+          const content = await readFile8(stateFile, "utf-8");
           return JSON.parse(content);
         } catch (error51) {
           logger3?.debug(`No state found for session ${sessionId} (new session)`);
@@ -24582,7 +24914,7 @@ async function cacheFilesForDeletion(filePaths, sessionId, projectDir) {
   for (const filePath of filePaths) {
     try {
       const absolutePath = filePath.startsWith("/") ? filePath : resolve2(projectDir, filePath);
-      const content = await readFile8(absolutePath, "utf-8");
+      const content = await readFile9(absolutePath, "utf-8");
       await cacheFileForDeletion(absolutePath, content, sessionId);
     } catch (error51) {
       logger2.debug(`Could not cache ${filePath}:`, error51);
@@ -24598,7 +24930,7 @@ async function findConversationFile(projectDir) {
       resolvedDir = projectDir;
     }
     const claudeDirName = resolvedDir.replace(CLAUDE_DIR_SEPARATOR_PATTERN, "-");
-    let projectPath = join7(CLAUDE_PROJECTS_DIR, claudeDirName);
+    let projectPath = join8(CLAUDE_PROJECTS_DIR, claudeDirName);
     logger2.debug(`Looking for project directory: ${projectPath}`);
     try {
       await stat5(projectPath);
@@ -24621,14 +24953,14 @@ async function findConversationFile(projectDir) {
     let mostRecentFile = jsonlFiles[0];
     let mostRecentTime = 0;
     for (const file2 of jsonlFiles) {
-      const filePath = join7(projectPath, file2);
+      const filePath = join8(projectPath, file2);
       const stats = await stat5(filePath);
       if (stats.mtimeMs > mostRecentTime) {
         mostRecentTime = stats.mtimeMs;
         mostRecentFile = file2;
       }
     }
-    const conversationFile = join7(projectPath, mostRecentFile);
+    const conversationFile = join8(projectPath, mostRecentFile);
     const sessionId = basename3(mostRecentFile, ".jsonl");
     const fileStats = await stat5(conversationFile);
     return { conversationFile, sessionId, fileStats };
@@ -24656,14 +24988,21 @@ async function extractNewSessionData(conversationFile, sessionId) {
 }
 async function queueSessionData(sessionId, messages, toolUses, fileStats, projectDir, conversationFile, newLastReadLine, lastMessageIndex, isNewSession, peakContextTokens) {
   await ensurePrivacyInitialized(projectDir);
+  const statuslineMetadata = statuslineSnapshotToSessionMetadata(await readStatuslineSnapshotForSession(sessionId));
   if (isNewSession) {
     const projectInfo = getProjectInfoSync(projectDir);
+    const accountMetadata = await readClaudeAccountMetadata();
+    const metadata = {
+      ...accountMetadata ?? {},
+      ...statuslineMetadata
+    };
     const session = {
       id: sessionId,
       title: toWellFormed(messages.length > 0 ? messages[0].content.substring(0, 100) : `Session ${sessionId}`),
       created_at: fileStats.birthtime.toISOString(),
       project_id: projectInfo.projectId !== "unknown" ? projectInfo.projectId : null,
-      project_name: projectInfo.projectName !== "unknown" ? projectInfo.projectName : null
+      project_name: projectInfo.projectName !== "unknown" ? projectInfo.projectName : null,
+      ...Object.keys(metadata).length > 0 ? { metadata } : {}
     };
     await enqueueChatSession(session);
   }
@@ -24681,16 +25020,55 @@ async function queueSessionData(sessionId, messages, toolUses, fileStats, projec
   }
   const eventsQueued = await queueToolUseEvents(toolUses, sessionId, projectDir);
   await updateLastReadLine(sessionId, conversationFile, newLastReadLine, lastMessageIndex);
-  if (peakContextTokens != null) {
+  const metadataPatch = {
+    ...statuslineMetadata,
+    ...peakContextTokens != null ? { context_peak_tokens: peakContextTokens } : {}
+  };
+  if (Object.keys(metadataPatch).length > 0) {
     await atomicUpdateQueue(SESSIONS_QUEUE_FILE, (sessions) => sessions.map((s) => s.id === sessionId ? {
       ...s,
       metadata: {
         ...s.metadata ?? {},
-        context_peak_tokens: peakContextTokens
+        ...metadataPatch
       }
     } : s));
   }
   return { messagesQueued: messages.length, eventsQueued };
+}
+async function patchQueuedSessionMetadataFromStatusline(sessionId) {
+  const statuslineMetadata = statuslineSnapshotToSessionMetadata(await readStatuslineSnapshotForSession(sessionId));
+  if (Object.keys(statuslineMetadata).length === 0)
+    return false;
+  let patched = false;
+  await atomicUpdateQueue(SESSIONS_QUEUE_FILE, (sessions) => sessions.map((s) => {
+    if (s.id !== sessionId)
+      return s;
+    patched = true;
+    return {
+      ...s,
+      metadata: {
+        ...s.metadata ?? {},
+        ...statuslineMetadata
+      }
+    };
+  }));
+  return patched;
+}
+async function patchDbSessionMetadataFromStatusline(sessionId, supabaseClient) {
+  const statuslineMetadata = statuslineSnapshotToSessionMetadata(await readStatuslineSnapshotForSession(sessionId));
+  if (Object.keys(statuslineMetadata).length === 0)
+    return false;
+  const { normalizeSessionId: normalizeSessionId3 } = await Promise.resolve().then(() => (init_session_id_normalizer(), exports_session_id_normalizer));
+  const normalizedId = normalizeSessionId3(sessionId);
+  const { error: error51 } = await supabaseClient.rpc("patch_session_metadata", {
+    p_session_id: normalizedId,
+    p_patch: statuslineMetadata
+  });
+  if (error51) {
+    logger2.warn(`Failed to patch DB metadata for session: ${error51.message}`);
+    return false;
+  }
+  return true;
 }
 async function queueToolUseEvents(toolUses, sessionId, projectDir) {
   const session = await getValidSession();
@@ -24734,7 +25112,7 @@ async function findSubagentFiles(projectDir, sessionId) {
       resolvedDir = projectDir;
     }
     const claudeDirName = resolvedDir.replace(CLAUDE_DIR_SEPARATOR_PATTERN, "-");
-    const subagentsDir = join7(CLAUDE_PROJECTS_DIR, claudeDirName, sessionId, "subagents");
+    const subagentsDir = join8(CLAUDE_PROJECTS_DIR, claudeDirName, sessionId, "subagents");
     let entries;
     try {
       entries = await readdir5(subagentsDir);
@@ -24742,7 +25120,7 @@ async function findSubagentFiles(projectDir, sessionId) {
       return [];
     }
     return entries.filter((f) => f.startsWith("agent-") && f.endsWith(".jsonl")).map((f) => ({
-      filePath: join7(subagentsDir, f),
+      filePath: join8(subagentsDir, f),
       agentId: basename3(f, ".jsonl")
     })).sort((a, b) => a.agentId.localeCompare(b.agentId));
   } catch (error51) {
@@ -24799,6 +25177,8 @@ async function extractSubagentData(projectDir, sessionId, parentLastMessageIndex
 }
 export {
   queueSessionData,
+  patchQueuedSessionMetadataFromStatusline,
+  patchDbSessionMetadataFromStatusline,
   parseRmCommand,
   findSubagentFiles,
   findRecentBashCommand,

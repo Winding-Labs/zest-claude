@@ -14,35 +14,9 @@ var __export = (target, all) => {
     });
 };
 var __esm = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
-
-// src/config/constants.ts
-import { homedir } from "node:os";
-import { join } from "node:path";
-var CLAUDE_INSTALL_DIR, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, STALE_SESSION_AGE_MS, POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", CLAUDE_BUILTIN_COMMANDS, EXCLUDED_COMMAND_PATTERNS, UPDATE_CHECK_CACHE_TTL_MS, DAEMON_INACTIVITY_TIMEOUT_MS, DAEMON_WARMUP_GRACE_MS, NOTIFICATION_DURATION_MS, STANDUP_NOTIFICATION_THROTTLE_MS, SYNC_METRICS_RETENTION_MS;
-var init_constants = __esm(() => {
-  CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
-  CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
-  CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
-  CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
-  QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
-  LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
-  STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
-  DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
-  SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
-  SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
-  DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
-  CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
-  STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
-  STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
-  SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
-  EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
-  SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
-  MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
-  DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
-  DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
-  PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
-  MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
-  STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+// ../../packages/utils/src/command-xml.ts
+var CLAUDE_BUILTIN_COMMANDS;
+var init_command_xml = __esm(() => {
   CLAUDE_BUILTIN_COMMANDS = new Set([
     "add-dir",
     "agents",
@@ -132,6 +106,130 @@ var init_constants = __esm(() => {
     "voice",
     "web-setup"
   ]);
+});
+// ../../packages/utils/src/date-range.ts
+var PERIOD_TYPE_LABELS, PERIOD_SUMMARY_LABELS;
+var init_date_range = __esm(() => {
+  PERIOD_TYPE_LABELS = {
+    ["today" /* Today */]: "Today",
+    ["this_week" /* ThisWeek */]: "This Week",
+    ["this_month" /* ThisMonth */]: "This Month"
+  };
+  PERIOD_SUMMARY_LABELS = {
+    ["today" /* Today */]: "Daily Summary",
+    ["this_week" /* ThisWeek */]: "Weekly Summary",
+    ["this_month" /* ThisMonth */]: "Monthly Summary",
+    custom: "Custom Period"
+  };
+});
+// ../../packages/utils/src/frontmatter.ts
+var FRONTMATTER_KEYS;
+var init_frontmatter = __esm(() => {
+  FRONTMATTER_KEYS = new Set(["name", "description"]);
+});
+
+// ../../packages/utils/src/language-utils.ts
+var init_language_utils = () => {};
+
+// ../../packages/utils/src/mcp-registry.ts
+class TtlCache {
+  map = new Map;
+  get(key) {
+    const entry = this.map.get(key);
+    if (!entry)
+      return { hit: false };
+    if (Date.now() > entry.expiry) {
+      this.map.delete(key);
+      return { hit: false };
+    }
+    return { hit: true, value: entry.value };
+  }
+  set(key, value) {
+    if (this.map.size >= CACHE_MAX_SIZE && !this.map.has(key)) {
+      const firstKey = this.map.keys().next().value;
+      if (firstKey !== undefined)
+        this.map.delete(firstKey);
+    }
+    this.map.set(key, { value, expiry: Date.now() + CACHE_TTL_MS });
+  }
+  clear() {
+    this.map.clear();
+  }
+}
+var CACHE_TTL_MS, CACHE_MAX_SIZE = 100, cache, toolCache, serverCache, GENERIC_SEGMENTS, VERB_PREFIXES;
+var init_mcp_registry = __esm(() => {
+  CACHE_TTL_MS = 30 * 60 * 1000;
+  cache = new TtlCache;
+  toolCache = new TtlCache;
+  serverCache = new TtlCache;
+  GENERIC_SEGMENTS = new Set(["mcp", "com", "org", "io", "dev", "server", "api"]);
+  VERB_PREFIXES = new Set([
+    "get",
+    "list",
+    "create",
+    "delete",
+    "update",
+    "search",
+    "query",
+    "fetch",
+    "run",
+    "execute",
+    "resolve",
+    "find",
+    "read",
+    "write",
+    "set",
+    "send",
+    "check",
+    "add",
+    "remove"
+  ]);
+});
+// ../../packages/utils/src/string-utils.ts
+var init_string_utils = () => {};
+// ../../packages/utils/src/index.ts
+var init_src = __esm(() => {
+  init_command_xml();
+  init_date_range();
+  init_frontmatter();
+  init_language_utils();
+  init_mcp_registry();
+  init_string_utils();
+});
+
+// src/config/constants.ts
+import { homedir } from "node:os";
+import { join } from "node:path";
+var CLAUDE_INSTALL_DIR, CLAUDE_CONFIG_FILE, CLAUDE_PROJECTS_DIR, CLAUDE_SETTINGS_FILE, CLAUDE_ZEST_DIR, QUEUE_DIR, LOGS_DIR, STATE_DIR, DELETION_CACHE_DIR, SESSION_FILE, SETTINGS_FILE, DAEMON_PID_FILE, CLAUDE_INSTANCES_FILE, STATUSLINE_SCRIPT_PATH, STATUSLINE_PROXY_CONFIG_FILE, STATUSLINE_SNAPSHOTS_FILE, STATUS_CACHE_FILE, SYNC_METRICS_FILE, EVENTS_QUEUE_FILE, SESSIONS_QUEUE_FILE, MESSAGES_QUEUE_FILE, LOCK_RETRY_MS = 50, LOCK_MAX_RETRIES = 300, DEBOUNCE_DIR, DELETION_CACHE_TTL_MS, LOG_RETENTION_DAYS = 7, PROACTIVE_REFRESH_THRESHOLD_MS, MAX_DIFF_SIZE_BYTES, STALE_SESSION_AGE_MS, POSTHOG_API_KEY = "phc_cSYAEzsJX9gr0sgCp4tfnr7QJ71PwGD04eUQSglw4iQ", EXCLUDED_COMMAND_PATTERNS, UPDATE_CHECK_CACHE_TTL_MS, DAEMON_INACTIVITY_TIMEOUT_MS, DAEMON_WARMUP_GRACE_MS, NOTIFICATION_DURATION_MS, STANDUP_NOTIFICATION_THROTTLE_MS, SYNC_METRICS_RETENTION_MS;
+var init_constants = __esm(() => {
+  init_src();
+  init_src();
+  CLAUDE_INSTALL_DIR = process.env.CLAUDE_INSTALL_PATH || join(homedir(), ".claude");
+  CLAUDE_CONFIG_FILE = process.env.CLAUDE_CONFIG_FILE || join(homedir(), ".claude.json");
+  CLAUDE_PROJECTS_DIR = join(CLAUDE_INSTALL_DIR, "projects");
+  CLAUDE_SETTINGS_FILE = join(CLAUDE_INSTALL_DIR, "settings.json");
+  CLAUDE_ZEST_DIR = join(CLAUDE_INSTALL_DIR, "..", ".claude-zest");
+  QUEUE_DIR = join(CLAUDE_ZEST_DIR, "queue");
+  LOGS_DIR = join(CLAUDE_ZEST_DIR, "logs");
+  STATE_DIR = join(CLAUDE_ZEST_DIR, "state");
+  DELETION_CACHE_DIR = join(CLAUDE_ZEST_DIR, "cache", "deletions");
+  SESSION_FILE = process.env.ZEST_SESSION_FILE ?? join(CLAUDE_ZEST_DIR, "session.json");
+  SETTINGS_FILE = join(CLAUDE_ZEST_DIR, "settings.json");
+  DAEMON_PID_FILE = join(CLAUDE_ZEST_DIR, "daemon.pid");
+  CLAUDE_INSTANCES_FILE = join(CLAUDE_ZEST_DIR, "claude-instances.json");
+  STATUSLINE_SCRIPT_PATH = join(CLAUDE_ZEST_DIR, "statusline.mjs");
+  STATUSLINE_PROXY_CONFIG_FILE = join(CLAUDE_ZEST_DIR, "statusline-proxy.json");
+  STATUSLINE_SNAPSHOTS_FILE = process.env.ZEST_STATUSLINE_SNAPSHOTS_FILE ?? join(CLAUDE_ZEST_DIR, "statusline-snapshots.json");
+  STATUS_CACHE_FILE = process.env.ZEST_STATUS_CACHE_FILE ?? join(CLAUDE_ZEST_DIR, "status-cache.json");
+  SYNC_METRICS_FILE = join(CLAUDE_ZEST_DIR, "sync-metrics.jsonl");
+  EVENTS_QUEUE_FILE = join(QUEUE_DIR, "events.jsonl");
+  SESSIONS_QUEUE_FILE = join(QUEUE_DIR, "chat-sessions.jsonl");
+  MESSAGES_QUEUE_FILE = join(QUEUE_DIR, "chat-messages.jsonl");
+  DEBOUNCE_DIR = join(CLAUDE_ZEST_DIR, "debounce");
+  DELETION_CACHE_TTL_MS = 5 * 60 * 1000;
+  PROACTIVE_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+  MAX_DIFF_SIZE_BYTES = 10 * 1024 * 1024;
+  STALE_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
   EXCLUDED_COMMAND_PATTERNS = [
     new RegExp(`^\\/(${[...CLAUDE_BUILTIN_COMMANDS].join("|")})\\b`, "i"),
     /^\/zest[^:\s]*:/i,
@@ -323,11 +421,12 @@ function getErrorCategory(errorType) {
     return "supabase";
   return "api";
 }
-var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed", AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed", AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed", AUTH_SESSION_CLEAR_FAILED = "auth_session_clear_failed", AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed", SYNC_NOT_AUTHENTICATED = "sync_not_authenticated", SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed", SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted", SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed", SYNC_NETWORK_ERROR = "sync_network_error", SYNC_SERVER_OVERLOAD = "sync_server_overload", SYNC_DATA_ERROR = "sync_data_error", SYNC_AUTH_ERROR = "sync_auth_error", SYNC_BLOCKED_NO_WORKSPACE = "sync_blocked_no_workspace", AUTH_SESSION_METADATA_LOST = "auth_session_metadata_lost", QUEUE_READ_CORRUPTED = "queue_read_corrupted", QUEUE_WRITE_FAILED = "queue_write_failed", FILE_LOCK_TIMEOUT = "file_lock_timeout", FILE_LOCK_CREATE_FAILED = "file_lock_create_failed", NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed", QUEUE_CAP_EVICTION = "queue_cap_eviction", SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped", SYNC_DRAIN_THROTTLED = "sync_drain_throttled", SYNC_ORPHANED_MESSAGES_DROPPED = "sync_orphaned_messages_dropped", EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found", EXTRACTION_SESSION_FAILED = "extraction_session_failed", DAEMON_START_FAILED = "daemon_start_failed", DAEMON_RESTART_FAILED = "daemon_restart_failed", DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed", DAEMON_UNHANDLED_ERROR = "daemon_unhandled_error", API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed", API_PROFILE_UPDATE_FAILED = "api_profile_update_failed", API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed", API_STANDUP_TEAM_FETCH_FAILED = "api_standup_team_fetch_failed", API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed", API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed", API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed", SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed", SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed", SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed", ERROR_TYPES, errorTypeSet;
+var AUTH_DEVICE_CODE_INITIATION_FAILED = "auth_device_code_initiation_failed", AUTH_DEVICE_CODE_POLLING_FAILED = "auth_device_code_polling_failed", AUTH_AGENT_PROVISIONING_FAILED = "auth_agent_provisioning_failed", AUTH_SESSION_LOAD_FAILED = "auth_session_load_failed", AUTH_SESSION_CLEAR_FAILED = "auth_session_clear_failed", AUTH_SESSION_SAVE_FAILED = "auth_session_save_failed", SYNC_NOT_AUTHENTICATED = "sync_not_authenticated", SYNC_EVENTS_UPLOAD_FAILED = "sync_events_upload_failed", SYNC_EVENTS_RETRY_EXHAUSTED = "sync_events_upload_retry_exhausted", SYNC_CHAT_UPLOAD_FAILED = "sync_chat_upload_failed", SYNC_NETWORK_ERROR = "sync_network_error", SYNC_SERVER_OVERLOAD = "sync_server_overload", SYNC_DATA_ERROR = "sync_data_error", SYNC_AUTH_ERROR = "sync_auth_error", SYNC_BLOCKED_NO_WORKSPACE = "sync_blocked_no_workspace", AUTH_SESSION_METADATA_LOST = "auth_session_metadata_lost", QUEUE_READ_CORRUPTED = "queue_read_corrupted", QUEUE_WRITE_FAILED = "queue_write_failed", FILE_LOCK_TIMEOUT = "file_lock_timeout", FILE_LOCK_CREATE_FAILED = "file_lock_create_failed", NOTIFICATION_STATE_WRITE_FAILED = "notification_state_write_failed", QUEUE_CAP_EVICTION = "queue_cap_eviction", SYNC_STALE_EVENTS_DROPPED = "sync_stale_events_dropped", SYNC_DRAIN_THROTTLED = "sync_drain_throttled", SYNC_ORPHANED_MESSAGES_DROPPED = "sync_orphaned_messages_dropped", EXTRACTION_PROJECT_DIR_NOT_FOUND = "extraction_project_dir_not_found", EXTRACTION_SESSION_FAILED = "extraction_session_failed", DAEMON_START_FAILED = "daemon_start_failed", DAEMON_RESTART_FAILED = "daemon_restart_failed", DAEMON_SYNC_CYCLE_FAILED = "daemon_sync_cycle_failed", DAEMON_UNHANDLED_ERROR = "daemon_unhandled_error", API_WORKSPACE_FETCH_FAILED = "api_workspace_fetch_failed", API_PROFILE_UPDATE_FAILED = "api_profile_update_failed", API_PROFILE_METADATA_PREFETCH_FAILED = "api_profile_metadata_prefetch_failed", API_STANDUP_TEAM_FETCH_FAILED = "api_standup_team_fetch_failed", API_STANDUP_PROMPT_FETCH_FAILED = "api_standup_prompt_fetch_failed", API_STANDUP_GENERATION_FAILED = "api_standup_generation_failed", API_DATA_CONTROLS_FETCH_FAILED = "api_data_controls_fetch_failed", SUPABASE_CLIENT_INIT_FAILED = "supabase_client_init_failed", SUPABASE_SESSION_READ_FAILED = "supabase_session_read_failed", SUPABASE_SESSION_WRITE_FAILED = "supabase_session_write_failed", ERROR_TYPES, errorTypeSet;
 var init_events = __esm(() => {
   ERROR_TYPES = [
     AUTH_DEVICE_CODE_INITIATION_FAILED,
     AUTH_DEVICE_CODE_POLLING_FAILED,
+    AUTH_AGENT_PROVISIONING_FAILED,
     AUTH_SESSION_CLEAR_FAILED,
     AUTH_SESSION_LOAD_FAILED,
     AUTH_SESSION_SAVE_FAILED,
@@ -511,7 +610,10 @@ var init_events2 = __esm(() => {
     PAYMENT_SETUP_FAILED: "Payment Setup Failed",
     SUBSCRIPTION_CREATED: "Subscription Created",
     SUBSCRIPTION_UPDATED: "Subscription Updated",
+    SUBSCRIPTION_UPGRADED: "Subscription Upgraded",
+    SUBSCRIPTION_DOWNGRADED: "Subscription Downgraded",
     SUBSCRIPTION_CANCELED: "Subscription Canceled",
+    USER_CHURNED: "User Churned",
     PAYMENT_SUCCEEDED: "Payment Succeeded",
     PAYMENT_FAILED: "Payment Failed",
     BILLING_PORTAL_OPENED: "Billing Portal Opened",
@@ -877,7 +979,7 @@ var init_bot_detection = __esm(() => {
 });
 
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/utils/string-utils.mjs
-var init_string_utils = () => {};
+var init_string_utils2 = () => {};
 
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/utils/type-utils.mjs
 function isPrimitive(value) {
@@ -905,7 +1007,7 @@ function isInstanceOf(candidate, base) {
 var nativeIsArray, ObjProto, type_utils_hasOwnProperty, type_utils_toString, isArray, isObject2 = (x) => x === Object(x) && !isArray(x), isUndefined = (x) => x === undefined, isString = (x) => type_utils_toString.call(x) == "[object String]", isEmptyString = (x) => isString(x) && x.trim().length === 0, isNumber = (x) => type_utils_toString.call(x) == "[object Number]" && x === x, isPlainError = (x) => x instanceof Error;
 var init_type_utils = __esm(() => {
   init_types();
-  init_string_utils();
+  init_string_utils2();
   nativeIsArray = Array.isArray;
   ObjProto = Object.prototype;
   type_utils_hasOwnProperty = ObjProto.hasOwnProperty;
@@ -1235,7 +1337,7 @@ var init_logger2 = () => {};
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/utils/user-agent-utils.mjs
 var MOBILE = "Mobile", IOS = "iOS", ANDROID = "Android", TABLET = "Tablet", ANDROID_TABLET, APPLE = "Apple", APPLE_WATCH, SAFARI = "Safari", BLACKBERRY = "BlackBerry", SAMSUNG = "Samsung", SAMSUNG_BROWSER, SAMSUNG_INTERNET, CHROME = "Chrome", CHROME_OS, CHROME_IOS, INTERNET_EXPLORER = "Internet Explorer", INTERNET_EXPLORER_MOBILE, OPERA = "Opera", OPERA_MINI, EDGE = "Edge", MICROSOFT_EDGE, FIREFOX = "Firefox", FIREFOX_IOS, NINTENDO = "Nintendo", PLAYSTATION = "PlayStation", XBOX = "Xbox", ANDROID_MOBILE, MOBILE_SAFARI, WINDOWS = "Windows", WINDOWS_PHONE, GENERIC = "Generic", GENERIC_MOBILE, GENERIC_TABLET, KONQUEROR = "Konqueror", BROWSER_VERSION_REGEX_SUFFIX = "(\\d+(\\.\\d+)?)", DEFAULT_BROWSER_VERSION_REGEX, XBOX_REGEX, PLAYSTATION_REGEX, NINTENDO_REGEX, BLACKBERRY_REGEX, windowsVersionMap, versionRegexes, osMatchers;
 var init_user_agent_utils = __esm(() => {
-  init_string_utils();
+  init_string_utils2();
   init_type_utils();
   ANDROID_TABLET = ANDROID + " " + TABLET;
   APPLE_WATCH = APPLE + " Watch";
@@ -1516,7 +1618,7 @@ var init_utils = __esm(() => {
   init_bot_detection();
   init_bucketed_rate_limiter();
   init_number_utils();
-  init_string_utils();
+  init_string_utils2();
   init_type_utils();
   init_promise_queue();
   init_logger2();
@@ -3373,8 +3475,8 @@ async function addSourceContext(frames) {
     const ranges = makeLineReaderRanges(filesToLineRanges);
     if (ranges.every((r) => rangeExistsInContentCache(file2, r)))
       continue;
-    const cache = emplace(LRU_FILE_CONTENTS_CACHE, file2, {});
-    readlinePromises.push(getContextLinesFromFile(file2, ranges, cache));
+    const cache2 = emplace(LRU_FILE_CONTENTS_CACHE, file2, {});
+    readlinePromises.push(getContextLinesFromFile(file2, ranges, cache2));
   }
   await Promise.all(readlinePromises).catch(() => {});
   if (frames && frames.length > 0)
@@ -3432,10 +3534,10 @@ function getContextLinesFromFile(path, ranges, output) {
     });
   });
 }
-function addSourceContextToFrames(frames, cache) {
+function addSourceContextToFrames(frames, cache2) {
   for (const frame of frames)
     if (frame.filename && frame.context_line === undefined && typeof frame.lineno == "number") {
-      const contents = cache.get(frame.filename);
+      const contents = cache2.get(frame.filename);
       if (contents === undefined)
         continue;
       addContextToFrame(frame.lineno, frame, contents);
@@ -6517,6 +6619,8 @@ var init_daemon_manager = __esm(() => {
 
 // src/statusline/statusline-cli.ts
 init_constants();
+import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync as readFileSync6 } from "node:fs";
 
 // src/config/settings.ts
 import { readFileSync } from "node:fs";
@@ -21155,7 +21259,8 @@ var UserSettingsSchema = exports_external.object({
   logLevel: exports_external.enum(["debug", "info", "warn", "error"]),
   excludedFolders: exports_external.array(exports_external.string()).default([]),
   privacy: PrivacySettingsSchema.optional(),
-  notificationsEnabled: exports_external.boolean().default(false)
+  notificationsEnabled: exports_external.boolean().default(false),
+  statuslineAutoWrap: exports_external.boolean().default(true)
 });
 function areNotificationsEnabled() {
   try {
@@ -21386,8 +21491,8 @@ function createStatusCacheManager(config2) {
   }
   function hasActiveStandupNotification() {
     try {
-      const cache = readStatusCache();
-      const { message, expiresAt } = cache.standupNotification;
+      const cache2 = readStatusCache();
+      const { message, expiresAt } = cache2.standupNotification;
       return message !== null && expiresAt !== null && expiresAt > Date.now();
     } catch (error51) {
       logger3?.warn("Failed to check for active standup notification", error51);
@@ -21396,8 +21501,8 @@ function createStatusCacheManager(config2) {
   }
   function shouldShowFirstDataReady() {
     try {
-      const cache = readStatusCache();
-      const { firstDataReadyLastShownAt } = cache.standupNotification;
+      const cache2 = readStatusCache();
+      const { firstDataReadyLastShownAt } = cache2.standupNotification;
       if (!firstDataReadyLastShownAt)
         return true;
       return Date.now() - firstDataReadyLastShownAt >= standupNotificationThrottleMs;
@@ -21423,8 +21528,8 @@ function createStatusCacheManager(config2) {
   }
   function shouldShowStandupRefreshed() {
     try {
-      const cache = readStatusCache();
-      const { standupRefreshedLastShownAt } = cache.standupNotification;
+      const cache2 = readStatusCache();
+      const { standupRefreshedLastShownAt } = cache2.standupNotification;
       if (!standupRefreshedLastShownAt)
         return true;
       return Date.now() - standupRefreshedLastShownAt >= standupNotificationThrottleMs;
@@ -21473,6 +21578,19 @@ var {
   shouldShowStandupRefreshed
 } = statusCacheManager;
 
+// src/statusline/statusline-command.ts
+init_constants();
+function normalizeCommand(value) {
+  return value.replace(/\\/g, "/").replace(/['"]/g, "");
+}
+function isZestStatusLineCommand(command) {
+  if (!command)
+    return false;
+  const normalizedCommand = normalizeCommand(command);
+  const normalizedPath = normalizeCommand(STATUSLINE_SCRIPT_PATH);
+  return normalizedCommand === normalizedPath || normalizedCommand.includes(normalizedPath) || normalizedCommand.includes(".claude-zest/statusline.mjs");
+}
+
 // src/statusline/statusline-logic.ts
 function shouldShowDaemonError({
   hasSyncError,
@@ -21484,47 +21602,233 @@ function shouldShowDaemonError({
   return !hasSyncError && !daemonRunning && !daemonWarmingUp;
 }
 
+// src/statusline/statusline-snapshot.ts
+init_constants();
+import { mkdirSync, readFileSync as readFileSync5, renameSync, writeFileSync as writeFileSync2 } from "node:fs";
+import { dirname as dirname6 } from "node:path";
+var MAX_SNAPSHOTS = 200;
+function isRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+function finiteNumber(value) {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
+}
+function percent(value) {
+  const n = finiteNumber(value);
+  return n == null ? undefined : Math.min(n, 100);
+}
+function stringValue(value) {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+function epochValue(value) {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0)
+    return value;
+  return stringValue(value);
+}
+function nestedObject(parent, key) {
+  if (!parent)
+    return;
+  const value = parent[key];
+  return isRecord(value) ? value : undefined;
+}
+function compactObject(value) {
+  for (const [key, child] of Object.entries(value)) {
+    if (child === undefined) {
+      delete value[key];
+    } else if (isRecord(child)) {
+      const compacted = compactObject(child);
+      if (!compacted)
+        delete value[key];
+    }
+  }
+  return Object.keys(value).length > 0 ? value : undefined;
+}
+function parseStatuslineSnapshot(rawInput, capturedAt = new Date().toISOString()) {
+  if (!rawInput.trim())
+    return null;
+  let parsed;
+  try {
+    parsed = JSON.parse(rawInput);
+  } catch {
+    return null;
+  }
+  if (!isRecord(parsed))
+    return null;
+  const sessionId = stringValue(parsed.session_id);
+  if (!sessionId)
+    return null;
+  const model = nestedObject(parsed, "model");
+  const cost = nestedObject(parsed, "cost");
+  const usage = nestedObject(parsed, "usage");
+  const contextWindow = nestedObject(parsed, "context_window");
+  const currentUsage = nestedObject(contextWindow, "current_usage");
+  const rateLimits = nestedObject(parsed, "rate_limits");
+  const fiveHour = nestedObject(rateLimits, "five_hour");
+  const sevenDay = nestedObject(rateLimits, "seven_day");
+  const snapshot = compactObject({
+    session_id: sessionId,
+    transcript_path: stringValue(parsed.transcript_path),
+    captured_at: capturedAt,
+    model: compactObject({
+      id: stringValue(model?.id),
+      display_name: stringValue(model?.display_name)
+    }),
+    cost: compactObject({
+      total_cost_usd: finiteNumber(cost?.total_cost_usd)
+    }),
+    usage: compactObject({
+      input_tokens: finiteNumber(usage?.input_tokens),
+      output_tokens: finiteNumber(usage?.output_tokens),
+      cache_creation_input_tokens: finiteNumber(usage?.cache_creation_input_tokens),
+      cache_read_input_tokens: finiteNumber(usage?.cache_read_input_tokens)
+    }),
+    context_window: compactObject({
+      used_percentage: percent(contextWindow?.used_percentage),
+      remaining_percentage: percent(contextWindow?.remaining_percentage),
+      total_input_tokens: finiteNumber(contextWindow?.total_input_tokens),
+      total_output_tokens: finiteNumber(contextWindow?.total_output_tokens),
+      context_window_size: finiteNumber(contextWindow?.context_window_size),
+      current_usage: compactObject({
+        input_tokens: finiteNumber(currentUsage?.input_tokens),
+        output_tokens: finiteNumber(currentUsage?.output_tokens),
+        cache_creation_input_tokens: finiteNumber(currentUsage?.cache_creation_input_tokens),
+        cache_read_input_tokens: finiteNumber(currentUsage?.cache_read_input_tokens)
+      })
+    }),
+    rate_limits: compactObject({
+      five_hour: compactObject({
+        used_percentage: percent(fiveHour?.used_percentage),
+        resets_at: epochValue(fiveHour?.resets_at)
+      }),
+      seven_day: compactObject({
+        used_percentage: percent(sevenDay?.used_percentage),
+        resets_at: epochValue(sevenDay?.resets_at)
+      })
+    })
+  });
+  return snapshot ?? null;
+}
+function readSnapshotFile(filePath) {
+  try {
+    const parsed = JSON.parse(readFileSync5(filePath, "utf-8"));
+    if (isRecord(parsed) && parsed.version === 1 && isRecord(parsed.snapshots)) {
+      return parsed;
+    }
+  } catch {}
+  return { version: 1, updated_at: new Date(0).toISOString(), snapshots: {} };
+}
+function writeStatuslineSnapshot(snapshot, filePath = STATUSLINE_SNAPSHOTS_FILE) {
+  const file2 = readSnapshotFile(filePath);
+  file2.snapshots[snapshot.session_id] = snapshot;
+  const entries = Object.entries(file2.snapshots).sort(([, a], [, b]) => Date.parse(b.captured_at) - Date.parse(a.captured_at));
+  file2.snapshots = Object.fromEntries(entries.slice(0, MAX_SNAPSHOTS));
+  file2.updated_at = new Date().toISOString();
+  mkdirSync(dirname6(filePath), { recursive: true, mode: 448 });
+  const tmpPath = `${filePath}.${process.pid}.tmp`;
+  writeFileSync2(tmpPath, JSON.stringify(file2, null, 2), "utf-8");
+  renameSync(tmpPath, filePath);
+}
+function captureStatuslineSnapshot(rawInput) {
+  const snapshot = parseStatuslineSnapshot(rawInput);
+  if (!snapshot)
+    return null;
+  writeStatuslineSnapshot(snapshot);
+  return snapshot;
+}
+
 // src/statusline/statusline-cli.ts
+var ORIGINAL_STATUSLINE_TIMEOUT_MS = 350;
+function readStatuslineStdin() {
+  try {
+    if (process.stdin.isTTY)
+      return "";
+    return readFileSync6(0, "utf-8");
+  } catch {
+    return "";
+  }
+}
+function readProxyConfig() {
+  try {
+    if (!existsSync(STATUSLINE_PROXY_CONFIG_FILE))
+      return null;
+    return JSON.parse(readFileSync6(STATUSLINE_PROXY_CONFIG_FILE, "utf-8"));
+  } catch {
+    return null;
+  }
+}
+function firstOutputLine(output) {
+  const firstLine = output.split(/\r?\n/, 1)[0]?.trimEnd();
+  return firstLine && firstLine.length > 0 ? firstLine : null;
+}
+function runOriginalStatusline(rawInput) {
+  const command = readProxyConfig()?.originalStatusLine?.command;
+  if (!command || isZestStatusLineCommand(command))
+    return null;
+  try {
+    const result = spawnSync(command, {
+      input: rawInput,
+      shell: true,
+      encoding: "utf-8",
+      timeout: ORIGINAL_STATUSLINE_TIMEOUT_MS,
+      windowsHide: true
+    });
+    return firstOutputLine(result.stdout ?? "");
+  } catch {
+    return null;
+  }
+}
+function buildZestStatuslineMessage() {
+  const notificationsEnabled = areNotificationsEnabled();
+  const cache2 = readStatusCache();
+  const isDevMode = cache2.devMode?.active === true;
+  if (!notificationsEnabled) {
+    return isDevMode ? "\x1B[1;36m\uD83D\uDD27 Zest running in dev mode\x1B[0m" : null;
+  }
+  const hasSyncError = cache2.syncStatus.hasError;
+  const daemonRunning = isDaemonRunning();
+  const showDaemonError = shouldShowDaemonError({
+    hasSyncError,
+    daemonRunning,
+    daemonWarmingUpUntil: cache2.daemonWarmingUpUntil
+  });
+  const isUpdateCheckRecent = Date.now() - cache2.versionCheck.checkedAt < UPDATE_CHECK_CACHE_TTL_MS;
+  const hasUpdateAvailable = cache2.versionCheck.updateAvailable && isUpdateCheckRecent;
+  const now = Date.now();
+  const { message: standupMessage, expiresAt: standupExpiresAt } = cache2.standupNotification;
+  const hasActiveStandupNotification2 = standupMessage !== null && standupExpiresAt !== null && standupExpiresAt > now;
+  const messages = [];
+  if (isDevMode) {
+    messages.push("\x1B[1;36m\uD83D\uDD27 Zest running in dev mode\x1B[0m");
+  }
+  if (hasActiveStandupNotification2 && standupMessage) {
+    messages.push(standupMessage);
+  }
+  if (hasSyncError && cache2.syncStatus.errorMessage) {
+    messages.push(`\x1B[1;31m\uD83D\uDD34 Chat history not saving: ${cache2.syncStatus.errorMessage}\x1B[0m`);
+  } else if (showDaemonError) {
+    messages.push("\x1B[1;31m\uD83D\uDD34 Chat history not saving: Background process not running.\x1B[0m");
+  }
+  if (hasUpdateAvailable) {
+    messages.push(`\x1B[1;33m\uD83C\uDF4B Zest update available (→ v${cache2.versionCheck.latestVersion}) via /plugins\x1B[0m`);
+  }
+  return messages.length > 0 ? messages.join(" | ") : null;
+}
 function main() {
   try {
-    const notificationsEnabled = areNotificationsEnabled();
-    const cache = readStatusCache();
-    const isDevMode = cache.devMode?.active === true;
-    if (!notificationsEnabled) {
-      if (isDevMode) {
-        console.log("\x1B[1;36m\uD83D\uDD27 Zest running in dev mode\x1B[0m");
-      }
+    const rawInput = readStatuslineStdin();
+    try {
+      captureStatuslineSnapshot(rawInput);
+    } catch {}
+    const originalMessage = runOriginalStatusline(rawInput);
+    const hasOriginalStatusline = readProxyConfig()?.originalStatusLine?.command != null;
+    if (hasOriginalStatusline) {
+      if (originalMessage)
+        console.log(originalMessage);
       process.exit(0);
     }
-    const hasSyncError = cache.syncStatus.hasError;
-    const daemonRunning = isDaemonRunning();
-    const showDaemonError = shouldShowDaemonError({
-      hasSyncError,
-      daemonRunning,
-      daemonWarmingUpUntil: cache.daemonWarmingUpUntil
-    });
-    const isUpdateCheckRecent = Date.now() - cache.versionCheck.checkedAt < UPDATE_CHECK_CACHE_TTL_MS;
-    const hasUpdateAvailable = cache.versionCheck.updateAvailable && isUpdateCheckRecent;
-    const now = Date.now();
-    const { message: standupMessage, expiresAt: standupExpiresAt } = cache.standupNotification;
-    const hasActiveStandupNotification2 = standupMessage !== null && standupExpiresAt !== null && standupExpiresAt > now;
-    const messages = [];
-    if (isDevMode) {
-      messages.push("\x1B[1;36m\uD83D\uDD27 Zest running in dev mode\x1B[0m");
-    }
-    if (hasActiveStandupNotification2 && standupMessage) {
-      messages.push(standupMessage);
-    }
-    if (hasSyncError && cache.syncStatus.errorMessage) {
-      messages.push(`\x1B[1;31m\uD83D\uDD34 Chat history not saving: ${cache.syncStatus.errorMessage}\x1B[0m`);
-    } else if (showDaemonError) {
-      messages.push("\x1B[1;31m\uD83D\uDD34 Chat history not saving: Background process not running.\x1B[0m");
-    }
-    if (hasUpdateAvailable) {
-      messages.push(`\x1B[1;33m\uD83C\uDF4B Zest update available (→ v${cache.versionCheck.latestVersion}) via /plugins\x1B[0m`);
-    }
-    if (messages.length > 0) {
-      console.log(messages.join(" | "));
+    const zestMessage = buildZestStatuslineMessage();
+    if (zestMessage) {
+      console.log(zestMessage);
     } else {
       process.exit(0);
     }
