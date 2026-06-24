@@ -150,6 +150,10 @@ var init_events = __esm(() => {
     NAV_LINK_CLICKED: "Nav Link Clicked",
     WORKSPACE_SWITCHED: "Workspace Switched",
     TEAM_SWITCHED: "Team Switched",
+    ASK_ZEST_CONVERSATION_STARTED: "Ask Zest Conversation Started",
+    ASK_ZEST_QUICK_ACTION_CLICKED: "Ask Zest Quick Action Clicked",
+    ASK_ZEST_PROMPT_SELECTED: "Ask Zest Prompt Selected",
+    ASK_ZEST_MENU_OPENED: "Ask Zest Menu Opened",
     STANDUP_GENERATED: "Standup Generated",
     STANDUP_VIEWED: "Standup Viewed",
     STANDUP_SHARED: "Standup Shared",
@@ -166,6 +170,9 @@ var init_events = __esm(() => {
     WORKSPACE_MEMBERS_PROVISIONED: "Workspace Members Provisioned",
     WORKSPACE_SETTINGS_VIEWED: "Workspace Settings Viewed",
     TEAM_SETTINGS_VIEWED: "Team Settings Viewed",
+    GITHUB_CONNECT_STARTED: "GitHub Connect Started",
+    GITHUB_CONNECTION_REQUESTED: "GitHub Connection Requested",
+    GITHUB_CONNECTED: "GitHub Connected",
     CLI_SIGNED_IN: "CLI Signed In",
     TRIAL_STARTED: "Trial Started",
     PLAN_SELECTED: "Plan Selected",
@@ -36980,6 +36987,23 @@ function createQueueManager(config2) {
       throw error51;
     }
   }
+  async function patchQueuedSession(sessionId, metadata, title) {
+    let found = false;
+    await atomicUpdateQueue(queueFiles.sessions, (sessions) => sessions.map((session) => {
+      if (session.id !== sessionId)
+        return session;
+      found = true;
+      return {
+        ...session,
+        title: title ?? session.title,
+        metadata: {
+          ...session.metadata ?? {},
+          ...metadata
+        }
+      };
+    }));
+    return found;
+  }
   async function readQueue(queueFile) {
     try {
       return await readJsonl(queueFile);
@@ -37179,6 +37203,7 @@ function createQueueManager(config2) {
     enqueueEvent,
     enqueueChatSession,
     enqueueChatMessage,
+    patchQueuedSession,
     getDetailedQueueStats
   };
 }
@@ -37228,6 +37253,7 @@ var {
   enqueueEvent,
   enqueueChatSession,
   enqueueChatMessage,
+  patchQueuedSession,
   getDetailedQueueStats
 } = queueManager;
 
@@ -37832,7 +37858,11 @@ function createChatUploader(config2) {
           ...buildSyncProperties({ sessionsAttempted: uniqueSessions.length }),
           reason: "precondition_failed"
         });
-        return { success: false, uploaded: { sessions: 0, messages: 0 }, errorCategory: "auth_error" };
+        return {
+          success: false,
+          uploaded: { sessions: 0, messages: 0 },
+          errorCategory: "auth_error"
+        };
       }
       const sessionsToUpload = await enrichSessionsForUpload(uniqueSessions, session.userId, workspaceId);
       let sessionsForThisCycle = sessionsToUpload;
@@ -37980,6 +38010,7 @@ init_constants();
 init_logger2();
 
 // src/utils/signal-state.ts
+init_src();
 init_session_manager2();
 init_constants();
 import { readFile as readFile10, writeFile as writeFile9 } from "node:fs/promises";
@@ -38030,6 +38061,15 @@ function extractProjectName(workingDirectory) {
       }
     } catch {}
     try {
+      const gitCommonDir = execSync2("git rev-parse --git-common-dir", {
+        cwd: workingDirectory,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 5000
+      }).trim();
+      if (path2.isAbsolute(gitCommonDir) && path2.basename(gitCommonDir) === ".git") {
+        return path2.basename(path2.dirname(gitCommonDir));
+      }
       const repoRoot = execSync2("git rev-parse --show-toplevel", {
         cwd: workingDirectory,
         encoding: "utf-8",

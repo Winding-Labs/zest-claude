@@ -78,124 +78,6 @@ var init_events = __esm(() => {
   errorTypeSet = new Set(ERROR_TYPES);
 });
 
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/sha1.js
-import { createHash } from "node:crypto";
-function sha1(bytes) {
-  if (Array.isArray(bytes)) {
-    bytes = Buffer.from(bytes);
-  } else if (typeof bytes === "string") {
-    bytes = Buffer.from(bytes, "utf8");
-  }
-  return createHash("sha1").update(bytes).digest();
-}
-var sha1_default;
-var init_sha1 = __esm(() => {
-  sha1_default = sha1;
-});
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/regex.js
-var regex_default;
-var init_regex = __esm(() => {
-  regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
-});
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/validate.js
-function validate(uuid) {
-  return typeof uuid === "string" && regex_default.test(uuid);
-}
-var validate_default;
-var init_validate = __esm(() => {
-  init_regex();
-  validate_default = validate;
-});
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/parse.js
-function parse(uuid) {
-  if (!validate_default(uuid)) {
-    throw TypeError("Invalid UUID");
-  }
-  let v;
-  return Uint8Array.of((v = parseInt(uuid.slice(0, 8), 16)) >>> 24, v >>> 16 & 255, v >>> 8 & 255, v & 255, (v = parseInt(uuid.slice(9, 13), 16)) >>> 8, v & 255, (v = parseInt(uuid.slice(14, 18), 16)) >>> 8, v & 255, (v = parseInt(uuid.slice(19, 23), 16)) >>> 8, v & 255, (v = parseInt(uuid.slice(24, 36), 16)) / 1099511627776 & 255, v / 4294967296 & 255, v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
-}
-var parse_default;
-var init_parse = __esm(() => {
-  init_validate();
-  parse_default = parse;
-});
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/stringify.js
-function unsafeStringify(arr, offset = 0) {
-  return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
-}
-var byteToHex;
-var init_stringify = __esm(() => {
-  byteToHex = [];
-  for (let i = 0;i < 256; ++i) {
-    byteToHex.push((i + 256).toString(16).slice(1));
-  }
-});
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/v35.js
-function stringToBytes(str) {
-  str = unescape(encodeURIComponent(str));
-  const bytes = new Uint8Array(str.length);
-  for (let i = 0;i < str.length; ++i) {
-    bytes[i] = str.charCodeAt(i);
-  }
-  return bytes;
-}
-function v35(version, hash, value, namespace, buf, offset) {
-  const valueBytes = typeof value === "string" ? stringToBytes(value) : value;
-  const namespaceBytes = typeof namespace === "string" ? parse_default(namespace) : namespace;
-  if (typeof namespace === "string") {
-    namespace = parse_default(namespace);
-  }
-  if (namespace?.length !== 16) {
-    throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
-  }
-  let bytes = new Uint8Array(16 + valueBytes.length);
-  bytes.set(namespaceBytes);
-  bytes.set(valueBytes, namespaceBytes.length);
-  bytes = hash(bytes);
-  bytes[6] = bytes[6] & 15 | version;
-  bytes[8] = bytes[8] & 63 | 128;
-  if (buf) {
-    offset = offset || 0;
-    if (offset < 0 || offset + 16 > buf.length) {
-      throw new RangeError(`UUID byte range ${offset}:${offset + 15} is out of buffer bounds`);
-    }
-    for (let i = 0;i < 16; ++i) {
-      buf[offset + i] = bytes[i];
-    }
-    return buf;
-  }
-  return unsafeStringify(bytes);
-}
-var DNS = "6ba7b810-9dad-11d1-80b4-00c04fd430c8", URL2 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
-var init_v35 = __esm(() => {
-  init_parse();
-  init_stringify();
-});
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/v5.js
-function v5(value, namespace, buf, offset) {
-  return v35(80, sha1_default, value, namespace, buf, offset);
-}
-var v5_default;
-var init_v5 = __esm(() => {
-  init_sha1();
-  init_v35();
-  v5.DNS = DNS;
-  v5.URL = URL2;
-  v5_default = v5;
-});
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/index.js
-var init_dist_node = __esm(() => {
-  init_v5();
-  init_validate();
-});
-
 // ../../packages/utils/src/signal-helpers.ts
 function extractCommandName(text) {
   const start = text.indexOf(CMD_TAG_START);
@@ -527,6 +409,37 @@ var init_src = __esm(() => {
   init_string_utils();
 });
 
+// ../../packages/plugin-common/src/analytics/properties.ts
+import { release } from "node:os";
+import { basename } from "node:path";
+function buildStandardProperties(version2) {
+  return {
+    plugin_version: version2,
+    node_version: process.version,
+    os_platform: process.platform,
+    os_version: release()
+  };
+}
+function buildUserProperties(session) {
+  if (!session)
+    return {};
+  return {
+    user_id: session.userId,
+    email: session.email,
+    workspace_id: session.workspaceId,
+    workspace_name: session.workspaceName
+  };
+}
+function buildFileSystemProperties(options) {
+  const anonymizedPath = options.filePath ? basename(options.filePath) : undefined;
+  return {
+    ...anonymizedPath && { file_name: anonymizedPath },
+    operation: options.operation,
+    ...options.errnoCode && { errno_code: options.errnoCode }
+  };
+}
+var init_properties = () => {};
+
 // ../../packages/analytics/src/client.ts
 class Analytics {
   providers;
@@ -560,10 +473,10 @@ class Analytics {
       }
     }
   }
-  captureException(error, distinctId, context) {
+  captureException(error51, distinctId, context) {
     for (const provider of this.providers) {
       try {
-        provider.captureException?.(error, distinctId, context);
+        provider.captureException?.(error51, distinctId, context);
       } catch (e) {
         if (true) {
           console.warn("[analytics] provider.captureException() failed:", e);
@@ -614,6 +527,10 @@ var init_events2 = __esm(() => {
     NAV_LINK_CLICKED: "Nav Link Clicked",
     WORKSPACE_SWITCHED: "Workspace Switched",
     TEAM_SWITCHED: "Team Switched",
+    ASK_ZEST_CONVERSATION_STARTED: "Ask Zest Conversation Started",
+    ASK_ZEST_QUICK_ACTION_CLICKED: "Ask Zest Quick Action Clicked",
+    ASK_ZEST_PROMPT_SELECTED: "Ask Zest Prompt Selected",
+    ASK_ZEST_MENU_OPENED: "Ask Zest Menu Opened",
     STANDUP_GENERATED: "Standup Generated",
     STANDUP_VIEWED: "Standup Viewed",
     STANDUP_SHARED: "Standup Shared",
@@ -630,6 +547,9 @@ var init_events2 = __esm(() => {
     WORKSPACE_MEMBERS_PROVISIONED: "Workspace Members Provisioned",
     WORKSPACE_SETTINGS_VIEWED: "Workspace Settings Viewed",
     TEAM_SETTINGS_VIEWED: "Team Settings Viewed",
+    GITHUB_CONNECT_STARTED: "GitHub Connect Started",
+    GITHUB_CONNECTION_REQUESTED: "GitHub Connection Requested",
+    GITHUB_CONNECTED: "GitHub Connected",
     CLI_SIGNED_IN: "CLI Signed In",
     TRIAL_STARTED: "Trial Started",
     PLAN_SELECTED: "Plan Selected",
@@ -671,8 +591,8 @@ class GA4ServerProvider {
   event(_collection, objectId, eventName, properties, context) {
     const ga4Name = GA4_EVENT_MAP[eventName] || toSnakeCase(eventName);
     const clientId = context?.ga4_client_id || `server.${objectId}`;
-    const url = `https://www.google-analytics.com/mp/collect?measurement_id=${this.measurementId}&api_secret=${this.apiSecret}`;
-    const request = fetch(url, {
+    const url2 = `https://www.google-analytics.com/mp/collect?measurement_id=${this.measurementId}&api_secret=${this.apiSecret}`;
+    const request = fetch(url2, {
       method: "POST",
       body: JSON.stringify({
         client_id: clientId,
@@ -704,7 +624,7 @@ var init_ga4_server = __esm(() => {
 });
 
 // ../../node_modules/.bun/posthog-node@5.34.2+63120419cc93e79b/node_modules/posthog-node/dist/extensions/error-tracking/modifiers/module.node.mjs
-import { dirname, posix, sep } from "path";
+import { dirname as dirname2, posix, sep } from "path";
 function createModulerModifier() {
   const getModuleFromFileName = createGetModuleFromFilename();
   return async (frames) => {
@@ -713,16 +633,16 @@ function createModulerModifier() {
     return frames;
   };
 }
-function createGetModuleFromFilename(basePath = process.argv[1] ? dirname(process.argv[1]) : process.cwd(), isWindows = sep === "\\") {
+function createGetModuleFromFilename(basePath = process.argv[1] ? dirname2(process.argv[1]) : process.cwd(), isWindows = sep === "\\") {
   const normalizedBase = isWindows ? normalizeWindowsPath(basePath) : basePath;
   return (filename) => {
     if (!filename)
       return;
     const normalizedFilename = isWindows ? normalizeWindowsPath(filename) : filename;
-    let { dir, base: file, ext } = posix.parse(normalizedFilename);
+    let { dir, base: file2, ext } = posix.parse(normalizedFilename);
     if (ext === ".js" || ext === ".mjs" || ext === ".cjs")
-      file = file.slice(0, -1 * ext.length);
-    const decodedFile = decodeURIComponent(file);
+      file2 = file2.slice(0, -1 * ext.length);
+    const decodedFile = decodeURIComponent(file2);
     if (!dir)
       dir = ".";
     const n = dir.lastIndexOf("/node_modules");
@@ -867,11 +787,11 @@ async function gzipCompress(input, isDebug = true, options) {
     ]);
     await validateNativeGzip(compressed, inputBytes);
     return compressed;
-  } catch (error) {
+  } catch (error51) {
     if (options?.rethrow)
-      throw error;
+      throw error51;
     if (isDebug)
-      console.error("Failed to gzip compress data", error);
+      console.error("Failed to gzip compress data", error51);
     return null;
   }
 }
@@ -893,9 +813,9 @@ var NATIVE_GZIP_VALIDATION_ERROR = "NativeGzipValidationError", GZIP_MAGIC_FIRST
     crc = table[(crc ^ bytes[i]) & 255] ^ crc >>> 8;
   return (4294967295 ^ crc) >>> 0;
 }, throwNativeGzipValidationError = (reason) => {
-  const error = new Error(`Native gzip produced invalid output: ${reason}`);
-  error.name = NATIVE_GZIP_VALIDATION_ERROR;
-  throw error;
+  const error51 = new Error(`Native gzip produced invalid output: ${reason}`);
+  error51.name = NATIVE_GZIP_VALIDATION_ERROR;
+  throw error51;
 }, validateNativeGzip = async (compressed, inputBytes) => {
   if (compressed.size < 18)
     throwNativeGzipValidationError("too-short");
@@ -1021,7 +941,7 @@ function isErrorEvent(event) {
 function isEvent(candidate) {
   return typeof Event != "undefined" && isInstanceOf(candidate, Event);
 }
-function isPlainObject(candidate) {
+function isPlainObject2(candidate) {
   return isBuiltin(candidate, "Object");
 }
 function isInstanceOf(candidate, base) {
@@ -1031,7 +951,7 @@ function isInstanceOf(candidate, base) {
     return false;
   }
 }
-var nativeIsArray, ObjProto, type_utils_hasOwnProperty, type_utils_toString, isArray, isObject = (x) => x === Object(x) && !isArray(x), isUndefined = (x) => x === undefined, isString = (x) => type_utils_toString.call(x) == "[object String]", isEmptyString = (x) => isString(x) && x.trim().length === 0, isNumber = (x) => type_utils_toString.call(x) == "[object Number]" && x === x, isPlainError = (x) => x instanceof Error;
+var nativeIsArray, ObjProto, type_utils_hasOwnProperty, type_utils_toString, isArray, isObject2 = (x) => x === Object(x) && !isArray(x), isUndefined = (x) => x === undefined, isString = (x) => type_utils_toString.call(x) == "[object String]", isEmptyString = (x) => isString(x) && x.trim().length === 0, isNumber = (x) => type_utils_toString.call(x) == "[object Number]" && x === x, isPlainError = (x) => x instanceof Error;
 var init_type_utils = __esm(() => {
   init_types();
   init_string_utils2();
@@ -1146,28 +1066,28 @@ class UUID {
     bytes[15] = randBLo;
     return new UUID(bytes);
   }
-  static parse(uuid) {
-    let hex;
-    switch (uuid.length) {
+  static parse(uuid3) {
+    let hex3;
+    switch (uuid3.length) {
       case 32:
-        hex = /^[0-9a-f]{32}$/i.exec(uuid)?.[0];
+        hex3 = /^[0-9a-f]{32}$/i.exec(uuid3)?.[0];
         break;
       case 36:
-        hex = /^([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})$/i.exec(uuid)?.slice(1, 6).join("");
+        hex3 = /^([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})$/i.exec(uuid3)?.slice(1, 6).join("");
         break;
       case 38:
-        hex = /^\{([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})\}$/i.exec(uuid)?.slice(1, 6).join("");
+        hex3 = /^\{([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})\}$/i.exec(uuid3)?.slice(1, 6).join("");
         break;
       case 45:
-        hex = /^urn:uuid:([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})$/i.exec(uuid)?.slice(1, 6).join("");
+        hex3 = /^urn:uuid:([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})$/i.exec(uuid3)?.slice(1, 6).join("");
         break;
       default:
         break;
     }
-    if (hex) {
+    if (hex3) {
       const inner = new Uint8Array(16);
       for (let i = 0;i < 16; i += 4) {
-        const n = parseInt(hex.substring(2 * i, 2 * i + 8), 16);
+        const n = parseInt(hex3.substring(2 * i, 2 * i + 8), 16);
         inner[i + 0] = n >>> 24;
         inner[i + 1] = n >>> 16;
         inner[i + 2] = n >>> 8;
@@ -1284,20 +1204,20 @@ class V7Generator {
 }
 var DIGITS = "0123456789abcdef", getDefaultRandom = () => ({
   nextUint32: () => 65536 * Math.trunc(65536 * Math.random()) + Math.trunc(65536 * Math.random())
-}), defaultGenerator, uuidv7 = () => uuidv7obj().toString(), uuidv7obj = () => (defaultGenerator || (defaultGenerator = new V7Generator)).generate();
+}), defaultGenerator, uuidv72 = () => uuidv7obj().toString(), uuidv7obj = () => (defaultGenerator || (defaultGenerator = new V7Generator)).generate();
 var init_uuidv7 = __esm(() => {
   /*! For license information please see uuidv7.mjs.LICENSE.txt */
 });
 
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/utils/promise-queue.mjs
 class PromiseQueue {
-  add(promise) {
-    const promiseUUID = uuidv7();
-    this.promiseByIds[promiseUUID] = promise;
-    promise.catch(() => {}).finally(() => {
+  add(promise2) {
+    const promiseUUID = uuidv72();
+    this.promiseByIds[promiseUUID] = promise2;
+    promise2.catch(() => {}).finally(() => {
       delete this.promiseByIds[promiseUUID];
     });
-    return promise;
+    return promise2;
   }
   async join() {
     let promises = Object.values(this.promiseByIds);
@@ -1494,8 +1414,8 @@ var init_user_agent_utils = __esm(() => {
           ];
         const match = /Windows NT ([0-9.]+)/i.exec(user_agent);
         if (match && match[1]) {
-          const version = match[1];
-          let osVersion = windowsVersionMap[version] || "";
+          const version2 = match[1];
+          let osVersion = windowsVersionMap[version2] || "";
           if (/arm/i.test(user_agent))
             osVersion = "RT";
           return [
@@ -1532,12 +1452,12 @@ var init_user_agent_utils = __esm(() => {
     [
       /(watch.*\/(\d+\.\d+\.\d+)|watch os,(\d+\.\d+),)/i,
       (match) => {
-        let version = "";
+        let version2 = "";
         if (match && match.length >= 3)
-          version = isUndefined(match[2]) ? match[3] : match[2];
+          version2 = isUndefined(match[2]) ? match[3] : match[2];
         return [
           "watchOS",
-          version
+          version2
         ];
       }
     ],
@@ -1604,8 +1524,8 @@ var init_user_agent_utils = __esm(() => {
 });
 
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/utils/index.mjs
-function removeTrailingSlash(url) {
-  return url?.replace(/\/+$/, "");
+function removeTrailingSlash(url2) {
+  return url2?.replace(/\/+$/, "");
 }
 async function retriable(fn, props) {
   let lastError = null;
@@ -1844,8 +1764,8 @@ class PostHogCoreStateless {
       }
     };
   }
-  addPendingPromise(promise) {
-    return this.promiseQueue.add(promise);
+  addPendingPromise(promise2) {
+    return this.promiseQueue.add(promise2);
   }
   identifyStateless(distinctId, properties, options) {
     this.wrap(() => {
@@ -1935,7 +1855,7 @@ class PostHogCoreStateless {
       host = "https://us-assets.i.posthog.com";
     else if (host === "https://eu.i.posthog.com")
       host = "https://eu-assets.i.posthog.com";
-    const url = `${host}/array/${this.apiKey}/config`;
+    const url2 = `${host}/array/${this.apiKey}/config`;
     const fetchOptions = {
       method: "GET",
       headers: {
@@ -1943,17 +1863,17 @@ class PostHogCoreStateless {
         "Content-Type": "application/json"
       }
     };
-    return this.fetchWithRetry(url, fetchOptions, {
+    return this.fetchWithRetry(url2, fetchOptions, {
       retryCount: 0
-    }, this.remoteConfigRequestTimeoutMs).then((response) => response.json()).catch((error) => {
-      this._logger.error("Remote config could not be loaded", error);
-      this._events.emit("error", error);
+    }, this.remoteConfigRequestTimeoutMs).then((response) => response.json()).catch((error51) => {
+      this._logger.error("Remote config could not be loaded", error51);
+      this._events.emit("error", error51);
     });
   }
   async getFlags(distinctId, groups = {}, personProperties = {}, groupProperties = {}, extraPayload = {}, fetchConfig = false) {
     await this._initPromise;
     const configParam = fetchConfig ? "&config=true" : "";
-    const url = `${this.host}/flags/?v=2${configParam}`;
+    const url2 = `${this.host}/flags/?v=2${configParam}`;
     const requestData = {
       token: this.apiKey,
       distinct_id: distinctId,
@@ -1974,28 +1894,28 @@ class PostHogCoreStateless {
       },
       body: JSON.stringify(requestData)
     };
-    this._logger.info("Flags URL", url);
-    return this.fetchWithRetry(url, fetchOptions, {
+    this._logger.info("Flags URL", url2);
+    return this.fetchWithRetry(url2, fetchOptions, {
       retryCount: 0
     }, this.featureFlagsRequestTimeoutMs).then((response) => response.json()).then((response) => ({
       success: true,
       response: normalizeFlagsResponse(response)
-    })).catch((error) => {
-      this._events.emit("error", error);
+    })).catch((error51) => {
+      this._events.emit("error", error51);
       return {
         success: false,
-        error: this.categorizeRequestError(error)
+        error: this.categorizeRequestError(error51)
       };
     });
   }
-  categorizeRequestError(error) {
-    if (error instanceof PostHogFetchHttpError)
+  categorizeRequestError(error51) {
+    if (error51 instanceof PostHogFetchHttpError)
       return {
         type: "api_error",
-        statusCode: error.status
+        statusCode: error51.status
       };
-    if (error instanceof PostHogFetchNetworkError) {
-      const cause = error.error;
+    if (error51 instanceof PostHogFetchNetworkError) {
+      const cause = error51.error;
       if (cause instanceof Error && (cause.name === "AbortError" || cause.name === "TimeoutError"))
         return {
           type: "timeout"
@@ -2108,7 +2028,7 @@ class PostHogCoreStateless {
       this._logger.info("Loading surveys is disabled.");
       return [];
     }
-    const url = `${this.host}/api/surveys/?token=${this.apiKey}`;
+    const url2 = `${this.host}/api/surveys/?token=${this.apiKey}`;
     const fetchOptions = {
       method: "GET",
       headers: {
@@ -2116,18 +2036,18 @@ class PostHogCoreStateless {
         "Content-Type": "application/json"
       }
     };
-    const response = await this.fetchWithRetry(url, fetchOptions).then((response2) => {
+    const response = await this.fetchWithRetry(url2, fetchOptions).then((response2) => {
       if (response2.status !== 200 || !response2.json) {
         const msg = `Surveys API could not be loaded: ${response2.status}`;
-        const error = new Error(msg);
-        this._logger.error(error);
+        const error51 = new Error(msg);
+        this._logger.error(error51);
         this._events.emit("error", new Error(msg));
         return;
       }
       return response2.json();
-    }).catch((error) => {
-      this._logger.error("Surveys API could not be loaded", error);
-      this._events.emit("error", error);
+    }).catch((error51) => {
+      this._logger.error("Surveys API could not be loaded", error51);
+      this._events.emit("error", error51);
     });
     const newSurveys = response?.surveys;
     if (newSurveys)
@@ -2206,7 +2126,7 @@ class PostHogCoreStateless {
     if (this.historicalMigration)
       data.historical_migration = true;
     const payload = JSON.stringify(data);
-    const url = `${this.host}/batch/`;
+    const url2 = `${this.host}/batch/`;
     const gzippedPayload = this.disableCompression ? null : await gzipCompress(payload, this.isDebug);
     const fetchOptions = {
       method: "POST",
@@ -2220,7 +2140,7 @@ class PostHogCoreStateless {
       body: gzippedPayload || payload
     };
     try {
-      const response = await this.fetchWithRetry(url, fetchOptions);
+      const response = await this.fetchWithRetry(url2, fetchOptions);
       await response.body?.cancel()?.catch(() => {});
     } catch (err) {
       this._events.emit("error", err);
@@ -2233,7 +2153,7 @@ class PostHogCoreStateless {
       library: this.getLibraryId(),
       library_version: this.getLibraryVersion(),
       timestamp: options?.timestamp ? options?.timestamp : currentISOTime(),
-      uuid: options?.uuid ? options.uuid : uuidv7()
+      uuid: options?.uuid ? options.uuid : uuidv72()
     };
     const addGeoipDisableProperty = options?.disableGeoip ?? this.disableGeoip;
     if (addGeoipDisableProperty) {
@@ -2307,7 +2227,7 @@ class PostHogCoreStateless {
       if (this.historicalMigration)
         data.historical_migration = true;
       const payload = JSON.stringify(data);
-      const url = `${this.host}/batch/`;
+      const url2 = `${this.host}/batch/`;
       const gzippedPayload = this.disableCompression ? null : await gzipCompress(payload, this.isDebug);
       const fetchOptions = {
         method: "POST",
@@ -2328,7 +2248,7 @@ class PostHogCoreStateless {
         }
       };
       try {
-        const response = await this.fetchWithRetry(url, fetchOptions, retryOptions);
+        const response = await this.fetchWithRetry(url2, fetchOptions, retryOptions);
         await response.body?.cancel()?.catch(() => {});
       } catch (err) {
         if (isPostHogFetchContentTooLargeError(err) && batchMessages.length > 1) {
@@ -2353,7 +2273,7 @@ class PostHogCoreStateless {
         error: new Error("The client is disabled")
       };
     const serialized = JSON.stringify(payload);
-    const url = `${this.host}/i/v1/logs?token=${encodeURIComponent(this.apiKey)}`;
+    const url2 = `${this.host}/i/v1/logs?token=${encodeURIComponent(this.apiKey)}`;
     const gzippedPayload = this.disableCompression ? null : await gzipCompress(serialized, this.isDebug);
     const fetchOptions = {
       method: "POST",
@@ -2367,7 +2287,7 @@ class PostHogCoreStateless {
       body: gzippedPayload || serialized
     };
     try {
-      await this.fetchWithRetry(url, fetchOptions, {
+      await this.fetchWithRetry(url2, fetchOptions, {
         retryCheck: (err) => {
           if (isPostHogFetchContentTooLargeError(err))
             return false;
@@ -2393,7 +2313,7 @@ class PostHogCoreStateless {
       };
     }
   }
-  async fetchWithRetry(url, options, retryOptions, requestTimeout) {
+  async fetchWithRetry(url2, options, retryOptions, requestTimeout) {
     const body = options.body ? options.body : "";
     let reqByteLength = -1;
     try {
@@ -2412,7 +2332,7 @@ class PostHogCoreStateless {
       const timer = safeSetTimeout(() => ctrl.abort(), timeoutMs);
       let res = null;
       try {
-        res = await this.fetch(url, {
+        res = await this.fetch(url2, {
           signal: ctrl.signal,
           ...options
         });
@@ -2502,10 +2422,10 @@ var init_posthog_core_stateless = __esm(() => {
     }
   };
   PostHogFetchNetworkError = class PostHogFetchNetworkError extends Error {
-    constructor(error) {
-      super("Network error while fetching PostHog", error instanceof Error ? {
-        cause: error
-      } : {}), this.error = error, this.name = "PostHogFetchNetworkError";
+    constructor(error51) {
+      super("Network error while fetching PostHog", error51 instanceof Error ? {
+        cause: error51
+      } : {}), this.error = error51, this.name = "PostHogFetchNetworkError";
     }
   };
 });
@@ -2815,7 +2735,7 @@ function _parseIntOrUndefined(input) {
 var FILENAME_MATCH, FULL_MATCH, nodeStackLineParser = (line, platform) => {
   const lineMatch = line.match(FULL_MATCH);
   if (lineMatch) {
-    let object;
+    let object2;
     let method;
     let functionName;
     let typeName;
@@ -2826,18 +2746,18 @@ var FILENAME_MATCH, FULL_MATCH, nodeStackLineParser = (line, platform) => {
       if (functionName[methodStart - 1] === ".")
         methodStart--;
       if (methodStart > 0) {
-        object = functionName.slice(0, methodStart);
+        object2 = functionName.slice(0, methodStart);
         method = functionName.slice(methodStart + 1);
-        const objectEnd = object.indexOf(".Module");
+        const objectEnd = object2.indexOf(".Module");
         if (objectEnd > 0) {
           functionName = functionName.slice(objectEnd + 1);
-          object = object.slice(0, objectEnd);
+          object2 = object2.slice(0, objectEnd);
         }
       }
       typeName = undefined;
     }
     if (method) {
-      typeName = object;
+      typeName = object2;
       methodName = method;
     }
     if (method === "<anonymous>") {
@@ -3204,14 +3124,14 @@ class PromiseRejectionEventCoercer {
       };
     return ctx.apply(reason);
   }
-  getUnhandledRejectionReason(error) {
+  getUnhandledRejectionReason(error51) {
     try {
-      if ("reason" in error)
-        return error.reason;
-      if ("detail" in error && error.detail != null && typeof error.detail == "object" && "reason" in error.detail)
-        return error.detail.reason;
+      if ("reason" in error51)
+        return error51.reason;
+      if ("detail" in error51 && error51.detail != null && typeof error51.detail == "object" && "reason" in error51.detail)
+        return error51.detail.reason;
     } catch {}
-    return error;
+    return error51;
   }
 }
 var init_promise_rejection_event = __esm(() => {
@@ -3232,8 +3152,8 @@ var init_coercers = __esm(() => {
 
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/error-tracking/utils.mjs
 class ReduceableCache {
-  constructor(_maxSize) {
-    this._maxSize = _maxSize;
+  constructor(_maxSize2) {
+    this._maxSize = _maxSize2;
     this._cache = new Map;
   }
   get(key) {
@@ -3258,14 +3178,14 @@ class ReduceableCache {
 var init_utils3 = () => {};
 
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/error-tracking/exception-steps.mjs
-function resolveExceptionStepsConfig(config) {
-  if (!config)
+function resolveExceptionStepsConfig(config2) {
+  if (!config2)
     return {
       ...DEFAULT_EXCEPTION_STEPS_CONFIG
     };
   return {
-    enabled: config.enabled ?? DEFAULT_EXCEPTION_STEPS_CONFIG.enabled,
-    max_bytes: normalizePositiveInteger(config.max_bytes, DEFAULT_EXCEPTION_STEPS_CONFIG.max_bytes)
+    enabled: config2.enabled ?? DEFAULT_EXCEPTION_STEPS_CONFIG.enabled,
+    max_bytes: normalizePositiveInteger(config2.max_bytes, DEFAULT_EXCEPTION_STEPS_CONFIG.max_bytes)
   };
 }
 function stripReservedExceptionStepFields(properties) {
@@ -3290,13 +3210,13 @@ function stripReservedExceptionStepFields(properties) {
 }
 
 class ExceptionStepsBuffer {
-  constructor(config) {
+  constructor(config2) {
     this._entries = [];
     this._totalBytes = 0;
-    this._config = resolveExceptionStepsConfig(config);
+    this._config = resolveExceptionStepsConfig(config2);
   }
-  setConfig(config) {
-    this._config = resolveExceptionStepsConfig(config);
+  setConfig(config2) {
+    this._config = resolveExceptionStepsConfig(config2);
     this._trimToMaxBytes();
   }
   add(step) {
@@ -3340,12 +3260,12 @@ function normalizePositiveInteger(input, fallback) {
   return normalized;
 }
 function normalizeAndSerializeStep(step) {
-  const json = safeStringify(step);
-  if (!json)
+  const json2 = safeStringify(step);
+  if (!json2)
     return;
   try {
-    const parsed = JSON.parse(json);
-    if (!isObject(parsed))
+    const parsed = JSON.parse(json2);
+    if (!isObject2(parsed))
       return;
     const parsedStep = parsed;
     const message = parsedStep[EXCEPTION_STEP_INTERNAL_FIELDS.MESSAGE];
@@ -3356,7 +3276,7 @@ function normalizeAndSerializeStep(step) {
       return;
     return {
       step: parsedStep,
-      json
+      json: json2
     };
   } catch {
     return;
@@ -3492,18 +3412,18 @@ async function addSourceContext(frames) {
   if (files.length == 0)
     return frames;
   const readlinePromises = [];
-  for (const file of files) {
-    if (LRU_FILE_CONTENTS_FS_READ_FAILED.get(file))
+  for (const file2 of files) {
+    if (LRU_FILE_CONTENTS_FS_READ_FAILED.get(file2))
       continue;
-    const filesToLineRanges = filesToLines[file];
+    const filesToLineRanges = filesToLines[file2];
     if (!filesToLineRanges)
       continue;
     filesToLineRanges.sort((a, b) => a - b);
     const ranges = makeLineReaderRanges(filesToLineRanges);
-    if (ranges.every((r) => rangeExistsInContentCache(file, r)))
+    if (ranges.every((r) => rangeExistsInContentCache(file2, r)))
       continue;
-    const cache2 = emplace(LRU_FILE_CONTENTS_CACHE, file, {});
-    readlinePromises.push(getContextLinesFromFile(file, ranges, cache2));
+    const cache2 = emplace(LRU_FILE_CONTENTS_CACHE, file2, {});
+    readlinePromises.push(getContextLinesFromFile(file2, ranges, cache2));
   }
   await Promise.all(readlinePromises).catch(() => {});
   if (frames && frames.length > 0)
@@ -3607,8 +3527,8 @@ function shouldSkipContextLinesForFrame(frame) {
     return true;
   return false;
 }
-function rangeExistsInContentCache(file, range) {
-  const contents = LRU_FILE_CONTENTS_CACHE.get(file);
+function rangeExistsInContentCache(file2, range) {
+  const contents = LRU_FILE_CONTENTS_CACHE.get(file2);
   if (contents === undefined)
     return false;
   for (let i = range[0];i <= range[1]; i++)
@@ -3655,10 +3575,10 @@ function makeRangeStart(line) {
 function makeRangeEnd(line) {
   return line + DEFAULT_LINES_OF_CONTEXT;
 }
-function emplace(map, key, contents) {
-  const value = map.get(key);
+function emplace(map2, key, contents) {
+  const value = map2.get(key);
   if (value === undefined) {
-    map.set(key, contents);
+    map2.set(key, contents);
     return contents;
   }
   return value;
@@ -3693,7 +3613,7 @@ var init_context_lines_node = __esm(() => {
 });
 
 // ../../node_modules/.bun/posthog-node@5.34.2+63120419cc93e79b/node_modules/posthog-node/dist/extensions/error-tracking/modifiers/relative-path.node.mjs
-import { isAbsolute, relative, sep as sep2 } from "path";
+import { isAbsolute as isAbsolute2, relative, sep as sep2 } from "path";
 function createRelativePathModifier(basePath = process.cwd()) {
   const isWindows = sep2 === "\\";
   const toUnix = (p) => isWindows ? p.replace(/\\/g, "/") : p;
@@ -3701,7 +3621,7 @@ function createRelativePathModifier(basePath = process.cwd()) {
   return async (frames) => {
     for (const frame of frames)
       if (!(!frame.filename || frame.filename.startsWith("node:") || frame.filename.startsWith("data:"))) {
-        if (isAbsolute(frame.filename))
+        if (isAbsolute2(frame.filename))
           frame.filename = toUnix(relative(normalizedBase, toUnix(frame.filename)));
       }
     return frames;
@@ -3712,10 +3632,10 @@ var init_relative_path_node = () => {};
 // ../../node_modules/.bun/posthog-node@5.34.2+63120419cc93e79b/node_modules/posthog-node/dist/extensions/error-tracking/autocapture.mjs
 function makeUncaughtExceptionHandler(captureFn, onFatalFn) {
   let calledFatalError = false;
-  return Object.assign((error) => {
+  return Object.assign((error51) => {
     const userProvidedListenersCount = global.process.listeners("uncaughtException").filter((listener) => listener.name !== "domainUncaughtExceptionClear" && listener._posthogErrorHandler !== true).length;
     const processWouldExit = userProvidedListenersCount === 0;
-    captureFn(error, {
+    captureFn(error51, {
       mechanism: {
         type: "onuncaughtexception",
         handled: false
@@ -3723,7 +3643,7 @@ function makeUncaughtExceptionHandler(captureFn, onFatalFn) {
     });
     if (!calledFatalError && processWouldExit) {
       calledFatalError = true;
-      onFatalFn(error);
+      onFatalFn(error51);
     }
   }, {
     _posthogErrorHandler: true
@@ -3757,13 +3677,13 @@ class ErrorTracking {
     this.startAutocaptureIfEnabled();
   }
   static isPreviouslyCapturedError(x) {
-    return isObject(x) && "__posthog_previously_captured_error" in x && x.__posthog_previously_captured_error === true;
+    return isObject2(x) && "__posthog_previously_captured_error" in x && x.__posthog_previously_captured_error === true;
   }
-  static async buildEventMessage(error, hint, distinctId, additionalProperties) {
+  static async buildEventMessage(error51, hint, distinctId, additionalProperties) {
     const properties = {
       ...additionalProperties
     };
-    const exceptionProperties = this.errorPropertiesBuilder.buildFromUnknown(error, hint);
+    const exceptionProperties = this.errorPropertiesBuilder.buildFromUnknown(error51, hint);
     exceptionProperties.$exception_list = await this.errorPropertiesBuilder.modifyFrames(exceptionProperties.$exception_list);
     return {
       event: "$exception",
@@ -3815,7 +3735,7 @@ var init_error_tracking2 = __esm(() => {
 });
 
 // ../../node_modules/.bun/posthog-node@5.34.2+63120419cc93e79b/node_modules/posthog-node/dist/version.mjs
-var version = "5.34.2";
+var version2 = "5.34.2";
 var init_version = () => {};
 
 // ../../node_modules/.bun/posthog-node@5.34.2+63120419cc93e79b/node_modules/posthog-node/dist/types.mjs
@@ -3940,15 +3860,15 @@ class FeatureFlagEvaluations {
     };
     if (flag?.locallyEvaluated && this._flagDefinitionsLoadedAt !== undefined)
       properties.$feature_flag_definitions_loaded_at = this._flagDefinitionsLoadedAt;
-    const errors = [];
+    const errors3 = [];
     if (this._errorsWhileComputing)
-      errors.push(FeatureFlagError2.ERRORS_WHILE_COMPUTING);
+      errors3.push(FeatureFlagError2.ERRORS_WHILE_COMPUTING);
     if (this._quotaLimited)
-      errors.push(FeatureFlagError2.QUOTA_LIMITED);
+      errors3.push(FeatureFlagError2.QUOTA_LIMITED);
     if (flag === undefined)
-      errors.push(FeatureFlagError2.FLAG_MISSING);
-    if (errors.length > 0)
-      properties.$feature_flag_error = errors.join(",");
+      errors3.push(FeatureFlagError2.FLAG_MISSING);
+    if (errors3.length > 0)
+      properties.$feature_flag_error = errors3.join(",");
     this._host.captureFlagCalledEventIfNeeded({
       distinctId: this._distinctId,
       key,
@@ -4166,8 +4086,8 @@ class FeatureFlagsPoller {
             try {
               const depResult = await this.computeFlagValueLocally(depFlag, evaluationContext);
               evaluationCache[depFlagKey] = depResult;
-            } catch (error) {
-              throw new InconclusiveMatchError(`Error evaluating flag dependency '${depFlagKey}' for flag '${targetFlagKey}': ${error}`);
+            } catch (error51) {
+              throw new InconclusiveMatchError(`Error evaluating flag dependency '${depFlagKey}' for flag '${targetFlagKey}': ${error51}`);
             }
           else
             evaluationCache[depFlagKey] = false;
@@ -4296,12 +4216,12 @@ class FeatureFlagsPoller {
     if (!this.cacheProvider)
       return false;
     try {
-      const cached = await this.cacheProvider.getFlagDefinitions();
-      if (cached) {
-        this.updateFlagState(cached);
-        this.logMsgIfDebug(() => console.debug(`[FEATURE FLAGS] ${debugMessage} (${cached.flags.length} flags)`));
+      const cached2 = await this.cacheProvider.getFlagDefinitions();
+      if (cached2) {
+        this.updateFlagState(cached2);
+        this.logMsgIfDebug(() => console.debug(`[FEATURE FLAGS] ${debugMessage} (${cached2.flags.length} flags)`));
         this.onLoad?.(this.featureFlags.length);
-        this.warnAboutExperienceContinuityFlags(cached.flags);
+        this.warnAboutExperienceContinuityFlags(cached2.flags);
         return true;
       }
       return false;
@@ -4434,7 +4354,7 @@ class FeatureFlagsPoller {
     };
   }
   _requestFeatureFlagDefinitions() {
-    const url = `${this.host}/flags/definitions?token=${this.projectApiKey}&send_cohorts`;
+    const url2 = `${this.host}/flags/definitions?token=${this.projectApiKey}&send_cohorts`;
     const options = this.getPersonalApiKeyRequestOptions("GET", this.flagsEtag);
     let abortTimeout = null;
     if (this.timeout && typeof this.timeout == "number") {
@@ -4446,7 +4366,7 @@ class FeatureFlagsPoller {
     }
     try {
       const fetch1 = this.fetch;
-      return fetch1(url, options);
+      return fetch1(url2, options);
     } finally {
       clearTimeout(abortTimeout);
     }
@@ -4797,9 +4717,9 @@ function convertToDateTime(value) {
   if (value instanceof Date)
     return value;
   if (typeof value == "string" || typeof value == "number") {
-    const date = new Date(value);
-    if (!isNaN(date.valueOf()))
-      return date;
+    const date5 = new Date(value);
+    if (!isNaN(date5.valueOf()))
+      return date5;
     throw new InconclusiveMatchError(`${value} is in an invalid date format`);
   }
   throw new InconclusiveMatchError(`The date provided ${value} must be a string, number, or date object`);
@@ -4813,22 +4733,22 @@ function relativeDateParseForFeatureFlagMatching(value) {
   {
     if (!match.groups)
       return null;
-    const number = parseInt(match.groups["number"]);
-    if (number >= 1e4)
+    const number4 = parseInt(match.groups["number"]);
+    if (number4 >= 1e4)
       return null;
     const interval = match.groups["interval"];
     if (interval == "h")
-      parsedDt.setUTCHours(parsedDt.getUTCHours() - number);
+      parsedDt.setUTCHours(parsedDt.getUTCHours() - number4);
     else if (interval == "d")
-      parsedDt.setUTCDate(parsedDt.getUTCDate() - number);
+      parsedDt.setUTCDate(parsedDt.getUTCDate() - number4);
     else if (interval == "w")
-      parsedDt.setUTCDate(parsedDt.getUTCDate() - 7 * number);
+      parsedDt.setUTCDate(parsedDt.getUTCDate() - 7 * number4);
     else if (interval == "m")
-      parsedDt.setUTCMonth(parsedDt.getUTCMonth() - number);
+      parsedDt.setUTCMonth(parsedDt.getUTCMonth() - number4);
     else {
       if (interval != "y")
         return null;
-      parsedDt.setUTCFullYear(parsedDt.getUTCFullYear() - number);
+      parsedDt.setUTCFullYear(parsedDt.getUTCFullYear() - number4);
     }
     return parsedDt;
   }
@@ -4984,11 +4904,11 @@ var init_client = __esm(() => {
         return;
       if (!this._waitUntilCycle) {
         let resolve2;
-        const promise = new Promise((r) => {
+        const promise2 = new Promise((r) => {
           resolve2 = r;
         });
         try {
-          waitUntil(promise);
+          waitUntil(promise2);
         } catch {
           return;
         }
@@ -5032,11 +4952,11 @@ var init_client = __esm(() => {
     setPersistedProperty(key, value) {
       return this._memoryStorage.setProperty(key, value);
     }
-    fetch(url, options) {
-      return this.options.fetch ? this.options.fetch(url, options) : fetch(url, options);
+    fetch(url2, options) {
+      return this.options.fetch ? this.options.fetch(url2, options) : fetch(url2, options);
     }
     getLibraryVersion() {
-      return version;
+      return version2;
     }
     getCustomUserAgent() {
       return `${this.getLibraryId()}/${this.getLibraryVersion()}`;
@@ -5213,14 +5133,14 @@ var init_client = __esm(() => {
         else {
           requestId = flagsResponse.requestId;
           evaluatedAt = flagsResponse.evaluatedAt;
-          const errors = [];
+          const errors3 = [];
           if (flagsResponse.errorsWhileComputingFlags)
-            errors.push(FeatureFlagError2.ERRORS_WHILE_COMPUTING);
+            errors3.push(FeatureFlagError2.ERRORS_WHILE_COMPUTING);
           if (flagsResponse.quotaLimited?.includes("feature_flags"))
-            errors.push(FeatureFlagError2.QUOTA_LIMITED);
+            errors3.push(FeatureFlagError2.QUOTA_LIMITED);
           const flagDetail = flagsResponse.flags[key];
           if (flagDetail === undefined)
-            errors.push(FeatureFlagError2.FLAG_MISSING);
+            errors3.push(FeatureFlagError2.FLAG_MISSING);
           else {
             flagId = flagDetail.metadata?.id;
             flagVersion = flagDetail.metadata?.version;
@@ -5239,8 +5159,8 @@ var init_client = __esm(() => {
               payload: parsedPayload
             };
           }
-          if (errors.length > 0)
-            featureFlagError = errors.join(",");
+          if (errors3.length > 0)
+            featureFlagError = errors3.join(",");
         }
       }
       if (sendFeatureFlagEvents) {
@@ -5629,7 +5549,7 @@ var init_client = __esm(() => {
     async _requestRemoteConfigPayload(flagKey) {
       if (!this.options.personalApiKey)
         return;
-      const url = `${this.host}/api/projects/@current/feature_flags/${flagKey}/remote_config?token=${encodeURIComponent(this.apiKey)}`;
+      const url2 = `${this.host}/api/projects/@current/feature_flags/${flagKey}/remote_config?token=${encodeURIComponent(this.apiKey)}`;
       const options = {
         method: "GET",
         headers: {
@@ -5647,9 +5567,9 @@ var init_client = __esm(() => {
         options.signal = controller.signal;
       }
       try {
-        return await this.fetch(url, options);
-      } catch (error) {
-        this._events.emit("error", error);
+        return await this.fetch(url2, options);
+      } catch (error51) {
+        this._events.emit("error", error51);
         return;
       } finally {
         if (abortTimeout)
@@ -5665,7 +5585,7 @@ var init_client = __esm(() => {
       const personProperties = {};
       const groupProperties = {};
       for (const [key, value] of Object.entries(eventProperties))
-        if (isPlainObject(value) && groups && key in groups) {
+        if (isPlainObject2(value) && groups && key in groups) {
           const groupProps = {};
           for (const [groupKey, groupValue] of Object.entries(value))
             groupProps[String(groupKey)] = String(groupValue);
@@ -5739,22 +5659,22 @@ var init_client = __esm(() => {
         evaluationCache: {}
       };
     }
-    captureException(error, distinctId, additionalProperties, uuid, flags) {
-      if (!ErrorTracking.isPreviouslyCapturedError(error)) {
+    captureException(error51, distinctId, additionalProperties, uuid3, flags) {
+      if (!ErrorTracking.isPreviouslyCapturedError(error51)) {
         const syntheticException = new Error("PostHog syntheticException");
-        this.addPendingPromise(ErrorTracking.buildEventMessage(error, {
+        this.addPendingPromise(ErrorTracking.buildEventMessage(error51, {
           syntheticException
         }, distinctId, additionalProperties).then((msg) => this.capture({
           ...msg,
-          uuid,
+          uuid: uuid3,
           flags
         })));
       }
     }
-    async captureExceptionImmediate(error, distinctId, additionalProperties, flags) {
-      if (!ErrorTracking.isPreviouslyCapturedError(error)) {
+    async captureExceptionImmediate(error51, distinctId, additionalProperties, flags) {
+      if (!ErrorTracking.isPreviouslyCapturedError(error51)) {
         const syntheticException = new Error("PostHog syntheticException");
-        return this.addPendingPromise(ErrorTracking.buildEventMessage(error, {
+        return this.addPendingPromise(ErrorTracking.buildEventMessage(error51, {
           syntheticException
         }, distinctId, additionalProperties).then((msg) => this.captureImmediate({
           ...msg,
@@ -5763,7 +5683,7 @@ var init_client = __esm(() => {
       }
     }
     async prepareEventMessage(props) {
-      const { distinctId, event, properties, groups, flags, sendFeatureFlags, timestamp, disableGeoip, uuid } = props;
+      const { distinctId, event, properties, groups, flags, sendFeatureFlags, timestamp, disableGeoip, uuid: uuid3 } = props;
       const contextData = this.context?.get();
       let mergedDistinctId = distinctId || contextData?.distinctId;
       const mergedProperties = {
@@ -5772,7 +5692,7 @@ var init_client = __esm(() => {
         ...properties || {}
       };
       if (!mergedDistinctId) {
-        mergedDistinctId = uuidv7();
+        mergedDistinctId = uuidv72();
         mergedProperties.$process_person_profile = false;
       }
       if (contextData?.sessionId && !mergedProperties.$session_id)
@@ -5786,7 +5706,7 @@ var init_client = __esm(() => {
         sendFeatureFlags,
         timestamp,
         disableGeoip,
-        uuid
+        uuid: uuid3
       });
       if (!eventMessage)
         return Promise.reject(null);
@@ -6031,8 +5951,8 @@ class PostHogServerProvider {
       properties: { ...this.defaultProperties, ...properties, ...context }
     });
   }
-  captureException(error, distinctId, context) {
-    this.posthog.captureException(error, distinctId, {
+  captureException(error51, distinctId, context) {
+    this.posthog.captureException(error51, distinctId, {
       ...this.defaultProperties,
       ...context
     });
@@ -6071,14 +5991,14 @@ var init_server = __esm(() => {
 });
 
 // ../../packages/plugin-common/src/analytics/index.ts
-function createAnalyticsClient(config) {
-  const { posthogApiKey, errorSourcePrefix, logger: logger2 } = config;
+function createAnalyticsClient(config2) {
+  const { posthogApiKey, errorSourcePrefix, logger: logger2 } = config2;
   if (!posthogApiKey) {
     return null;
   }
   const client = createServerAnalytics(posthogApiKey);
   return {
-    captureException(error, errorType, errorSource, userId, properties) {
+    captureException(error51, errorType, errorSource, userId, properties) {
       try {
         const context = {
           error_type: errorType,
@@ -6086,7 +6006,7 @@ function createAnalyticsClient(config) {
           error_source: `${errorSourcePrefix}/${errorSource}`,
           ...properties
         };
-        client.captureException(error, userId, context);
+        client.captureException(error51, userId, context);
       } catch (e) {
         logger2?.debug("Failed to capture exception in PostHog", e);
       }
@@ -6116,37 +6036,6 @@ var init_analytics = __esm(() => {
   init_events();
   init_events();
 });
-
-// ../../packages/plugin-common/src/analytics/properties.ts
-import { release } from "node:os";
-import { basename as basename2 } from "node:path";
-function buildStandardProperties(version2) {
-  return {
-    plugin_version: version2,
-    node_version: process.version,
-    os_platform: process.platform,
-    os_version: release()
-  };
-}
-function buildUserProperties(session) {
-  if (!session)
-    return {};
-  return {
-    user_id: session.userId,
-    email: session.email,
-    workspace_id: session.workspaceId,
-    workspace_name: session.workspaceName
-  };
-}
-function buildFileSystemProperties(options) {
-  const anonymizedPath = options.filePath ? basename2(options.filePath) : undefined;
-  return {
-    ...anonymizedPath && { file_name: anonymizedPath },
-    operation: options.operation,
-    ...options.errnoCode && { errno_code: options.errnoCode }
-  };
-}
-var init_properties = () => {};
 
 // src/config/constants.ts
 import { homedir } from "node:os";
@@ -6223,11 +6112,11 @@ function parseDateFromFilename(filename, logPrefix) {
   if (!match) {
     return null;
   }
-  const date = new Date(match[1] + "T00:00:00Z");
-  return Number.isNaN(date.getTime()) ? null : date;
+  const date5 = new Date(match[1] + "T00:00:00Z");
+  return Number.isNaN(date5.getTime()) ? null : date5;
 }
-function createLogRotation(config) {
-  const { logsDir, retentionDays, logger: logger2 } = config;
+function createLogRotation(config2) {
+  const { logsDir, retentionDays, logger: logger2 } = config2;
   const lastCleanupTime = {};
   async function cleanupStaleLogs(logPrefix) {
     const now = Date.now();
@@ -6240,19 +6129,19 @@ function createLogRotation(config) {
       await ensureDirectory(logsDir);
       const files = await readdir(logsDir);
       const cutoffDate = new Date(now - retentionDays * 24 * 60 * 60 * 1000);
-      for (const file of files) {
-        const fileDate = parseDateFromFilename(file, logPrefix);
+      for (const file2 of files) {
+        const fileDate = parseDateFromFilename(file2, logPrefix);
         if (fileDate && fileDate < cutoffDate) {
-          const filePath = join2(logsDir, file);
+          const filePath = join2(logsDir, file2);
           try {
             await unlink(filePath);
-          } catch (error) {
-            logger2?.error(`Failed to delete old log file ${file}`, error);
+          } catch (error51) {
+            logger2?.error(`Failed to delete old log file ${file2}`, error51);
           }
         }
       }
-    } catch (error) {
-      logger2?.error("Failed to cleanup old logs", error);
+    } catch (error51) {
+      logger2?.error("Failed to cleanup old logs", error51);
     }
   }
   async function forceCleanupStaleLogs(logPrefix) {
@@ -6295,7 +6184,7 @@ var init_fs_utils2 = () => {};
 
 // src/utils/logger.ts
 import { appendFile } from "node:fs/promises";
-import { dirname as dirname2 } from "node:path";
+import { dirname as dirname3 } from "node:path";
 
 class Logger {
   minLevel = "info";
@@ -6315,13 +6204,13 @@ class Logger {
   async writeToFile(message) {
     try {
       const logFilePath = getDatedLogPath2(this.logPrefix);
-      await ensureDirectory2(dirname2(logFilePath));
+      await ensureDirectory2(dirname3(logFilePath));
       const timestamp = new Date().toISOString();
       await appendFile(logFilePath, `[${timestamp}] ${message}
 `, "utf-8");
       cleanupStaleLogs(this.logPrefix);
-    } catch (error) {
-      console.error("Failed to write to log file:", error);
+    } catch (error51) {
+      console.error("Failed to write to log file:", error51);
     }
   }
   shouldLog(level) {
@@ -6343,10 +6232,10 @@ class Logger {
       this.writeToFile(`WARN: ${message} ${args.length > 0 ? JSON.stringify(args) : ""}`);
     }
   }
-  error(message, error) {
+  error(message, error51) {
     if (this.shouldLog("error")) {
       console.error(`[Zest:Error] ${message}`);
-      this.writeToFile(`ERROR: ${message} ${error instanceof Error ? error.stack : JSON.stringify(error)}`);
+      this.writeToFile(`ERROR: ${message} ${error51 instanceof Error ? error51.stack : JSON.stringify(error51)}`);
     }
   }
 }
@@ -6371,8 +6260,8 @@ function getPluginVersion() {
     }
     logger2.warn("Version field not found in marketplace plugin.json");
     return "unknown";
-  } catch (error) {
-    logger2.warn("Failed to read plugin version from marketplace plugin.json", error);
+  } catch (error51) {
+    logger2.warn("Failed to read plugin version from marketplace plugin.json", error51);
     return "unknown";
   }
 }
@@ -6384,7 +6273,7 @@ var init_plugin_version = __esm(() => {
 // ../../packages/plugin-common/src/utils/file-lock.ts
 import { unlinkSync } from "node:fs";
 import { readdir as readdir2, readFile, unlink as unlink2, writeFile } from "node:fs/promises";
-import { dirname as dirname3 } from "node:path";
+import { dirname as dirname4 } from "node:path";
 function defaultIsProcessRunning(pid) {
   try {
     process.kill(pid, 0);
@@ -6407,16 +6296,16 @@ async function acquireFileLock(filePath, isRunning, options, activeLockFiles, de
     timestamp: Date.now()
   };
   try {
-    await ensureDirectory(dirname3(lockFile));
+    await ensureDirectory(dirname4(lockFile));
     await writeFile(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
     activeLockFiles?.add(lockFile);
     return true;
-  } catch (error) {
-    if (error.code !== "EEXIST") {
-      const errCode = error.code;
+  } catch (error51) {
+    if (error51.code !== "EEXIST") {
+      const errCode = error51.code;
       if (errCode === "ENOENT" || errCode === "EACCES") {
-        options.logger?.error(`Failed to create lock file ${lockFile}:`, error);
-        options.onCaptureException?.(error, FILE_LOCK_CREATE_FAILED, "file-lock", {
+        options.logger?.error(`Failed to create lock file ${lockFile}:`, error51);
+        options.onCaptureException?.(error51, FILE_LOCK_CREATE_FAILED, "file-lock", {
           ...buildFileSystemProperties({
             filePath: lockFile,
             operation: "lock",
@@ -6424,7 +6313,7 @@ async function acquireFileLock(filePath, isRunning, options, activeLockFiles, de
           })
         });
       }
-      throw error;
+      throw error51;
     }
     try {
       const content = await readFile(lockFile, "utf8");
@@ -6447,29 +6336,29 @@ async function releaseFileLock(filePath, activeLockFiles) {
   activeLockFiles?.delete(lockFile);
   await unlink2(lockFile).catch(() => {});
 }
-function createFileLock(config) {
+function createFileLock(config2) {
   const {
     logger: logger3,
     onCaptureException,
     lockRetryMs = DEFAULT_LOCK_RETRY_MS,
     lockMaxRetries = DEFAULT_LOCK_MAX_RETRIES,
     lockDir
-  } = config;
-  const isRunning = config.isProcessRunning ?? defaultIsProcessRunning;
+  } = config2;
+  const isRunning = config2.isProcessRunning ?? defaultIsProcessRunning;
   const options = { logger: logger3, onCaptureException, isProcessRunning: isRunning, lockRetryMs, lockMaxRetries };
   const activeLockFiles = new Set;
   async function withFileLockInstance(filePath, fn) {
     let retries = 0;
     while (!await acquireFileLock(filePath, isRunning, options, activeLockFiles)) {
       if (++retries >= lockMaxRetries) {
-        const error = new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
-        onCaptureException?.(error, FILE_LOCK_TIMEOUT, "file-lock", {
+        const error51 = new Error(`Failed to acquire lock for ${filePath} after ${retries} retries`);
+        onCaptureException?.(error51, FILE_LOCK_TIMEOUT, "file-lock", {
           ...buildFileSystemProperties({ filePath, operation: "lock" }),
           retries,
           max_retries: lockMaxRetries,
           retry_delay_ms: lockRetryMs
         });
-        throw error;
+        throw error51;
       }
       await new Promise((resolve2) => setTimeout(resolve2, lockRetryMs));
     }
@@ -6509,8 +6398,8 @@ function createFileLock(config) {
           logger3?.info(`Removed corrupted lock file: ${lockFileName}`);
         }
       }
-    } catch (error) {
-      logger3?.debug("Failed to clean up stale locks:", error);
+    } catch (error51) {
+      logger3?.debug("Failed to clean up stale locks:", error51);
     }
   }
   return {
@@ -6531,20 +6420,20 @@ var init_file_lock = __esm(() => {
 
 // ../../packages/plugin-common/src/auth/session-io.ts
 import { mkdir as mkdir3, readFile as readFile2, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
-import { dirname as dirname4 } from "node:path";
+import { dirname as dirname5 } from "node:path";
 async function readSessionFile(filePath) {
   try {
     const content = await readFile2(filePath, "utf-8");
     return JSON.parse(content);
-  } catch (error) {
-    if (error.code === "ENOENT") {
+  } catch (error51) {
+    if (error51.code === "ENOENT") {
       return null;
     }
-    throw error;
+    throw error51;
   }
 }
 async function writeSessionFile(filePath, session) {
-  await mkdir3(dirname4(filePath), { recursive: true });
+  await mkdir3(dirname5(filePath), { recursive: true });
   await writeFile2(filePath, JSON.stringify(session, null, 2), {
     encoding: "utf-8",
     mode: 384
@@ -6553,11 +6442,11 @@ async function writeSessionFile(filePath, session) {
 async function deleteSessionFile(filePath) {
   try {
     await unlink3(filePath);
-  } catch (error) {
-    if (error.code === "ENOENT") {
+  } catch (error51) {
+    if (error51.code === "ENOENT") {
       return;
     }
-    throw error;
+    throw error51;
   }
 }
 function isSessionStructureValid(session) {
@@ -6569,9 +6458,9 @@ function isRefreshTokenExpired(session) {
 var init_session_io = () => {};
 
 // ../../packages/plugin-common/src/auth/session-manager.ts
-function createSessionManager(config) {
-  const { sessionFilePath, logger: logger3, onError } = config;
-  const withFileLock = resolveFileLock(config.withFileLock);
+function createSessionManager(config2) {
+  const { sessionFilePath, logger: logger3, onError } = config2;
+  const withFileLock = resolveFileLock(config2.withFileLock);
   async function loadSession() {
     try {
       const session = await readSessionFile(sessionFilePath);
@@ -6583,10 +6472,10 @@ function createSessionManager(config) {
         return null;
       }
       return session;
-    } catch (error) {
-      logger3?.error("Failed to load session file", error);
-      if (error instanceof Error)
-        onError?.(error, "load");
+    } catch (error51) {
+      logger3?.error("Failed to load session file", error51);
+      if (error51 instanceof Error)
+        onError?.(error51, "load");
       return null;
     }
   }
@@ -6596,22 +6485,22 @@ function createSessionManager(config) {
         await writeSessionFile(sessionFilePath, session);
       });
       logger3?.info("Session saved successfully");
-    } catch (error) {
-      logger3?.error("Failed to save session", error);
-      if (error instanceof Error)
-        onError?.(error, "save");
-      throw error;
+    } catch (error51) {
+      logger3?.error("Failed to save session", error51);
+      if (error51 instanceof Error)
+        onError?.(error51, "save");
+      throw error51;
     }
   }
   async function clearSession() {
     try {
       await deleteSessionFile(sessionFilePath);
       logger3?.info("Session cleared successfully");
-    } catch (error) {
-      logger3?.error("Failed to clear session", error);
-      if (error instanceof Error)
-        onError?.(error, "clear");
-      throw error;
+    } catch (error51) {
+      logger3?.error("Failed to clear session", error51);
+      if (error51 instanceof Error)
+        onError?.(error51, "clear");
+      throw error51;
     }
   }
   async function getValidSession() {
@@ -6636,8 +6525,8 @@ function createSessionManager(config) {
     if (current.name !== session.workspaceName) {
       try {
         await updateWorkspaceInSession(current.id, current.name);
-      } catch (error) {
-        logger3?.debug("Failed to update workspace name in session (non-critical)", error);
+      } catch (error51) {
+        logger3?.debug("Failed to update workspace name in session (non-critical)", error51);
       }
     }
     return current.name;
@@ -6658,11 +6547,11 @@ function createSessionManager(config) {
         await writeSessionFile(sessionFilePath, session);
       });
       logger3?.info("Workspace metadata updated in session");
-    } catch (error) {
-      logger3?.error("Failed to update workspace in session", error);
-      if (error instanceof Error)
-        onError?.(error, "save");
-      throw error;
+    } catch (error51) {
+      logger3?.error("Failed to update workspace in session", error51);
+      if (error51 instanceof Error)
+        onError?.(error51, "save");
+      throw error51;
     }
   }
   async function clearSessionIfStale(staleRefreshToken) {
@@ -6698,7 +6587,7 @@ var init_claude_instances = __esm(() => {
 });
 
 // src/utils/daemon-manager.ts
-import { dirname as dirname5, join as join4 } from "node:path";
+import { dirname as dirname6, join as join4 } from "node:path";
 import { fileURLToPath } from "node:url";
 function isProcessRunning(pid) {
   try {
@@ -6720,7 +6609,7 @@ var init_daemon_manager = __esm(() => {
   init_logger2();
   DAEMON_RESTART_LOCK = join4(CLAUDE_ZEST_DIR, "daemon-restart.lock");
   __filename2 = fileURLToPath(import.meta.url);
-  __dirname2 = dirname5(__filename2);
+  __dirname2 = dirname6(__filename2);
 });
 
 // src/utils/file-lock.ts
@@ -6775,13 +6664,13 @@ var init_session_manager2 = __esm(() => {
     sessionFilePath: SESSION_FILE,
     logger: logger2,
     withFileLock,
-    onError: (error, operation) => {
+    onError: (error51, operation) => {
       const { eventType, fsOperation } = ERROR_OPERATION_MAP[operation];
-      captureException(error, eventType, "session-manager", {
+      captureException(error51, eventType, "session-manager", {
         ...buildFileSystemProperties({
           filePath: SESSION_FILE,
           operation: fsOperation,
-          errnoCode: error.code
+          errnoCode: error51.code
         })
       });
     }
@@ -6810,8 +6699,8 @@ async function getAnalyticsClient() {
     try {
       const { loadSessionFile: loadSessionFile2 } = await Promise.resolve().then(() => (init_session_manager2(), exports_session_manager));
       cachedSession = await loadSessionFile2();
-    } catch (error) {
-      logger2.debug("Could not load session for analytics context", error);
+    } catch (error51) {
+      logger2.debug("Could not load session for analytics context", error51);
     }
   }
   return analyticsClient;
@@ -6823,15 +6712,15 @@ function enrichProperties(extra) {
     ...extra
   };
 }
-async function captureException(error, errorType, errorSource, additionalProperties) {
+async function captureException(error51, errorType, errorSource, additionalProperties) {
   try {
     const client = await getAnalyticsClient();
     if (!client)
       return;
-    client.captureException(error, errorType, errorSource, cachedSession?.userId, enrichProperties(additionalProperties));
+    client.captureException(error51, errorType, errorSource, cachedSession?.userId, enrichProperties(additionalProperties));
     logger2.debug("Exception captured in PostHog", {
       error_type: errorType,
-      error_message: error.message
+      error_message: error51.message
     });
   } catch (e) {
     logger2.debug("Failed to capture exception in PostHog", e);
@@ -6867,31 +6756,104 @@ var init_analytics2 = __esm(() => {
   init_trackers();
 });
 
-// src/utils/session-id-normalizer.ts
-var exports_session_id_normalizer = {};
-__export(exports_session_id_normalizer, {
-  normalizeSessionId: () => normalizeSessionId2,
-  isValidSessionId: () => isValidSessionId2
-});
-function isValidSessionId2(sessionId) {
-  return validate_default(sessionId);
-}
-function normalizeSessionId2(sessionId) {
-  if (validate_default(sessionId)) {
-    return sessionId;
-  }
-  return v5_default(sessionId, ZEST_SESSION_NAMESPACE);
-}
-var init_session_id_normalizer = __esm(() => {
-  init_dist_node();
-  init_constants();
-});
-
 // src/utils/extraction-helpers.ts
 init_events();
 import { randomUUID } from "node:crypto";
 import { open, readdir as readdir5, readFile as readFile9, realpath, stat as stat5 } from "node:fs/promises";
 import { basename as basename3, join as join8, resolve as resolve2 } from "node:path";
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/sha1.js
+import { createHash } from "node:crypto";
+function sha1(bytes) {
+  if (Array.isArray(bytes)) {
+    bytes = Buffer.from(bytes);
+  } else if (typeof bytes === "string") {
+    bytes = Buffer.from(bytes, "utf8");
+  }
+  return createHash("sha1").update(bytes).digest();
+}
+var sha1_default = sha1;
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/regex.js
+var regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/validate.js
+function validate(uuid) {
+  return typeof uuid === "string" && regex_default.test(uuid);
+}
+var validate_default = validate;
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/parse.js
+function parse(uuid) {
+  if (!validate_default(uuid)) {
+    throw TypeError("Invalid UUID");
+  }
+  let v;
+  return Uint8Array.of((v = parseInt(uuid.slice(0, 8), 16)) >>> 24, v >>> 16 & 255, v >>> 8 & 255, v & 255, (v = parseInt(uuid.slice(9, 13), 16)) >>> 8, v & 255, (v = parseInt(uuid.slice(14, 18), 16)) >>> 8, v & 255, (v = parseInt(uuid.slice(19, 23), 16)) >>> 8, v & 255, (v = parseInt(uuid.slice(24, 36), 16)) / 1099511627776 & 255, v / 4294967296 & 255, v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
+}
+var parse_default = parse;
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/stringify.js
+var byteToHex = [];
+for (let i = 0;i < 256; ++i) {
+  byteToHex.push((i + 256).toString(16).slice(1));
+}
+function unsafeStringify(arr, offset = 0) {
+  return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
+}
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/v35.js
+function stringToBytes(str) {
+  str = unescape(encodeURIComponent(str));
+  const bytes = new Uint8Array(str.length);
+  for (let i = 0;i < str.length; ++i) {
+    bytes[i] = str.charCodeAt(i);
+  }
+  return bytes;
+}
+var DNS = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+var URL2 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
+function v35(version, hash, value, namespace, buf, offset) {
+  const valueBytes = typeof value === "string" ? stringToBytes(value) : value;
+  const namespaceBytes = typeof namespace === "string" ? parse_default(namespace) : namespace;
+  if (typeof namespace === "string") {
+    namespace = parse_default(namespace);
+  }
+  if (namespace?.length !== 16) {
+    throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
+  }
+  let bytes = new Uint8Array(16 + valueBytes.length);
+  bytes.set(namespaceBytes);
+  bytes.set(valueBytes, namespaceBytes.length);
+  bytes = hash(bytes);
+  bytes[6] = bytes[6] & 15 | version;
+  bytes[8] = bytes[8] & 63 | 128;
+  if (buf) {
+    offset = offset || 0;
+    if (offset < 0 || offset + 16 > buf.length) {
+      throw new RangeError(`UUID byte range ${offset}:${offset + 15} is out of buffer bounds`);
+    }
+    for (let i = 0;i < 16; ++i) {
+      buf[offset + i] = bytes[i];
+    }
+    return buf;
+  }
+  return unsafeStringify(bytes);
+}
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/v5.js
+function v5(value, namespace, buf, offset) {
+  return v35(80, sha1_default, value, namespace, buf, offset);
+}
+v5.DNS = DNS;
+v5.URL = URL2;
+var v5_default = v5;
+// ../../packages/plugin-common/src/supabase/utils/session-id-normalizer.ts
+function normalizeSessionId(sessionId, namespace) {
+  if (validate_default(sessionId)) {
+    return sessionId;
+  }
+  return v5_default(sessionId, namespace);
+}
 // ../../packages/plugin-common/src/supabase/utils/string-utils.ts
 function toWellFormed(str) {
   return str.toWellFormed?.() ?? str;
@@ -6900,113 +6862,13 @@ var SYNTHETIC_MODEL = "<synthetic>";
 function isSyntheticModel(model) {
   return model === SYNTHETIC_MODEL;
 }
-// src/utils/extraction-helpers.ts
-init_src();
-
-// ../../packages/utils/src/git-utils.ts
-init_dist_node();
-import { exec, execSync } from "node:child_process";
-import * as path from "node:path";
-import { promisify } from "node:util";
-var execAsync = promisify(exec);
-var UNKNOWN_PROJECT = {
-  projectId: "unknown",
-  projectName: "unknown"
-};
-var PROJECT_ID_NAMESPACE = "e1f3b3c4-0b7a-4c1e-8a7b-9f3c0e1d2a3b";
-function generateProjectId(input) {
-  return v5_default(input, PROJECT_ID_NAMESPACE);
-}
-function extractNameFromRemoteUrl(remoteUrl) {
-  const orgRepoMatch = remoteUrl.match(/[/:]([^/:.]+\/[^/]+?)(\.git)?$/);
-  if (orgRepoMatch?.[1]) {
-    return orgRepoMatch[1];
-  }
-  const repoMatch = remoteUrl.match(/\/([^/]+?)(\.git)?$/);
-  if (repoMatch?.[1]) {
-    return repoMatch[1];
-  }
-  return null;
-}
-function extractProjectName(workingDirectory) {
-  try {
-    try {
-      const remoteUrl = execSync("git config --get remote.origin.url", {
-        cwd: workingDirectory,
-        encoding: "utf-8",
-        stdio: ["pipe", "pipe", "pipe"],
-        timeout: 5000
-      }).trim();
-      if (remoteUrl) {
-        const name = extractNameFromRemoteUrl(remoteUrl);
-        if (name) {
-          return name;
-        }
-      }
-    } catch {}
-    try {
-      const repoRoot = execSync("git rev-parse --show-toplevel", {
-        cwd: workingDirectory,
-        encoding: "utf-8",
-        stdio: ["pipe", "pipe", "pipe"],
-        timeout: 5000
-      }).trim();
-      if (repoRoot) {
-        return path.basename(repoRoot);
-      }
-    } catch {}
-    return path.basename(workingDirectory);
-  } catch {
-    return null;
-  }
-}
-function isGitRepository(workingDirectory) {
-  try {
-    execSync("git rev-parse --is-inside-work-tree", {
-      cwd: workingDirectory,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-      timeout: 5000
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
-function getProjectInfoSync(workingDirectory) {
-  try {
-    if (!isGitRepository(workingDirectory)) {
-      return UNKNOWN_PROJECT;
-    }
-    const projectName = extractProjectName(workingDirectory);
-    if (!projectName) {
-      return UNKNOWN_PROJECT;
-    }
-    const absolutePath = path.resolve(workingDirectory);
-    const projectId = generateProjectId(absolutePath);
-    return {
-      projectId,
-      projectName
-    };
-  } catch {
-    return UNKNOWN_PROJECT;
-  }
-}
-// src/utils/extraction-helpers.ts
-init_analytics2();
-init_session_manager2();
-init_constants();
-
-// src/config/settings.ts
-import { readFile as readFile4, writeFile as writeFile3 } from "node:fs/promises";
-
 // ../../node_modules/.bun/zod@4.4.3/node_modules/zod/v4/classic/external.js
 var exports_external = {};
 __export(exports_external, {
   xor: () => xor,
   xid: () => xid2,
   void: () => _void2,
-  uuidv7: () => uuidv72,
+  uuidv7: () => uuidv7,
   uuidv6: () => uuidv6,
   uuidv4: () => uuidv4,
   uuid: () => uuid2,
@@ -7246,7 +7108,7 @@ __export(exports_external, {
 // ../../node_modules/.bun/zod@4.4.3/node_modules/zod/v4/core/index.js
 var exports_core2 = {};
 __export(exports_core2, {
-  version: () => version2,
+  version: () => version,
   util: () => exports_util,
   treeifyError: () => treeifyError,
   toJSONSchema: () => toJSONSchema,
@@ -7631,8 +7493,8 @@ __export(exports_util, {
   jsonStringifyReplacer: () => jsonStringifyReplacer,
   joinValues: () => joinValues,
   issue: () => issue,
-  isPlainObject: () => isPlainObject2,
-  isObject: () => isObject2,
+  isPlainObject: () => isPlainObject,
+  isObject: () => isObject,
   hexToUint8Array: () => hexToUint8Array,
   getSizableOrigin: () => getSizableOrigin,
   getParsedType: () => getParsedType,
@@ -7764,10 +7626,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path2) {
-  if (!path2)
+function getElementAtPath(obj, path) {
+  if (!path)
     return obj;
-  return path2.reduce((acc, key) => acc?.[key], obj);
+  return path.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -7795,7 +7657,7 @@ function slugify(input) {
   return input.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/[\s_-]+/g, "-").replace(/^-+|-+$/g, "");
 }
 var captureStackTrace = "captureStackTrace" in Error ? Error.captureStackTrace : (..._args) => {};
-function isObject2(data) {
+function isObject(data) {
   return typeof data === "object" && data !== null && !Array.isArray(data);
 }
 var allowsEval = /* @__PURE__ */ cached(() => {
@@ -7813,8 +7675,8 @@ var allowsEval = /* @__PURE__ */ cached(() => {
     return false;
   }
 });
-function isPlainObject2(o) {
-  if (isObject2(o) === false)
+function isPlainObject(o) {
+  if (isObject(o) === false)
     return false;
   const ctor = o.constructor;
   if (ctor === undefined)
@@ -7822,7 +7684,7 @@ function isPlainObject2(o) {
   if (typeof ctor !== "function")
     return true;
   const prot = ctor.prototype;
-  if (isObject2(prot) === false)
+  if (isObject(prot) === false)
     return false;
   if (Object.prototype.hasOwnProperty.call(prot, "isPrototypeOf") === false) {
     return false;
@@ -7830,7 +7692,7 @@ function isPlainObject2(o) {
   return true;
 }
 function shallowClone(o) {
-  if (isPlainObject2(o))
+  if (isPlainObject(o))
     return { ...o };
   if (Array.isArray(o))
     return [...o];
@@ -8034,7 +7896,7 @@ function omit(schema, mask) {
   return clone(schema, def);
 }
 function extend(schema, shape) {
-  if (!isPlainObject2(shape)) {
+  if (!isPlainObject(shape)) {
     throw new Error("Invalid input to extend: expected a plain object");
   }
   const checks = schema._zod.def.checks;
@@ -8057,7 +7919,7 @@ function extend(schema, shape) {
   return clone(schema, def);
 }
 function safeExtend(schema, shape) {
-  if (!isPlainObject2(shape)) {
+  if (!isPlainObject(shape)) {
     throw new Error("Invalid input to safeExtend: expected a plain object");
   }
   const def = mergeDefs(schema._zod.def, {
@@ -8175,11 +8037,11 @@ function explicitlyAborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path2, issues) {
+function prefixIssues(path, issues) {
   return issues.map((iss) => {
     var _a2;
     (_a2 = iss).path ?? (_a2.path = []);
-    iss.path.unshift(path2);
+    iss.path.unshift(path);
     return iss;
   });
 }
@@ -8326,16 +8188,16 @@ function flattenError(error, mapper = (issue2) => issue2.message) {
 }
 function formatError(error, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error2, path2 = []) => {
+  const processError = (error2, path = []) => {
     for (const issue2 of error2.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path2, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path2, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path2, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path, ...issue2.path]);
       } else {
-        const fullpath = [...path2, ...issue2.path];
+        const fullpath = [...path, ...issue2.path];
         if (fullpath.length === 0) {
           fieldErrors._errors.push(mapper(issue2));
         } else {
@@ -8362,17 +8224,17 @@ function formatError(error, mapper = (issue2) => issue2.message) {
 }
 function treeifyError(error, mapper = (issue2) => issue2.message) {
   const result = { errors: [] };
-  const processError = (error2, path2 = []) => {
+  const processError = (error2, path = []) => {
     var _a2, _b;
     for (const issue2 of error2.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path2, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path2, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path2, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path, ...issue2.path]);
       } else {
-        const fullpath = [...path2, ...issue2.path];
+        const fullpath = [...path, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -8404,8 +8266,8 @@ function treeifyError(error, mapper = (issue2) => issue2.message) {
 }
 function toDotPath(_path) {
   const segs = [];
-  const path2 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path2) {
+  const path = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -8591,10 +8453,10 @@ var nanoid = /^[a-zA-Z0-9_-]{21}$/;
 var duration = /^P(?:(\d+W)|(?!.*W)(?=\d|T\d)(\d+Y)?(\d+M)?(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+([.,]\d+)?S)?)?)$/;
 var extendedDuration = /^[-+]?P(?!$)(?:(?:[-+]?\d+Y)|(?:[-+]?\d+[.,]\d+Y$))?(?:(?:[-+]?\d+M)|(?:[-+]?\d+[.,]\d+M$))?(?:(?:[-+]?\d+W)|(?:[-+]?\d+[.,]\d+W$))?(?:(?:[-+]?\d+D)|(?:[-+]?\d+[.,]\d+D$))?(?:T(?=[\d+-])(?:(?:[-+]?\d+H)|(?:[-+]?\d+[.,]\d+H$))?(?:(?:[-+]?\d+M)|(?:[-+]?\d+[.,]\d+M$))?(?:[-+]?\d+(?:[.,]\d+)?S)?)??$/;
 var guid = /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/;
-var uuid = (version2) => {
-  if (!version2)
+var uuid = (version) => {
+  if (!version)
     return /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/;
-  return new RegExp(`^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-${version2}[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$`);
+  return new RegExp(`^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-${version}[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$`);
 };
 var uuid4 = /* @__PURE__ */ uuid(4);
 var uuid6 = /* @__PURE__ */ uuid(6);
@@ -9264,7 +9126,7 @@ class Doc {
 }
 
 // ../../node_modules/.bun/zod@4.4.3/node_modules/zod/v4/core/versions.js
-var version2 = {
+var version = {
   major: 4,
   minor: 4,
   patch: 3
@@ -9276,7 +9138,7 @@ var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
   inst ?? (inst = {});
   inst._zod.def = def;
   inst._zod.bag = inst._zod.bag || {};
-  inst._zod.version = version2;
+  inst._zod.version = version;
   const checks = [...inst._zod.def.checks ?? []];
   if (inst._zod.traits.has("$ZodCheck")) {
     checks.unshift(inst);
@@ -10031,13 +9893,13 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
     }
     return propValues;
   });
-  const isObject3 = isObject2;
+  const isObject2 = isObject;
   const catchall = def.catchall;
   let value;
   inst._zod.parse = (payload, ctx) => {
     value ?? (value = _normalized.value);
     const input = payload.value;
-    if (!isObject3(input)) {
+    if (!isObject2(input)) {
       payload.issues.push({
         expected: "object",
         code: "invalid_type",
@@ -10164,7 +10026,7 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
     return (payload, ctx) => fn(shape, payload, ctx);
   };
   let fastpass;
-  const isObject3 = isObject2;
+  const isObject2 = isObject;
   const jit = !globalConfig.jitless;
   const allowsEval2 = allowsEval;
   const fastEnabled = jit && allowsEval2.value;
@@ -10173,7 +10035,7 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
   inst._zod.parse = (payload, ctx) => {
     value ?? (value = _normalized.value);
     const input = payload.value;
-    if (!isObject3(input)) {
+    if (!isObject2(input)) {
       payload.issues.push({
         expected: "object",
         code: "invalid_type",
@@ -10349,7 +10211,7 @@ var $ZodDiscriminatedUnion = /* @__PURE__ */ $constructor("$ZodDiscriminatedUnio
   });
   inst._zod.parse = (payload, ctx) => {
     const input = payload.value;
-    if (!isObject2(input)) {
+    if (!isObject(input)) {
       payload.issues.push({
         code: "invalid_type",
         expected: "object",
@@ -10400,7 +10262,7 @@ function mergeValues(a, b) {
   if (a instanceof Date && b instanceof Date && +a === +b) {
     return { valid: true, data: a };
   }
-  if (isPlainObject2(a) && isPlainObject2(b)) {
+  if (isPlainObject(a) && isPlainObject(b)) {
     const bKeys = Object.keys(b);
     const sharedKeys = Object.keys(a).filter((key) => bKeys.indexOf(key) !== -1);
     const newObj = { ...a, ...b };
@@ -10586,7 +10448,7 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
   $ZodType.init(inst, def);
   inst._zod.parse = (payload, ctx) => {
     const input = payload.value;
-    if (!isPlainObject2(input)) {
+    if (!isPlainObject(input)) {
       payload.issues.push({
         expected: "record",
         code: "invalid_type",
@@ -17851,12 +17713,12 @@ function _uppercase(params) {
     ...normalizeParams(params)
   });
 }
-function _includes(includes2, params) {
+function _includes(includes, params) {
   return new $ZodCheckIncludes({
     check: "string_format",
     format: "includes",
     ...normalizeParams(params),
-    includes: includes2
+    includes
   });
 }
 function _startsWith(prefix, params) {
@@ -17883,10 +17745,10 @@ function _property(property, schema, params) {
     ...normalizeParams(params)
   });
 }
-function _mime(types3, params) {
+function _mime(types, params) {
   return new $ZodCheckMimeType({
     check: "mime_type",
-    mime: types3,
+    mime: types,
     ...normalizeParams(params)
   });
 }
@@ -19182,7 +19044,7 @@ __export(exports_schemas2, {
   xor: () => xor,
   xid: () => xid2,
   void: () => _void2,
-  uuidv7: () => uuidv72,
+  uuidv7: () => uuidv7,
   uuidv6: () => uuidv6,
   uuidv4: () => uuidv4,
   uuid: () => uuid2,
@@ -19759,7 +19621,7 @@ function uuidv4(params) {
 function uuidv6(params) {
   return _uuidv6(ZodUUID, params);
 }
-function uuidv72(params) {
+function uuidv7(params) {
   return _uuidv7(ZodUUID, params);
 }
 var ZodURL = /* @__PURE__ */ $constructor("ZodURL", (inst, def) => {
@@ -20432,7 +20294,7 @@ var ZodFile = /* @__PURE__ */ $constructor("ZodFile", (inst, def) => {
   inst._zod.processJSONSchema = (ctx, json, params) => fileProcessor(inst, ctx, json, params);
   inst.min = (size, params) => inst.check(_minSize(size, params));
   inst.max = (size, params) => inst.check(_maxSize(size, params));
-  inst.mime = (types3, params) => inst.check(_mime(Array.isArray(types3) ? types3 : [types3], params));
+  inst.mime = (types, params) => inst.check(_mime(Array.isArray(types) ? types : [types], params));
 });
 function file(params) {
   return _file(ZodFile, params);
@@ -20864,13 +20726,13 @@ function resolveRef(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path2 = ref.slice(1).split("/").filter(Boolean);
-  if (path2.length === 0) {
+  const path = ref.slice(1).split("/").filter(Boolean);
+  if (path.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path2[0] === defsKey) {
-    const key = path2[1];
+  if (path[0] === defsKey) {
+    const key = path[1];
     if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -21237,10 +21099,10 @@ function fromJSONSchema(schema, params) {
   } catch {
     throw new Error("fromJSONSchema input is not valid JSON (possibly cyclic); use $defs/$ref for recursive schemas");
   }
-  const version3 = detectVersion(normalized, params?.defaultTarget);
+  const version2 = detectVersion(normalized, params?.defaultTarget);
   const defs = normalized.$defs || normalized.definitions || {};
   const ctx = {
-    version: version3,
+    version: version2,
     defs,
     refs: new Map,
     processing: new Set,
@@ -21276,6 +21138,299 @@ function date4(params) {
 
 // ../../node_modules/.bun/zod@4.4.3/node_modules/zod/v4/classic/external.js
 config(en_default());
+// ../../packages/types/token-usage.ts
+var TOKEN_SOURCES = ["provider_reported", "estimated_heuristic"];
+var COST_SOURCES = [
+  "provider_reported",
+  "derived_openrouter",
+  "cursor_dashboard_api"
+];
+var BILLING_MODES = ["api", "subscription", "unknown"];
+var SessionTokenUsageSchema = exports_external.object({
+  input_tokens: exports_external.number().int().nonnegative(),
+  output_tokens: exports_external.number().int().nonnegative(),
+  total_tokens: exports_external.number().int().nonnegative(),
+  token_source: exports_external.enum(TOKEN_SOURCES),
+  cost_usd: exports_external.number().nonnegative().nullable().optional(),
+  cost_source: exports_external.enum(COST_SOURCES).nullable().optional(),
+  api_equivalent_cost_usd: exports_external.number().nonnegative().nullable().optional(),
+  api_equivalent_cost_source: exports_external.enum(["derived_openrouter", "derived_openrouter_stale"]).nullable().optional(),
+  cache_read_tokens: exports_external.number().int().nonnegative().optional(),
+  cache_creation_tokens: exports_external.number().int().nonnegative().optional(),
+  cache_creation_5m_tokens: exports_external.number().int().nonnegative().optional(),
+  cache_creation_1h_tokens: exports_external.number().int().nonnegative().optional(),
+  reasoning_tokens: exports_external.number().int().nonnegative().optional(),
+  server_tool_use_input_tokens: exports_external.number().int().nonnegative().optional(),
+  server_tool_use_output_tokens: exports_external.number().int().nonnegative().optional(),
+  message_count_with_tokens: exports_external.number().int().nonnegative().optional(),
+  model_usage: exports_external.record(exports_external.string(), exports_external.object({
+    input_tokens: exports_external.number().nonnegative(),
+    output_tokens: exports_external.number().nonnegative(),
+    cache_read_input_tokens: exports_external.number().nonnegative().optional(),
+    cache_creation_input_tokens: exports_external.number().nonnegative().optional(),
+    cache_creation_5m_input_tokens: exports_external.number().nonnegative().optional(),
+    cache_creation_1h_input_tokens: exports_external.number().nonnegative().optional(),
+    reasoning_tokens: exports_external.number().nonnegative().optional(),
+    cost_usd: exports_external.number().nonnegative().optional()
+  })).optional(),
+  context_used_percent: exports_external.number().nonnegative().max(100).optional(),
+  context_window_size: exports_external.number().int().nonnegative().optional(),
+  context_tokens_used: exports_external.number().int().nonnegative().optional(),
+  context_token_breakdown: exports_external.record(exports_external.string(), exports_external.number().int().nonnegative()).optional(),
+  copilot_credits: exports_external.number().nonnegative().optional(),
+  copilot_sku: exports_external.string().min(1).optional(),
+  rate_limit_percent: exports_external.number().nonnegative().optional(),
+  rate_limit_type: exports_external.string().optional(),
+  rate_limit_is_overage: exports_external.boolean().optional(),
+  plan: exports_external.string().min(1).optional(),
+  billing_mode: exports_external.enum(BILLING_MODES).optional(),
+  overage: exports_external.boolean().optional(),
+  rate_limits: exports_external.array(exports_external.object({
+    window: exports_external.enum(["5h", "weekly", "monthly"]),
+    used_percent: exports_external.number().nonnegative(),
+    resets_at: exports_external.string().optional(),
+    credits: exports_external.number().nonnegative().optional(),
+    individual_limit: exports_external.number().nonnegative().optional(),
+    limit_name: exports_external.string().optional(),
+    rate_limit_reached_type: exports_external.string().optional()
+  })).optional()
+});
+
+// ../../packages/types/session-metadata.ts
+var HermesSessionMetadataSchema = exports_external.object({
+  trigger: exports_external.string(),
+  model: exports_external.string(),
+  ended_at: exports_external.string().nullable(),
+  end_reason: exports_external.string().nullable(),
+  is_error: exports_external.boolean(),
+  input_tokens: exports_external.number(),
+  output_tokens: exports_external.number(),
+  cache_read_tokens: exports_external.number(),
+  cache_write_tokens: exports_external.number(),
+  reasoning_tokens: exports_external.number(),
+  cost_usd: exports_external.number().nullable(),
+  message_count: exports_external.number(),
+  tool_call_count: exports_external.number(),
+  duration_ms: exports_external.number().nullable().optional(),
+  available_skills_count: exports_external.number().nullable().optional(),
+  memory_chars: exports_external.number().nullable().optional(),
+  memory_entry_count: exports_external.number().nullable().optional(),
+  user_entry_count: exports_external.number().nullable().optional(),
+  user_chars: exports_external.number().nullable().optional()
+});
+var TokenUsageSchema = exports_external.object({
+  input_tokens: exports_external.number().optional(),
+  cached_input_tokens: exports_external.number().optional(),
+  output_tokens: exports_external.number().optional(),
+  reasoning_output_tokens: exports_external.number().optional(),
+  total_tokens: exports_external.number().optional()
+});
+var RateLimitWindowSchema = exports_external.object({
+  used_percent: exports_external.number().optional(),
+  window_minutes: exports_external.number().optional(),
+  resets_at: exports_external.number().optional()
+});
+var CodexSessionMetadataSchema = exports_external.object({
+  model_with_reasoning: exports_external.string().optional(),
+  token_source: exports_external.enum(TOKEN_SOURCES).optional(),
+  plan: exports_external.string().optional(),
+  billing_mode: exports_external.enum(BILLING_MODES).optional(),
+  overage: exports_external.boolean().optional(),
+  context_remaining: exports_external.number().optional(),
+  context_used: exports_external.number().optional(),
+  five_hour_limit: exports_external.number().optional(),
+  weekly_limit: exports_external.number().optional(),
+  used_tokens: exports_external.number().optional(),
+  input_tokens: exports_external.number().optional(),
+  output_tokens: exports_external.number().optional(),
+  cache_read_tokens: exports_external.number().optional(),
+  reasoning_tokens: exports_external.number().optional(),
+  model_context_window: exports_external.number().optional(),
+  token_count_latest: exports_external.object({
+    timestamp: exports_external.string().optional(),
+    total_token_usage: TokenUsageSchema.optional(),
+    last_token_usage: TokenUsageSchema.optional(),
+    model_context_window: exports_external.number().optional()
+  }).optional(),
+  rate_limits_latest: exports_external.object({
+    limit_id: exports_external.string().optional(),
+    plan_type: exports_external.string().optional(),
+    primary: RateLimitWindowSchema.optional(),
+    secondary: RateLimitWindowSchema.optional()
+  }).optional()
+});
+var ClaudeCodeSessionMetadataSchema = exports_external.object({
+  model: exports_external.string().optional(),
+  input_tokens: exports_external.number().optional(),
+  output_tokens: exports_external.number().optional(),
+  cache_read_tokens: exports_external.number().optional(),
+  cache_creation_tokens: exports_external.number().optional(),
+  reasoning_tokens: exports_external.number().optional(),
+  cost_usd: exports_external.number().nullable().optional(),
+  cost_source: exports_external.string().optional(),
+  plan: exports_external.string().optional(),
+  billing_mode: exports_external.enum(BILLING_MODES).optional(),
+  overage: exports_external.boolean().optional(),
+  context_used: exports_external.number().optional(),
+  context_tokens_used: exports_external.number().optional(),
+  context_peak_tokens: exports_external.number().optional(),
+  model_context_window: exports_external.number().optional(),
+  used_tokens: exports_external.number().optional(),
+  five_hour_limit: exports_external.number().optional(),
+  weekly_limit: exports_external.number().optional(),
+  rate_limits_latest: exports_external.object({
+    limit_id: exports_external.string().optional(),
+    primary: RateLimitWindowSchema.optional(),
+    secondary: RateLimitWindowSchema.optional()
+  }).optional(),
+  token_data_source: exports_external.string().optional()
+}).passthrough();
+
+// ../../packages/plugin-common/src/sync/chat-uploader.ts
+init_src();
+init_events();
+init_properties();
+
+// ../../packages/plugin-common/src/sync/error-classifier.ts
+var AUTH_ERROR_STATUSES = new Set([401, 403]);
+var DATA_ERROR_PG_CODES = new Set(["22021", "22P02", "22001"]);
+var NETWORK_ERRNO_CODES = new Set([
+  "ENOTFOUND",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "ENETUNREACH"
+]);
+var RETRYABLE_CATEGORIES = new Set([
+  "unknown",
+  "network_error",
+  "server_overload",
+  "rate_limited"
+]);
+
+// ../../packages/plugin-common/src/sync/chat-uploader.ts
+async function patchDbSession(supabase, sessionId, sessionNamespace, metadata, logger, title) {
+  const normalizedId = normalizeSessionId(sessionId, sessionNamespace);
+  const { error: error51 } = await supabase.rpc("patch_session", {
+    p_session_id: normalizedId,
+    p_metadata: metadata,
+    p_title: title
+  });
+  if (error51) {
+    logger?.warn(`Failed to patch DB session: ${error51.message}`);
+    return false;
+  }
+  return true;
+}
+
+// src/utils/extraction-helpers.ts
+init_src();
+
+// ../../packages/utils/src/git-utils.ts
+import { exec, execSync } from "node:child_process";
+import * as path from "node:path";
+import { promisify } from "node:util";
+var execAsync = promisify(exec);
+var UNKNOWN_PROJECT = {
+  projectId: "unknown",
+  projectName: "unknown"
+};
+var PROJECT_ID_NAMESPACE = "e1f3b3c4-0b7a-4c1e-8a7b-9f3c0e1d2a3b";
+function generateProjectId(input) {
+  return v5_default(input, PROJECT_ID_NAMESPACE);
+}
+function extractNameFromRemoteUrl(remoteUrl) {
+  const orgRepoMatch = remoteUrl.match(/[/:]([^/:.]+\/[^/]+?)(\.git)?$/);
+  if (orgRepoMatch?.[1]) {
+    return orgRepoMatch[1];
+  }
+  const repoMatch = remoteUrl.match(/\/([^/]+?)(\.git)?$/);
+  if (repoMatch?.[1]) {
+    return repoMatch[1];
+  }
+  return null;
+}
+function extractProjectName(workingDirectory) {
+  try {
+    try {
+      const remoteUrl = execSync("git config --get remote.origin.url", {
+        cwd: workingDirectory,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 5000
+      }).trim();
+      if (remoteUrl) {
+        const name = extractNameFromRemoteUrl(remoteUrl);
+        if (name) {
+          return name;
+        }
+      }
+    } catch {}
+    try {
+      const gitCommonDir = execSync("git rev-parse --git-common-dir", {
+        cwd: workingDirectory,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 5000
+      }).trim();
+      if (path.isAbsolute(gitCommonDir) && path.basename(gitCommonDir) === ".git") {
+        return path.basename(path.dirname(gitCommonDir));
+      }
+      const repoRoot = execSync("git rev-parse --show-toplevel", {
+        cwd: workingDirectory,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 5000
+      }).trim();
+      if (repoRoot) {
+        return path.basename(repoRoot);
+      }
+    } catch {}
+    return path.basename(workingDirectory);
+  } catch {
+    return null;
+  }
+}
+function isGitRepository(workingDirectory) {
+  try {
+    execSync("git rev-parse --is-inside-work-tree", {
+      cwd: workingDirectory,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout: 5000
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+function getProjectInfoSync(workingDirectory) {
+  try {
+    if (!isGitRepository(workingDirectory)) {
+      return UNKNOWN_PROJECT;
+    }
+    const projectName = extractProjectName(workingDirectory);
+    if (!projectName) {
+      return UNKNOWN_PROJECT;
+    }
+    const absolutePath = path.resolve(workingDirectory);
+    const projectId = generateProjectId(absolutePath);
+    return {
+      projectId,
+      projectName
+    };
+  } catch {
+    return UNKNOWN_PROJECT;
+  }
+}
+// src/utils/extraction-helpers.ts
+init_analytics2();
+init_session_manager2();
+init_constants();
+
+// src/config/settings.ts
+import { readFile as readFile4, writeFile as writeFile3 } from "node:fs/promises";
+
 // ../../packages/privacy-redaction/src/config/defaults.ts
 var DEFAULT_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 var DEFAULT_PRIVACY_CONFIG = {
@@ -24380,7 +24535,7 @@ init_logger2();
 init_events();
 init_properties();
 import { appendFile as appendFile2, readFile as readFile7, unlink as unlink4, writeFile as writeFile5 } from "node:fs/promises";
-import { dirname as dirname6 } from "node:path";
+import { dirname as dirname7 } from "node:path";
 init_file_lock();
 init_fs_utils();
 function createQueueManager(config2) {
@@ -24511,6 +24666,23 @@ function createQueueManager(config2) {
       throw error51;
     }
   }
+  async function patchQueuedSession(sessionId, metadata, title) {
+    let found = false;
+    await atomicUpdateQueue(queueFiles.sessions, (sessions) => sessions.map((session) => {
+      if (session.id !== sessionId)
+        return session;
+      found = true;
+      return {
+        ...session,
+        title: title ?? session.title,
+        metadata: {
+          ...session.metadata ?? {},
+          ...metadata
+        }
+      };
+    }));
+    return found;
+  }
   async function readQueue(queueFile) {
     try {
       return await readJsonl(queueFile);
@@ -24522,7 +24694,7 @@ function createQueueManager(config2) {
   async function writeQueue(queueFile, items) {
     try {
       await withFileLock2(queueFile, async () => {
-        await ensureDirectory(dirname6(queueFile));
+        await ensureDirectory(dirname7(queueFile));
         const content = items.map((item) => JSON.stringify(item, sanitizingReplacer)).join(`
 `) + (items.length > 0 ? `
 ` : "");
@@ -24549,7 +24721,7 @@ function createQueueManager(config2) {
       await withFileLock2(queueFile, async () => {
         const currentItems = await readJsonl(queueFile);
         const newItems = transform2(currentItems);
-        await ensureDirectory(dirname6(queueFile));
+        await ensureDirectory(dirname7(queueFile));
         const content = newItems.map((item) => JSON.stringify(item, sanitizingReplacer)).join(`
 `) + (newItems.length > 0 ? `
 ` : "");
@@ -24612,7 +24784,7 @@ function createQueueManager(config2) {
           const targetSize = Math.floor(cap * 0.9);
           const itemsToEvict = currentItems.length - targetSize;
           const trimmed = currentItems.slice(itemsToEvict);
-          await ensureDirectory(dirname6(queueFile));
+          await ensureDirectory(dirname7(queueFile));
           const content = [...trimmed, item].map((i) => JSON.stringify(i, sanitizingReplacer)).join(`
 `) + `
 `;
@@ -24628,7 +24800,7 @@ function createQueueManager(config2) {
           return;
         }
       }
-      await ensureDirectory(dirname6(queueFile));
+      await ensureDirectory(dirname7(queueFile));
       const line = JSON.stringify(item, sanitizingReplacer) + `
 `;
       await appendFile2(queueFile, line, "utf8");
@@ -24710,6 +24882,7 @@ function createQueueManager(config2) {
     enqueueEvent,
     enqueueChatSession,
     enqueueChatMessage,
+    patchQueuedSession,
     getDetailedQueueStats
   };
 }
@@ -24747,6 +24920,7 @@ var {
   enqueueEvent,
   enqueueChatSession,
   enqueueChatMessage,
+  patchQueuedSession,
   getDetailedQueueStats
 } = queueManager;
 
@@ -25039,36 +25213,13 @@ async function patchQueuedSessionMetadataFromStatusline(sessionId) {
   const statuslineMetadata = statuslineSnapshotToSessionMetadata(await readStatuslineSnapshotForSession(sessionId));
   if (Object.keys(statuslineMetadata).length === 0)
     return false;
-  let patched = false;
-  await atomicUpdateQueue(SESSIONS_QUEUE_FILE, (sessions) => sessions.map((s) => {
-    if (s.id !== sessionId)
-      return s;
-    patched = true;
-    return {
-      ...s,
-      metadata: {
-        ...s.metadata ?? {},
-        ...statuslineMetadata
-      }
-    };
-  }));
-  return patched;
+  return patchQueuedSession(sessionId, statuslineMetadata);
 }
 async function patchDbSessionMetadataFromStatusline(sessionId, supabaseClient) {
   const statuslineMetadata = statuslineSnapshotToSessionMetadata(await readStatuslineSnapshotForSession(sessionId));
   if (Object.keys(statuslineMetadata).length === 0)
     return false;
-  const { normalizeSessionId: normalizeSessionId3 } = await Promise.resolve().then(() => (init_session_id_normalizer(), exports_session_id_normalizer));
-  const normalizedId = normalizeSessionId3(sessionId);
-  const { error: error51 } = await supabaseClient.rpc("patch_session_metadata", {
-    p_session_id: normalizedId,
-    p_patch: statuslineMetadata
-  });
-  if (error51) {
-    logger2.warn(`Failed to patch DB metadata for session: ${error51.message}`);
-    return false;
-  }
-  return true;
+  return patchDbSession(supabaseClient, sessionId, ZEST_SESSION_NAMESPACE, statuslineMetadata, logger2);
 }
 async function queueToolUseEvents(toolUses, sessionId, projectDir) {
   const session = await getValidSession();

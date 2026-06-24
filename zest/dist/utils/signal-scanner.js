@@ -6,6 +6,9 @@ import { createInterface } from "node:readline";
 function incrementMap(map, key) {
   map.set(key, (map.get(key) ?? 0) + 1);
 }
+function skillUsageCount(value) {
+  return typeof value === "number" ? value : value.count;
+}
 var CMD_TAG_START = "<command-name>/";
 var CMD_TAG_END = "</command-name>";
 function extractCommandName(text) {
@@ -408,10 +411,20 @@ function mergeUsageMap(prev, delta) {
   }
   return merged;
 }
+function mergeSkillUsageMap(prev, delta) {
+  const merged = {};
+  for (const [name, count] of Object.entries(prev)) {
+    merged[name] = skillUsageCount(count);
+  }
+  for (const [name, count] of delta) {
+    merged[name] = (merged[name] ?? 0) + count;
+  }
+  return merged;
+}
 function mergeSignals(previous, delta) {
   return {
     mcp_usage: mergeUsageMap(previous.mcp_usage, delta.mcp_usage),
-    skill_usage: mergeUsageMap(previous.skill_usage, delta.skill_usage),
+    skill_usage: mergeSkillUsageMap(previous.skill_usage, delta.skill_usage),
     agent_usage: mergeUsageMap(previous.agent_usage, delta.agent_usage),
     builtin_usage: mergeUsageMap(previous.builtin_usage, delta.builtin_usage),
     unknown_usage: mergeUsageMap(previous.unknown_usage, delta.unknown_usage),

@@ -271,6 +271,10 @@ var init_events2 = __esm(() => {
     NAV_LINK_CLICKED: "Nav Link Clicked",
     WORKSPACE_SWITCHED: "Workspace Switched",
     TEAM_SWITCHED: "Team Switched",
+    ASK_ZEST_CONVERSATION_STARTED: "Ask Zest Conversation Started",
+    ASK_ZEST_QUICK_ACTION_CLICKED: "Ask Zest Quick Action Clicked",
+    ASK_ZEST_PROMPT_SELECTED: "Ask Zest Prompt Selected",
+    ASK_ZEST_MENU_OPENED: "Ask Zest Menu Opened",
     STANDUP_GENERATED: "Standup Generated",
     STANDUP_VIEWED: "Standup Viewed",
     STANDUP_SHARED: "Standup Shared",
@@ -287,6 +291,9 @@ var init_events2 = __esm(() => {
     WORKSPACE_MEMBERS_PROVISIONED: "Workspace Members Provisioned",
     WORKSPACE_SETTINGS_VIEWED: "Workspace Settings Viewed",
     TEAM_SETTINGS_VIEWED: "Team Settings Viewed",
+    GITHUB_CONNECT_STARTED: "GitHub Connect Started",
+    GITHUB_CONNECTION_REQUESTED: "GitHub Connection Requested",
+    GITHUB_CONNECTED: "GitHub Connected",
     CLI_SIGNED_IN: "CLI Signed In",
     TRIAL_STARTED: "Trial Started",
     PLAN_SELECTED: "Plan Selected",
@@ -15504,7 +15511,7 @@ init_events();
 init_properties();
 import { unlinkSync as unlinkSync2 } from "node:fs";
 import { appendFile as appendFile3 } from "node:fs/promises";
-import { dirname as dirname9 } from "node:path";
+import { dirname as dirname10 } from "node:path";
 // ../../node_modules/.bun/zod@4.4.3/node_modules/zod/v4/classic/external.js
 var exports_external = {};
 __export(exports_external, {
@@ -35167,6 +35174,7 @@ function normalizeSessionId(sessionId) {
 }
 
 // src/utils/signal-state.ts
+init_src();
 init_session_manager2();
 init_constants();
 import { readFile as readFile8, writeFile as writeFile7 } from "node:fs/promises";
@@ -35217,6 +35225,15 @@ function extractProjectName(workingDirectory) {
       }
     } catch {}
     try {
+      const gitCommonDir = execSync("git rev-parse --git-common-dir", {
+        cwd: workingDirectory,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 5000
+      }).trim();
+      if (path.isAbsolute(gitCommonDir) && path.basename(gitCommonDir) === ".git") {
+        return path.basename(path.dirname(gitCommonDir));
+      }
       const repoRoot = execSync("git rev-parse --show-toplevel", {
         cwd: workingDirectory,
         encoding: "utf-8",
@@ -35756,7 +35773,7 @@ init_logger2();
 init_events();
 init_properties();
 import { appendFile as appendFile2, readFile as readFile9, unlink as unlink8, writeFile as writeFile9 } from "node:fs/promises";
-import { dirname as dirname7 } from "node:path";
+import { dirname as dirname8 } from "node:path";
 
 // ../../packages/plugin-common/src/supabase/utils/session-id-normalizer.ts
 function normalizeSessionId2(sessionId, namespace) {
@@ -35900,6 +35917,23 @@ function createQueueManager(config2) {
       throw error51;
     }
   }
+  async function patchQueuedSession(sessionId, metadata, title) {
+    let found = false;
+    await atomicUpdateQueue(queueFiles.sessions, (sessions) => sessions.map((session) => {
+      if (session.id !== sessionId)
+        return session;
+      found = true;
+      return {
+        ...session,
+        title: title ?? session.title,
+        metadata: {
+          ...session.metadata ?? {},
+          ...metadata
+        }
+      };
+    }));
+    return found;
+  }
   async function readQueue(queueFile) {
     try {
       return await readJsonl(queueFile);
@@ -35911,7 +35945,7 @@ function createQueueManager(config2) {
   async function writeQueue(queueFile, items) {
     try {
       await withFileLock2(queueFile, async () => {
-        await ensureDirectory(dirname7(queueFile));
+        await ensureDirectory(dirname8(queueFile));
         const content = items.map((item) => JSON.stringify(item, sanitizingReplacer)).join(`
 `) + (items.length > 0 ? `
 ` : "");
@@ -35938,7 +35972,7 @@ function createQueueManager(config2) {
       await withFileLock2(queueFile, async () => {
         const currentItems = await readJsonl(queueFile);
         const newItems = transform2(currentItems);
-        await ensureDirectory(dirname7(queueFile));
+        await ensureDirectory(dirname8(queueFile));
         const content = newItems.map((item) => JSON.stringify(item, sanitizingReplacer)).join(`
 `) + (newItems.length > 0 ? `
 ` : "");
@@ -36001,7 +36035,7 @@ function createQueueManager(config2) {
           const targetSize = Math.floor(cap * 0.9);
           const itemsToEvict = currentItems.length - targetSize;
           const trimmed = currentItems.slice(itemsToEvict);
-          await ensureDirectory(dirname7(queueFile));
+          await ensureDirectory(dirname8(queueFile));
           const content = [...trimmed, item].map((i) => JSON.stringify(i, sanitizingReplacer)).join(`
 `) + `
 `;
@@ -36017,7 +36051,7 @@ function createQueueManager(config2) {
           return;
         }
       }
-      await ensureDirectory(dirname7(queueFile));
+      await ensureDirectory(dirname8(queueFile));
       const line = JSON.stringify(item, sanitizingReplacer) + `
 `;
       await appendFile2(queueFile, line, "utf8");
@@ -36099,6 +36133,7 @@ function createQueueManager(config2) {
     enqueueEvent,
     enqueueChatSession,
     enqueueChatMessage,
+    patchQueuedSession,
     getDetailedQueueStats
   };
 }
@@ -36147,6 +36182,7 @@ var {
   enqueueEvent,
   enqueueChatSession,
   enqueueChatMessage,
+  patchQueuedSession,
   getDetailedQueueStats
 } = queueManager;
 
@@ -36154,7 +36190,7 @@ var {
 init_file_lock();
 init_fs_utils();
 import { readFile as readFile10, writeFile as writeFile10 } from "node:fs/promises";
-import { dirname as dirname8 } from "node:path";
+import { dirname as dirname9 } from "node:path";
 var DEFAULT_RETENTION_MS = 60 * 60 * 1000;
 function createSyncMetricsManager(config2) {
   const {
@@ -36185,7 +36221,7 @@ function createSyncMetricsManager(config2) {
     }
   }
   async function writeMetrics(entries) {
-    await ensureDirectory(dirname8(metricsFile));
+    await ensureDirectory(dirname9(metricsFile));
     const content = entries.map((entry) => JSON.stringify(entry)).join(`
 `) + (entries.length > 0 ? `
 ` : "");
@@ -36750,7 +36786,11 @@ function createChatUploader(config2) {
           ...buildSyncProperties({ sessionsAttempted: uniqueSessions.length }),
           reason: "precondition_failed"
         });
-        return { success: false, uploaded: { sessions: 0, messages: 0 }, errorCategory: "auth_error" };
+        return {
+          success: false,
+          uploaded: { sessions: 0, messages: 0 },
+          errorCategory: "auth_error"
+        };
       }
       const sessionsToUpload = await enrichSessionsForUpload(uniqueSessions, session.userId, workspaceId);
       let sessionsForThisCycle = sessionsToUpload;
@@ -37290,7 +37330,7 @@ class SyncLogger {
   async write(level, message, ...args) {
     try {
       const logFilePath = getDatedLogPath2(this.logPrefix);
-      await ensureDirectory2(dirname9(logFilePath));
+      await ensureDirectory2(dirname10(logFilePath));
       const timestamp = new Date().toISOString();
       const argsStr = args.length > 0 ? ` ${JSON.stringify(args)}` : "";
       await appendFile3(logFilePath, `[${timestamp}] ${level}: ${message}${argsStr}

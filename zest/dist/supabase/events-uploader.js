@@ -406,6 +406,10 @@ var init_events2 = __esm(() => {
     NAV_LINK_CLICKED: "Nav Link Clicked",
     WORKSPACE_SWITCHED: "Workspace Switched",
     TEAM_SWITCHED: "Team Switched",
+    ASK_ZEST_CONVERSATION_STARTED: "Ask Zest Conversation Started",
+    ASK_ZEST_QUICK_ACTION_CLICKED: "Ask Zest Quick Action Clicked",
+    ASK_ZEST_PROMPT_SELECTED: "Ask Zest Prompt Selected",
+    ASK_ZEST_MENU_OPENED: "Ask Zest Menu Opened",
     STANDUP_GENERATED: "Standup Generated",
     STANDUP_VIEWED: "Standup Viewed",
     STANDUP_SHARED: "Standup Shared",
@@ -422,6 +426,9 @@ var init_events2 = __esm(() => {
     WORKSPACE_MEMBERS_PROVISIONED: "Workspace Members Provisioned",
     WORKSPACE_SETTINGS_VIEWED: "Workspace Settings Viewed",
     TEAM_SETTINGS_VIEWED: "Team Settings Viewed",
+    GITHUB_CONNECT_STARTED: "GitHub Connect Started",
+    GITHUB_CONNECTION_REQUESTED: "GitHub Connection Requested",
+    GITHUB_CONNECTED: "GitHub Connected",
     CLI_SIGNED_IN: "CLI Signed In",
     TRIAL_STARTED: "Trial Started",
     PLAN_SELECTED: "Plan Selected",
@@ -496,7 +503,7 @@ var init_ga4_server = __esm(() => {
 });
 
 // ../../node_modules/.bun/posthog-node@5.34.2+63120419cc93e79b/node_modules/posthog-node/dist/extensions/error-tracking/modifiers/module.node.mjs
-import { dirname, posix, sep } from "path";
+import { dirname as dirname2, posix, sep } from "path";
 function createModulerModifier() {
   const getModuleFromFileName = createGetModuleFromFilename();
   return async (frames) => {
@@ -505,7 +512,7 @@ function createModulerModifier() {
     return frames;
   };
 }
-function createGetModuleFromFilename(basePath = process.argv[1] ? dirname(process.argv[1]) : process.cwd(), isWindows = sep === "\\") {
+function createGetModuleFromFilename(basePath = process.argv[1] ? dirname2(process.argv[1]) : process.cwd(), isWindows = sep === "\\") {
   const normalizedBase = isWindows ? normalizeWindowsPath(basePath) : basePath;
   return (filename) => {
     if (!filename)
@@ -3485,7 +3492,7 @@ var init_context_lines_node = __esm(() => {
 });
 
 // ../../node_modules/.bun/posthog-node@5.34.2+63120419cc93e79b/node_modules/posthog-node/dist/extensions/error-tracking/modifiers/relative-path.node.mjs
-import { isAbsolute, relative, sep as sep2 } from "path";
+import { isAbsolute as isAbsolute2, relative, sep as sep2 } from "path";
 function createRelativePathModifier(basePath = process.cwd()) {
   const isWindows = sep2 === "\\";
   const toUnix = (p) => isWindows ? p.replace(/\\/g, "/") : p;
@@ -3493,7 +3500,7 @@ function createRelativePathModifier(basePath = process.cwd()) {
   return async (frames) => {
     for (const frame of frames)
       if (!(!frame.filename || frame.filename.startsWith("node:") || frame.filename.startsWith("data:"))) {
-        if (isAbsolute(frame.filename))
+        if (isAbsolute2(frame.filename))
           frame.filename = toUnix(relative(normalizedBase, toUnix(frame.filename)));
       }
     return frames;
@@ -6055,7 +6062,7 @@ var init_fs_utils2 = () => {};
 
 // src/utils/logger.ts
 import { appendFile } from "node:fs/promises";
-import { dirname as dirname2 } from "node:path";
+import { dirname as dirname3 } from "node:path";
 
 class Logger {
   minLevel = "info";
@@ -6075,7 +6082,7 @@ class Logger {
   async writeToFile(message) {
     try {
       const logFilePath = getDatedLogPath2(this.logPrefix);
-      await ensureDirectory2(dirname2(logFilePath));
+      await ensureDirectory2(dirname3(logFilePath));
       const timestamp = new Date().toISOString();
       await appendFile(logFilePath, `[${timestamp}] ${message}
 `, "utf-8");
@@ -6144,7 +6151,7 @@ var init_plugin_version = __esm(() => {
 // ../../packages/plugin-common/src/utils/file-lock.ts
 import { unlinkSync } from "node:fs";
 import { readdir as readdir2, readFile, unlink as unlink2, writeFile } from "node:fs/promises";
-import { dirname as dirname3 } from "node:path";
+import { dirname as dirname4 } from "node:path";
 function defaultIsProcessRunning(pid) {
   try {
     process.kill(pid, 0);
@@ -6167,7 +6174,7 @@ async function acquireFileLock(filePath, isRunning, options, activeLockFiles, de
     timestamp: Date.now()
   };
   try {
-    await ensureDirectory(dirname3(lockFile));
+    await ensureDirectory(dirname4(lockFile));
     await writeFile(lockFile, JSON.stringify(lockInfo), { flag: "wx" });
     activeLockFiles?.add(lockFile);
     return true;
@@ -6291,7 +6298,7 @@ var init_file_lock = __esm(() => {
 
 // ../../packages/plugin-common/src/auth/session-io.ts
 import { mkdir as mkdir3, readFile as readFile2, unlink as unlink3, writeFile as writeFile2 } from "node:fs/promises";
-import { dirname as dirname4 } from "node:path";
+import { dirname as dirname5 } from "node:path";
 async function readSessionFile(filePath) {
   try {
     const content = await readFile2(filePath, "utf-8");
@@ -6304,7 +6311,7 @@ async function readSessionFile(filePath) {
   }
 }
 async function writeSessionFile(filePath, session) {
-  await mkdir3(dirname4(filePath), { recursive: true });
+  await mkdir3(dirname5(filePath), { recursive: true });
   await writeFile2(filePath, JSON.stringify(session, null, 2), {
     encoding: "utf-8",
     mode: 384
@@ -6458,7 +6465,7 @@ var init_claude_instances = __esm(() => {
 });
 
 // src/utils/daemon-manager.ts
-import { dirname as dirname5, join as join4 } from "node:path";
+import { dirname as dirname6, join as join4 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 function isProcessRunning(pid) {
   try {
@@ -6480,7 +6487,7 @@ var init_daemon_manager = __esm(() => {
   init_logger2();
   DAEMON_RESTART_LOCK = join4(CLAUDE_ZEST_DIR, "daemon-restart.lock");
   __filename2 = fileURLToPath2(import.meta.url);
-  __dirname2 = dirname5(__filename2);
+  __dirname2 = dirname6(__filename2);
 });
 
 // src/utils/file-lock.ts
@@ -6759,6 +6766,15 @@ function extractProjectName(workingDirectory) {
       }
     } catch {}
     try {
+      const gitCommonDir = execSync("git rev-parse --git-common-dir", {
+        cwd: workingDirectory,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 5000
+      }).trim();
+      if (path.isAbsolute(gitCommonDir) && path.basename(gitCommonDir) === ".git") {
+        return path.basename(path.dirname(gitCommonDir));
+      }
       const repoRoot = execSync("git rev-parse --show-toplevel", {
         cwd: workingDirectory,
         encoding: "utf-8",
@@ -7236,7 +7252,7 @@ init_logger2();
 init_events();
 init_properties();
 import { appendFile as appendFile2, readFile as readFile3, unlink as unlink4, writeFile as writeFile3 } from "node:fs/promises";
-import { dirname as dirname6 } from "node:path";
+import { dirname as dirname7 } from "node:path";
 init_file_lock();
 init_fs_utils();
 function createQueueManager(config) {
@@ -7367,6 +7383,23 @@ function createQueueManager(config) {
       throw error;
     }
   }
+  async function patchQueuedSession(sessionId, metadata, title) {
+    let found = false;
+    await atomicUpdateQueue(queueFiles.sessions, (sessions) => sessions.map((session) => {
+      if (session.id !== sessionId)
+        return session;
+      found = true;
+      return {
+        ...session,
+        title: title ?? session.title,
+        metadata: {
+          ...session.metadata ?? {},
+          ...metadata
+        }
+      };
+    }));
+    return found;
+  }
   async function readQueue(queueFile) {
     try {
       return await readJsonl(queueFile);
@@ -7378,7 +7411,7 @@ function createQueueManager(config) {
   async function writeQueue(queueFile, items) {
     try {
       await withFileLock2(queueFile, async () => {
-        await ensureDirectory(dirname6(queueFile));
+        await ensureDirectory(dirname7(queueFile));
         const content = items.map((item) => JSON.stringify(item, sanitizingReplacer)).join(`
 `) + (items.length > 0 ? `
 ` : "");
@@ -7405,7 +7438,7 @@ function createQueueManager(config) {
       await withFileLock2(queueFile, async () => {
         const currentItems = await readJsonl(queueFile);
         const newItems = transform(currentItems);
-        await ensureDirectory(dirname6(queueFile));
+        await ensureDirectory(dirname7(queueFile));
         const content = newItems.map((item) => JSON.stringify(item, sanitizingReplacer)).join(`
 `) + (newItems.length > 0 ? `
 ` : "");
@@ -7468,7 +7501,7 @@ function createQueueManager(config) {
           const targetSize = Math.floor(cap * 0.9);
           const itemsToEvict = currentItems.length - targetSize;
           const trimmed = currentItems.slice(itemsToEvict);
-          await ensureDirectory(dirname6(queueFile));
+          await ensureDirectory(dirname7(queueFile));
           const content = [...trimmed, item].map((i) => JSON.stringify(i, sanitizingReplacer)).join(`
 `) + `
 `;
@@ -7484,7 +7517,7 @@ function createQueueManager(config) {
           return;
         }
       }
-      await ensureDirectory(dirname6(queueFile));
+      await ensureDirectory(dirname7(queueFile));
       const line = JSON.stringify(item, sanitizingReplacer) + `
 `;
       await appendFile2(queueFile, line, "utf8");
@@ -7566,6 +7599,7 @@ function createQueueManager(config) {
     enqueueEvent,
     enqueueChatSession,
     enqueueChatMessage,
+    patchQueuedSession,
     getDetailedQueueStats
   };
 }
@@ -23255,6 +23289,7 @@ var {
   enqueueEvent,
   enqueueChatSession,
   enqueueChatMessage,
+  patchQueuedSession,
   getDetailedQueueStats
 } = queueManager;
 
