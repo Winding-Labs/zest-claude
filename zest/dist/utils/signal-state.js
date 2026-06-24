@@ -14,6 +14,685 @@ var __export = (target, all) => {
 };
 var __esm = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
 
+// ../../packages/utils/src/signal-helpers.ts
+function incrementMap(map, key) {
+  map.set(key, (map.get(key) ?? 0) + 1);
+}
+function skillUsageCount(value) {
+  return typeof value === "number" ? value : value.count;
+}
+function extractCommandName(text) {
+  const start = text.indexOf(CMD_TAG_START);
+  if (start === -1)
+    return;
+  const nameStart = start + CMD_TAG_START.length;
+  const end = text.indexOf(CMD_TAG_END, nameStart);
+  if (end === -1)
+    return;
+  const name = text.slice(nameStart, end);
+  return name.length > 0 ? name : undefined;
+}
+var CMD_TAG_START = "<command-name>/", CMD_TAG_END = "</command-name>";
+
+// ../../packages/utils/src/command-xml.ts
+var CLAUDE_BUILTIN_COMMANDS;
+var init_command_xml = __esm(() => {
+  CLAUDE_BUILTIN_COMMANDS = new Set([
+    "add-dir",
+    "agents",
+    "allowed-tools",
+    "android",
+    "app",
+    "autofix-pr",
+    "bashes",
+    "branch",
+    "btw",
+    "bug",
+    "checkpoint",
+    "chrome",
+    "clear",
+    "color",
+    "compact",
+    "config",
+    "context",
+    "continue",
+    "copy",
+    "cost",
+    "desktop",
+    "diff",
+    "doctor",
+    "effort",
+    "exit",
+    "export",
+    "extra-usage",
+    "fast",
+    "feedback",
+    "fork",
+    "help",
+    "hooks",
+    "ide",
+    "init",
+    "insights",
+    "install-github-app",
+    "install-slack-app",
+    "ios",
+    "keybindings",
+    "login",
+    "logout",
+    "mcp",
+    "memory",
+    "mobile",
+    "model",
+    "new",
+    "output-style",
+    "passes",
+    "permissions",
+    "plan",
+    "plugin",
+    "powerup",
+    "pr-comments",
+    "privacy-settings",
+    "quit",
+    "rc",
+    "release-notes",
+    "reload-plugins",
+    "remote-control",
+    "remote-env",
+    "rename",
+    "reset",
+    "resume",
+    "review",
+    "rewind",
+    "sandbox",
+    "schedule",
+    "security-review",
+    "settings",
+    "setup-bedrock",
+    "skills",
+    "stats",
+    "status",
+    "statusline",
+    "stickers",
+    "tasks",
+    "teleport",
+    "terminal-setup",
+    "theme",
+    "todos",
+    "tp",
+    "ultraplan",
+    "upgrade",
+    "usage",
+    "vim",
+    "voice",
+    "web-setup"
+  ]);
+});
+// ../../packages/utils/src/date-range.ts
+var PERIOD_TYPE_LABELS, PERIOD_SUMMARY_LABELS;
+var init_date_range = __esm(() => {
+  PERIOD_TYPE_LABELS = {
+    ["today" /* Today */]: "Today",
+    ["this_week" /* ThisWeek */]: "This Week",
+    ["this_month" /* ThisMonth */]: "This Month"
+  };
+  PERIOD_SUMMARY_LABELS = {
+    ["today" /* Today */]: "Daily Summary",
+    ["this_week" /* ThisWeek */]: "Weekly Summary",
+    ["this_month" /* ThisMonth */]: "Monthly Summary",
+    custom: "Custom Period"
+  };
+});
+// ../../packages/utils/src/frontmatter.ts
+function parseYamlLine(line) {
+  const cleaned = line.trim();
+  const colonIdx = cleaned.indexOf(":");
+  if (colonIdx === -1)
+    return null;
+  const key = cleaned.slice(0, colonIdx).trim();
+  if (!FRONTMATTER_KEYS.has(key))
+    return null;
+  let value = cleaned.slice(colonIdx + 1).trim();
+  if (!value)
+    return null;
+  if (value.startsWith('"') && value.endsWith('"') || value.startsWith("'") && value.endsWith("'")) {
+    value = value.slice(1, -1);
+  } else {
+    const commentIdx = value.indexOf(" #");
+    if (commentIdx !== -1) {
+      value = value.slice(0, commentIdx).trimEnd();
+    }
+  }
+  return value ? [key, value] : null;
+}
+function extractHeadingDescription(content) {
+  const lines = content.split(`
+`);
+  for (let i = 0;i < lines.length && i < 10; i++) {
+    const rawLine = lines[i];
+    if (rawLine === undefined)
+      continue;
+    const line = rawLine.trim();
+    if (!line.startsWith("#"))
+      continue;
+    const heading = line.replace(/^#+\s*/, "");
+    const separatorMatch = heading.match(/\s[—–-]\s(.+)/);
+    if (separatorMatch?.[1])
+      return separatorMatch[1].trim();
+    if (heading.length > 3)
+      return heading;
+  }
+  return null;
+}
+function parseFrontmatter(content) {
+  const result = { name: null, description: null, body: null };
+  const trimmed = content.trimStart();
+  if (!trimmed.startsWith("---"))
+    return result;
+  const endIdx = trimmed.indexOf(`
+---`, 3);
+  if (endIdx === -1)
+    return result;
+  const yamlBlock = trimmed.slice(3, endIdx);
+  const lines = yamlBlock.split(`
+`);
+  for (let i = 0;i < lines.length; i++) {
+    const line = lines[i];
+    if (line === undefined)
+      continue;
+    const parsed = parseYamlLine(line);
+    if (!parsed)
+      continue;
+    const [key, value] = parsed;
+    if (value === ">" || value === "|") {
+      const continuationLines = [];
+      while (i + 1 < lines.length) {
+        const next = lines[i + 1];
+        if (next === undefined)
+          break;
+        if (next.length > 0 && !next.startsWith(" ") && !next.startsWith("\t"))
+          break;
+        continuationLines.push(next.trim());
+        i++;
+      }
+      const joined = value === ">" ? continuationLines.join(" ") : continuationLines.join(`
+`);
+      result[key] = joined.trim() || null;
+    } else {
+      result[key] = value;
+    }
+  }
+  const bodyStart = endIdx + 4;
+  const rawBody = trimmed.slice(bodyStart).trim();
+  result.body = rawBody || null;
+  return result;
+}
+var FRONTMATTER_KEYS;
+var init_frontmatter = __esm(() => {
+  FRONTMATTER_KEYS = new Set(["name", "description"]);
+});
+
+// ../../packages/utils/src/language-utils.ts
+var init_language_utils = () => {};
+
+// ../../packages/utils/src/mcp-registry.ts
+function isSafeRemoteUrl(urlStr) {
+  try {
+    const url = new URL(urlStr);
+    if (url.protocol !== "https:")
+      return false;
+    const host = url.hostname.toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host.startsWith("10.") || host.startsWith("192.168.") || host.startsWith("172.") || host.startsWith("169.254.") || host.endsWith(".local") || host.endsWith(".internal")) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+class TtlCache {
+  map = new Map;
+  get(key) {
+    const entry = this.map.get(key);
+    if (!entry)
+      return { hit: false };
+    if (Date.now() > entry.expiry) {
+      this.map.delete(key);
+      return { hit: false };
+    }
+    return { hit: true, value: entry.value };
+  }
+  set(key, value) {
+    if (this.map.size >= CACHE_MAX_SIZE && !this.map.has(key)) {
+      const firstKey = this.map.keys().next().value;
+      if (firstKey !== undefined)
+        this.map.delete(firstKey);
+    }
+    this.map.set(key, { value, expiry: Date.now() + CACHE_TTL_MS });
+  }
+  clear() {
+    this.map.clear();
+  }
+}
+function extractMeaningfulSegments(name) {
+  return name.split(/[-._/]/).filter((s) => s.length >= 3 && !GENERIC_SEGMENTS.has(s.toLowerCase()));
+}
+function parseMcpKey(key) {
+  if (key.includes("/")) {
+    const slashIndex = key.indexOf("/");
+    return { server: key.slice(0, slashIndex) || key, tool: key.slice(slashIndex + 1) };
+  }
+  if (key.startsWith("mcp__")) {
+    const parts = key.split("__");
+    return {
+      server: parts[1] ?? key,
+      tool: parts.length >= 3 ? parts.slice(2).join("__") : key
+    };
+  }
+  if (key.startsWith("mcp-")) {
+    const withoutPrefix = key.slice(4);
+    const firstHyphen = withoutPrefix.indexOf("-");
+    if (firstHyphen > 0) {
+      return { server: withoutPrefix.slice(0, firstHyphen), tool: key };
+    }
+    return { server: withoutPrefix, tool: key };
+  }
+  return { server: key, tool: key };
+}
+function extractMcpServerName(toolName) {
+  return parseMcpKey(toolName).server;
+}
+function buildSearchQueries(name) {
+  const queries = [name];
+  const parts = name.split("-");
+  for (let i = parts.length - 1;i >= 1; i--) {
+    queries.push(parts.slice(0, i).join("-"));
+  }
+  return queries;
+}
+function isPlausibleMatch(registryName, searchTerm) {
+  const lower = registryName.toLowerCase();
+  if (lower.includes(searchTerm.toLowerCase()))
+    return true;
+  for (const segment of extractMeaningfulSegments(searchTerm)) {
+    if (lower.includes(segment.toLowerCase()))
+      return true;
+  }
+  return false;
+}
+async function searchRegistry(searchName) {
+  const cached = serverCache.get(searchName);
+  if (cached.hit)
+    return cached.value;
+  const queries = buildSearchQueries(searchName);
+  for (const query of queries) {
+    const url = `${REGISTRY_URL}?search=${encodeURIComponent(query)}`;
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS)
+    });
+    if (!response.ok)
+      continue;
+    const data = await response.json();
+    if (!Array.isArray(data?.servers))
+      continue;
+    const servers = data.servers;
+    if (servers.length === 0)
+      continue;
+    const match = servers.find((s) => isPlausibleMatch(s.server.name, searchName));
+    if (match) {
+      serverCache.set(searchName, match.server);
+      return match.server;
+    }
+  }
+  serverCache.set(searchName, null);
+  return null;
+}
+async function fetchToolDescriptions(remoteUrl) {
+  if (!isSafeRemoteUrl(remoteUrl))
+    return null;
+  try {
+    const response = await fetch(remoteUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream"
+      },
+      body: JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 1 }),
+      signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS)
+    });
+    if (!response.ok)
+      return null;
+    const contentType = response.headers.get("content-type") ?? "";
+    let body;
+    if (contentType.includes("text/event-stream")) {
+      const text = await response.text();
+      const dataLines = text.split(`
+`).filter((l) => l.startsWith("data: "));
+      body = {};
+      for (const line of dataLines) {
+        try {
+          const parsed = JSON.parse(line.slice(6).trim());
+          if (parsed?.result?.tools) {
+            body = parsed;
+            break;
+          }
+        } catch {}
+      }
+    } else {
+      body = await response.json();
+    }
+    const tools = body?.result?.tools;
+    if (!Array.isArray(tools))
+      return null;
+    const map = new Map;
+    for (const t of tools) {
+      if (typeof t.name === "string" && typeof t.description === "string") {
+        map.set(t.name, t.description);
+      }
+    }
+    return map.size > 0 ? map : null;
+  } catch {
+    return null;
+  }
+}
+async function lookupToolDescriptions(serverName) {
+  const cached = toolCache.get(serverName);
+  if (cached.hit)
+    return cached.value;
+  try {
+    const server = await searchRegistry(serverName);
+    if (!server) {
+      toolCache.set(serverName, null);
+      return null;
+    }
+    if (server.description) {
+      cache.set(serverName, server.description);
+    }
+    const hasRemotes = (server.remotes?.length ?? 0) > 0;
+    const hasPackages = (server.packages?.length ?? 0) > 0;
+    if (hasRemotes) {
+      for (const remote of server.remotes) {
+        const tools = await fetchToolDescriptions(remote.url);
+        if (tools) {
+          toolCache.set(serverName, tools);
+          return tools;
+        }
+      }
+    }
+    if (hasPackages) {
+      const npmPkg = server.packages.find((p) => !p.registryType || p.registryType === "npm");
+      if (npmPkg) {
+        const tools = await fetchToolsFromNpmCdn(npmPkg.identifier, npmPkg.version);
+        if (tools) {
+          toolCache.set(serverName, tools);
+          return tools;
+        }
+      }
+    }
+    if (!hasRemotes && !hasPackages) {
+      toolCache.set(serverName, null);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+function findJsFiles(node, prefix = "") {
+  const results = [];
+  if (!node?.files)
+    return results;
+  for (const file of node.files) {
+    const path = `${prefix}/${file.name}`;
+    if (file.files) {
+      results.push(...findJsFiles(file, path));
+    } else if (file.name.endsWith(".js") && !file.name.endsWith(".d.ts") && !file.name.includes("test")) {
+      results.push({ path, size: file.size ?? 0 });
+    }
+  }
+  return results;
+}
+function isToolName(name) {
+  return /^[a-z][a-z0-9_-]*$/.test(name) && name.length <= 60;
+}
+function extractToolsFromSource(source) {
+  const tools = new Map;
+  for (const m of source.matchAll(/\{name:\s*"([^"]{2,60})"[^}]{0,200}?description:\s*"([^"]+)"/g)) {
+    const [, name, description] = m;
+    if (!name || !description)
+      continue;
+    if (isToolName(name)) {
+      tools.set(name, cleanDescription(description));
+    }
+  }
+  for (const m of source.matchAll(/(?:registerTool|addTool|createTool)\(\s*"([^"]+)"/g)) {
+    const [, name] = m;
+    if (!name || tools.has(name))
+      continue;
+    const idx = m.index ?? 0;
+    const after = source.slice(idx + m[0].length, idx + m[0].length + 500);
+    const descMatch = after.match(/description:\s*(?:"([^"]+)"|`([^\n]+))/);
+    const desc = descMatch?.[1] ?? descMatch?.[2];
+    if (desc)
+      tools.set(name, cleanDescription(desc));
+  }
+  for (const m of source.matchAll(/\.tool\(\s*"([^"]+)"\s*,\s*"([^"]+)"/g)) {
+    const [, name, description] = m;
+    if (!name || !description)
+      continue;
+    if (!tools.has(name)) {
+      tools.set(name, cleanDescription(description));
+    }
+  }
+  if (source.includes("annotations:")) {
+    for (const m of source.matchAll(/name:\s*"([^"]{2,60})"[\s\S]{0,500}?annotations:\s*\{[^}]{0,200}?description:\s*"([^"]+)"/g)) {
+      const [, name, description] = m;
+      if (!name || !description)
+        continue;
+      if (!tools.has(name) && isToolName(name)) {
+        tools.set(name, cleanDescription(description));
+      }
+    }
+  }
+  return tools;
+}
+function cleanDescription(desc) {
+  return (desc.split(/\\n|\n/)[0] ?? desc).trim();
+}
+function stripVerbPrefix(name) {
+  const [first, ...rest] = name.split(/[-_]/);
+  if (first && rest.length > 0 && VERB_PREFIXES.has(first.toLowerCase())) {
+    return rest.join("-").toLowerCase();
+  }
+  return name.toLowerCase();
+}
+function fuzzyMatchTools(requestedTools, available) {
+  const matched = new Map;
+  const claimed = new Set;
+  for (const req of requestedTools) {
+    const desc = available.get(req);
+    if (desc !== undefined) {
+      matched.set(req, desc);
+      claimed.add(req);
+    }
+  }
+  const unmatched = requestedTools.filter((r) => !matched.has(r));
+  if (unmatched.length === 0)
+    return matched;
+  const unclaimed = [...available.entries()].filter(([k]) => !claimed.has(k));
+  if (unclaimed.length === 0)
+    return matched;
+  for (const req of unmatched) {
+    if (matched.has(req))
+      continue;
+    const strippedReq = stripVerbPrefix(req);
+    for (const [candidate, desc] of unclaimed) {
+      if (claimed.has(candidate))
+        continue;
+      const strippedCand = stripVerbPrefix(candidate);
+      if (strippedCand === strippedReq || strippedCand.endsWith(`-${strippedReq}`)) {
+        matched.set(req, desc);
+        claimed.add(candidate);
+        break;
+      }
+    }
+  }
+  const stillUnmatched = requestedTools.filter((r) => !matched.has(r));
+  for (const req of stillUnmatched) {
+    const reqWords = req.toLowerCase().split(/[-_]/).filter((w) => w.length >= 2);
+    let bestCandidate = null;
+    let bestDesc = "";
+    let bestScore = 0;
+    for (const [candidate, desc] of unclaimed) {
+      if (claimed.has(candidate))
+        continue;
+      const candStr = candidate.toLowerCase();
+      const matchingWords = reqWords.filter((w) => candStr.includes(w));
+      const score = matchingWords.length / reqWords.length;
+      if (score > bestScore && score >= 0.75) {
+        bestScore = score;
+        bestCandidate = candidate;
+        bestDesc = desc;
+      }
+    }
+    if (bestCandidate) {
+      matched.set(req, bestDesc);
+      claimed.add(bestCandidate);
+    }
+  }
+  return matched;
+}
+async function fetchToolsFromNpmCdn(packageName, version) {
+  try {
+    const versionSuffix = version ? `@${version}` : "@latest";
+    const listUrl = `${JSDELIVR_DATA_URL}/${packageName}${versionSuffix}`;
+    const listResponse = await fetch(listUrl, { signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS) });
+    if (!listResponse.ok)
+      return null;
+    const pkgData = await listResponse.json();
+    const jsFiles = findJsFiles(pkgData).sort((a, b) => b.size - a.size);
+    if (jsFiles.length === 0)
+      return null;
+    for (const file of jsFiles.slice(0, 3)) {
+      if (file.size > 500000)
+        continue;
+      const contentUrl = `${JSDELIVR_CDN_URL}/${packageName}${versionSuffix}${file.path}`;
+      const contentResponse = await fetch(contentUrl, {
+        signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS)
+      });
+      if (!contentResponse.ok)
+        continue;
+      const source = await contentResponse.text();
+      const tools = extractToolsFromSource(source);
+      if (tools.size > 0)
+        return tools;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+async function lookupMcpDescription(serverName) {
+  const searchName = extractMcpServerName(serverName);
+  const cached = cache.get(searchName);
+  if (cached.hit)
+    return cached.value;
+  try {
+    const server = await searchRegistry(searchName);
+    const description = server?.description ?? null;
+    cache.set(searchName, description);
+    return description;
+  } catch {
+    return null;
+  }
+}
+async function resolveToolDescriptionsForServers(entries, getToolName) {
+  const allResolved = [];
+  for (let i = 0;i < entries.length; i += 5) {
+    const batch = entries.slice(i, i + 5);
+    const results = await Promise.all(batch.map(async ([serverName, tools]) => {
+      const toolDescriptions = await lookupToolDescriptions(serverName);
+      const serverDescription = toolDescriptions ? null : await lookupMcpDescription(serverName);
+      return { tools, toolDescriptions, serverDescription };
+    }));
+    for (const group of results) {
+      if (group.toolDescriptions) {
+        const requestedNames = group.tools.map(getToolName);
+        const fuzzyMatched = fuzzyMatchTools(requestedNames, group.toolDescriptions);
+        allResolved.push({ ...group, toolDescriptions: fuzzyMatched });
+      } else {
+        allResolved.push(group);
+      }
+    }
+  }
+  return allResolved;
+}
+async function lookupMcpDescriptions(toolNames) {
+  const result = {};
+  const serverGroups = new Map;
+  for (const toolName of toolNames) {
+    const { server, tool } = parseMcpKey(toolName);
+    const group = serverGroups.get(server) ?? [];
+    group.push({ original: toolName, tool });
+    serverGroups.set(server, group);
+  }
+  const resolved = await resolveToolDescriptionsForServers(Array.from(serverGroups.entries()), (t) => t.tool);
+  for (const { tools, toolDescriptions, serverDescription } of resolved) {
+    for (const { original, tool } of tools) {
+      result[original] = toolDescriptions?.get(tool) ?? serverDescription;
+    }
+  }
+  return result;
+}
+var REGISTRY_URL = "https://registry.modelcontextprotocol.io/v0.1/servers", REMOTE_TIMEOUT_MS = 5000, CACHE_TTL_MS, CACHE_MAX_SIZE = 100, cache, toolCache, serverCache, GENERIC_SEGMENTS, JSDELIVR_DATA_URL = "https://data.jsdelivr.com/v1/packages/npm", JSDELIVR_CDN_URL = "https://cdn.jsdelivr.net/npm", VERB_PREFIXES;
+var init_mcp_registry = __esm(() => {
+  CACHE_TTL_MS = 30 * 60 * 1000;
+  cache = new TtlCache;
+  toolCache = new TtlCache;
+  serverCache = new TtlCache;
+  GENERIC_SEGMENTS = new Set(["mcp", "com", "org", "io", "dev", "server", "api"]);
+  VERB_PREFIXES = new Set([
+    "get",
+    "list",
+    "create",
+    "delete",
+    "update",
+    "search",
+    "query",
+    "fetch",
+    "run",
+    "execute",
+    "resolve",
+    "find",
+    "read",
+    "write",
+    "set",
+    "send",
+    "check",
+    "add",
+    "remove"
+  ]);
+});
+// ../../packages/utils/src/string-utils.ts
+var init_string_utils = () => {};
+
+// ../../packages/utils/src/toolkit-signals.ts
+function extractToolNamesFromSignals(signals) {
+  return {
+    skills: Object.keys(signals.skill_usage ?? {}),
+    agents: Object.keys(signals.agent_usage ?? {}),
+    mcpServers: Object.keys(signals.mcp_usage ?? {})
+  };
+}
+// ../../packages/utils/src/index.ts
+var init_src = __esm(() => {
+  init_command_xml();
+  init_date_range();
+  init_frontmatter();
+  init_language_utils();
+  init_mcp_registry();
+  init_string_utils();
+});
+
 // ../../packages/plugin-common/src/analytics/events.ts
 function getErrorCategory(errorType) {
   if (errorType.startsWith("auth_"))
@@ -515,6 +1194,10 @@ var init_events2 = __esm(() => {
     NAV_LINK_CLICKED: "Nav Link Clicked",
     WORKSPACE_SWITCHED: "Workspace Switched",
     TEAM_SWITCHED: "Team Switched",
+    ASK_ZEST_CONVERSATION_STARTED: "Ask Zest Conversation Started",
+    ASK_ZEST_QUICK_ACTION_CLICKED: "Ask Zest Quick Action Clicked",
+    ASK_ZEST_PROMPT_SELECTED: "Ask Zest Prompt Selected",
+    ASK_ZEST_MENU_OPENED: "Ask Zest Menu Opened",
     STANDUP_GENERATED: "Standup Generated",
     STANDUP_VIEWED: "Standup Viewed",
     STANDUP_SHARED: "Standup Shared",
@@ -531,6 +1214,9 @@ var init_events2 = __esm(() => {
     WORKSPACE_MEMBERS_PROVISIONED: "Workspace Members Provisioned",
     WORKSPACE_SETTINGS_VIEWED: "Workspace Settings Viewed",
     TEAM_SETTINGS_VIEWED: "Team Settings Viewed",
+    GITHUB_CONNECT_STARTED: "GitHub Connect Started",
+    GITHUB_CONNECTION_REQUESTED: "GitHub Connection Requested",
+    GITHUB_CONNECTED: "GitHub Connected",
     CLI_SIGNED_IN: "CLI Signed In",
     TRIAL_STARTED: "Trial Started",
     PLAN_SELECTED: "Plan Selected",
@@ -907,7 +1593,7 @@ var init_bot_detection = __esm(() => {
 });
 
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/utils/string-utils.mjs
-var init_string_utils = () => {};
+var init_string_utils2 = () => {};
 
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/utils/type-utils.mjs
 function isPrimitive(value) {
@@ -935,7 +1621,7 @@ function isInstanceOf(candidate, base) {
 var nativeIsArray, ObjProto, type_utils_hasOwnProperty, type_utils_toString, isArray, isObject = (x) => x === Object(x) && !isArray(x), isUndefined = (x) => x === undefined, isString = (x) => type_utils_toString.call(x) == "[object String]", isEmptyString = (x) => isString(x) && x.trim().length === 0, isNumber = (x) => type_utils_toString.call(x) == "[object Number]" && x === x, isPlainError = (x) => x instanceof Error;
 var init_type_utils = __esm(() => {
   init_types();
-  init_string_utils();
+  init_string_utils2();
   nativeIsArray = Array.isArray;
   ObjProto = Object.prototype;
   type_utils_hasOwnProperty = ObjProto.hasOwnProperty;
@@ -1265,7 +1951,7 @@ var init_logger = () => {};
 // ../../node_modules/.bun/@posthog+core@1.29.2/node_modules/@posthog/core/dist/utils/user-agent-utils.mjs
 var MOBILE = "Mobile", IOS = "iOS", ANDROID = "Android", TABLET = "Tablet", ANDROID_TABLET, APPLE = "Apple", APPLE_WATCH, SAFARI = "Safari", BLACKBERRY = "BlackBerry", SAMSUNG = "Samsung", SAMSUNG_BROWSER, SAMSUNG_INTERNET, CHROME = "Chrome", CHROME_OS, CHROME_IOS, INTERNET_EXPLORER = "Internet Explorer", INTERNET_EXPLORER_MOBILE, OPERA = "Opera", OPERA_MINI, EDGE = "Edge", MICROSOFT_EDGE, FIREFOX = "Firefox", FIREFOX_IOS, NINTENDO = "Nintendo", PLAYSTATION = "PlayStation", XBOX = "Xbox", ANDROID_MOBILE, MOBILE_SAFARI, WINDOWS = "Windows", WINDOWS_PHONE, GENERIC = "Generic", GENERIC_MOBILE, GENERIC_TABLET, KONQUEROR = "Konqueror", BROWSER_VERSION_REGEX_SUFFIX = "(\\d+(\\.\\d+)?)", DEFAULT_BROWSER_VERSION_REGEX, XBOX_REGEX, PLAYSTATION_REGEX, NINTENDO_REGEX, BLACKBERRY_REGEX, windowsVersionMap, versionRegexes, osMatchers;
 var init_user_agent_utils = __esm(() => {
-  init_string_utils();
+  init_string_utils2();
   init_type_utils();
   ANDROID_TABLET = ANDROID + " " + TABLET;
   APPLE_WATCH = APPLE + " Watch";
@@ -1546,7 +2232,7 @@ var init_utils = __esm(() => {
   init_bot_detection();
   init_bucketed_rate_limiter();
   init_number_utils();
-  init_string_utils();
+  init_string_utils2();
   init_type_utils();
   init_promise_queue();
   init_logger();
@@ -3403,8 +4089,8 @@ async function addSourceContext(frames) {
     const ranges = makeLineReaderRanges(filesToLineRanges);
     if (ranges.every((r) => rangeExistsInContentCache(file, r)))
       continue;
-    const cache = emplace(LRU_FILE_CONTENTS_CACHE, file, {});
-    readlinePromises.push(getContextLinesFromFile(file, ranges, cache));
+    const cache2 = emplace(LRU_FILE_CONTENTS_CACHE, file, {});
+    readlinePromises.push(getContextLinesFromFile(file, ranges, cache2));
   }
   await Promise.all(readlinePromises).catch(() => {});
   if (frames && frames.length > 0)
@@ -3462,10 +4148,10 @@ function getContextLinesFromFile(path, ranges, output) {
     });
   });
 }
-function addSourceContextToFrames(frames, cache) {
+function addSourceContextToFrames(frames, cache2) {
   for (const frame of frames)
     if (frame.filename && frame.context_line === undefined && typeof frame.lineno == "number") {
-      const contents = cache.get(frame.filename);
+      const contents = cache2.get(frame.filename);
       if (contents === undefined)
         continue;
       addContextToFrame(frame.lineno, frame, contents);
@@ -6018,682 +6704,6 @@ var init_analytics = __esm(() => {
   init_events();
 });
 
-// ../../packages/utils/src/signal-helpers.ts
-function incrementMap(map, key) {
-  map.set(key, (map.get(key) ?? 0) + 1);
-}
-function extractCommandName(text) {
-  const start = text.indexOf(CMD_TAG_START);
-  if (start === -1)
-    return;
-  const nameStart = start + CMD_TAG_START.length;
-  const end = text.indexOf(CMD_TAG_END, nameStart);
-  if (end === -1)
-    return;
-  const name = text.slice(nameStart, end);
-  return name.length > 0 ? name : undefined;
-}
-var CMD_TAG_START = "<command-name>/", CMD_TAG_END = "</command-name>";
-
-// ../../packages/utils/src/command-xml.ts
-var CLAUDE_BUILTIN_COMMANDS;
-var init_command_xml = __esm(() => {
-  CLAUDE_BUILTIN_COMMANDS = new Set([
-    "add-dir",
-    "agents",
-    "allowed-tools",
-    "android",
-    "app",
-    "autofix-pr",
-    "bashes",
-    "branch",
-    "btw",
-    "bug",
-    "checkpoint",
-    "chrome",
-    "clear",
-    "color",
-    "compact",
-    "config",
-    "context",
-    "continue",
-    "copy",
-    "cost",
-    "desktop",
-    "diff",
-    "doctor",
-    "effort",
-    "exit",
-    "export",
-    "extra-usage",
-    "fast",
-    "feedback",
-    "fork",
-    "help",
-    "hooks",
-    "ide",
-    "init",
-    "insights",
-    "install-github-app",
-    "install-slack-app",
-    "ios",
-    "keybindings",
-    "login",
-    "logout",
-    "mcp",
-    "memory",
-    "mobile",
-    "model",
-    "new",
-    "output-style",
-    "passes",
-    "permissions",
-    "plan",
-    "plugin",
-    "powerup",
-    "pr-comments",
-    "privacy-settings",
-    "quit",
-    "rc",
-    "release-notes",
-    "reload-plugins",
-    "remote-control",
-    "remote-env",
-    "rename",
-    "reset",
-    "resume",
-    "review",
-    "rewind",
-    "sandbox",
-    "schedule",
-    "security-review",
-    "settings",
-    "setup-bedrock",
-    "skills",
-    "stats",
-    "status",
-    "statusline",
-    "stickers",
-    "tasks",
-    "teleport",
-    "terminal-setup",
-    "theme",
-    "todos",
-    "tp",
-    "ultraplan",
-    "upgrade",
-    "usage",
-    "vim",
-    "voice",
-    "web-setup"
-  ]);
-});
-// ../../packages/utils/src/date-range.ts
-var PERIOD_TYPE_LABELS, PERIOD_SUMMARY_LABELS;
-var init_date_range = __esm(() => {
-  PERIOD_TYPE_LABELS = {
-    ["today" /* Today */]: "Today",
-    ["this_week" /* ThisWeek */]: "This Week",
-    ["this_month" /* ThisMonth */]: "This Month"
-  };
-  PERIOD_SUMMARY_LABELS = {
-    ["today" /* Today */]: "Daily Summary",
-    ["this_week" /* ThisWeek */]: "Weekly Summary",
-    ["this_month" /* ThisMonth */]: "Monthly Summary",
-    custom: "Custom Period"
-  };
-});
-// ../../packages/utils/src/frontmatter.ts
-function parseYamlLine(line) {
-  const cleaned = line.trim();
-  const colonIdx = cleaned.indexOf(":");
-  if (colonIdx === -1)
-    return null;
-  const key = cleaned.slice(0, colonIdx).trim();
-  if (!FRONTMATTER_KEYS.has(key))
-    return null;
-  let value = cleaned.slice(colonIdx + 1).trim();
-  if (!value)
-    return null;
-  if (value.startsWith('"') && value.endsWith('"') || value.startsWith("'") && value.endsWith("'")) {
-    value = value.slice(1, -1);
-  } else {
-    const commentIdx = value.indexOf(" #");
-    if (commentIdx !== -1) {
-      value = value.slice(0, commentIdx).trimEnd();
-    }
-  }
-  return value ? [key, value] : null;
-}
-function extractHeadingDescription(content) {
-  const lines = content.split(`
-`);
-  for (let i = 0;i < lines.length && i < 10; i++) {
-    const rawLine = lines[i];
-    if (rawLine === undefined)
-      continue;
-    const line = rawLine.trim();
-    if (!line.startsWith("#"))
-      continue;
-    const heading = line.replace(/^#+\s*/, "");
-    const separatorMatch = heading.match(/\s[—–-]\s(.+)/);
-    if (separatorMatch?.[1])
-      return separatorMatch[1].trim();
-    if (heading.length > 3)
-      return heading;
-  }
-  return null;
-}
-function parseFrontmatter(content) {
-  const result = { name: null, description: null, body: null };
-  const trimmed = content.trimStart();
-  if (!trimmed.startsWith("---"))
-    return result;
-  const endIdx = trimmed.indexOf(`
----`, 3);
-  if (endIdx === -1)
-    return result;
-  const yamlBlock = trimmed.slice(3, endIdx);
-  const lines = yamlBlock.split(`
-`);
-  for (let i = 0;i < lines.length; i++) {
-    const line = lines[i];
-    if (line === undefined)
-      continue;
-    const parsed = parseYamlLine(line);
-    if (!parsed)
-      continue;
-    const [key, value] = parsed;
-    if (value === ">" || value === "|") {
-      const continuationLines = [];
-      while (i + 1 < lines.length) {
-        const next = lines[i + 1];
-        if (next === undefined)
-          break;
-        if (next.length > 0 && !next.startsWith(" ") && !next.startsWith("\t"))
-          break;
-        continuationLines.push(next.trim());
-        i++;
-      }
-      const joined = value === ">" ? continuationLines.join(" ") : continuationLines.join(`
-`);
-      result[key] = joined.trim() || null;
-    } else {
-      result[key] = value;
-    }
-  }
-  const bodyStart = endIdx + 4;
-  const rawBody = trimmed.slice(bodyStart).trim();
-  result.body = rawBody || null;
-  return result;
-}
-var FRONTMATTER_KEYS;
-var init_frontmatter = __esm(() => {
-  FRONTMATTER_KEYS = new Set(["name", "description"]);
-});
-
-// ../../packages/utils/src/language-utils.ts
-var init_language_utils = () => {};
-
-// ../../packages/utils/src/mcp-registry.ts
-function isSafeRemoteUrl(urlStr) {
-  try {
-    const url = new URL(urlStr);
-    if (url.protocol !== "https:")
-      return false;
-    const host = url.hostname.toLowerCase();
-    if (host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host.startsWith("10.") || host.startsWith("192.168.") || host.startsWith("172.") || host.startsWith("169.254.") || host.endsWith(".local") || host.endsWith(".internal")) {
-      return false;
-    }
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-class TtlCache {
-  map = new Map;
-  get(key) {
-    const entry = this.map.get(key);
-    if (!entry)
-      return { hit: false };
-    if (Date.now() > entry.expiry) {
-      this.map.delete(key);
-      return { hit: false };
-    }
-    return { hit: true, value: entry.value };
-  }
-  set(key, value) {
-    if (this.map.size >= CACHE_MAX_SIZE && !this.map.has(key)) {
-      const firstKey = this.map.keys().next().value;
-      if (firstKey !== undefined)
-        this.map.delete(firstKey);
-    }
-    this.map.set(key, { value, expiry: Date.now() + CACHE_TTL_MS });
-  }
-  clear() {
-    this.map.clear();
-  }
-}
-function extractMeaningfulSegments(name) {
-  return name.split(/[-._/]/).filter((s) => s.length >= 3 && !GENERIC_SEGMENTS.has(s.toLowerCase()));
-}
-function parseMcpKey(key) {
-  if (key.includes("/")) {
-    const slashIndex = key.indexOf("/");
-    return { server: key.slice(0, slashIndex) || key, tool: key.slice(slashIndex + 1) };
-  }
-  if (key.startsWith("mcp__")) {
-    const parts = key.split("__");
-    return {
-      server: parts[1] ?? key,
-      tool: parts.length >= 3 ? parts.slice(2).join("__") : key
-    };
-  }
-  if (key.startsWith("mcp-")) {
-    const withoutPrefix = key.slice(4);
-    const firstHyphen = withoutPrefix.indexOf("-");
-    if (firstHyphen > 0) {
-      return { server: withoutPrefix.slice(0, firstHyphen), tool: key };
-    }
-    return { server: withoutPrefix, tool: key };
-  }
-  return { server: key, tool: key };
-}
-function extractMcpServerName(toolName) {
-  return parseMcpKey(toolName).server;
-}
-function buildSearchQueries(name) {
-  const queries = [name];
-  const parts = name.split("-");
-  for (let i = parts.length - 1;i >= 1; i--) {
-    queries.push(parts.slice(0, i).join("-"));
-  }
-  return queries;
-}
-function isPlausibleMatch(registryName, searchTerm) {
-  const lower = registryName.toLowerCase();
-  if (lower.includes(searchTerm.toLowerCase()))
-    return true;
-  for (const segment of extractMeaningfulSegments(searchTerm)) {
-    if (lower.includes(segment.toLowerCase()))
-      return true;
-  }
-  return false;
-}
-async function searchRegistry(searchName) {
-  const cached = serverCache.get(searchName);
-  if (cached.hit)
-    return cached.value;
-  const queries = buildSearchQueries(searchName);
-  for (const query of queries) {
-    const url = `${REGISTRY_URL}?search=${encodeURIComponent(query)}`;
-    const response = await fetch(url, {
-      signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS)
-    });
-    if (!response.ok)
-      continue;
-    const data = await response.json();
-    if (!Array.isArray(data?.servers))
-      continue;
-    const servers = data.servers;
-    if (servers.length === 0)
-      continue;
-    const match = servers.find((s) => isPlausibleMatch(s.server.name, searchName));
-    if (match) {
-      serverCache.set(searchName, match.server);
-      return match.server;
-    }
-  }
-  serverCache.set(searchName, null);
-  return null;
-}
-async function fetchToolDescriptions(remoteUrl) {
-  if (!isSafeRemoteUrl(remoteUrl))
-    return null;
-  try {
-    const response = await fetch(remoteUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json, text/event-stream"
-      },
-      body: JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 1 }),
-      signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS)
-    });
-    if (!response.ok)
-      return null;
-    const contentType = response.headers.get("content-type") ?? "";
-    let body;
-    if (contentType.includes("text/event-stream")) {
-      const text = await response.text();
-      const dataLines = text.split(`
-`).filter((l) => l.startsWith("data: "));
-      body = {};
-      for (const line of dataLines) {
-        try {
-          const parsed = JSON.parse(line.slice(6).trim());
-          if (parsed?.result?.tools) {
-            body = parsed;
-            break;
-          }
-        } catch {}
-      }
-    } else {
-      body = await response.json();
-    }
-    const tools = body?.result?.tools;
-    if (!Array.isArray(tools))
-      return null;
-    const map = new Map;
-    for (const t of tools) {
-      if (typeof t.name === "string" && typeof t.description === "string") {
-        map.set(t.name, t.description);
-      }
-    }
-    return map.size > 0 ? map : null;
-  } catch {
-    return null;
-  }
-}
-async function lookupToolDescriptions(serverName) {
-  const cached = toolCache.get(serverName);
-  if (cached.hit)
-    return cached.value;
-  try {
-    const server = await searchRegistry(serverName);
-    if (!server) {
-      toolCache.set(serverName, null);
-      return null;
-    }
-    if (server.description) {
-      cache.set(serverName, server.description);
-    }
-    const hasRemotes = (server.remotes?.length ?? 0) > 0;
-    const hasPackages = (server.packages?.length ?? 0) > 0;
-    if (hasRemotes) {
-      for (const remote of server.remotes) {
-        const tools = await fetchToolDescriptions(remote.url);
-        if (tools) {
-          toolCache.set(serverName, tools);
-          return tools;
-        }
-      }
-    }
-    if (hasPackages) {
-      const npmPkg = server.packages.find((p) => !p.registryType || p.registryType === "npm");
-      if (npmPkg) {
-        const tools = await fetchToolsFromNpmCdn(npmPkg.identifier, npmPkg.version);
-        if (tools) {
-          toolCache.set(serverName, tools);
-          return tools;
-        }
-      }
-    }
-    if (!hasRemotes && !hasPackages) {
-      toolCache.set(serverName, null);
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-function findJsFiles(node, prefix = "") {
-  const results = [];
-  if (!node?.files)
-    return results;
-  for (const file of node.files) {
-    const path = `${prefix}/${file.name}`;
-    if (file.files) {
-      results.push(...findJsFiles(file, path));
-    } else if (file.name.endsWith(".js") && !file.name.endsWith(".d.ts") && !file.name.includes("test")) {
-      results.push({ path, size: file.size ?? 0 });
-    }
-  }
-  return results;
-}
-function isToolName(name) {
-  return /^[a-z][a-z0-9_-]*$/.test(name) && name.length <= 60;
-}
-function extractToolsFromSource(source) {
-  const tools = new Map;
-  for (const m of source.matchAll(/\{name:\s*"([^"]{2,60})"[^}]{0,200}?description:\s*"([^"]+)"/g)) {
-    const [, name, description] = m;
-    if (!name || !description)
-      continue;
-    if (isToolName(name)) {
-      tools.set(name, cleanDescription(description));
-    }
-  }
-  for (const m of source.matchAll(/(?:registerTool|addTool|createTool)\(\s*"([^"]+)"/g)) {
-    const [, name] = m;
-    if (!name || tools.has(name))
-      continue;
-    const idx = m.index ?? 0;
-    const after = source.slice(idx + m[0].length, idx + m[0].length + 500);
-    const descMatch = after.match(/description:\s*(?:"([^"]+)"|`([^\n]+))/);
-    const desc = descMatch?.[1] ?? descMatch?.[2];
-    if (desc)
-      tools.set(name, cleanDescription(desc));
-  }
-  for (const m of source.matchAll(/\.tool\(\s*"([^"]+)"\s*,\s*"([^"]+)"/g)) {
-    const [, name, description] = m;
-    if (!name || !description)
-      continue;
-    if (!tools.has(name)) {
-      tools.set(name, cleanDescription(description));
-    }
-  }
-  if (source.includes("annotations:")) {
-    for (const m of source.matchAll(/name:\s*"([^"]{2,60})"[\s\S]{0,500}?annotations:\s*\{[^}]{0,200}?description:\s*"([^"]+)"/g)) {
-      const [, name, description] = m;
-      if (!name || !description)
-        continue;
-      if (!tools.has(name) && isToolName(name)) {
-        tools.set(name, cleanDescription(description));
-      }
-    }
-  }
-  return tools;
-}
-function cleanDescription(desc) {
-  return (desc.split(/\\n|\n/)[0] ?? desc).trim();
-}
-function stripVerbPrefix(name) {
-  const [first, ...rest] = name.split(/[-_]/);
-  if (first && rest.length > 0 && VERB_PREFIXES.has(first.toLowerCase())) {
-    return rest.join("-").toLowerCase();
-  }
-  return name.toLowerCase();
-}
-function fuzzyMatchTools(requestedTools, available) {
-  const matched = new Map;
-  const claimed = new Set;
-  for (const req of requestedTools) {
-    const desc = available.get(req);
-    if (desc !== undefined) {
-      matched.set(req, desc);
-      claimed.add(req);
-    }
-  }
-  const unmatched = requestedTools.filter((r) => !matched.has(r));
-  if (unmatched.length === 0)
-    return matched;
-  const unclaimed = [...available.entries()].filter(([k]) => !claimed.has(k));
-  if (unclaimed.length === 0)
-    return matched;
-  for (const req of unmatched) {
-    if (matched.has(req))
-      continue;
-    const strippedReq = stripVerbPrefix(req);
-    for (const [candidate, desc] of unclaimed) {
-      if (claimed.has(candidate))
-        continue;
-      const strippedCand = stripVerbPrefix(candidate);
-      if (strippedCand === strippedReq || strippedCand.endsWith(`-${strippedReq}`)) {
-        matched.set(req, desc);
-        claimed.add(candidate);
-        break;
-      }
-    }
-  }
-  const stillUnmatched = requestedTools.filter((r) => !matched.has(r));
-  for (const req of stillUnmatched) {
-    const reqWords = req.toLowerCase().split(/[-_]/).filter((w) => w.length >= 2);
-    let bestCandidate = null;
-    let bestDesc = "";
-    let bestScore = 0;
-    for (const [candidate, desc] of unclaimed) {
-      if (claimed.has(candidate))
-        continue;
-      const candStr = candidate.toLowerCase();
-      const matchingWords = reqWords.filter((w) => candStr.includes(w));
-      const score = matchingWords.length / reqWords.length;
-      if (score > bestScore && score >= 0.75) {
-        bestScore = score;
-        bestCandidate = candidate;
-        bestDesc = desc;
-      }
-    }
-    if (bestCandidate) {
-      matched.set(req, bestDesc);
-      claimed.add(bestCandidate);
-    }
-  }
-  return matched;
-}
-async function fetchToolsFromNpmCdn(packageName, version2) {
-  try {
-    const versionSuffix = version2 ? `@${version2}` : "@latest";
-    const listUrl = `${JSDELIVR_DATA_URL}/${packageName}${versionSuffix}`;
-    const listResponse = await fetch(listUrl, { signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS) });
-    if (!listResponse.ok)
-      return null;
-    const pkgData = await listResponse.json();
-    const jsFiles = findJsFiles(pkgData).sort((a, b) => b.size - a.size);
-    if (jsFiles.length === 0)
-      return null;
-    for (const file of jsFiles.slice(0, 3)) {
-      if (file.size > 500000)
-        continue;
-      const contentUrl = `${JSDELIVR_CDN_URL}/${packageName}${versionSuffix}${file.path}`;
-      const contentResponse = await fetch(contentUrl, {
-        signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS)
-      });
-      if (!contentResponse.ok)
-        continue;
-      const source = await contentResponse.text();
-      const tools = extractToolsFromSource(source);
-      if (tools.size > 0)
-        return tools;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-async function lookupMcpDescription(serverName) {
-  const searchName = extractMcpServerName(serverName);
-  const cached = cache.get(searchName);
-  if (cached.hit)
-    return cached.value;
-  try {
-    const server = await searchRegistry(searchName);
-    const description = server?.description ?? null;
-    cache.set(searchName, description);
-    return description;
-  } catch {
-    return null;
-  }
-}
-async function resolveToolDescriptionsForServers(entries, getToolName) {
-  const allResolved = [];
-  for (let i = 0;i < entries.length; i += 5) {
-    const batch = entries.slice(i, i + 5);
-    const results = await Promise.all(batch.map(async ([serverName, tools]) => {
-      const toolDescriptions = await lookupToolDescriptions(serverName);
-      const serverDescription = toolDescriptions ? null : await lookupMcpDescription(serverName);
-      return { tools, toolDescriptions, serverDescription };
-    }));
-    for (const group of results) {
-      if (group.toolDescriptions) {
-        const requestedNames = group.tools.map(getToolName);
-        const fuzzyMatched = fuzzyMatchTools(requestedNames, group.toolDescriptions);
-        allResolved.push({ ...group, toolDescriptions: fuzzyMatched });
-      } else {
-        allResolved.push(group);
-      }
-    }
-  }
-  return allResolved;
-}
-async function lookupMcpDescriptions(toolNames) {
-  const result = {};
-  const serverGroups = new Map;
-  for (const toolName of toolNames) {
-    const { server, tool } = parseMcpKey(toolName);
-    const group = serverGroups.get(server) ?? [];
-    group.push({ original: toolName, tool });
-    serverGroups.set(server, group);
-  }
-  const resolved = await resolveToolDescriptionsForServers(Array.from(serverGroups.entries()), (t) => t.tool);
-  for (const { tools, toolDescriptions, serverDescription } of resolved) {
-    for (const { original, tool } of tools) {
-      result[original] = toolDescriptions?.get(tool) ?? serverDescription;
-    }
-  }
-  return result;
-}
-var REGISTRY_URL = "https://registry.modelcontextprotocol.io/v0.1/servers", REMOTE_TIMEOUT_MS = 5000, CACHE_TTL_MS, CACHE_MAX_SIZE = 100, cache, toolCache, serverCache, GENERIC_SEGMENTS, JSDELIVR_DATA_URL = "https://data.jsdelivr.com/v1/packages/npm", JSDELIVR_CDN_URL = "https://cdn.jsdelivr.net/npm", VERB_PREFIXES;
-var init_mcp_registry = __esm(() => {
-  CACHE_TTL_MS = 30 * 60 * 1000;
-  cache = new TtlCache;
-  toolCache = new TtlCache;
-  serverCache = new TtlCache;
-  GENERIC_SEGMENTS = new Set(["mcp", "com", "org", "io", "dev", "server", "api"]);
-  VERB_PREFIXES = new Set([
-    "get",
-    "list",
-    "create",
-    "delete",
-    "update",
-    "search",
-    "query",
-    "fetch",
-    "run",
-    "execute",
-    "resolve",
-    "find",
-    "read",
-    "write",
-    "set",
-    "send",
-    "check",
-    "add",
-    "remove"
-  ]);
-});
-// ../../packages/utils/src/string-utils.ts
-var init_string_utils2 = () => {};
-
-// ../../packages/utils/src/toolkit-signals.ts
-function extractToolNamesFromSignals(signals) {
-  return {
-    skills: Object.keys(signals.skill_usage ?? {}),
-    agents: Object.keys(signals.agent_usage ?? {}),
-    mcpServers: Object.keys(signals.mcp_usage ?? {})
-  };
-}
-// ../../packages/utils/src/index.ts
-var init_src = __esm(() => {
-  init_command_xml();
-  init_date_range();
-  init_frontmatter();
-  init_language_utils();
-  init_mcp_registry();
-  init_string_utils2();
-});
-
 // src/config/constants.ts
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -7094,6 +7104,7 @@ var init_session_manager2 = __esm(() => {
 });
 
 // src/utils/signal-state.ts
+init_src();
 init_session_manager2();
 init_constants();
 import { readFile as readFile4, writeFile as writeFile3 } from "node:fs/promises";
@@ -7505,10 +7516,20 @@ function mergeUsageMap(prev, delta) {
   }
   return merged;
 }
+function mergeSkillUsageMap(prev, delta) {
+  const merged = {};
+  for (const [name, count] of Object.entries(prev)) {
+    merged[name] = skillUsageCount(count);
+  }
+  for (const [name, count] of delta) {
+    merged[name] = (merged[name] ?? 0) + count;
+  }
+  return merged;
+}
 function mergeSignals(previous, delta) {
   return {
     mcp_usage: mergeUsageMap(previous.mcp_usage, delta.mcp_usage),
-    skill_usage: mergeUsageMap(previous.skill_usage, delta.skill_usage),
+    skill_usage: mergeSkillUsageMap(previous.skill_usage, delta.skill_usage),
     agent_usage: mergeUsageMap(previous.agent_usage, delta.agent_usage),
     builtin_usage: mergeUsageMap(previous.builtin_usage, delta.builtin_usage),
     unknown_usage: mergeUsageMap(previous.unknown_usage, delta.unknown_usage),
@@ -7573,6 +7594,16 @@ function hasSignalData(signals) {
   }
   return false;
 }
+function sumCountMap(map) {
+  return Object.values(map).reduce((total, count) => total + count, 0);
+}
+function sumSkillUsageMap2(map) {
+  let total = 0;
+  for (const value of Object.values(map)) {
+    total += skillUsageCount(value);
+  }
+  return total;
+}
 async function updateSessionSignals(conversationFile, sessionId) {
   try {
     const session = await getValidSession();
@@ -7622,7 +7653,7 @@ async function updateSessionSignals(conversationFile, sessionId) {
         unrecognizedToolNames: newUnrecognized.length > 0 ? newUnrecognized : undefined,
         projectDir: state.projectDir ?? projectDir
       });
-      const totalCalls = Object.values(updatedTotals.mcp_usage).reduce((s, n) => s + n, 0) + Object.values(updatedTotals.skill_usage).reduce((s, n) => s + n, 0) + Object.values(updatedTotals.agent_usage).reduce((s, n) => s + n, 0) + Object.values(updatedTotals.builtin_usage).reduce((s, n) => s + n, 0) + Object.values(updatedTotals.unknown_usage).reduce((s, n) => s + n, 0);
+      const totalCalls = sumCountMap(updatedTotals.mcp_usage) + sumSkillUsageMap2(updatedTotals.skill_usage) + sumCountMap(updatedTotals.agent_usage) + sumCountMap(updatedTotals.builtin_usage) + sumCountMap(updatedTotals.unknown_usage);
       logger2.debug(`Updated session signals: ${totalCalls} total tool calls`);
     });
     if (newNames) {

@@ -19,6 +19,9 @@ var __esm = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
 function incrementMap(map, key) {
   map.set(key, (map.get(key) ?? 0) + 1);
 }
+function skillUsageCount(value) {
+  return typeof value === "number" ? value : value.count;
+}
 function extractCommandName(text) {
   const start = text.indexOf(CMD_TAG_START);
   if (start === -1)
@@ -1367,6 +1370,10 @@ var init_events2 = __esm(() => {
     NAV_LINK_CLICKED: "Nav Link Clicked",
     WORKSPACE_SWITCHED: "Workspace Switched",
     TEAM_SWITCHED: "Team Switched",
+    ASK_ZEST_CONVERSATION_STARTED: "Ask Zest Conversation Started",
+    ASK_ZEST_QUICK_ACTION_CLICKED: "Ask Zest Quick Action Clicked",
+    ASK_ZEST_PROMPT_SELECTED: "Ask Zest Prompt Selected",
+    ASK_ZEST_MENU_OPENED: "Ask Zest Menu Opened",
     STANDUP_GENERATED: "Standup Generated",
     STANDUP_VIEWED: "Standup Viewed",
     STANDUP_SHARED: "Standup Shared",
@@ -1383,6 +1390,9 @@ var init_events2 = __esm(() => {
     WORKSPACE_MEMBERS_PROVISIONED: "Workspace Members Provisioned",
     WORKSPACE_SETTINGS_VIEWED: "Workspace Settings Viewed",
     TEAM_SETTINGS_VIEWED: "Team Settings Viewed",
+    GITHUB_CONNECT_STARTED: "GitHub Connect Started",
+    GITHUB_CONNECTION_REQUESTED: "GitHub Connection Requested",
+    GITHUB_CONNECTED: "GitHub Connected",
     CLI_SIGNED_IN: "CLI Signed In",
     TRIAL_STARTED: "Trial Started",
     PLAN_SELECTED: "Plan Selected",
@@ -7230,123 +7240,6 @@ var init_file_lock2 = __esm(() => {
     lockDir: QUEUE_DIR
   });
   ({ withFileLock, cleanupStaleLocks, cleanupLockFiles } = fileLock);
-});
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/sha1.js
-import { createHash } from "node:crypto";
-function sha1(bytes) {
-  if (Array.isArray(bytes)) {
-    bytes = Buffer.from(bytes);
-  } else if (typeof bytes === "string") {
-    bytes = Buffer.from(bytes, "utf8");
-  }
-  return createHash("sha1").update(bytes).digest();
-}
-var sha1_default;
-var init_sha1 = __esm(() => {
-  sha1_default = sha1;
-});
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/regex.js
-var regex_default;
-var init_regex = __esm(() => {
-  regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
-});
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/validate.js
-function validate(uuid3) {
-  return typeof uuid3 === "string" && regex_default.test(uuid3);
-}
-var validate_default;
-var init_validate = __esm(() => {
-  init_regex();
-  validate_default = validate;
-});
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/parse.js
-function parse5(uuid3) {
-  if (!validate_default(uuid3)) {
-    throw TypeError("Invalid UUID");
-  }
-  let v;
-  return Uint8Array.of((v = parseInt(uuid3.slice(0, 8), 16)) >>> 24, v >>> 16 & 255, v >>> 8 & 255, v & 255, (v = parseInt(uuid3.slice(9, 13), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(14, 18), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(19, 23), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(24, 36), 16)) / 1099511627776 & 255, v / 4294967296 & 255, v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
-}
-var parse_default;
-var init_parse = __esm(() => {
-  init_validate();
-  parse_default = parse5;
-});
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/stringify.js
-function unsafeStringify(arr, offset = 0) {
-  return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
-}
-var byteToHex;
-var init_stringify = __esm(() => {
-  byteToHex = [];
-  for (let i = 0;i < 256; ++i) {
-    byteToHex.push((i + 256).toString(16).slice(1));
-  }
-});
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/v35.js
-function stringToBytes(str) {
-  str = unescape(encodeURIComponent(str));
-  const bytes = new Uint8Array(str.length);
-  for (let i = 0;i < str.length; ++i) {
-    bytes[i] = str.charCodeAt(i);
-  }
-  return bytes;
-}
-function v35(version3, hash2, value, namespace, buf, offset) {
-  const valueBytes = typeof value === "string" ? stringToBytes(value) : value;
-  const namespaceBytes = typeof namespace === "string" ? parse_default(namespace) : namespace;
-  if (typeof namespace === "string") {
-    namespace = parse_default(namespace);
-  }
-  if (namespace?.length !== 16) {
-    throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
-  }
-  let bytes = new Uint8Array(16 + valueBytes.length);
-  bytes.set(namespaceBytes);
-  bytes.set(valueBytes, namespaceBytes.length);
-  bytes = hash2(bytes);
-  bytes[6] = bytes[6] & 15 | version3;
-  bytes[8] = bytes[8] & 63 | 128;
-  if (buf) {
-    offset = offset || 0;
-    if (offset < 0 || offset + 16 > buf.length) {
-      throw new RangeError(`UUID byte range ${offset}:${offset + 15} is out of buffer bounds`);
-    }
-    for (let i = 0;i < 16; ++i) {
-      buf[offset + i] = bytes[i];
-    }
-    return buf;
-  }
-  return unsafeStringify(bytes);
-}
-var DNS = "6ba7b810-9dad-11d1-80b4-00c04fd430c8", URL2 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
-var init_v35 = __esm(() => {
-  init_parse();
-  init_stringify();
-});
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/v5.js
-function v5(value, namespace, buf, offset) {
-  return v35(80, sha1_default, value, namespace, buf, offset);
-}
-var v5_default;
-var init_v5 = __esm(() => {
-  init_sha1();
-  init_v35();
-  v5.DNS = DNS;
-  v5.URL = URL2;
-  v5_default = v5;
-});
-
-// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/index.js
-var init_dist_node = __esm(() => {
-  init_v5();
 });
 
 // src/hooks/delayed-extractor-cli.ts
@@ -23116,6 +23009,92 @@ init_events();
 import { randomUUID } from "node:crypto";
 import { open, readdir as readdir7, readFile as readFile11, realpath, stat as stat6 } from "node:fs/promises";
 import { basename as basename3, join as join9, resolve as resolve2 } from "node:path";
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/sha1.js
+import { createHash } from "node:crypto";
+function sha1(bytes) {
+  if (Array.isArray(bytes)) {
+    bytes = Buffer.from(bytes);
+  } else if (typeof bytes === "string") {
+    bytes = Buffer.from(bytes, "utf8");
+  }
+  return createHash("sha1").update(bytes).digest();
+}
+var sha1_default = sha1;
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/regex.js
+var regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/validate.js
+function validate(uuid3) {
+  return typeof uuid3 === "string" && regex_default.test(uuid3);
+}
+var validate_default = validate;
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/parse.js
+function parse5(uuid3) {
+  if (!validate_default(uuid3)) {
+    throw TypeError("Invalid UUID");
+  }
+  let v;
+  return Uint8Array.of((v = parseInt(uuid3.slice(0, 8), 16)) >>> 24, v >>> 16 & 255, v >>> 8 & 255, v & 255, (v = parseInt(uuid3.slice(9, 13), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(14, 18), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(19, 23), 16)) >>> 8, v & 255, (v = parseInt(uuid3.slice(24, 36), 16)) / 1099511627776 & 255, v / 4294967296 & 255, v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
+}
+var parse_default = parse5;
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/stringify.js
+var byteToHex = [];
+for (let i = 0;i < 256; ++i) {
+  byteToHex.push((i + 256).toString(16).slice(1));
+}
+function unsafeStringify(arr, offset = 0) {
+  return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
+}
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/v35.js
+function stringToBytes(str) {
+  str = unescape(encodeURIComponent(str));
+  const bytes = new Uint8Array(str.length);
+  for (let i = 0;i < str.length; ++i) {
+    bytes[i] = str.charCodeAt(i);
+  }
+  return bytes;
+}
+var DNS = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+var URL2 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
+function v35(version3, hash2, value, namespace, buf, offset) {
+  const valueBytes = typeof value === "string" ? stringToBytes(value) : value;
+  const namespaceBytes = typeof namespace === "string" ? parse_default(namespace) : namespace;
+  if (typeof namespace === "string") {
+    namespace = parse_default(namespace);
+  }
+  if (namespace?.length !== 16) {
+    throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
+  }
+  let bytes = new Uint8Array(16 + valueBytes.length);
+  bytes.set(namespaceBytes);
+  bytes.set(valueBytes, namespaceBytes.length);
+  bytes = hash2(bytes);
+  bytes[6] = bytes[6] & 15 | version3;
+  bytes[8] = bytes[8] & 63 | 128;
+  if (buf) {
+    offset = offset || 0;
+    if (offset < 0 || offset + 16 > buf.length) {
+      throw new RangeError(`UUID byte range ${offset}:${offset + 15} is out of buffer bounds`);
+    }
+    for (let i = 0;i < 16; ++i) {
+      buf[offset + i] = bytes[i];
+    }
+    return buf;
+  }
+  return unsafeStringify(bytes);
+}
+
+// ../../node_modules/.bun/uuid@13.0.2/node_modules/uuid/dist-node/v5.js
+function v5(value, namespace, buf, offset) {
+  return v35(80, sha1_default, value, namespace, buf, offset);
+}
+v5.DNS = DNS;
+v5.URL = URL2;
+var v5_default = v5;
 // ../../packages/plugin-common/src/supabase/utils/string-utils.ts
 function toWellFormed(str) {
   return str.toWellFormed?.() ?? str;
@@ -23124,11 +23103,180 @@ var SYNTHETIC_MODEL = "<synthetic>";
 function isSyntheticModel(model) {
   return model === SYNTHETIC_MODEL;
 }
+// ../../packages/types/token-usage.ts
+var TOKEN_SOURCES = ["provider_reported", "estimated_heuristic"];
+var COST_SOURCES = [
+  "provider_reported",
+  "derived_openrouter",
+  "cursor_dashboard_api"
+];
+var BILLING_MODES = ["api", "subscription", "unknown"];
+var SessionTokenUsageSchema = exports_external.object({
+  input_tokens: exports_external.number().int().nonnegative(),
+  output_tokens: exports_external.number().int().nonnegative(),
+  total_tokens: exports_external.number().int().nonnegative(),
+  token_source: exports_external.enum(TOKEN_SOURCES),
+  cost_usd: exports_external.number().nonnegative().nullable().optional(),
+  cost_source: exports_external.enum(COST_SOURCES).nullable().optional(),
+  api_equivalent_cost_usd: exports_external.number().nonnegative().nullable().optional(),
+  api_equivalent_cost_source: exports_external.enum(["derived_openrouter", "derived_openrouter_stale"]).nullable().optional(),
+  cache_read_tokens: exports_external.number().int().nonnegative().optional(),
+  cache_creation_tokens: exports_external.number().int().nonnegative().optional(),
+  cache_creation_5m_tokens: exports_external.number().int().nonnegative().optional(),
+  cache_creation_1h_tokens: exports_external.number().int().nonnegative().optional(),
+  reasoning_tokens: exports_external.number().int().nonnegative().optional(),
+  server_tool_use_input_tokens: exports_external.number().int().nonnegative().optional(),
+  server_tool_use_output_tokens: exports_external.number().int().nonnegative().optional(),
+  message_count_with_tokens: exports_external.number().int().nonnegative().optional(),
+  model_usage: exports_external.record(exports_external.string(), exports_external.object({
+    input_tokens: exports_external.number().nonnegative(),
+    output_tokens: exports_external.number().nonnegative(),
+    cache_read_input_tokens: exports_external.number().nonnegative().optional(),
+    cache_creation_input_tokens: exports_external.number().nonnegative().optional(),
+    cache_creation_5m_input_tokens: exports_external.number().nonnegative().optional(),
+    cache_creation_1h_input_tokens: exports_external.number().nonnegative().optional(),
+    reasoning_tokens: exports_external.number().nonnegative().optional(),
+    cost_usd: exports_external.number().nonnegative().optional()
+  })).optional(),
+  context_used_percent: exports_external.number().nonnegative().max(100).optional(),
+  context_window_size: exports_external.number().int().nonnegative().optional(),
+  context_tokens_used: exports_external.number().int().nonnegative().optional(),
+  context_token_breakdown: exports_external.record(exports_external.string(), exports_external.number().int().nonnegative()).optional(),
+  copilot_credits: exports_external.number().nonnegative().optional(),
+  copilot_sku: exports_external.string().min(1).optional(),
+  rate_limit_percent: exports_external.number().nonnegative().optional(),
+  rate_limit_type: exports_external.string().optional(),
+  rate_limit_is_overage: exports_external.boolean().optional(),
+  plan: exports_external.string().min(1).optional(),
+  billing_mode: exports_external.enum(BILLING_MODES).optional(),
+  overage: exports_external.boolean().optional(),
+  rate_limits: exports_external.array(exports_external.object({
+    window: exports_external.enum(["5h", "weekly", "monthly"]),
+    used_percent: exports_external.number().nonnegative(),
+    resets_at: exports_external.string().optional(),
+    credits: exports_external.number().nonnegative().optional(),
+    individual_limit: exports_external.number().nonnegative().optional(),
+    limit_name: exports_external.string().optional(),
+    rate_limit_reached_type: exports_external.string().optional()
+  })).optional()
+});
+
+// ../../packages/types/session-metadata.ts
+var HermesSessionMetadataSchema = exports_external.object({
+  trigger: exports_external.string(),
+  model: exports_external.string(),
+  ended_at: exports_external.string().nullable(),
+  end_reason: exports_external.string().nullable(),
+  is_error: exports_external.boolean(),
+  input_tokens: exports_external.number(),
+  output_tokens: exports_external.number(),
+  cache_read_tokens: exports_external.number(),
+  cache_write_tokens: exports_external.number(),
+  reasoning_tokens: exports_external.number(),
+  cost_usd: exports_external.number().nullable(),
+  message_count: exports_external.number(),
+  tool_call_count: exports_external.number(),
+  duration_ms: exports_external.number().nullable().optional(),
+  available_skills_count: exports_external.number().nullable().optional(),
+  memory_chars: exports_external.number().nullable().optional(),
+  memory_entry_count: exports_external.number().nullable().optional(),
+  user_entry_count: exports_external.number().nullable().optional(),
+  user_chars: exports_external.number().nullable().optional()
+});
+var TokenUsageSchema = exports_external.object({
+  input_tokens: exports_external.number().optional(),
+  cached_input_tokens: exports_external.number().optional(),
+  output_tokens: exports_external.number().optional(),
+  reasoning_output_tokens: exports_external.number().optional(),
+  total_tokens: exports_external.number().optional()
+});
+var RateLimitWindowSchema = exports_external.object({
+  used_percent: exports_external.number().optional(),
+  window_minutes: exports_external.number().optional(),
+  resets_at: exports_external.number().optional()
+});
+var CodexSessionMetadataSchema = exports_external.object({
+  model_with_reasoning: exports_external.string().optional(),
+  token_source: exports_external.enum(TOKEN_SOURCES).optional(),
+  plan: exports_external.string().optional(),
+  billing_mode: exports_external.enum(BILLING_MODES).optional(),
+  overage: exports_external.boolean().optional(),
+  context_remaining: exports_external.number().optional(),
+  context_used: exports_external.number().optional(),
+  five_hour_limit: exports_external.number().optional(),
+  weekly_limit: exports_external.number().optional(),
+  used_tokens: exports_external.number().optional(),
+  input_tokens: exports_external.number().optional(),
+  output_tokens: exports_external.number().optional(),
+  cache_read_tokens: exports_external.number().optional(),
+  reasoning_tokens: exports_external.number().optional(),
+  model_context_window: exports_external.number().optional(),
+  token_count_latest: exports_external.object({
+    timestamp: exports_external.string().optional(),
+    total_token_usage: TokenUsageSchema.optional(),
+    last_token_usage: TokenUsageSchema.optional(),
+    model_context_window: exports_external.number().optional()
+  }).optional(),
+  rate_limits_latest: exports_external.object({
+    limit_id: exports_external.string().optional(),
+    plan_type: exports_external.string().optional(),
+    primary: RateLimitWindowSchema.optional(),
+    secondary: RateLimitWindowSchema.optional()
+  }).optional()
+});
+var ClaudeCodeSessionMetadataSchema = exports_external.object({
+  model: exports_external.string().optional(),
+  input_tokens: exports_external.number().optional(),
+  output_tokens: exports_external.number().optional(),
+  cache_read_tokens: exports_external.number().optional(),
+  cache_creation_tokens: exports_external.number().optional(),
+  reasoning_tokens: exports_external.number().optional(),
+  cost_usd: exports_external.number().nullable().optional(),
+  cost_source: exports_external.string().optional(),
+  plan: exports_external.string().optional(),
+  billing_mode: exports_external.enum(BILLING_MODES).optional(),
+  overage: exports_external.boolean().optional(),
+  context_used: exports_external.number().optional(),
+  context_tokens_used: exports_external.number().optional(),
+  context_peak_tokens: exports_external.number().optional(),
+  model_context_window: exports_external.number().optional(),
+  used_tokens: exports_external.number().optional(),
+  five_hour_limit: exports_external.number().optional(),
+  weekly_limit: exports_external.number().optional(),
+  rate_limits_latest: exports_external.object({
+    limit_id: exports_external.string().optional(),
+    primary: RateLimitWindowSchema.optional(),
+    secondary: RateLimitWindowSchema.optional()
+  }).optional(),
+  token_data_source: exports_external.string().optional()
+}).passthrough();
+
+// ../../packages/plugin-common/src/sync/chat-uploader.ts
+init_src();
+init_events();
+init_properties();
+
+// ../../packages/plugin-common/src/sync/error-classifier.ts
+var AUTH_ERROR_STATUSES = new Set([401, 403]);
+var DATA_ERROR_PG_CODES = new Set(["22021", "22P02", "22001"]);
+var NETWORK_ERRNO_CODES = new Set([
+  "ENOTFOUND",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "ENETUNREACH"
+]);
+var RETRYABLE_CATEGORIES = new Set([
+  "unknown",
+  "network_error",
+  "server_overload",
+  "rate_limited"
+]);
+
 // src/utils/extraction-helpers.ts
 init_src();
 
 // ../../packages/utils/src/git-utils.ts
-init_dist_node();
 import { exec, execSync } from "node:child_process";
 import * as path from "node:path";
 import { promisify } from "node:util";
@@ -23169,6 +23317,15 @@ function extractProjectName(workingDirectory) {
       }
     } catch {}
     try {
+      const gitCommonDir = execSync("git rev-parse --git-common-dir", {
+        cwd: workingDirectory,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 5000
+      }).trim();
+      if (path.isAbsolute(gitCommonDir) && path.basename(gitCommonDir) === ".git") {
+        return path.basename(path.dirname(gitCommonDir));
+      }
       const repoRoot = execSync("git rev-parse --show-toplevel", {
         cwd: workingDirectory,
         encoding: "utf-8",
@@ -24917,7 +25074,7 @@ init_logger();
 init_events();
 init_properties();
 import { appendFile as appendFile2, readFile as readFile9, unlink as unlink5, writeFile as writeFile6 } from "node:fs/promises";
-import { dirname as dirname6 } from "node:path";
+import { dirname as dirname7 } from "node:path";
 init_file_lock();
 init_fs_utils2();
 function createQueueManager(config2) {
@@ -25048,6 +25205,23 @@ function createQueueManager(config2) {
       throw error51;
     }
   }
+  async function patchQueuedSession(sessionId, metadata, title) {
+    let found = false;
+    await atomicUpdateQueue(queueFiles.sessions, (sessions) => sessions.map((session) => {
+      if (session.id !== sessionId)
+        return session;
+      found = true;
+      return {
+        ...session,
+        title: title ?? session.title,
+        metadata: {
+          ...session.metadata ?? {},
+          ...metadata
+        }
+      };
+    }));
+    return found;
+  }
   async function readQueue(queueFile) {
     try {
       return await readJsonl(queueFile);
@@ -25059,7 +25233,7 @@ function createQueueManager(config2) {
   async function writeQueue(queueFile, items) {
     try {
       await withFileLock2(queueFile, async () => {
-        await ensureDirectory2(dirname6(queueFile));
+        await ensureDirectory2(dirname7(queueFile));
         const content = items.map((item) => JSON.stringify(item, sanitizingReplacer)).join(`
 `) + (items.length > 0 ? `
 ` : "");
@@ -25086,7 +25260,7 @@ function createQueueManager(config2) {
       await withFileLock2(queueFile, async () => {
         const currentItems = await readJsonl(queueFile);
         const newItems = transform2(currentItems);
-        await ensureDirectory2(dirname6(queueFile));
+        await ensureDirectory2(dirname7(queueFile));
         const content = newItems.map((item) => JSON.stringify(item, sanitizingReplacer)).join(`
 `) + (newItems.length > 0 ? `
 ` : "");
@@ -25149,7 +25323,7 @@ function createQueueManager(config2) {
           const targetSize = Math.floor(cap * 0.9);
           const itemsToEvict = currentItems.length - targetSize;
           const trimmed = currentItems.slice(itemsToEvict);
-          await ensureDirectory2(dirname6(queueFile));
+          await ensureDirectory2(dirname7(queueFile));
           const content = [...trimmed, item].map((i) => JSON.stringify(i, sanitizingReplacer)).join(`
 `) + `
 `;
@@ -25165,7 +25339,7 @@ function createQueueManager(config2) {
           return;
         }
       }
-      await ensureDirectory2(dirname6(queueFile));
+      await ensureDirectory2(dirname7(queueFile));
       const line = JSON.stringify(item, sanitizingReplacer) + `
 `;
       await appendFile2(queueFile, line, "utf8");
@@ -25247,6 +25421,7 @@ function createQueueManager(config2) {
     enqueueEvent,
     enqueueChatSession,
     enqueueChatMessage,
+    patchQueuedSession,
     getDetailedQueueStats
   };
 }
@@ -25284,6 +25459,7 @@ var {
   enqueueEvent,
   enqueueChatSession,
   enqueueChatMessage,
+  patchQueuedSession,
   getDetailedQueueStats
 } = queueManager;
 
@@ -25435,20 +25611,7 @@ async function patchQueuedSessionMetadataFromStatusline(sessionId) {
   const statuslineMetadata = statuslineSnapshotToSessionMetadata(await readStatuslineSnapshotForSession(sessionId));
   if (Object.keys(statuslineMetadata).length === 0)
     return false;
-  let patched = false;
-  await atomicUpdateQueue(SESSIONS_QUEUE_FILE, (sessions) => sessions.map((s) => {
-    if (s.id !== sessionId)
-      return s;
-    patched = true;
-    return {
-      ...s,
-      metadata: {
-        ...s.metadata ?? {},
-        ...statuslineMetadata
-      }
-    };
-  }));
-  return patched;
+  return patchQueuedSession(sessionId, statuslineMetadata);
 }
 async function queueToolUseEvents(toolUses, sessionId, projectDir) {
   const session = await getValidSession();
@@ -25578,6 +25741,7 @@ function isFolderExcluded(folderPath, settings) {
 init_logger();
 
 // src/utils/signal-state.ts
+init_src();
 init_session_manager2();
 init_constants();
 import { readFile as readFile12, writeFile as writeFile8 } from "node:fs/promises";
@@ -25961,10 +26125,20 @@ function mergeUsageMap(prev, delta) {
   }
   return merged;
 }
+function mergeSkillUsageMap(prev, delta) {
+  const merged = {};
+  for (const [name, count] of Object.entries(prev)) {
+    merged[name] = skillUsageCount(count);
+  }
+  for (const [name, count] of delta) {
+    merged[name] = (merged[name] ?? 0) + count;
+  }
+  return merged;
+}
 function mergeSignals(previous, delta) {
   return {
     mcp_usage: mergeUsageMap(previous.mcp_usage, delta.mcp_usage),
-    skill_usage: mergeUsageMap(previous.skill_usage, delta.skill_usage),
+    skill_usage: mergeSkillUsageMap(previous.skill_usage, delta.skill_usage),
     agent_usage: mergeUsageMap(previous.agent_usage, delta.agent_usage),
     builtin_usage: mergeUsageMap(previous.builtin_usage, delta.builtin_usage),
     unknown_usage: mergeUsageMap(previous.unknown_usage, delta.unknown_usage),
@@ -25987,6 +26161,16 @@ async function readStateFromFile(stateFile) {
 async function writeStateToFile(stateFile, state) {
   await ensureDirectory(STATE_DIR);
   await writeFile8(stateFile, JSON.stringify(state), "utf-8");
+}
+function sumCountMap(map2) {
+  return Object.values(map2).reduce((total, count) => total + count, 0);
+}
+function sumSkillUsageMap2(map2) {
+  let total = 0;
+  for (const value of Object.values(map2)) {
+    total += skillUsageCount(value);
+  }
+  return total;
 }
 async function updateSessionSignals(conversationFile, sessionId) {
   try {
@@ -26037,7 +26221,7 @@ async function updateSessionSignals(conversationFile, sessionId) {
         unrecognizedToolNames: newUnrecognized.length > 0 ? newUnrecognized : undefined,
         projectDir: state.projectDir ?? projectDir
       });
-      const totalCalls = Object.values(updatedTotals.mcp_usage).reduce((s, n) => s + n, 0) + Object.values(updatedTotals.skill_usage).reduce((s, n) => s + n, 0) + Object.values(updatedTotals.agent_usage).reduce((s, n) => s + n, 0) + Object.values(updatedTotals.builtin_usage).reduce((s, n) => s + n, 0) + Object.values(updatedTotals.unknown_usage).reduce((s, n) => s + n, 0);
+      const totalCalls = sumCountMap(updatedTotals.mcp_usage) + sumSkillUsageMap2(updatedTotals.skill_usage) + sumCountMap(updatedTotals.agent_usage) + sumCountMap(updatedTotals.builtin_usage) + sumCountMap(updatedTotals.unknown_usage);
       logger.debug(`Updated session signals: ${totalCalls} total tool calls`);
     });
     if (newNames) {
