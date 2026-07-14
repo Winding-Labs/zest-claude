@@ -6,7 +6,7 @@ allowed-tools: Bash
 Execute the Zest disable notifications script:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/dist/commands/disable-notify-cli.js
+${CLAUDE_PLUGIN_ROOT}/bin/zest command disable-notify
 ```
 
 Show the complete output directly to the user without modification.

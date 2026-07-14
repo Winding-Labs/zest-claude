@@ -6,13 +6,13 @@ allowed-tools: Bash
 Execute the Zest status line configuration script:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/dist/commands/enable-statusline-cli.js
+${CLAUDE_PLUGIN_ROOT}/bin/zest command enable-statusline
 ```
 
 To force replacement of existing status line configuration without prompting:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/dist/commands/enable-statusline-cli.js --force
+${CLAUDE_PLUGIN_ROOT}/bin/zest command enable-statusline --force
 ```
 
 Show the complete output to the user.
