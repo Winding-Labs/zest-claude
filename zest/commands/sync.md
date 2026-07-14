@@ -6,7 +6,7 @@ allowed-tools: Bash
 Execute the Zest sync script to immediately upload queued data:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/dist/commands/sync-cli.js
+${CLAUDE_PLUGIN_ROOT}/bin/zest command sync
 ```
 
 Show the complete output directly to the user without modification.

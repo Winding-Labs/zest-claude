@@ -6,7 +6,7 @@ allowed-tools: Bash
 Execute the Zest token refresh debug script:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/dist/commands/refresh-token-cli.js
+${CLAUDE_PLUGIN_ROOT}/bin/zest command refresh-token
 ```
 
 Show the complete output directly to the user without modification.

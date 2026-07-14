@@ -6,7 +6,7 @@ allowed-tools: Bash
 Execute the Zest ignore script to stop tracking activity in this folder:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/dist/commands/ignore-cli.js
+${CLAUDE_PLUGIN_ROOT}/bin/zest command ignore
 ```
 
 Show the complete output directly to the user without modification.

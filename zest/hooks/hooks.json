@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd ${CLAUDE_PLUGIN_ROOT} && node dist/hooks/session-handler-cli.js start",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/zest hook session-start",
             "timeout": 30
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd ${CLAUDE_PLUGIN_ROOT} && node dist/hooks/session-handler-cli.js end",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/zest hook session-end",
             "timeout": 30
           }
         ]
@@ -33,7 +33,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd ${CLAUDE_PLUGIN_ROOT} && node dist/hooks/pre-tool-handler-cli.js",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/zest hook pre-tool",
             "timeout": 15
           }
         ]
@@ -44,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd ${CLAUDE_PLUGIN_ROOT} && node dist/hooks/incremental-extractor-cli.js",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/zest hook incremental",
             "timeout": 15
           }
         ]
