@@ -22,23 +22,6 @@
         ]
       }
     ],
-    "PreToolUse": [
-      {
-        "matchers": [
-          {
-            "type": "tool",
-            "tool": "Bash"
-          }
-        ],
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/bin/zest hook pre-tool",
-            "timeout": 15
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
         "hooks": [
