@@ -1,110 +1,51 @@
-# Zest - Claude Code CLI Plugin Marketplace
+# Zest for Claude Code
 
-This repository hosts the Zest plugin for Claude Code CLI, enabling automatic tracking of coding sessions and file changes for comprehensive productivity insights.
+Track your Claude Code sessions in Zest: automatic standups, token and cost
+analytics, and a picture of how your team actually works across every AI tool.
 
-## For Users
+## Install
 
-### Installation & Quick Start
+    /plugin marketplace update zest-marketplace
+    /plugin install zest
 
-**Requirements**: Node.js version 20 or higher
+Then run `/login` inside a Claude Code session.
 
-1. **Add the marketplace**:
+Full instructions: https://app.meetzest.com/docs/install/claude-code
 
-   ```bash
-   /plugin marketplace add https://github.com/Winding-Labs/zest-claude
-   ```
+## What it captures
 
-2. **Install the plugin**:
+Sessions, messages, tool calls, models, per-turn token usage and context
+pressure. Everything is redacted on your machine before it is sent, using
+the same privacy pipeline every Zest plugin uses.
 
-   ```bash
-   /plugin install zest
-   ```
+## Commands
 
-3. **Authenticate with Zest**:
+| Command | What it does |
+|---|---|
+| `/login` | Connect this machine to your Zest workspace |
+| `/logout` | Sign out of Zest |
+| `/status` | Auth, workspace, sync state, daemon and hook health |
+| `/sync` | Force a sync now |
+| `/standup` | Generate today's standup |
+| `/enable` | Enable remote sync of sessions to Zest |
+| `/disable` | Disable remote sync (keep capturing locally only) |
+| `/enable-notify` | Enable status line notifications |
+| `/disable-notify` | Disable status line notifications |
+| `/enable-statusline` | Enable plugin update notifications in status line |
+| `/workspace` | View or switch workspace |
+| `/privacy` | View or configure privacy redaction |
+| `/ignore` | Stop tracking the current folder |
+| `/unignore` | Resume tracking the current folder |
+| `/refresh-token` | Manually refresh authentication token (debug) |
 
-   ```bash
-   /zest:login
-   ```
+## Notes
 
-4. **Start coding!** The plugin works automatically in the background
+Source lives in the Zest monorepo; this repository is the distribution
+mirror and is regenerated on every release.
 
-### Updating the Plugin
+## License
 
-To update Zest to the latest version:
+Proprietary — see LICENSE.md. Third-party components included in this
+distribution are listed in THIRD-PARTY-NOTICES.md.
 
-1. **Update the marketplace**:
-
-   ```bash
-   /plugin marketplace update zest-marketplace
-   ```
-
-2. **Uninstall and update**:
-
-   ```bash
-   /plugin uninstall zest
-   ```
-
-   Then choose **"Update now"** from the options
-
-3. **Restart Claude Code** to complete the update
-
-### Available Commands
-
-- `/zest:login` - Authenticate with Zest (opens browser)
-- `/zest:logout` - Sign out from Zest
-- `/zest:status` - View authentication and sync status
-- `/zest:sync` - Manually trigger immediate sync
-- `/zest:enable` - Enable remote persistence (syncing)
-- `/zest:disable` - Disable remote persistence (local only)
-- `/zest:workspace` - Configure workspace settings
-- `/zest:ignore` - Disable tracking for the current folder
-- `/zest:unignore` - Re-enable tracking for the current folder
-- `/zest:enable-statusline` - Configure status line for update notifications
-
-### Features
-
-- ✨ **Automatic Session Tracking**: Captures all Claude Code chat sessions
-- 📝 **File Change Monitoring**: Tracks file modifications with full diffs
-- 💾 **Queue-First Architecture**: Never lose data - queues locally before syncing
-- 🌐 **Offline Support**: Works offline, syncs when reconnected
-- 🔒 **Privacy Focused**: Respects .gitignore and exclusion rules
-- 🚀 **Zero Manual Intervention**: Set it and forget it
-- 📊 **Status Line Notifications**: Get real-time sync updates in your status line (enable with `/zest:enable_statusline`)
-
-### How It Works
-
-1. Plugin starts tracking immediately upon installation
-2. Data is queued locally in `~/.claude-zest/queue/`
-3. After authentication (`/zest:login`), data syncs automatically every 60 seconds
-4. Background daemon runs continuously (auto-starts, auto-restarts)
-5. All your coding activity is captured for analysis in Zest
-
-### Troubleshooting
-
-**Plugin not working?**
-
-```bash
-/plugin list                    # Check if installed
-/plugin uninstall zest          # Uninstall
-/plugin install zest            # Reinstall
-```
-
-**Authentication issues?**
-
-```bash
-/zest:status                    # Check current status
-/zest:logout                    # Sign out
-/zest:login                     # Sign back in
-```
-
-**Data not syncing?**
-
-```bash
-/zest:status                    # Check daemon status
-/zest:sync                      # Try manual sync
-```
-
-Check logs if issues persist:
-
-- Plugin logs: `~/.claude-zest/logs/plugin.log`
-- Sync logs: `~/.claude-zest/logs/sync.log`
+Questions: hi@winding.ai
