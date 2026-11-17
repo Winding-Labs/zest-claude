@@ -8,9 +8,9 @@ analytics, and a picture of how your team actually works across every AI tool.
     /plugin marketplace update zest-marketplace
     /plugin install zest
 
-Then run `/login` inside a Claude Code session.
+Then run `/zest:login` inside a Claude Code session.
 
-Full instructions: https://app.meetzest.com/docs/install/claude-code
+Full instructions: https://meetzest.com/docs/plugins/claude-code/
 
 ## What it captures
 
@@ -22,21 +22,20 @@ the same privacy pipeline every Zest plugin uses.
 
 | Command | What it does |
 |---|---|
-| `/login` | Connect this machine to your Zest workspace |
-| `/logout` | Sign out of Zest |
-| `/status` | Auth, workspace, sync state, daemon and hook health |
-| `/sync` | Force a sync now |
-| `/standup` | Generate today's standup |
-| `/enable` | Enable remote sync of sessions to Zest |
-| `/disable` | Disable remote sync (keep capturing locally only) |
-| `/enable-notify` | Enable status line notifications |
-| `/disable-notify` | Disable status line notifications |
-| `/enable-statusline` | Enable plugin update notifications in status line |
-| `/workspace` | View or switch workspace |
-| `/privacy` | View or configure privacy redaction |
-| `/ignore` | Stop tracking the current folder |
-| `/unignore` | Resume tracking the current folder |
-| `/refresh-token` | Manually refresh authentication token (debug) |
+| `/zest:login` | Connect this machine to your Zest workspace |
+| `/zest:logout` | Sign out of Zest |
+| `/zest:status` | Auth, workspace, sync state, daemon and hook health |
+| `/zest:sync` | Force a sync now |
+| `/zest:standup` | Generate today's standup |
+| `/zest:enable` | Enable remote sync of sessions to Zest |
+| `/zest:disable` | Disable remote sync (keep capturing locally only) |
+| `/zest:enable-notify` | Enable status line notifications |
+| `/zest:disable-notify` | Disable status line notifications |
+| `/zest:enable-statusline` | Enable plugin update notifications in status line |
+| `/zest:workspace` | View or switch workspace |
+| `/zest:privacy` | View or configure privacy redaction |
+| `/zest:ignore` | Stop tracking the current folder |
+| `/zest:unignore` | Resume tracking the current folder |
 
 ## Notes
 
@@ -48,4 +47,4 @@ mirror and is regenerated on every release.
 Proprietary — see LICENSE.md. Third-party components included in this
 distribution are listed in THIRD-PARTY-NOTICES.md.
 
-Questions: hi@winding.ai
+Questions: support@winding.ai
