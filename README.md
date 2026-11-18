@@ -1,7 +1,9 @@
 # Zest for Claude Code
 
-Track your Claude Code sessions in Zest: automatic standups, token and cost
-analytics, and a picture of how your team actually works across every AI tool.
+A Claude Code usage tracker for you and your team. Zest records your Claude Code
+sessions, tokens, models and cost and shows them in a usage dashboard, with
+automatic standups and a picture of how your team actually works across every
+AI tool.
 
 ## Install
 
@@ -10,7 +12,7 @@ analytics, and a picture of how your team actually works across every AI tool.
 
 Then run `/zest:login` inside a Claude Code session.
 
-Full instructions: https://meetzest.com/docs/plugins/claude-code/
+Full instructions: https://meetzest.com/docs/plugins/claude-code/?utm_source=github.com&utm_medium=referral&utm_campaign=plugin-readme
 
 ## What it captures
 
